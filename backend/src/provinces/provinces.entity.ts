@@ -1,8 +1,8 @@
 import crypto from 'node:crypto'
 
-export class Provincia {
+export class Province {
   constructor(
-    public codProvincia: string,
+    public idProvince: string,
     public name: string
     )  {}
 }

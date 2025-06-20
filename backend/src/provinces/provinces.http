@@ -1,21 +1,21 @@
 ### obtener todos los provincias
-GET http://localhost:3000/api/provincias
+GET http://localhost:3000/api/provinces
 
 
 ### obtener una provincia
-GET http://localhost:3000/api/provincias/01
+GET http://localhost:3000/api/provinces/01
 
 ### crear una nueva provincia
-POST http://localhost:3000/api/provincias
+POST http://localhost:3000/api/provinces
 Content-Type: application/json
 
 {
     "name": "Neuquen",
-    "codProvincia": "1974"
+    "idProvince": "1974"
 }
 
 ### modificar una provincia (PUT - recurso completo e idempotente)
-PUT http://localhost:3000/api/provincias/01
+PUT http://localhost:3000/api/provinces/01
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 }
 
 ### modificar un provincia (PATCH - recurso parcial)
-PATCH http://localhost:3000/api/provincias/01
+PATCH http://localhost:3000/api/provinces/01
 Content-Type: application/json
 
 {
@@ -31,4 +31,4 @@ Content-Type: application/json
 }
 
 ### borrar un provincia
-DELETE http://localhost:3000/api/provincias/01
+DELETE http://localhost:3000/api/provinces/01
