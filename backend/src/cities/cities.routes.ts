@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { sanitizeCityInput, findAll, findOne, add, update, remove } from './cities.controler.js'
+import { sanitizeCityInput, findAll, findOne, add, update, remove } from './cities.controller.js'
 
 export const cityRouter = Router()
 
