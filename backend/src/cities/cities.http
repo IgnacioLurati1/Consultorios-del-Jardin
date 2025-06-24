@@ -1,0 +1,35 @@
+### obtener todos las localidades
+GET http://localhost:3000/api/cities
+
+
+### obtener una Localidad
+GET http://localhost:3000/api/cities/01
+
+### crear una nueva localidad
+POST http://localhost:3000/api/cities
+Content-Type: application/json
+
+{
+    "idCity": "02",
+    "name": "Santa Fe",
+    "idProvince": "01"
+}
+
+### modificar una localidad (PUT - recurso completo e idempotente)
+PUT http://localhost:3000/api/cities/01
+Content-Type: application/json
+
+{
+  "name": "Negrario"
+}
+
+### modificar una localidad (PATCH - recurso parcial)
+PATCH http://localhost:3000/api/cities/01
+Content-Type: application/json
+
+{
+  "name": "Newells City"
+}
+
+### borrar una localidad
+DELETE http://localhost:3000/api/cities/01

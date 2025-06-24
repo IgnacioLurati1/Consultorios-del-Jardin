@@ -1,12 +1,13 @@
 import express from 'express'
 import { provinceRouter } from './provinces/provinces.routes.js'
+import { cityRouter} from './cities/cities.routes.js'
 import { personRouter } from './people/people.routes.js'
-
 
 const app = express()
 app.use(express.json())
 
 app.use('/api/provinces', provinceRouter)
+app.use('/api/cities', cityRouter)
 app.use('/api/people', personRouter)
 
 app.use((_, res) => {
