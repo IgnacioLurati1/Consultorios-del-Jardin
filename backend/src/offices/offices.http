@@ -1,0 +1,58 @@
+GET http://localhost:3000/api/offices
+
+
+### Obtain an office by ID
+GET http://localhost:3000/api/offices/01
+
+### Create a new office
+POST http://localhost:3000/api/offices
+Content-Type: application/json
+
+{
+    "idOffice": "02",
+    "idCity": "02",
+    "description": "Rojo",
+    "closingTime": "18:00",
+    "openingTime": "08:00"
+}
+
+### Create a new office with invalid time
+POST http://localhost:3000/api/offices
+Content-Type: application/json
+
+{
+    "idOffice": "02",
+    "idCity": "02",
+    "description": "Rojo",
+    "closingTime": "8:00",
+    "openingTime": "18:00"
+}
+
+### Modify an office
+PUT http://localhost:3000/api/offices/01
+Content-Type: application/json
+
+{
+  "description": "Azul"
+}
+
+### Modify an office with invalid time
+PUT http://localhost:3000/api/offices/01
+Content-Type: application/json
+
+{
+  "closingTime": "8:00",
+  "openingTime": "18:00",
+  "description": "Azul"
+}
+
+### Modify an office (PATCH)
+PATCH http://localhost:3000/api/offices/01
+Content-Type: application/json
+
+{
+  "description": "Verde"
+}
+
+### Delete an office
+DELETE http://localhost:3000/api/offices/01
