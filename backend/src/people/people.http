@@ -1,0 +1,39 @@
+### obtener todos los personas
+GET http://localhost:3000/api/people
+
+### obtener una persona
+GET http://localhost:3000/api/people/olivieri03@gmail.com
+
+### crear una nueva persona
+POST http://localhost:3000/api/people
+Content-Type: application/json
+
+{
+    "email": "genaro20038@gmail.com",
+    "docType": "dni",
+    "docNumber": "45265010",
+    "name": "Genaro",
+    "surname": "Ortiz",
+    "phoneNumber": "3413493886",
+    "password": "1234"
+}
+
+### modificar una persona (PUT - recurso completo e idempotente)
+PUT http://localhost:3000/api/people/genaro20038@gmail.com
+Content-Type: application/json
+
+{
+    "docType": "pasaporte",
+    "phoneNumber": "3413493887"
+}
+
+### modificar una persona (PATCH - recurso parcial)
+PATCH http://localhost:3000/api/people/olivieri03@gmail.com
+Content-Type: application/json
+
+{
+    "password": "56789"
+}
+
+### borrar una persona
+DELETE http://localhost:3000/api/people/olivieri03@gmail.com
