@@ -1,0 +1,38 @@
+GET http://localhost:3000/api/offices
+
+
+### obtener una oficina
+GET http://localhost:3000/api/offices/01
+
+### crear una nueva oficina
+POST http://localhost:3000/api/offices
+Content-Type: application/json
+
+{
+    "idOffice": "02",
+    "idCity": "02",
+    "description": "Rojo",
+    "closingTime": "18:00",
+    "openingTime": "08:00"
+}
+
+
+
+### modificar una oficina (PUT - recurso completo e idempotente)
+PUT http://localhost:3000/api/offices/01
+Content-Type: application/json
+
+{
+  "description": "Azul"
+}
+
+### modificar una oficina (PATCH - recurso parcial)
+PATCH http://localhost:3000/api/offices/01
+Content-Type: application/json
+
+{
+  "description": "Verde"
+}
+
+### borrar una oficina
+DELETE http://localhost:3000/api/offices/01
