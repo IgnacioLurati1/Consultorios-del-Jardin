@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { sanitizeProvinceInput, findAll, findOne, add, update, remove } from './provinces.controler.js'
+import { sanitizeProvinceInput, findAll, findOne, add, update, remove } from './provinces.controller.js'
 
 export const provinceRouter = Router()
 

@@ -13,8 +13,8 @@ export class ProvincesRepository implements Repository<Province> {
     return provinces
 }
 
-  public findOne(item: { idProvince: string }): Province | undefined {
-    return provinces.find((province) => province.idProvince === item.idProvince)
+  public findOne(item: { id: string }): Province | undefined {
+    return provinces.find((province) => province.idProvince === item.id)
   }
 
   public add(item: Province): Province | undefined {
@@ -31,8 +31,8 @@ export class ProvincesRepository implements Repository<Province> {
     return provinces[idProvincex]
   }
 
-  public delete(item: { idProvince: string }): Province | undefined {
-    const idProvincex = provinces.findIndex((province) => province.idProvince === item.idProvince)
+  public delete(item: { id: string }): Province | undefined {
+    const idProvincex = provinces.findIndex((province) => province.idProvince === item.id)
 
     if (idProvincex !== -1) {
       const deletedProvinces = provinces[idProvincex]
