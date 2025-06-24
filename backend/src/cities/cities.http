@@ -1,11 +1,11 @@
-### obtener todos los provincias
+### obtener todos las localidades
 GET http://localhost:3000/api/cities
 
 
-### obtener una provincia
+### obtener una Localidad
 GET http://localhost:3000/api/cities/01
 
-### crear una nueva provincia
+### crear una nueva localidad
 POST http://localhost:3000/api/cities
 Content-Type: application/json
 
@@ -15,7 +15,7 @@ Content-Type: application/json
     "idProvince": "01"
 }
 
-### modificar una provincia (PUT - recurso completo e idempotente)
+### modificar una localidad (PUT - recurso completo e idempotente)
 PUT http://localhost:3000/api/cities/01
 Content-Type: application/json
 
@@ -23,7 +23,7 @@ Content-Type: application/json
   "name": "Negrario"
 }
 
-### modificar un provincia (PATCH - recurso parcial)
+### modificar una localidad (PATCH - recurso parcial)
 PATCH http://localhost:3000/api/cities/01
 Content-Type: application/json
 
@@ -31,5 +31,5 @@ Content-Type: application/json
   "name": "Newells City"
 }
 
-### borrar un provincia
+### borrar una localidad
 DELETE http://localhost:3000/api/cities/01
