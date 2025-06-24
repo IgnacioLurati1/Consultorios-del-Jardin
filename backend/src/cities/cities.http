@@ -1,0 +1,35 @@
+### obtener todos los provincias
+GET http://localhost:3000/api/cities
+
+
+### obtener una provincia
+GET http://localhost:3000/api/cities/01
+
+### crear una nueva provincia
+POST http://localhost:3000/api/cities
+Content-Type: application/json
+
+{
+    "idCity": "02",
+    "name": "Santa Fe",
+    "idProvince": "01"
+}
+
+### modificar una provincia (PUT - recurso completo e idempotente)
+PUT http://localhost:3000/api/cities/01
+Content-Type: application/json
+
+{
+  "name": "Negrario"
+}
+
+### modificar un provincia (PATCH - recurso parcial)
+PATCH http://localhost:3000/api/cities/01
+Content-Type: application/json
+
+{
+  "name": "Newells City"
+}
+
+### borrar un provincia
+DELETE http://localhost:3000/api/cities/01
