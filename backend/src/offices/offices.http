@@ -1,10 +1,10 @@
 GET http://localhost:3000/api/offices
 
 
-### obtener una oficina
+### Obtain an office by ID
 GET http://localhost:3000/api/offices/01
 
-### crear una nueva oficina
+### Create a new office
 POST http://localhost:3000/api/offices
 Content-Type: application/json
 
@@ -16,9 +16,19 @@ Content-Type: application/json
     "openingTime": "08:00"
 }
 
+### Create a new office with invalid time
+POST http://localhost:3000/api/offices
+Content-Type: application/json
 
+{
+    "idOffice": "02",
+    "idCity": "02",
+    "description": "Rojo",
+    "closingTime": "8:00",
+    "openingTime": "18:00"
+}
 
-### modificar una oficina (PUT - recurso completo e idempotente)
+### Modify an office
 PUT http://localhost:3000/api/offices/01
 Content-Type: application/json
 
@@ -26,7 +36,17 @@ Content-Type: application/json
   "description": "Azul"
 }
 
-### modificar una oficina (PATCH - recurso parcial)
+### Modify an office with invalid time
+PUT http://localhost:3000/api/offices/01
+Content-Type: application/json
+
+{
+  "closingTime": "8:00",
+  "openingTime": "18:00",
+  "description": "Azul"
+}
+
+### Modify an office (PATCH)
 PATCH http://localhost:3000/api/offices/01
 Content-Type: application/json
 
@@ -34,5 +54,5 @@ Content-Type: application/json
   "description": "Verde"
 }
 
-### borrar una oficina
+### Delete an office
 DELETE http://localhost:3000/api/offices/01

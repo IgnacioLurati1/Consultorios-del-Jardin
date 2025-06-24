@@ -21,6 +21,27 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   next()
 }
 
+export function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
+
+  if('openingTime' in req.body.sanitizedInput && 'closingTime' in req.body.sanitizedInput) { //This is because our sanitizer function eliminates all keys that are undefined, therefore not working on put or patch http requets that don't have the correct keys
+    let openingTime = req.body.sanitizedInput.openingTime
+    let closingTime = req.body.sanitizedInput.closingTime
+
+    openingTime = parseInt(openingTime.replace(":", ''), 10)
+    closingTime = parseInt(closingTime.replace(":", ''), 10)
+
+      if (openingTime >= closingTime) {
+        return res
+          .status(400)
+          .json({ message: 'La hora de cierre debe ser posterior a la hora de apertura.' })
+      }
+  }
+
+  next()
+}
+
+
+
 function findAll(req: Request, res: Response) {
   res.json({ data: repository.findAll() })
 }
