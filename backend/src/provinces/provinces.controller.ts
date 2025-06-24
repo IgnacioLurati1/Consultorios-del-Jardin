@@ -24,8 +24,8 @@ function findAll(req: Request, res: Response) {
 }
 
 function findOne(req: Request, res: Response) {
-  const idProvince = req.params.idProvince
-  const province = repository.findOne({id: idProvince})
+  const id = req.params.idProvince
+  const province = repository.findOne({id})
   if (!province) {
     return res.status(404).send({ message: 'Province not found' })
   }
@@ -55,8 +55,8 @@ function update(req: Request, res: Response) {
 }
 
 function remove(req: Request, res: Response) {
-  const idProvince = req.params.idProvince
-  const province = repository.delete({ id: idProvince })
+  const id = req.params.idProvince
+  const province = repository.delete({ id })
 
   if (!province) {
     res.status(404).send({ message: 'Province not found' })
