@@ -1,0 +1,68 @@
+.header-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    background-color: #3B7658;
+    width: 100%;
+}
+.header-left {
+    display: flex;
+    padding : 20px 20px;
+    align-items: center;
+    gap: 20px;
+    
+}
+.header-left button {
+    background: none;
+    border: none;
+    
+    font-size: 24px;
+    cursor: pointer;
+}
+.header-left .title {
+    font-size: 24px;
+    text-decoration: none;
+    font-weight:bold;
+}
+.header-right {
+    padding : 20px 20px;
+}
+.login-register {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.login-register .button-right {
+    font-weight: bold;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.button-right:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.button-right:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Botón "Iniciar Sesión" */
+.login {
+    background-color: transparent;
+    color: #FEFAE0;
+    border: 2px solid #FEFAE0;
+}
+
+/* Botón "Registrarse" */
+.register {
+    background-color: #FEFAE0;
+    color: #3a7656;
+    border: none;
+}

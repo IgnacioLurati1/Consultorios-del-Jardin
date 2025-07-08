@@ -1,13 +1,12 @@
 import {Header} from './Header';
 import {Footer} from './Footer';
+import {Outlet} from 'react-router-dom';
 
-export default function Layout({ children }: { children: any }) {
+export function Layout() {
   return (
     <div>
       <Header />
-      <main>
-        {children} {/* contenido variable de cada página */}
-      </main>
+      <Outlet />
       <Footer />
     </div>
   );
