@@ -4,8 +4,6 @@ body {
   padding: 0;
   box-sizing: border-box;
   background-color: gray;
-}
-* {
-    color:#FEFAE0;
-    font-family: 'Ubuntu', sans-serif;
+  color:#FEFAE0;
+  font-family: 'Ubuntu', sans-serif;
 }

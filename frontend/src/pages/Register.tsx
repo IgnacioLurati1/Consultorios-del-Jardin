@@ -1,0 +1,36 @@
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
+import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
+import '../styles/Register.css';
+import { DataInput } from '../components/DataInput';
+
+export function Register() {
+return (
+    <div className="user-register-container">
+
+        <div className='register-title'>
+            <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
+            <h1 className='title-text'>Registro de Usuario</h1>
+        </div>
+        <div className='register-body'>
+            <div className='register-body-left'>
+                <DataInput label="Nombre"/>
+                <DataInput label="Apellido"/>
+                <DataInput label="Email"/>
+                <DataInput label="Contraseña"/>
+                <DataInput label="Confirmar contraseña"/>
+                <DataInput label="Teléfono"/>
+                <div className='document-dataInput'>
+                    <div className='tipoDoc'><DataInput label="Tipo documento"/></div>
+                    <div className='nroDoc'><DataInput label="Nro. documento"/></div>
+                </div>
+                
+            </div>
+            <div className='register-body-right'>
+                <div className='logo-consultorios'>LOGO</div>
+                <button className='register-button'>Registrar</button>
+            </div>
+
+        </div>
+        
+    </div>
+);}

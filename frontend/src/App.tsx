@@ -1,6 +1,6 @@
 
 import {Home} from './pages/Home'
-import {UserRegister} from './pages/UserRegister'
+import {Register} from './pages/Register'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import {Layout} from './components/Layout';
 
@@ -10,7 +10,7 @@ const router = createBrowserRouter([
     element: <Layout />,  // ← acá va tu Header, Footer, etc.
     children: [
       { path: '/Home', element: <Home /> },
-      { path: '/UserRegister', element: <UserRegister /> },
+      { path: '/Register', element: <Register /> },
     ]
   }
 ]);
