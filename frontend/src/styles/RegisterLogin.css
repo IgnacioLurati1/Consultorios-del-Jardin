@@ -20,6 +20,7 @@
     box-shadow: 0px 2px 10px #6C788E;
     margin: 20px;
     margin-bottom: 0;
+    border-radius: 5px;
 }
 .title-icon {
     color: #3B7658;
@@ -42,6 +43,7 @@
     height: auto;
     box-shadow: 0px 2px 10px #6C788E;
     overflow: visible;
+    border-radius: 5px;
 }
 
 .register-body-left{
@@ -172,6 +174,7 @@
     box-shadow: 0px 2px 10px #6C788E;
     margin: 20px;
     margin-bottom: 0;
+    border-radius: 5px;
 }
 
 .login-body{
@@ -183,6 +186,7 @@
     height: auto;
     box-shadow: 0px 2px 10px #6C788E;
     overflow: visible;
+    border-radius: 5px;
 }
 
 .login-body-upper{
