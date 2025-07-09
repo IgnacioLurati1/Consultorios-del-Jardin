@@ -2,6 +2,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
 import '../styles/RegisterLogin.css';
 import { DataInput } from '../components/DataInput';
+import Logo from '../assets/Logo.png';
 
 
 export function Register() {
@@ -29,7 +30,7 @@ return (
                 
             </div>
             <div className='register-body-right'>
-                <div className='logo-consultorios'><img src="/assets/Logo.png" alt="Logo"/></div>
+                <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
                 <button className='register-button'>Registrar</button>
             </div>
 
