@@ -1,6 +1,7 @@
 
 import {Home} from './pages/Home'
 import {Register} from './pages/Register'
+import {RegisterProf} from './pages/RegisterProf.tsx'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import {Layout} from './components/Layout';
 
@@ -11,6 +12,7 @@ const router = createBrowserRouter([
     children: [
       { path: '/Home', element: <Home /> },
       { path: '/Register', element: <Register /> },
+      { path: '/RegisterProf', element: <RegisterProf />}
     ]
   }
 ]);
