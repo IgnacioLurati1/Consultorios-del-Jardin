@@ -1,4 +1,4 @@
-import "../styles/Register.css";
+import "../styles/RegisterLogin.css";
 
 //NO LONGER USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type DataInputDataListProps = {

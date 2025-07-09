@@ -1,27 +1,31 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DataInput } from "../components/DataInput";
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
+import "../styles/RegisterLogin.css";
+import Logo from '../assets/Logo.png';
 
 
 
 export function Login() {
     return (
-        <div className="user-register-container">
+        <div className="user-login-container">
     
-            <div className='register-title'>
+            <div className='login-title'>
                 <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
                 <h1 className='title-text'>Inicio de sesión</h1>
             </div>
-            <div className='register-body'>
-                <div className='register-body-left'>
+            <div className='login-body'>
+
+                <div className='login-body-upper'>
                     <DataInput label="Email" type="email"/>
                     <DataInput label="Contraseña" type="password"/>
-                    </div>
-
-                <div className='register-body-right'>
-                    <div className='logo-consultorios'><img src="/assets/Logo.png" alt="Logo"/></div>
-                    <button className='register-button'>Registrar</button>
                 </div>
+
+                <div className='login-body-lower'>
+                    <div className='login-logo-consultorios'><img src={Logo} alt="Logo"/></div>
+                    <div className="login-button-container"><button className='login-button'>Iniciar sesión</button></div>
+                </div>
+
             </div>
             
         </div> 
