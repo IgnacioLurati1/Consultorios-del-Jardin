@@ -2,6 +2,8 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
 import '../styles/Register.css';
 import { DataInput } from '../components/DataInput';
+import { DataInputDataList } from '../components/DataInputTypeDoc';
+
 
 export function Register() {
 return (
@@ -20,13 +22,17 @@ return (
                 <DataInput label="Confirmar contraseña"/>
                 <DataInput label="Teléfono"/>
                 <div className='document-dataInput'>
-                    <div className='tipoDoc'><DataInput label="Tipo documento"/></div>
+                    <div className='tipoDoc'>
+                    <DataInputDataList label="Tipo documento" 
+                    options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}/>
+                    </div>
                     <div className='nroDoc'><DataInput label="Nro. documento"/></div>
                 </div>
+            
                 
             </div>
             <div className='register-body-right'>
-                <div className='logo-consultorios'>LOGO</div>
+                <div className='logo-consultorios'><img src="/assets/Logo.png" alt="Logo"/></div>
                 <button className='register-button'>Registrar</button>
             </div>
 
