@@ -93,11 +93,21 @@
     margin-bottom: 1em;
 }
 
-.data-input-input{
+.data-input-input, .data-input-selector {
     padding: 0.5rem;
     border-radius: 5px;
     font-size: 1rem;
+    border: 2px solid #888; 
+    outline: none; 
+    transition: border 0.2s ease;
 }
+
+.data-input-input:focus, .data-input-selector:focus {
+    border-color: #3B7658;
+}
+
+
+
 
 .register-body-right{
     width: 30%;

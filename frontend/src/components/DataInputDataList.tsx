@@ -1,5 +1,6 @@
 import "../styles/Register.css";
 
+//NO LONGER USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 type DataInputDataListProps = {
     label: string;
     options: string[];
@@ -13,11 +14,11 @@ export function DataInputDataList(props: DataInputDataListProps) {
             <input className='data-input-input' list={`datalist-${props.label}`}/>
         </div>
 
-        <datalist id={`datalist-${props.label}`}>
+        <select id={`datalist-${props.label}`}>
             {props.options.map((option, index) => (
                 <option key={index} value={option} />   
             ))}
-        </datalist>
+        </select>
         </>
     );
 }

@@ -7,25 +7,29 @@ type dataInputProps ={
 }
 
 export function DataInput(props: dataInputProps) {
+    
+    let input = <input className='data-input-input' 
+                    type={props.type} 
+                />;
+
+    if (props.type === "selector" && props.options) {
+
+        input = <select className='data-input-selector' id={`datalist-${props.label}`}>
+                    {props.options.map((option, index) => (
+                        <option key={index} value={option}>{option}</option>   
+                    ))}
+                </select>
+        }
+                
     return (
 
-        <>
+        
         <div className="data-input-container">
+            
             <label className="data-input-label">{props.label}</label>
-            <input className='data-input-input' 
-            type={props.type} 
-            list={props.options ? `datalist-${props.label}` : undefined} />
+            {input}
+        
         </div>
-
-        {props.type === "datalist" && props.options &&(
-            <datalist id={`datalist-${props.label}`}>
-            {props.options.map((option, index) => (
-                <option key={index} value={option} />   
-            ))}
-            </datalist>
-        )
-        }
-        </>
     );
 
     

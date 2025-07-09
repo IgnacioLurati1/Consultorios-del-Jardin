@@ -22,7 +22,7 @@ return (
                 <DataInput label="Teléfono" type="text"/>
                 <div className='document-dataInput'>
                     <div className='tipoDoc'>
-                    <DataInput label="Tipo documento" type="datalist" options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}/>
+                    <DataInput label="Tipo documento" type="selector" options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}/>
                     </div>
                     <div className='nroDoc'><DataInput label="Nro. documento" type="text"/></div>
                 </div>

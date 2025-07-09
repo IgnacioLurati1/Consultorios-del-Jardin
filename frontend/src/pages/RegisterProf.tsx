@@ -23,13 +23,13 @@ export function RegisterProf() {
                 <DataInput label="Teléfono" type="text"/>
                 <div className='document-dataInput'>
                     <div className='tipoDoc'>
-                    <DataInput label="Tipo documento" type="datalist"
+                    <DataInput label="Tipo documento" type="selector"
                     options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}/>
                     </div>
                     <div className='nroDoc'><DataInput label="Nro. documento" type="text"/></div>
                 </div>
                 <div className='speciality'>
-                    <DataInput label="Especialidad" type="datalist"
+                    <DataInput label="Especialidad" type="selector"
                     options={["Especialidad1", "Especialidad2", "Especialidad3", "Especialidad4", "Especialidad5", "Otro"]}/>
                     </div>
                 

@@ -11,7 +11,7 @@ export function Header(){
                 <button><FontAwesomeIcon icon={faBars} /></button>
                 <div >
                     <Link className="title" to={"/"}>
-                        Consultorios de Jardin
+                        Consultorios del Jardin
                     </Link>
                 </div>
             </div>
