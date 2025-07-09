@@ -10,7 +10,7 @@ export function Header(){
             <div className="header-left">  
                 <button><FontAwesomeIcon icon={faBars} /></button>
                 <div >
-                    <Link className="title" to={"/Home"}>
+                    <Link className="title" to={"/"}>
                         Consultorios de Jardin
                     </Link>
                 </div>

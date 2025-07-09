@@ -1,11 +1,11 @@
 import "../styles/Register.css";
 
-type DataInputTypeDocProps = {
+type DataInputDataListProps = {
     label: string;
     options: string[];
 }
 
-export function DataInputDataList(props: DataInputTypeDocProps) {
+export function DataInputDataList(props: DataInputDataListProps) {
     return (
         <>
         <div className="data-input-container">
