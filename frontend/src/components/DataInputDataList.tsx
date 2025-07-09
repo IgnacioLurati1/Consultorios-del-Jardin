@@ -1,11 +1,12 @@
-import "../styles/Register.css";
+import "../styles/RegisterLogin.css";
 
-type DataInputTypeDocProps = {
+//NO LONGER USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+type DataInputDataListProps = {
     label: string;
     options: string[];
 }
 
-export function DataInputDataList(props: DataInputTypeDocProps) {
+export function DataInputDataList(props: DataInputDataListProps) {
     return (
         <>
         <div className="data-input-container">
@@ -13,11 +14,11 @@ export function DataInputDataList(props: DataInputTypeDocProps) {
             <input className='data-input-input' list={`datalist-${props.label}`}/>
         </div>
 
-        <datalist id={`datalist-${props.label}`}>
+        <select id={`datalist-${props.label}`}>
             {props.options.map((option, index) => (
                 <option key={index} value={option} />   
             ))}
-        </datalist>
+        </select>
         </>
     );
 }
