@@ -1,15 +1,13 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DataInput } from "../components/DataInput";
-import { faGreaterThan, faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
-import { useState } from "react";
 import "../styles/Login.css";
 import Logo from '../assets/LogoRecortado.png';
+import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ShowPassword } from "../components/ShowPassword";
 
 
 export function Login() {
-
-    const [visible, setVisible] = useState(false);
 
     return (
         <div className="user-login-container">
@@ -28,11 +26,7 @@ export function Login() {
 
                     <div className="password-options">
                         <Link to='/' className="forgot-password">¿Olvidaste tu contraseña?</Link>  
-                        
-                        <div className="show-password-wrapper" onClick={() => setVisible((v) => !v)}>
-                            <label className="show-password">Mostrar contraseña</label>
-                            <FontAwesomeIcon className="eye-icon" icon={visible ? faEyeSlash : faEye} />
-                        </div>
+                        <ShowPassword/>
                     </div>
 
                 </div>
