@@ -7,6 +7,7 @@
     background-color: #3B7658;
     width: 100%;
     height: 10vh;
+
 }
 
 .header-right {
@@ -37,6 +38,11 @@
 
 .header-title-text{
     color:inherit;
+    margin: 0;
+}
+
+.logo-header {
+    margin-left:10px;
 }
 
 .login-register {
@@ -97,3 +103,4 @@
         display: none;
     }
 }
+
