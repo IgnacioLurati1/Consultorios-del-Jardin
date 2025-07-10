@@ -16,6 +16,36 @@
   transform: translateX(0);
 }
 
+.back-button {
+  display: flex;
+  position: absolute;
+  cursor: pointer;
+  color: black;
+  background-color: rgba(244, 244, 244, 0.8);
+  align-items: center;
+  justify-content: center;
+  font-size: x-large;
+  height: 45px;
+  width: 45px;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  border-radius: 0px 15px 15px 0px;
+}
+
+.lateral-menu .back-button {
+  display: none;
+}
+
+.lateral-menu.open .back-button {
+  display: flex;
+}
+
+.back-button:hover {
+  font-size: xx-large;
+  transition: font-size 0.3s ease;
+}
+
 .menu-item {
   display: flex;
   align-items: center;

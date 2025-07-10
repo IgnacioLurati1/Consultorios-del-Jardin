@@ -38,7 +38,7 @@ export function Header(){
             {isMenuOpen && (
                 <div className="backdrop" onClick={toggleMenu}></div>
             )}
-            <LateralMenu isOpen={isMenuOpen} items={menuItems} />
+            <LateralMenu isOpen={isMenuOpen} items={menuItems} onClose={toggleMenu} />
         </>
     );
 }

@@ -32,8 +32,6 @@
     color: #3B7658;
 }
 
-
-
 .register-body{
     display: flex;
     flex-direction: row;
@@ -87,7 +85,7 @@
     flex-direction: column;
     align-items: left;
     width: 100%;
-    margin-bottom: 1em;
+    margin-bottom: 0.65em;
 }
 
 .data-input-input, .data-input-selector {
@@ -217,7 +215,7 @@
 }
 
 .login-button-container{
-    width: 40%;
+    width: 45%;
     display: flex;
     justify-content: center;
     align-items: center;
