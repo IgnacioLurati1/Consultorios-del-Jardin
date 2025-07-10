@@ -1,6 +1,6 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
-import '../styles/RegisterLogin.css';
+import '../styles/Register.css';
 import { DataInput } from '../components/DataInput';
 import Logo from '../assets/Logo.png';
 

@@ -1,4 +1,5 @@
-import "../styles/RegisterLogin.css";
+
+import "../styles/DataInput.css";
 
 type dataInputProps ={
     label:string,
