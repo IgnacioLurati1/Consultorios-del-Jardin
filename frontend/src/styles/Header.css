@@ -54,14 +54,14 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Botón "Iniciar Sesión" */
+/* "Login" button */
 .login {
     background-color: transparent;
     color: #FEFAE0;
     border: 2px solid #FEFAE0;
 }
 
-/* Botón "Registrarse" */
+/* "Register" button */
 .register {
     background-color: #FEFAE0;
     color: #3a7656;

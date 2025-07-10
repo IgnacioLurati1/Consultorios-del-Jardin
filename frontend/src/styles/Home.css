@@ -55,6 +55,8 @@
   background-color: #000;
 }
 
+/* Presentation Section */
+
 .presentation-section {
   text-align: center;
   padding: 50px 20px;
@@ -64,29 +66,44 @@
 .cards-container {
   display: flex;
   justify-content: center;
-  gap: 30px;
+  gap: 270px;
   flex-wrap: wrap;
   margin-top: 30px;
 }
 
+
 .card {
+  position: relative; 
   width: 250px;
   border-radius: 12px;
-  overflow: hidden;
   background: #3B7658;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
 }
+
 
 .card img {
   width: 100%;
   height: 180px;
   object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
+
 .card h3 {
-  margin: 12px 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px;
+  margin: 0;
+  color: white;
+  font-size: 1.2rem;
+  text-align: center;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7); /* sombra para mejorar legibilidad */
 }
+
+
 
 .card:hover {
   transform: translateY(-5px);
