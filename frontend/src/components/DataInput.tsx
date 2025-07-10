@@ -1,4 +1,3 @@
-
 import "../styles/DataInput.css";
 
 type dataInputProps ={
