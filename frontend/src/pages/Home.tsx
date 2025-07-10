@@ -1,13 +1,19 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+
 import carousel1 from "../assets/carouselPhotos/carousel1.jpg";
 import carousel2 from "../assets/carouselPhotos/carousel2.jpg";
 import carousel3 from "../assets/carouselPhotos/carousel3.jpg";
 import carousel4 from "../assets/carouselPhotos/carousel4.jpg";
 import carousel5 from "../assets/carouselPhotos/carousel5.jpg";
+
 import presentationPhoto1 from "../assets/presentationPhotos/presentationPhoto1.jpg";
 import presentationPhoto2 from "../assets/presentationPhotos/presentationPhoto2.jpg";
 import presentationPhoto3 from "../assets/presentationPhotos/presentationPhoto3.jpg";
+
 import "../styles/Home.css";
+
+// ======= Carousel arrows =======
 
 const LeftArrow = () => (
   <svg
@@ -39,14 +45,31 @@ const RightArrow = () => (
   </svg>
 );
 
+// ======= Components Cards =======
+
+function PresentationCard({
+  to,
+  image,
+  title,
+}: {
+  to: string;
+  image: string;
+  title: string;
+}) {
+  return (
+    <Link to={to} className="card-link">
+      <div className="card">
+        <img src={image} alt={title} />
+        <h3>{title}</h3>
+      </div>
+    </Link>
+  );
+}
+
+// ======= Home =======
+
 export function Home() {
-  const images: string[] = [
-    carousel1,
-    carousel2,
-    carousel3,
-    carousel4,
-    carousel5,
-  ];
+  const images: string[] = [carousel1, carousel2, carousel3, carousel4, carousel5];
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const goToPrevious = () => {
@@ -63,7 +86,7 @@ export function Home() {
 
   return (
     <div>
-
+      {/* ======= Carousel ======= */}
       <div className="carousel-container">
         <img
           src={images[currentIndex]}
@@ -72,11 +95,7 @@ export function Home() {
         />
 
         <div className="carousel-nav">
-          <button
-            onClick={goToPrevious}
-            aria-label="Previous Slide"
-            className="nav-button"
-          >
+          <button onClick={goToPrevious} aria-label="Previous Slide" className="nav-button">
             <LeftArrow />
           </button>
 
@@ -96,35 +115,24 @@ export function Home() {
             ))}
           </div>
 
-          <button
-            onClick={goToNext}
-            aria-label="Next Slide"
-            className="nav-button"
-          >
+          <button onClick={goToNext} aria-label="Next Slide" className="nav-button">
             <RightArrow />
           </button>
         </div>
       </div>
 
+      {/* ======= PRESENTATION CARDS ======= */}
       <section className="presentation-section">
-        <h1>¿Quienes Somos?</h1>
+        <h1>¿Quiénes Somos?</h1>
+        <p>Texto de presentación</p>
+        <p>Texto de presentación</p>
         <p>Texto de presentación</p>
 
+
         <div className="cards-container">
-          <div className="card">
-            <img src={presentationPhoto1} alt="Quiero atenderme" />
-            <h3>Quiero atenderme</h3>
-          </div>
-
-          <div className="card">
-            <img src={presentationPhoto2} alt="Soy profesional" />
-            <h3>Soy profesional</h3>
-          </div>
-
-          <div className="card">
-            <img src={presentationPhoto3} alt="Contacto" />
-            <h3>Contacto</h3>
-          </div>
+          <PresentationCard to="/turnos" image={presentationPhoto1} title="Quiero atenderme" />
+          <PresentationCard to="/perfilProfesional" image={presentationPhoto2} title="Soy profesional" />
+          <PresentationCard to="/contacto" image={presentationPhoto3} title="Contacto" />
         </div>
       </section>
     </div>
