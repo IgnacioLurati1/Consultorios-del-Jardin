@@ -5,6 +5,7 @@ import {Session} from './Session';
 import '../styles/Header.css';
 import {useState} from 'react';
 import {LateralMenu} from './LateralMenu';
+import LogoHojas from '../assets/LogoHojas64x64.png';
 
 export function Header(){
 
@@ -27,7 +28,8 @@ export function Header(){
                     <button onClick={toggleMenu}><FontAwesomeIcon icon={faBars} /></button>
                     <div >
                         <Link className="title" to={"/"}>
-                            Consultorios del Jardin
+                            <p className="header-title-text">Consultorios del Jardin</p>
+                            <img src={LogoHojas} alt="Logo" className="logo-header"/>
                         </Link>
                     </div>
                 </div>

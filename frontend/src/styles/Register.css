@@ -8,7 +8,8 @@
     align-items: center;
     justify-content: center;
     background-color: #EDEDF2;
-    height: 90vh;
+    height: auto;
+    min-height: 90vh;
 }
 
 
@@ -35,7 +36,7 @@
 
 }
 .title-text{
-    color: #3B7658;
+    color: #3B7658; 
 }
 
 .register-body{
@@ -56,6 +57,7 @@
     width: 70%;
     color: black;
     padding: 20px;
+    height: auto;
 }
 
 .register-body-left-inputs{
@@ -72,7 +74,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-around;
-    height: 100%;
+    height: auto;
 }
 
 .logo-consultorios img{
@@ -99,6 +101,3 @@
     transform: scale(0.95);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
-
-
-
