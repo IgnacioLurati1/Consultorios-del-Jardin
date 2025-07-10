@@ -18,6 +18,7 @@ export function RegisterProf() {
                 <DataInput label="Nombre" type="text"/>
                 <DataInput label="Apellido" type="text"/>
                 </div>
+
                 <DataInput label="Email" type="email"/>
                 <DataInput label="Contraseña" type="password"/>
                 <DataInput label="Confirmar contraseña" type="password"/>

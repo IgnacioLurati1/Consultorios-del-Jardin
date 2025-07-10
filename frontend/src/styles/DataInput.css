@@ -24,23 +24,3 @@
 .data-input-input:focus, .data-input-selector:focus {
     border-color: #3B7658;
 }
-
-.document-dataInput{
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 1em;
-}
-
-.register-namesurname{
-    display: flex;
-    flex-direction: row;
-    gap: 1em;
-}
-
-.tipoDoc {
-    width: 20%;
-}
-.nroDoc {
-    width: 80%;
-}
