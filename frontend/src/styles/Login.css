@@ -49,8 +49,8 @@
     color: black;
     box-sizing: border-box;
     padding: 20px 20px 5px 20px;
-    
 }
+
 .login-body-lower{
     width: 100%;
     box-sizing: border-box;
@@ -58,7 +58,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-around;
-    padding: 0 20px
+    min-height: 8rem;
+    margin-bottom: 10px;
 }   
 .login-logo-consultorios {
     width: 30%;
@@ -95,4 +96,92 @@
 .login-button:active {
     transform: scale(0.95);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.divider {
+    border: none;
+    height: 2px;
+    background-color: #ccc;
+    width: 95%;
+}
+
+.login-body-middle{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.no-account {
+    font-size: 1.3rem;
+    color: #555;
+}
+
+.register-link {
+    font-size: 1.5rem;
+    color: #3B7658;
+    text-decoration: none;
+}
+.forgot-password {
+        font-size: 0.9em;
+        color: #555;
+        text-decoration: none;
+        width: 50%;
+    }
+
+.password-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        }
+
+@media (max-width: 750px) {
+
+    .user-login-container{
+        width: 100%;
+        height: 90vh;
+        justify-content: center;
+    }
+
+    .login-body {
+        width: 90%;
+        background-color: inherit;
+        box-shadow: none;
+        height: 100%;
+        justify-content: flex-start;
+    }
+
+    .login-title {
+        width: 90%;
+        background-color: inherit;
+        box-shadow: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0;
+        border-bottom: 2px solid #ccc;
+    }
+
+    .title-icon{
+        margin:0;
+    }
+
+    .login-logo-consultorios{
+        display: none;
+    }
+
+    .user-login-container {
+        justify-content: start;
+    }
+
+    .login-button-container{
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    }
+
+    .login-body-upper{
+        gap: 10px;
+    }
 }

@@ -1,4 +1,4 @@
-import '../styles/index.css';
+
 import { Link } from 'react-router-dom';
 
 export function LoginRegister() {

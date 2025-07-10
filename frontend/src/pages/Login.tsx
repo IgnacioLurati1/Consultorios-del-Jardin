@@ -1,12 +1,14 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DataInput } from "../components/DataInput";
-import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
+import { Link } from "react-router-dom";
 import "../styles/Login.css";
-import Logo from '../assets/Logo.png';
-
+import Logo from '../assets/LogoRecortado.png';
+import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ShowPassword } from "../components/ShowPassword";
 
 
 export function Login() {
+
     return (
         <div className="user-login-container">
     
@@ -14,11 +16,27 @@ export function Login() {
                 <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
                 <h1 className='title-text'>Inicio de sesión</h1>
             </div>
+
             <div className='login-body'>
 
                 <div className='login-body-upper'>
+
                     <DataInput label="Email" type="email"/>
                     <DataInput label="Contraseña" type="password"/>
+
+                    <div className="password-options">
+                        <Link to='/' className="forgot-password">¿Olvidaste tu contraseña?</Link>  
+                        <ShowPassword/>
+                    </div>
+
+                </div>
+
+                <hr className="divider"></hr>
+
+                <div className="login-body-middle">
+                    <div>
+                        <p className="no-account">¿No tienes cuenta? <Link to='/Register' className="register-link">Registrate</Link></p>
+                    </div>
                 </div>
 
                 <div className='login-body-lower'>

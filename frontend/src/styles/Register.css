@@ -3,16 +3,19 @@
 /*---------------------------------------------------------*/
 
 .user-register-container {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background-color: #EDEDF2;
-    height: 90vh;
+    height: auto;
+    min-height: 90vh;
 }
 
 
 .register-title {
+    box-sizing: border-box;
     background-color: rgba(243, 247, 248, 0.7);
     width: 95%;
     height: 8%;
@@ -28,17 +31,18 @@
 }
 
 .title-icon {
+    box-sizing: border-box;
     color: #3B7658;
     width: 1.8rem;
     height: 1.8rem;
     margin-left:2vw;
-
 }
 .title-text{
-    color: #3B7658;
+    color: #3B7658; 
 }
 
 .register-body{
+    box-sizing: border-box;
     display: flex;
     flex-direction: row;
     margin: 20px;
@@ -51,11 +55,13 @@
 }
 
 .register-body-left{
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     width: 70%;
     color: black;
     padding: 20px;
+    height: auto;
 }
 
 .register-body-left-inputs{
@@ -72,7 +78,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-around;
-    height: 100%;
+    height: auto;
 }
 
 .logo-consultorios img{
@@ -100,5 +106,130 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.document-dataInput{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1em;
+}
 
+.register-namesurname{
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+}
 
+.tipoDoc {
+    width: 20%;
+}
+.nroDoc {
+    width: 80%;
+}
+
+.next{
+    display: none;
+}
+@media (max-width: 750px){
+    
+.user-register-container {
+    height: auto;
+    width: 100%;
+    
+    box-shadow: none;
+    justify-content: flex-start;
+}
+
+.register-body {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    background-color: inherit;
+    box-shadow: none;
+    align-items: center;
+    width: 100%;
+}
+
+.register-body-left {
+    width: 90%;
+    padding-top: 0;
+}
+
+.register-title{
+    width: 100%;
+    margin: 0;
+    margin-bottom: 5px;
+    background-color: inherit;
+    box-shadow: none;
+    align-items: center;
+}
+
+.logo-consultorios{
+    display: none;
+}
+
+.document-dataInput{
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+}
+
+.nroDoc{
+    width: 100%;
+}
+
+.tipoDoc{
+    width: 100%;
+}
+
+.register-title{
+    width: 95%;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5vw;
+    border-radius: 0;
+    border-bottom: 2px solid #ccc;
+}
+
+.mobile-page-two {
+    display: none;
+}
+
+.registerBut{
+    display: none;
+}
+
+.next{
+    display: block;
+}
+
+.not-shown {
+    display: none;
+}
+
+.shown{
+    display: block;
+}
+
+.register-body-right{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around ;
+}
+
+/* Professional Register */
+
+.register-namesurname{
+    display: flex;
+    flex-direction: column;
+    gap:0;
+}
+
+    .document-dataInput{
+    gap: 0;
+    }
+
+    .register-button{
+    margin-bottom: 10px;
+    }
+}
