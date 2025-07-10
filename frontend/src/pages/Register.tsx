@@ -44,7 +44,7 @@ return (
             </div>
             <div className='register-body-right'>
                 <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
-                                <button className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
+                <button className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
                 <button className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>
                 <button className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
             </div>
