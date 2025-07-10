@@ -4,6 +4,8 @@ import '../styles/Register.css';
 import { DataInput } from '../components/DataInput';
 import Logo from '../assets/Logo.png';
 import { useState } from "react";
+import { ShowPassword } from "../components/ShowPassword";  
+
 
 export function RegisterProf() {
 
@@ -22,16 +24,19 @@ export function RegisterProf() {
         </div>
         <div className='register-body'>
             <div className='register-body-left'>
+
                 <div className={activo? "shown":"not-shown"}>
                     <div className='register-namesurname'>
-                    <DataInput label="Nombre" type="text"/>
-                    <DataInput label="Apellido" type="text"/>
+                      <DataInput label="Nombre" type="text"/>
+                      <DataInput label="Apellido" type="text"/>
                     </div>
                 </div>
                 <div className={activo? "not-shown":"shown"}>
                     <DataInput label="Email" type="email"/>
                     <DataInput label="Contraseña" type="password"/>
+                    <ShowPassword/>
                     <DataInput label="Confirmar contraseña" type="password"/>
+                    <ShowPassword/>
                 </div>
                 <div className={activo? "shown":"not-shown"}>
                     <DataInput label="Teléfono" type="text"/>
