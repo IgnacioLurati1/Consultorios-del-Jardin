@@ -17,7 +17,7 @@ export function Header(){
         const menuItems = [
     { faviconName: "home", title: "Home", path: "/" },
     { faviconName: "user", title: "Login", path: "/login" },
-    { faviconName: "phone", title: "Contato", path: "/contato" },
+    { faviconName: "phone", title: "Contacto", path: "/contacto" },
   ];
 
     return(

@@ -5,6 +5,7 @@ import {RegisterProf} from './pages/RegisterProf.tsx'
 import {Login} from './pages/Login'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import {Layout} from './components/Layout';
+import { NotFoundPage } from './pages/NotFoundPage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -14,7 +15,8 @@ const router = createBrowserRouter([
       { index:true, element: <Home /> },
       { path: '/Register', element: <Register /> },
       { path: '/RegisterProf', element: <RegisterProf />},
-      { path: '/Login', element: <Login /> }
+      { path: '/Login', element: <Login /> },
+      { path:'*', element: <NotFoundPage/>}
     ]
   }
 ]);
