@@ -1,6 +1,10 @@
+
+
 .options-container {
-    display: flex;
+    display: flex; 
     flex-direction: row;
+    width: 80%;
+    margin-top: 20px;
     gap: 3%;
 }
 
@@ -10,18 +14,22 @@
     align-items: center;
     flex-direction: column;
     margin: auto;
-    width: 80%;
     color: black;
+
 }
+
 
 @media (max-width: 768px) {
     .options-container {
+        display: flex;
         flex-direction: column;
-        align-items: center;
         margin: 0;
+        width: 90%;
     }
 
     .admin-home {
+        
         width: 100%;
     }
 }
+
