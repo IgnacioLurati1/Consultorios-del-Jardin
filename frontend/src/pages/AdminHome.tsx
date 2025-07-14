@@ -15,19 +15,19 @@ export function AdminHome() {
             title="Administrar provincias"
             description="Añadir, eliminar o modificar provincias."
             imageUrl={Logo}
-            link="/provincesAdmin"
+            link="./ProvincesAdmin"
           />
           <AdminCard
             title="Administrar localidades"
             description="Añadir, eliminar o modificar localidades."
             imageUrl={Logo}
-            link="/citiesAdmin"
+            link="/CitiesAdmin"
           />
           <AdminCard
             title="Administrar usuarios"
             description="Añadir, eliminar o modificar usuarios."
             imageUrl={Logo}
-            link="/peopleAdmin"
+            link="/PeopleAdmin"
           />
     
         </div>
