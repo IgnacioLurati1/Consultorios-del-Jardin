@@ -15,6 +15,7 @@ import presentationPhoto3 from "../assets/presentationPhotos/presentationPhoto3.
 import "../styles/Home.css";
 
 export function Home() {
+
   const images: string[] = [carousel1, carousel2, carousel3, carousel4, carousel5];
   const [currentIndex, setCurrentIndex] = useState(0);
 

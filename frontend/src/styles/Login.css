@@ -1,0 +1,187 @@
+/*---------------------------------------------------------*/
+/*---------------------------LOGIN-------------------------*/
+/*---------------------------------------------------------*/
+
+.user-login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #EDEDF2;
+    height: 90vh;
+}
+
+
+.login-title{
+    background-color: rgba(243, 247, 248, 0.7);
+    width: 30%;
+    height: 8%;
+    gap: 15px;
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: row;
+    align-items: center;
+    box-shadow: 0px 2px 10px #6C788E;
+    margin: 5vh;
+    margin-bottom: 0;
+    border-radius: 5px;
+    font-size: 1em;
+    text-align: center;
+}
+
+
+.login-body{
+    display: flex;
+    flex-direction: column;
+    margin: 20px;
+    background-color: rgba(243, 247, 248, 0.7);
+    width: 30%;
+    height: auto;
+    box-shadow: 0px 2px 10px #6C788E;
+    overflow: visible;
+    border-radius: 5px;
+}
+
+.login-body-upper{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    color: black;
+    box-sizing: border-box;
+    padding: 20px 20px 5px 20px;
+}
+
+.login-body-lower{
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    min-height: 8rem;
+    margin-bottom: 10px;
+}   
+.login-logo-consultorios {
+    width: 30%;
+}
+
+.login-logo-consultorios img {
+    max-width: 100%;
+    height: auto;
+}
+
+.login-button-container{
+    width: 45%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+.login-button {
+    background-color: #3B7658;
+    color: #FEFAE0;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.4em;
+    font-weight: bold;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+}
+.login-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.login-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.divider {
+    border: none;
+    height: 2px;
+    background-color: #ccc;
+    width: 95%;
+}
+
+.login-body-middle{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.no-account {
+    font-size: 1.3rem;
+    color: #555;
+}
+
+.register-link {
+    font-size: 1.5rem;
+    color: #3B7658;
+    text-decoration: none;
+}
+.forgot-password {
+        font-size: 0.9em;
+        color: #555;
+        text-decoration: none;
+        width: 50%;
+    }
+
+.password-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        }
+
+@media (max-width: 750px) {
+
+    .user-login-container{
+        width: 100%;
+        height: 90vh;
+        justify-content: center;
+    }
+
+    .login-body {
+        width: 90%;
+        background-color: inherit;
+        box-shadow: none;
+        height: 100%;
+        justify-content: flex-start;
+    }
+
+    .login-title {
+        width: 90%;
+        background-color: inherit;
+        box-shadow: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0;
+        border-bottom: 2px solid #ccc;
+    }
+
+    .title-icon{
+        margin:0;
+    }
+
+    .login-logo-consultorios{
+        display: none;
+    }
+
+    .user-login-container {
+        justify-content: start;
+    }
+
+    .login-button-container{
+    width: 80%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    }
+
+    .login-body-upper{
+        gap: 10px;
+    }
+}
