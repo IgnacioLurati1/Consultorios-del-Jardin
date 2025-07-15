@@ -13,7 +13,6 @@
     min-height: 90vh;
 }
 
-
 .register-title {
     box-sizing: border-box;
     background-color: rgba(243, 247, 248, 0.7);
@@ -129,6 +128,38 @@
 .next{
     display: none;
 }
+
+.feedBack-box {
+    width: 80%;
+    height: 10vh;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-radius: 5px;
+    border-style: solid;
+    border-width: 1px;
+    font-size: 1.2em;
+    ;
+}
+
+.success {
+    color: #4177b4 !important;
+    border-color: #4177b4;
+}
+
+.error{
+    color: #ce5f5f !important;
+    border-color: #ce5f5f;
+}
+
+.hide {
+    display: none;
+}
+
+.Toastify__toast-container {
+  position: static !important;
+}
+
 @media (max-width: 750px){
     
 .user-register-container {
@@ -137,6 +168,12 @@
     
     box-shadow: none;
     justify-content: flex-start;
+}
+
+.register-form{
+    width: 100%;
+    height: auto;
+    padding: 0;
 }
 
 .register-body {
@@ -213,9 +250,12 @@
 .register-body-right{
     width: 100%;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-around ;
 }
+
+.Toastify__toast-container {
+  position: fixed !important;}
 
 /* Professional Register */
 
@@ -225,11 +265,11 @@
     gap:0;
 }
 
-    .document-dataInput{
-    gap: 0;
-    }
+.document-dataInput{
+gap: 0;
+}
 
-    .register-button{
-    margin-bottom: 10px;
-    }
+.register-button{
+margin-bottom: 10px;
+}
 }
