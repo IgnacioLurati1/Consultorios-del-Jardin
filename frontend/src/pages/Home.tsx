@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { LeftArrow, RightArrow, PresentationCard } from "../components/homecomponents";
+import { useState, useEffect } from "react";
+import { LeftArrow, RightArrow, PresentationCard } from "../components/HomeComponents";
 
 
 import carousel1 from "../assets/carouselPhotos/carousel1.jpg";
@@ -30,15 +30,42 @@ export function Home() {
     setCurrentIndex(index);
   };
 
+  useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowLeft") {
+      goToPrevious();
+    } else if (e.key === "ArrowRight") {
+      goToNext();
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+  };
+}, []);
+
+
   return (
     <div>
-      {/* ======= Carousel ======= */}
+      {/* ======= Carousel (Profesional Slide) ======= */}
       <div className="carousel-container">
-        <img
-          src={images[currentIndex]}
-          alt={`Slide ${currentIndex + 1}`}
-          className="carousel-image"
-        />
+        <div
+          className="carousel-track"
+          style={{
+            transform: `translateX(-${currentIndex * 100}%)`,
+          }}
+        >
+          {images.map((image, index) => (
+            <img
+              key={index}
+              src={image}
+              alt={`Slide ${index + 1}`}
+              className="carousel-slide"
+            />
+          ))}
+        </div>
 
         <div className="carousel-nav">
           <button onClick={goToPrevious} aria-label="Previous Slide" className="nav-button">
@@ -67,12 +94,12 @@ export function Home() {
         </div>
       </div>
 
-      {/* ======= PRESENTATION CARDS ======= */}
+      {/* ======= Presentation Cards ======= */}
       <section className="presentation-section">
         <h1>¿Quiénes Somos?</h1>
-        <p>Texto de presentación</p>
-        <p>Texto de presentación</p>
-        <p>Texto de presentación</p>
+        <p>
+          En Consultorios del Jardín ofrecemos espacios modernos y funcionales dedicados a la medicina y la salud, pensados para profesionales que buscan alquilar consultorios por módulo, día o mes. Además, contamos con áreas habilitadas para actividades grupales, brindando un entorno cómodo y adecuado para el desarrollo de diversas prácticas.
+        </p>
 
         <div className="cards-container">
           <PresentationCard to="/turnos" image={presentationPhoto1} title="Quiero atenderme" />
