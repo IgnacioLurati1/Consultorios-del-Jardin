@@ -1,16 +1,18 @@
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useState } from "react";
 import '../styles/ShowPassword.css';
 
-export function ShowPassword(){
+type ShowPasswordProps = {
+  visible: boolean;
+  onClick: () => void;
+};
 
-    const [visible, setVisible] = useState(false);
+export function ShowPassword({ visible, onClick }: ShowPasswordProps) {
 
     return (
-        <div className="show-password-wrapper" onClick={() => setVisible((v) => !v)}>
-                            <label className="show-password">Mostrar contraseña</label>
-                            <FontAwesomeIcon className="eye-icon" icon={visible ? faEyeSlash : faEye} />
+        <div className="show-password-wrapper" onClick={onClick}>
+            <label className="show-password">Mostrar contraseña</label>
+            <FontAwesomeIcon className="eye-icon" icon={visible ? faEye : faEyeSlash} />
         </div>
     );
 }
