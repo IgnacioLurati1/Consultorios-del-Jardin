@@ -4,17 +4,9 @@ import "../styles/Login.css";
 import Logo from '../assets/LogoRecortado.png';
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ShowPassword } from "../components/ShowPassword";
-import { useState } from "react";
-
+import { DataInputPassword } from "../components/DataInputPassword";
 
 export function Login() {
-
-    const [showPassword, setShowPassword] = useState(false);
-
-    const changeVisibility = () => {
-        setShowPassword(!showPassword);
-    }
 
     return (
         <div className="user-login-container">
@@ -27,15 +19,8 @@ export function Login() {
             <div className='login-body'>
 
                 <div className='login-body-upper'>
-
                     <DataInput label="Email" type="email"/>
-                    <DataInput label="Contraseña" type={showPassword ? "text" : "password"}/>
-
-                    <div className="password-options">
-                        <Link to='/' className="forgot-password">¿Olvidaste tu contraseña?</Link>  
-                        <ShowPassword visible={showPassword} onClick={changeVisibility} />
-                    </div>
-
+                    <DataInputPassword label="Contraseña" showForgotPasswordLink={true}/> 
                 </div>
 
                 <hr className="divider"></hr>
