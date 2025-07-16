@@ -10,7 +10,7 @@ export function Login() {
 
     return (
         <div className="user-login-container">
-    
+
             <div className='login-title'>
                 <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
                 <h1 className='title-text'>Inicio de sesión</h1>
@@ -37,8 +37,6 @@ export function Login() {
                 </div>
 
             </div>
-            
+
         </div> 
     );}
-
-    
