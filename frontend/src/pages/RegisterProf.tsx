@@ -8,7 +8,6 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ShowPassword } from "../components/ShowPassword";  
 
-
 export function RegisterProf() {
 
     const [activo, setPage] = useState(false);
@@ -70,12 +69,11 @@ export function RegisterProf() {
         <form className="register-form" onSubmit={handleSubmit}>
             <div className='register-body'>
                 <div className='register-body-left'>
-
                     <div className={activo? "shown":"not-shown"}>
                         <div className='register-namesurname'>
                         <DataInput label="Nombre" type="text" value={formData.nombre} onChange={(e) => handleChange('nombre', e.target.value)}/>
                         <DataInput label="Apellido" type="text" value={formData.apellido} onChange={(e) => handleChange('apellido', e.target.value)}/>
-                        </div>
+                    </div>
                     </div>
                     <div className={activo? "not-shown":"shown"}>
                         <DataInput label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)}/>

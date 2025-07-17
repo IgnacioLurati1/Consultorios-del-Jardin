@@ -8,7 +8,6 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ShowPassword } from "../components/ShowPassword";
 
-
 export function Register() {
 
 const [formData, setFormData] = useState({
