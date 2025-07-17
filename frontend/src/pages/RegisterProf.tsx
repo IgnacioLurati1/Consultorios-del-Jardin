@@ -6,7 +6,7 @@ import Logo from '../assets/Logo.png';
 import { useState } from "react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { ShowPassword } from "../components/ShowPassword";  
+import { DataInputPassword } from '../components/DataInputPassword'; 
 
 export function RegisterProf() {
 
@@ -77,10 +77,8 @@ export function RegisterProf() {
                     </div>
                     <div className={activo? "not-shown":"shown"}>
                         <DataInput label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)}/>
-                        <DataInput label="Contraseña" type="password" value={formData.contraseña} onChange={(e) => handleChange('contraseña', e.target.value)}/>
-                        <ShowPassword/>
-                        <DataInput label="Confirmar contraseña" type="password" value={formData.confirmarContraseña} onChange={(e) => handleChange('confirmarContraseña', e.target.value)}/>
-                        <ShowPassword/>
+                        <DataInputPassword label="Contraseña" value={formData.contraseña} onChange={(e) => handleChange('contraseña', e.target.value)}/>
+                        <DataInputPassword label="Confirmar contraseña" value={formData.confirmarContraseña} onChange={(e) => handleChange('confirmarContraseña', e.target.value)}/>
                     </div>
                     <div className={activo? "shown":"not-shown"}>
                         <DataInput label="Teléfono" type="text" value={formData.telefono} onChange={(e) => handleChange('telefono', e.target.value)}/>
