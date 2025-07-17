@@ -6,6 +6,8 @@ import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DataInputPassword } from "../components/DataInputPassword";
 import { useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 export function Login() {
 
@@ -23,14 +25,22 @@ const handleChange = (field: string, value: string) => {
 
 const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    toast.dismiss(); // Limpia notificaciones previas
+
+    // Validaciones mínimas (También se tiene que hacer en el backend)
     if (!formData.email || !formData.contraseña) {
-        console.log("Complete todos los campos requeridos");
+        toast.error("Complete todos los campos requeridos", {
+            className: "feedBack-box error"})
         return;
     }
 
+    // Faltan las notificaciones de respuesta del backend
+
     // Simular envío (Acá va el fetch al backend)
     console.log("Formulario enviado con:", formData);
-    console.log("Inicio de sesión exitoso");
+    toast.success("Inicio de sesión exitoso", {
+    className: "feedBack-box success"});
+    // Esto no se si iría en realidad, ya que cuando se loguea se debería redirigir a otra página
 };
 
     return (
@@ -62,7 +72,17 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
                     </div>
 
                 </div>
-            
+
+                <div className="toast-container">
+                <ToastContainer className="feedBack-box"
+                    autoClose={false}
+                    hideProgressBar={true}
+                    closeOnClick={false}
+                    draggable={false}
+                    toastClassName="feedBack-box"
+                    />
+                </div>
+
             </form>
         </div> 
     );}
