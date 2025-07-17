@@ -4,8 +4,9 @@ import '../styles/Register.css';
 import { DataInput } from '../components/DataInput';
 import Logo from '../assets/Logo.png';
 import { useState } from "react";
-import { DataInputPassword } from "../components/DataInputPassword";  
-
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { ShowPassword } from "../components/ShowPassword";  
 
 export function RegisterProf() {
 
@@ -15,6 +16,49 @@ export function RegisterProf() {
         setPage(!activo);
     }
 
+    const [formData, setFormData] = useState({
+        nombre: '',
+        apellido: '',
+        email: '',
+        contraseña: '',
+        confirmarContraseña: '',
+        telefono: '',
+        tipoDocumento: '',
+        nroDocumento: '',
+        speciality: ''
+    });
+
+    const handleChange = (field: string, value: string) => {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        };
+    
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        toast.dismiss();
+    
+        if (formData.contraseña !== formData.confirmarContraseña) {
+            toast.error("Las contraseñas no coinciden", {
+                className: "feedBack-box error"})
+                return;
+        }
+        // Validaciones mínimas (También se tiene que hacer en el backend)
+            if (!formData.email || !formData.nombre || !formData.apellido || !formData.contraseña || !formData.confirmarContraseña || 
+                !formData.telefono || !formData.tipoDocumento || !formData.nroDocumento) {
+                toast.error("Complete todos los campos requeridos", {
+                    className: "feedBack-box error"})
+                    return;
+            }
+
+            // Simular envío (Acá va el fetch al backend)
+            console.log("Formulario enviado con:", formData);
+            toast.success("Usuario registrado con éxito", {
+            className: "feedBack-box success"})
+        };
+
+
     return (
     <div className="user-register-container">
 
@@ -22,44 +66,58 @@ export function RegisterProf() {
             <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
             <h1 className='title-text'>Registro de Profesional</h1>
         </div>
-        <div className='register-body'>
-            <div className='register-body-left'>
-
-                <div className={activo? "shown":"not-shown"}>
-                    <div className='register-namesurname'>
-                      <DataInput label="Nombre" type="text"/>
-                      <DataInput label="Apellido" type="text"/>
+        <form className="register-form" onSubmit={handleSubmit}>
+            <div className='register-body'>
+                <div className='register-body-left'>
+                    <div className={activo? "shown":"not-shown"}>
+                        <div className='register-namesurname'>
+                        <DataInput label="Nombre" type="text" value={formData.nombre} onChange={(e) => handleChange('nombre', e.target.value)}/>
+                        <DataInput label="Apellido" type="text" value={formData.apellido} onChange={(e) => handleChange('apellido', e.target.value)}/>
                     </div>
-                </div>
-                <div className={activo? "not-shown":"shown"}>
-                    <DataInput label="Email" type="email"/>
-                    <DataInputPassword label="Contraseña" showForgotPasswordLink={false}/>
-                    <DataInputPassword label="Confirmar contraseña" showForgotPasswordLink={false}/>
-                </div>
-                <div className={activo? "shown":"not-shown"}>
-                    <DataInput label="Teléfono" type="text"/>
-                    <div className='document-dataInput'>
-                        <div className='tipoDoc'>
-                        <DataInput label="Tipo documento" type="selector"
-                        options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}/>
+                    </div>
+                    <div className={activo? "not-shown":"shown"}>
+                        <DataInput label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)}/>
+                        <DataInput label="Contraseña" type="password" value={formData.contraseña} onChange={(e) => handleChange('contraseña', e.target.value)}/>
+                        <ShowPassword/>
+                        <DataInput label="Confirmar contraseña" type="password" value={formData.confirmarContraseña} onChange={(e) => handleChange('confirmarContraseña', e.target.value)}/>
+                        <ShowPassword/>
+                    </div>
+                    <div className={activo? "shown":"not-shown"}>
+                        <DataInput label="Teléfono" type="text" value={formData.telefono} onChange={(e) => handleChange('telefono', e.target.value)}/>
+                        <div className='document-dataInput'>
+                            <div className='tipoDoc'>
+                            <DataInput label="Tipo documento" type="selector"
+                            options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}
+                            value={formData.tipoDocumento} onChange={(e) => handleChange('tipoDocumento', e.target.value)}/>
+                            </div>
+                            <div className='nroDoc'>
+                                <DataInput label="Nro. documento" type="text"value={formData.nroDocumento} onChange={(e) => handleChange('nroDocumento', e.target.value)}/>    
+                            </div>
                         </div>
-                        <div className='nroDoc'><DataInput label="Nro. documento" type="text"/></div>
-                    </div>
-                    <div className='speciality'>
-                        <DataInput label="Especialidad" type="selector"
-                        options={["Especialidad1", "Especialidad2", "Especialidad3", "Especialidad4", "Especialidad5", "Otro"]}/>
+                        <div className='speciality'>
+                            <DataInput label="Especialidad" type="selector"
+                            options={["Especialidad1", "Especialidad2", "Especialidad3", "Especialidad4", "Especialidad5", "Otro"]}
+                            value={formData.speciality} onChange={(e) => handleChange('speciality', e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div className='register-body-right'>
-                <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
-                <button className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
-                <button className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>
-                <button className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
-            </div>
+                <div className='register-body-right'>
+                    <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
+                    <ToastContainer className="feedBack-box"
+                        autoClose={false}
+                        hideProgressBar={true}
+                        closeOnClick={false}
+                        draggable={false}
+                        toastClassName="feedBack-box"
+                    />
+                    <button type="button" className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
+                    <button type="submit" className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>
+                    <button type="button" className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
+                </div>
 
-        </div>
-        
+            </div>
+        </form>
     </div>
   );
 }
