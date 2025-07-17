@@ -2,7 +2,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
 import '../styles/Register.css';
 import { DataInput } from '../components/DataInput';
-import Logo from '../assets/Logo.png';
+import Logo from '../assets/LogoRecortado.png';
 import { useState } from "react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -96,13 +96,16 @@ return (
 
                     <div className='register-body-right'>
                         <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
+
+                        <div className="toast-container">
                         <ToastContainer className="feedBack-box"
                         autoClose={false}
                         hideProgressBar={true}
                         closeOnClick={false}
                         draggable={false}
-                        toastClassName="feedBack-box"
-                        />
+                        toastClassName="feedBack-box"/>
+                        </div>
+
                         <button  className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
                         <button type="submit" className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>
                         <button type="button" className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
