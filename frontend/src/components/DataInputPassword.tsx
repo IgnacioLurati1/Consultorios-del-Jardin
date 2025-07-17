@@ -22,7 +22,7 @@ export function DataInputPassword({ label, showForgotPasswordLink }: PasswordInp
 
       <div className="password-options">
         {showForgotPasswordLink && (
-          <Link to='/' className="forgot-password">
+          <Link to='/forgot-password' className="forgot-password">
             ¿Olvidaste tu contraseña?
           </Link>
         )}
