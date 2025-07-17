@@ -129,13 +129,6 @@
         width: 50%;
     }
 
-.password-input-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
 @media (max-width: 750px) {
 
     .user-login-container{
