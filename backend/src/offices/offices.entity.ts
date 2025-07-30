@@ -1,12 +1,22 @@
-import crypto from 'node:crypto'
+import {
+  Entity,
+  Property,
+  PrimaryKey,
+  ManyToOne,
+  Rel,
+} from '@mikro-orm/core'
+import { City } from '../cities/cities.entity.js'
 
+@Entity()
 export class Office {
-  constructor(
-    public idOffice: string,
-    public description: string,
-    public idCity: string,
-    public closingTime: string,
-    public openingTime: string,
 
-    )  {}
+  @PrimaryKey()
+  idOffice?: string
+  @Property({ nullable: false, unique: false })
+  closingTime!: string
+  @Property({ nullable: false, unique: false })
+  description!: string
+  @ManyToOne(() => City, { nullable: false })
+  city!: Rel<City>
+
 }

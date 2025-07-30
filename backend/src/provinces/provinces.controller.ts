@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
-import { ProvincesRepository } from './provinces.repository.js'
 import { Province } from './provinces.entity.js'
 
-const repository = new ProvincesRepository()
 
 function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -20,49 +18,23 @@ function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) 
 }
 
 function findAll(req: Request, res: Response) {
-  res.json({ data: repository.findAll() })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function findOne(req: Request, res: Response) {
-  const id = req.params.idProvince
-  const province = repository.findOne({id})
-  if (!province) {
-    return res.status(404).send({ message: 'Province not found' })
-  }
-  res.json({ data: province })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function add(req: Request, res: Response) {
-  const input = req.body.sanitizedInput
-  const provinceInput = new Province(
-    input.idProvince,
-    input.name
-  )
-
-  const province = repository.add(provinceInput)
-  return res.status(201).send({ message: 'Province created', data: province })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function update(req: Request, res: Response) {
-  req.body.sanitizedInput.idProvince = req.params.idProvince
-  const province = repository.update(req.body.sanitizedInput)
-
-  if (!province) {
-    return res.status(404).send({ message: 'Province not found' })
-  }
-
-  return res.status(200).send({ message: 'Province updated successfully', data: province })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function remove(req: Request, res: Response) {
-  const id = req.params.idProvince
-  const province = repository.delete({ id })
-
-  if (!province) {
-    res.status(404).send({ message: 'Province not found' })
-  } else {
-    res.status(200).send({ message: 'Province deleted successfully' })
-  }
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 export { sanitizeProvinceInput, findAll, findOne, add, update, remove }

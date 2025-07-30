@@ -1,13 +1,27 @@
-import crypto from 'node:crypto' // Importing crypto for generating unique, IDs reemplazado por BD luego
+import { Entity, PrimaryKey, Property } from '@mikro-orm/core'
 
+@Entity()
 export class Person {
-    constructor(
-        public email: string,
-        public docType: string,
-        public docNumber: string,
-        public name: string,
-        public surname: string,
-        public phoneNumber: string,
-        public password: string,
-    )  {}
+    
+    @PrimaryKey()
+    email?: string
+
+    @Property({ nullable: false, unique: false })
+    docType!: string
+
+    @Property({ nullable: false, unique: false })
+    docNumber!: string
+
+    @Property({ nullable: false, unique: false })
+    name!: string
+
+    @Property({ nullable: false, unique: false })
+    surname!: string
+
+    @Property({ nullable: false, unique: false })
+    phoneNumber!: string
+
+    @Property({ nullable: false, unique: false })
+    password!: string
+    
 }

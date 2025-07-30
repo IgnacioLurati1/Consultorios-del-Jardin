@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
-import { PeopleRepository } from './people.repository.js'
 import { Person } from './people.entity.js'
 
-const repository = new PeopleRepository()
 
 function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
     req.body.sanitizedInput = {
@@ -25,54 +23,23 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
 }
 
 function findAll(req: Request, res: Response) {
-    res.json({ data: repository.findAll() })
+    res.status(500).json({ message: 'Not implemented' })
 }
 
 function findOne(req: Request, res: Response) {
-    const id = req.params.email
-    const person = repository.findOne({id})
-    if (!person) {
-        return res.status(404).send({ message: 'Person not found' })
-    }
-    res.json({ data: person })
+    res.status(500).json({ message: 'Not implemented' })
 }
 
 function add(req: Request, res: Response) {
-    const input = req.body.sanitizedInput
-    const personInput = new Person(
-        input.email,
-        input.docType,
-        input.docNumber,
-        input.name,
-        input.surname,
-        input.phoneNumber,
-        input.password,
-    )
-
-    const person = repository.add(personInput)
-    return res.status(201).send({ message: 'Person created', data: person })
+    res.status(500).json({ message: 'Not implemented' })
 }
 
 function update(req: Request, res: Response) {
-    req.body.sanitizedInput.email = req.params.email
-    const person = repository.update(req.body.sanitizedInput)
-
-    if (!person) {
-        return res.status(404).send({ message: 'Person not found' })
-    }
-
-    return res.status(200).send({ message: 'Person updated successfully', data: person })
+    res.status(500).json({ message: 'Not implemented' })
 }
 
     function remove(req: Request, res: Response) {
-    const id = req.params.email
-    const person = repository.delete({id})
-
-    if (!person) {
-        res.status(404).send({ message: 'Person not found' })
-    } else {
-        res.status(200).send({ message: 'Person deleted successfully' })
-    }
+    res.status(500).json({ message: 'Not implemented' })
 }
 
 export { sanitizePersonInput, findAll, findOne, add, update, remove }

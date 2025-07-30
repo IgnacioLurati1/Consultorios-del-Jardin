@@ -1,8 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { OfficesRepository } from './offices.repository.js'
 import { Office } from './offices.entity.js'
-
-const repository = new OfficesRepository()
 
 function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -43,52 +40,23 @@ export function validateOfficeTimes(req: Request, res: Response, next: NextFunct
 
 
 function findAll(req: Request, res: Response) {
-  res.json({ data: repository.findAll() })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function findOne(req: Request, res: Response) {
-  const id = req.params.idOffice
-  const office = repository.findOne({id})
-  if (!office) {
-    return res.status(404).send({ message: 'Office not found' })
-  }
-  res.json({ data: office })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function add(req: Request, res: Response) {
-  const input = req.body.sanitizedInput
-  const officeInput = new Office(
-    input.idOffice,
-    input.description,
-    input.idCity,
-    input.openingTime,
-    input.closingTime
-  )
-
-  const office = repository.add(officeInput)
-  return res.status(201).send({ message: 'Office created', data: office })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function update(req: Request, res: Response) {
-  req.body.sanitizedInput.idOffice = req.params.idOffice
-  const office = repository.update(req.body.sanitizedInput)
-
-  if (!office) {
-    return res.status(404).send({ message: 'Office not found' })
-  }
-
-  return res.status(200).send({ message: 'Office updated successfully', data: office })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function remove(req: Request, res: Response) {
-  const id = req.params.idOffice
-  const office = repository.delete({ id })
-
-  if (!office) {
-    res.status(404).send({ message: 'Office not found' })
-  } else {
-    res.status(200).send({ message: 'Office deleted successfully' })
-  }
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 export { sanitizeOfficeInput, findAll, findOne, add, update, remove }

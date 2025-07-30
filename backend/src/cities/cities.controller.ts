@@ -1,8 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { CitiesRepository } from './cities.repository.js'
 import { City } from './cities.entity.js'
-
-const repository = new CitiesRepository()
 
 function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -22,50 +19,23 @@ function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
 }
 
 function findAll(req: Request, res: Response) {
-  res.json({ data: repository.findAll() })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function findOne(req: Request, res: Response) {
-  const id = req.params.idCity
-  const city = repository.findOne({id})
-  if (!city) {
-    return res.status(404).send({ message: 'City not found' })
-  }
-  res.json({ data: city })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function add(req: Request, res: Response) {
-  const input = req.body.sanitizedInput
-  const cityInput = new City(
-    input.idCity,
-    input.name,
-    input.idProvince
-  )
-
-  const city = repository.add(cityInput)
-  return res.status(201).send({ message: 'City created', data: city })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function update(req: Request, res: Response) {
-  req.body.sanitizedInput.idCity = req.params.idCity
-  const city = repository.update(req.body.sanitizedInput)
-
-  if (!city) {
-    return res.status(404).send({ message: 'City not found' })
-  }
-
-  return res.status(200).send({ message: 'City updated successfully', data: city })
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 function remove(req: Request, res: Response) {
-  const id = req.params.idCity
-  const city = repository.delete({ id })
-
-  if (!city) {
-    res.status(404).send({ message: 'City not found' })
-  } else {
-    res.status(200).send({ message: 'City deleted successfully' })
-  }
+  res.status(500).json({ message: 'Not implemented' })
 }
 
 export { sanitizeCityInput, findAll, findOne, add, update, remove }

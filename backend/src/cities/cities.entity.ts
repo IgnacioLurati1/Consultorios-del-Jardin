@@ -1,9 +1,28 @@
-import crypto from 'node:crypto'
+import {
+  Entity,
+  OneToMany,
+  Property,
+  Cascade,
+  Collection,
+  PrimaryKey,
+  ManyToOne,
+  Rel,
+} from '@mikro-orm/core'
+import { Province } from '../provinces/provinces.entity.js'
+import { Office } from '../offices/offices.entity.js'
+
+@Entity()
 
 export class City {
-  constructor(
-    public idCity: string,
-    public name: string,
-    public idProvince: string
-    )  {}
+  @PrimaryKey()
+  idCity?: string
+
+  @Property({ nullable: false, unique: false })
+  nameCity!: string
+
+  @ManyToOne(() => Province, { nullable: false })
+  province!: Rel<Province>;
+
+  @OneToMany(() => Office, (office) => office.city, {cascade: [Cascade.ALL]})
+  offices = new Collection<Office>(this);
 }
