@@ -15,7 +15,7 @@ import { Office } from '../offices/offices.entity.js'
 
 export class City {
   @PrimaryKey()
-  idCity?: string
+  idCity?: number
 
   @Property({ nullable: false, unique: false })
   nameCity!: string
