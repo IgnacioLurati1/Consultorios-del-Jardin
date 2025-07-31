@@ -1,19 +1,23 @@
+###Find all offices
 GET http://localhost:3000/api/offices
 
 
 ### Obtain an office by ID
-GET http://localhost:3000/api/offices/01
+@idOffice = ({office.response.body.data.id})
+
+GET http://localhost:3000/api/offices/{{idOffice}}
 
 ### Create a new office
+# @name CreateOffice
 POST http://localhost:3000/api/offices
 Content-Type: application/json
 
 {
-    "idOffice": "02",
-    "idCity": "02",
-    "description": "Rojo",
+    "idOffice": 2,
     "closingTime": "18:00",
-    "openingTime": "08:00"
+    "openingTime": "08:00",
+    "description": "Rojo",
+    "city": "02"
 }
 
 ### Create a new office with invalid time
@@ -21,15 +25,15 @@ POST http://localhost:3000/api/offices
 Content-Type: application/json
 
 {
-    "idOffice": "02",
-    "idCity": "02",
+    "idOffice": 2,
+    "city": "02",
     "description": "Rojo",
     "closingTime": "8:00",
     "openingTime": "18:00"
 }
 
 ### Modify an office
-PUT http://localhost:3000/api/offices/01
+PUT http://localhost:3000/api/offices/{{idOffice}}
 Content-Type: application/json
 
 {
