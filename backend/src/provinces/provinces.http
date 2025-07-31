@@ -1,34 +1,30 @@
-### obtener todos los provincias
+### GET ALL -obtener todos los provincias
 GET http://localhost:3000/api/provinces
 
+### ID
+@idProvince = {{createProvince.response.body.data.idProvince}}
 
-### obtener una provincia
-GET http://localhost:3000/api/provinces/01
+### GET ONE - obtener una provincia
+GET http://localhost:3000/api/provinces/{{idProvince}}
 
-### crear una nueva provincia
+### POST - crear una nueva provincia
+# @name createProvince
 POST http://localhost:3000/api/provinces
 Content-Type: application/json
 
 {
-    "name": "Neuquen",
-    "idProvince": "1974"
+  "idProvince": "05",
+  "nameProvince": "Tucuman",
+  "cities": []
 }
 
-### modificar una provincia (PUT - recurso completo e idempotente)
-PUT http://localhost:3000/api/provinces/01
+### PUT - modificar una provincia
+PUT http://localhost:3000/api/provinces/{{idProvince}}
 Content-Type: application/json
 
 {
-  "name": "Tierra del Fuego"
+  "nameProvince": "Tierra del Fuego"
 }
 
-### modificar un provincia (PATCH - recurso parcial)
-PATCH http://localhost:3000/api/provinces/01
-Content-Type: application/json
-
-{
-  "name": "Tierra del Hielo"
-}
-
-### borrar un provincia
-DELETE http://localhost:3000/api/provinces/01
+### DELETE - borrar un provincia
+DELETE http://localhost:3000/api/provinces/{{idProvince}}

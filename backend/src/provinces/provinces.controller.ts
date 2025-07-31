@@ -1,40 +1,69 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response} from 'express'
 import { Province } from './provinces.entity.js'
+import { orm } from '../shared/db/orm.js'
 
+const em = orm.em
 
-function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) {
-  req.body.sanitizedInput = {
-    name: req.body.name,
-    idProvince: req.body.idProvince
+async function findAll(req: Request, res: Response) {
+  try {
+
+    const provinces = await em.find(Province, {})
+    res.status(200).json({message: 'finded all Provinces', data:provinces })
+  
+  }catch(error: any){
+    res.status(500).json({ message: error.message })
   }
-  //more checks here
-
-  Object.keys(req.body.sanitizedInput).forEach((key) => {
-    if (req.body.sanitizedInput[key] === undefined) {
-      delete req.body.sanitizedInput[key]
-    }
-  })
-  next()
 }
 
-function findAll(req: Request, res: Response) {
-  res.status(500).json({ message: 'Not implemented' })
+async function findOne(req: Request, res: Response) {
+  try {
+
+    const id = Number.parseInt(req.params.idProvince)
+    const province = await em.findOneOrFail(Province, { idProvince: id })
+    res.status(200).json({ message: 'finded Province', data: province })
+  
+  }catch(error: any) {
+    res.status(500).json({ message: error.message })
+  }
 }
 
-function findOne(req: Request, res: Response) {
-  res.status(500).json({ message: 'Not implemented' })
+
+async function add(req: Request, res: Response) {
+  try {
+
+    const province = em.create(Province, req.body)
+    await em.flush()
+    res.status(201).json({ message: 'Province created', data: province })
+  
+  }catch(error: any) {
+    res.status(500).json({ message: error.message })
+  }
 }
 
-function add(req: Request, res: Response) {
-  res.status(500).json({ message: 'Not implemented' })
+async function update(req: Request, res: Response) {
+  try {
+    
+    const id = Number.parseInt(req.params.idProvince)
+    const province = em.getReference(Province, id as any)
+    await em.flush()
+    res.status(200).json({ message: 'Province updated', data: province })
+
+  }catch(error: any) {
+    res.status(500).json({ message: error.message })
+  }
 }
 
-function update(req: Request, res: Response) {
-  res.status(500).json({ message: 'Not implemented' })
+async function remove(req: Request, res: Response) {
+  try {
+
+    const id = Number.parseInt(req.params.idProvince)
+    const province = em.getReference(Province, id as any)
+    await em.removeAndFlush(province)
+    res.status(204).json({ message: 'Province removed' })
+
+  }catch(error: any) {
+    res.status(500).json({ message: error.message })
+  }
 }
 
-function remove(req: Request, res: Response) {
-  res.status(500).json({ message: 'Not implemented' })
-}
-
-export { sanitizeProvinceInput, findAll, findOne, add, update, remove }
+export {findAll, findOne, add, update, remove }
