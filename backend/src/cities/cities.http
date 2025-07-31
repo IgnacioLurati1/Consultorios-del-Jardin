@@ -13,9 +13,8 @@ POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "idCity": "02",
-    "nameCity": "Santa Fe",
-    "province": "01",
+    "nameCity": "Santa Teresita",
+    "province": "1",
     "offices" : []
 }
 
@@ -28,4 +27,4 @@ Content-Type: application/json
 }
 
 ### borrar una localidad
-DELETE http://localhost:3000/api/cities/{{idToDelete}}
+DELETE http://localhost:3000/api/cities/{{id}}

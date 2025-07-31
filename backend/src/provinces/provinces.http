@@ -2,19 +2,18 @@
 GET http://localhost:3000/api/provinces
 
 ### ID
-@idProvince = {{createProvince.response.body.data.idProvince}}
+@idProvince = {{createProvincee.response.body.data.idProvince}}
 
 ### GET ONE - obtener una provincia
 GET http://localhost:3000/api/provinces/{{idProvince}}
 
 ### POST - crear una nueva provincia
-# @name createProvince
+# @name createProvincee
 POST http://localhost:3000/api/provinces
 Content-Type: application/json
 
 {
-  "idProvince": "05",
-  "nameProvince": "Tucuman",
+  "nameProvince": "Entre Ríos",
   "cities": []
 }
 
