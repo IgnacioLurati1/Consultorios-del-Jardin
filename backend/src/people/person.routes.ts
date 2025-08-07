@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { sanitizePersonInput, findAll, findOne, add, update, remove } from './people.controller.js'
+import { sanitizePersonInput, findAll, findOne, add, update, remove } from './person.controller.js'
 
 export const personRouter = Router()
 
