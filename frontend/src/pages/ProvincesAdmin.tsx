@@ -5,9 +5,9 @@ import { ProvinceLabel } from "../components/ProvinceLabel";
 
 export function ProvincesAdmin() {
 
-    interface Province {   // Se hace asi?
+    interface Province {
         idProvince: string;
-        name: string;
+        nameProvince: string;
     }
 
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -19,6 +19,7 @@ export function ProvincesAdmin() {
         fetch('/api/provinces')
             .then(response => response.json())
             .then(data => {
+                console.log('Provinces fetched:', data.data);
                 setLoading(false);
                 setProvinces(data.data); //Es asi?
             })
@@ -42,7 +43,7 @@ export function ProvincesAdmin() {
     fetch('/api/provinces', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName, idProvince: 3 }) // idProvince se genera en el backend
+      body: JSON.stringify({ nameProvince: newName}) // idProvince se genera en el backend
     })
       .then(res => res.json())
       .then(created => {
@@ -64,7 +65,7 @@ export function ProvincesAdmin() {
             <ul>
                 {provinces.map(prov => (
                     <li key={prov.idProvince}>
-                        <ProvinceLabel name={prov.name} id={prov.idProvince} />
+                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} />
                     </li>
                 ))}
             </ul>
