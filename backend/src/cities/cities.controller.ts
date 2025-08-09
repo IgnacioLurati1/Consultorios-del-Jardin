@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction} from 'express'
 import { orm } from '../shared/db/orm.js'
 import { City } from './cities.entity.js'
+import { Province } from '../provinces/provinces.entity.js'
 
 function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
-    name: req.body.name,
+    nameCity: req.body.nameCity,
     idCity: req.body.idCity,
-    province: req.body.idProvince,
+    province: req.body.province,
     offices: req.body.offices
   }
 
@@ -43,7 +44,7 @@ async function findOne(req: Request, res: Response) {
 
 async function add(req: Request, res: Response) {
   try{
-  const city = em.create(City, req.body.sanitizeCityInput)
+  const city = em.create(City, req.body.sanitizedInput)
   await em.flush()
   res.status(201).json({ message: 'City created successfully', data: city })
   } catch (error: any) {
