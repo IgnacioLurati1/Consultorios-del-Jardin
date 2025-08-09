@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction} from 'express'
 import { orm } from '../shared/db/orm.js'
 import { City } from './cities.entity.js'
-import { Province } from '../provinces/provinces.entity.js'
 
 function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
