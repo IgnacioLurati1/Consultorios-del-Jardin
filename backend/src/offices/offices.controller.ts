@@ -1,14 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
-import { OfficesRepository } from './offices.repository.js'
 import { Office } from './offices.entity.js'
-
-const repository = new OfficesRepository()
+import { orm } from '../shared/db/orm.js'
 
 function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
     idOffice: req.body.idOffice,
     description: req.body.description,
-    idCity: req.body.idCity,
+    city: req.body.city,
     closingTime: req.body.closingTime,
     openingTime: req.body.openingTime,
   }
@@ -21,7 +19,8 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   next()
 }
 
-export function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
+/*
+function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
 
   if('openingTime' in req.body.sanitizedInput && 'closingTime' in req.body.sanitizedInput) { //This is because our sanitizer function eliminates all keys that are undefined, therefore not working on put or patch http requets that don't have the correct keys
     let openingTime = req.body.sanitizedInput.openingTime
@@ -38,57 +37,68 @@ export function validateOfficeTimes(req: Request, res: Response, next: NextFunct
   }
 
   next()
-}
+} 
+*/
 
+const em = orm.em
 
-
-function findAll(req: Request, res: Response) {
-  res.json({ data: repository.findAll() })
-}
-
-function findOne(req: Request, res: Response) {
-  const id = req.params.idOffice
-  const office = repository.findOne({id})
-  if (!office) {
-    return res.status(404).send({ message: 'Office not found' })
-  }
-  res.json({ data: office })
-}
-
-function add(req: Request, res: Response) {
-  const input = req.body.sanitizedInput
-  const officeInput = new Office(
-    input.idOffice,
-    input.description,
-    input.idCity,
-    input.openingTime,
-    input.closingTime
-  )
-
-  const office = repository.add(officeInput)
-  return res.status(201).send({ message: 'Office created', data: office })
-}
-
-function update(req: Request, res: Response) {
-  req.body.sanitizedInput.idOffice = req.params.idOffice
-  const office = repository.update(req.body.sanitizedInput)
-
-  if (!office) {
-    return res.status(404).send({ message: 'Office not found' })
-  }
-
-  return res.status(200).send({ message: 'Office updated successfully', data: office })
-}
-
-function remove(req: Request, res: Response) {
-  const id = req.params.idOffice
-  const office = repository.delete({ id })
-
-  if (!office) {
-    res.status(404).send({ message: 'Office not found' })
-  } else {
-    res.status(200).send({ message: 'Office deleted successfully' })
+async function findAll(req: Request, res: Response) {
+  try {
+    const offices = await em.find(
+      Office,
+      {},
+    )
+    res.status(200).json({ message: 'Find all offices', data: offices });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error retrieving offices' });
   }
 }
 
-export { sanitizeOfficeInput, findAll, findOne, add, update, remove }
+async function add(req: Request, res: Response) {
+  try {
+    const office = em.create(Office, req.body.sanitizedInput);
+    await em.flush();
+    res.status(201).json({ message: 'Office created successfully', data: office });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function findOne(req: Request, res: Response) {
+  try {
+    const id = Number.parseInt(req.params.idOffice)
+    const office = await em.findOneOrFail(
+      Office,
+      {idOffice: id},
+    )
+    res.status(200).json({ message: 'Office found', data: office });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+//no está igual al video "api40". Hecho de la misma forma que el video, tira error en la linea 136.
+async function remove(req: Request, res: Response) {
+  try {
+    const id = Number.parseInt(req.params.idOffice)
+    const office = await em.findOneOrFail(Office, { idOffice: id })
+    await em.removeAndFlush(office)
+    res.status(200).json({ message: 'Office deleted successfully' })
+  } catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+async function update(req: Request, res: Response) {
+  try {
+    const id = Number.parseInt(req.params.idOffice)
+    const officeToUpdate = await em.findOneOrFail(Office, { idOffice: id })
+    em.assign(officeToUpdate, req.body.sanitizedInput)
+    await em.flush()
+    res.status(200).json({ message: 'Office updated successfully', data: officeToUpdate })
+  } catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+export {sanitizeOfficeInput, findAll, findOne, add, update, remove}

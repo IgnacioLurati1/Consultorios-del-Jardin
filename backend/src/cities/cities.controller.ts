@@ -1,17 +1,14 @@
-import { Request, Response, NextFunction } from 'express'
-import { CitiesRepository } from './cities.repository.js'
+import { Request, Response, NextFunction} from 'express'
+import { orm } from '../shared/db/orm.js'
 import { City } from './cities.entity.js'
-
-const repository = new CitiesRepository()
 
 function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
     name: req.body.name,
     idCity: req.body.idCity,
-    idProvince: req.body.idProvince
+    province: req.body.idProvince,
+    offices: req.body.offices
   }
-  
-  //more checks here
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
     if (req.body.sanitizedInput[key] === undefined) {
@@ -21,51 +18,60 @@ function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   next()
 }
 
-function findAll(req: Request, res: Response) {
-  res.json({ data: repository.findAll() })
-}
+const em = orm.em
 
-function findOne(req: Request, res: Response) {
-  const id = req.params.idCity
-  const city = repository.findOne({id})
-  if (!city) {
-    return res.status(404).send({ message: 'City not found' })
-  }
-  res.json({ data: city })
-}
-
-function add(req: Request, res: Response) {
-  const input = req.body.sanitizedInput
-  const cityInput = new City(
-    input.idCity,
-    input.name,
-    input.idProvince
-  )
-
-  const city = repository.add(cityInput)
-  return res.status(201).send({ message: 'City created', data: city })
-}
-
-function update(req: Request, res: Response) {
-  req.body.sanitizedInput.idCity = req.params.idCity
-  const city = repository.update(req.body.sanitizedInput)
-
-  if (!city) {
-    return res.status(404).send({ message: 'City not found' })
-  }
-
-  return res.status(200).send({ message: 'City updated successfully', data: city })
-}
-
-function remove(req: Request, res: Response) {
-  const id = req.params.idCity
-  const city = repository.delete({ id })
-
-  if (!city) {
-    res.status(404).send({ message: 'City not found' })
-  } else {
-    res.status(200).send({ message: 'City deleted successfully' })
+async function findAll(req: Request, res: Response) {
+  try {
+    const cities = await em.find(City, {})
+    res.status(200).json({ message: 'find all cities', data: cities })
+  }catch (error : any) {
+    res.status(500).json({ message: error.message })
   }
 }
 
-export { sanitizeCityInput, findAll, findOne, add, update, remove }
+async function findOne(req: Request, res: Response) {
+  try{
+    const id = Number.parseInt(req.params.idCity)
+    const city = await em.findOneOrFail(City, { idCity : id })
+    res
+      .status(200)
+      .json({ message: 'found one city', data: city })
+  }catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+async function add(req: Request, res: Response) {
+  try{
+  const city = em.create(City, req.body.sanitizeCityInput)
+  await em.flush()
+  res.status(201).json({ message: 'City created successfully', data: city })
+  } catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+async function update(req: Request, res: Response) {
+  try{
+    const id = Number.parseInt(req.params.idCity)
+    const city = await em.findOneOrFail(City,  { idCity : id })
+    em.assign(city, req.body.sanitizedInput)
+    await em.flush() 
+    res.status(200).json({ message: 'City updated successfully'})
+  }catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+async function remove(req: Request, res: Response) {
+  try{
+    const id = Number.parseInt(req.params.idCity)
+    const city = em.getReference(City, id as any)
+    await em.removeAndFlush(city)
+    res.status(200).json({ message: 'City removed successfully' })
+  }catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}
+
+export {sanitizeCityInput, findAll, findOne, add, update, remove }
