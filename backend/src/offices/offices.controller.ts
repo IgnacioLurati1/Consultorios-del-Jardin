@@ -6,7 +6,7 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
     idOffice: req.body.idOffice,
     description: req.body.description,
-    idCity: req.body.idCity,
+    city: req.body.city,
     closingTime: req.body.closingTime,
     openingTime: req.body.openingTime,
   }

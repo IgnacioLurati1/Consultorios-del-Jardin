@@ -13,11 +13,10 @@ POST http://localhost:3000/api/offices
 Content-Type: application/json
 
 {
-    "idOffice": 2,
     "closingTime": "18:00",
     "openingTime": "08:00",
-    "description": "Rojo",
-    "city": "02"
+    "description": "Consultorio Zona Norte",
+    "city": "1"
 }
 
 ### Create a new office with invalid time
@@ -25,7 +24,6 @@ POST http://localhost:3000/api/offices
 Content-Type: application/json
 
 {
-    "idOffice": 2,
     "city": "02",
     "description": "Rojo",
     "closingTime": "8:00",
@@ -33,21 +31,19 @@ Content-Type: application/json
 }
 
 ### Modify an office
-PUT http://localhost:3000/api/offices/{{idOffice}}
+PUT http://localhost:3000/api/offices/1
 Content-Type: application/json
 
 {
-  "description": "Azul"
+  "description": "Sala Roja"
 }
 
 ### Modify an office with invalid time
-PUT http://localhost:3000/api/offices/01
+PUT http://localhost:3000/api/offices/3
 Content-Type: application/json
 
 {
-  "closingTime": "8:00",
-  "openingTime": "18:00",
-  "description": "Azul"
+  "idOffice": "2"
 }
 
 ### Modify an office (PATCH)
@@ -59,4 +55,4 @@ Content-Type: application/json
 }
 
 ### Delete an office
-DELETE http://localhost:3000/api/offices/01
+DELETE http://localhost:3000/api/offices/1
