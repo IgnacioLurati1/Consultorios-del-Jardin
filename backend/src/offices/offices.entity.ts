@@ -9,6 +9,7 @@ import {
   Cascade,
 } from '@mikro-orm/core'
 import { City } from '../cities/cities.entity.js'
+import { Room } from '../rooms/rooms.entity.js'
 
 @Entity()
 export class Office {
@@ -28,7 +29,7 @@ export class Office {
   @ManyToOne(() => City, { nullable: false })
   city!: Rel<City>
 
-  /*@OneToMany(() => Rooms, (room) => room.city, {cascade: [Cascade.ALL]})
-    rooms = new Collection<Room>(this);*/
+  @OneToMany(() => Room, (room) => room.office, {cascade: [Cascade.ALL]})
+    rooms = new Collection<Room>(this);
 
 }
