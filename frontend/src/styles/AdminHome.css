@@ -18,6 +18,9 @@
 
 }
 
+.province-list {
+    list-style-type: none;
+}
 
 @media (max-width: 768px) {
     .options-container {

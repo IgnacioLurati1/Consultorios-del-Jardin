@@ -38,12 +38,12 @@ export function ProvincesAdmin() {
         return <div>Error: {error}</div>;
     }
 
-    const addProvince = () => {
-    if (!newName.trim()) return;
-    fetch('/api/provinces', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nameProvince: newName}) // idProvince se genera en el backend
+    function addProvince() {
+        if (!newName.trim()) return;
+        fetch('/api/provinces', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nameProvince: newName }) // idProvince se genera en el backend
     })
       .then(res => res.json())
       .then(created => {
@@ -56,16 +56,49 @@ export function ProvincesAdmin() {
         alert('Error al crear provincia: ' + err.message);
       });
   };
-    
 
-    
+  function deleteProvince(id: string) {
+    fetch(`/api/provinces/${id}`, {
+      method: 'DELETE',
+    })
+      .then(res => {
+        if(!res.ok) throw new Error('Error al eliminar provincia');
+      })
+      .then(() => {
+        // Eliminamos la provincia del array
+        setProvinces(provinces.filter(prov => prov.idProvince !== id));
+      })
+      .catch(err => {
+        alert('Error al eliminar provincia: ' + err.message);
+      });
+  }
+
+  function editProvince(id: string) {
+    const newName = prompt('Nuevo nombre de provincia:');
+    if (!newName) return;
+
+    fetch(`/api/provinces/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nameProvince: newName })
+    })
+      .then(res => res.json())
+      .then(updated => {
+        // Actualizamos la provincia en el array
+        setProvinces(provinces.map(prov => (prov.idProvince === id ? updated.data : prov)));
+      })
+      .catch(err => {
+        alert('Error al modificar provincia: ' + err.message);
+      });
+  }
+
     return (
         <div className="admin-home">
             <h1>Provinces Admin</h1>
-            <ul>
+            <ul className="province-list">
                 {provinces.map(prov => (
                     <li key={prov.idProvince}>
-                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} />
+                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince)} />
                     </li>
                 ))}
             </ul>
