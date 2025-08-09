@@ -1,0 +1,43 @@
+
+### Obtain all rooms
+
+GET http://localhost:3000/api/rooms
+
+### Obtain a room by ID
+GET http://localhost:3000/api/rooms/02
+
+### Create a new room
+POST http://localhost:3000/api/rooms
+Content-Type: application/json
+
+{
+    "description": "Sala Roja",
+    "office": "1"
+}
+
+### Modify a room
+PUT http://localhost:3000/api/rooms/02
+Content-Type: application/json
+
+{
+  "description": "Sala azul"
+}
+
+### Modify an room (PATCH)
+PATCH http://localhost:3000/api/rooms/01
+Content-Type: application/json
+{
+  "description": "Sala Amarilla"
+}
+
+### Modify a room with invalid data
+PUT http://localhost:3000/api/rooms/01
+Content-Type: application/json
+
+{
+  "description": "",
+  "idOffice": "02"
+}
+
+### Delete a room
+DELETE http://localhost:3000/api/rooms/05

@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
-import { PeopleRepository } from './people.repository.js'
 import { Person } from './people.entity.js'
+import { orm } from '../shared/db/orm.js'
 
-const repository = new PeopleRepository()
+const em = orm.em;
 
 function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
+
     req.body.sanitizedInput = {
         email: req.body.email,
         docType: req.body.docType,
@@ -14,6 +15,7 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
         phoneNumber: req.body.phoneNumber,
         password: req.body.password,
     }
+
     //more checks here
 
     Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -21,58 +23,58 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
         delete req.body.sanitizedInput[key]
         }
     })
+
     next()
 }
 
-function findAll(req: Request, res: Response) {
-    res.json({ data: repository.findAll() })
-}
-
-function findOne(req: Request, res: Response) {
-    const id = req.params.email
-    const person = repository.findOne({id})
-    if (!person) {
-        return res.status(404).send({ message: 'Person not found' })
+async function findAll(req: Request, res: Response) {
+    try {
+        const people = await em.find(Person, {})
+        res.status(200).json({ message: 'People found', data: people })
+    } catch (error: any) {
+        res.status(500).json({ message: error.message })
     }
-    res.json({ data: person })
 }
 
-function add(req: Request, res: Response) {
-    const input = req.body.sanitizedInput
-    const personInput = new Person(
-        input.email,
-        input.docType,
-        input.docNumber,
-        input.name,
-        input.surname,
-        input.phoneNumber,
-        input.password,
-    )
-
-    const person = repository.add(personInput)
-    return res.status(201).send({ message: 'Person created', data: person })
-}
-
-function update(req: Request, res: Response) {
-    req.body.sanitizedInput.email = req.params.email
-    const person = repository.update(req.body.sanitizedInput)
-
-    if (!person) {
-        return res.status(404).send({ message: 'Person not found' })
+async function findOne(req: Request, res: Response) {
+    try {
+        const person = await em.findOneOrFail(Person, { email: req.params.email } )
+        res.status(200).json({message: 'Person found', data: person})
+    } catch (error: any) {
+        res.status(500).json({ message: error.message })
     }
-
-    return res.status(200).send({ message: 'Person updated successfully', data: person })
 }
 
-    function remove(req: Request, res: Response) {
-    const id = req.params.email
-    const person = repository.delete({id})
-
-    if (!person) {
-        res.status(404).send({ message: 'Person not found' })
-    } else {
-        res.status(200).send({ message: 'Person deleted successfully' })
+async function add(req: Request, res: Response) {
+    try {
+        const person = em.create(Person, req.body.sanitizedInput)
+        await em.flush();
+        res.status(201).json({ message: 'Person created', data: person })
+    } catch (error: any) {
+        res.status(500).json({ message: error.message })
     }
+}
+
+async function update(req: Request, res: Response) {
+    try {
+        const person = await em.findOneOrFail(Person, { email: req.params.email })
+        em.assign(person, req.body.sanitizedInput)
+        await em.flush();
+        res.status(200).json({ message: 'Person updated', data: person })
+    } catch (error: any) {
+        res.status(500).json({ message: error.message })
+    }
+}
+
+    async function remove(req: Request, res: Response) {
+        try {
+            const email = req.params.email
+            const person = await em.findOneOrFail(Person, { email }) //Cambiado por que sino no andaba
+            await em.removeAndFlush(person)
+            res.status(200).json({ message: 'Person removed' })
+        } catch (error: any) {
+            res.status(500).json({ message: error.message })
+        }
 }
 
 export { sanitizePersonInput, findAll, findOne, add, update, remove }
