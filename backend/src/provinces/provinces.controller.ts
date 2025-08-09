@@ -4,7 +4,7 @@ import { orm } from '../shared/db/orm.js'
 
 function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
-    name: req.body.name,
+    nameProvince: req.body.nameProvince,
     idProvince: req.body.idProvince,
     cities: req.body.cities
 
@@ -52,7 +52,7 @@ async function add(req: Request, res: Response) {
     res.status(201).json({ message: 'Province created', data: province })
   
   }catch(error: any) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: req.body.sanitizedInput.name + error.message })
   }
 }
 
