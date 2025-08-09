@@ -84,12 +84,25 @@ async function add(req: Request, res: Response) {
   }
 }   
 
-function remove(req: Request, res: Response) {
+async function remove(req: Request, res: Response) {
   try {
-    const idRoom = Number.parseInt(req.params.idRoom);
-    const room = em.getReference(Room, idRoom as any)
+    const idRoomParam = req.params.idRoom;
+    if (!idRoomParam) {
+      return res.status(400).json({ error: 'idRoom is required' });
+    }
+
+    const idRoom = Number.parseInt(idRoomParam);
+    if (isNaN(idRoom)) {
+      return res.status(400).json({ error: 'idRoom must be a valid number' });
+    }
+
+    const room = await em.findOne(Room, { idRoom });
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
     em.remove(room)
-    em.flush()
+    await em.flush()
     res.status(200).json({ message: 'room deleted' })
   }
   catch(error:any) {
