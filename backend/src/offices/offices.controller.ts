@@ -36,57 +36,50 @@ export function validateOfficeTimes(req: Request, res: Response, next: NextFunct
   }
 
   next()
-}
-
+} 
 
 const em = orm.em
 
 async function findAll(req: Request, res: Response) {
   try {
-    const offices = await em.find(Office, {});
-    res.status(200).json({ message: 'Find all offices', data: offices })
+    const offices = await em.find(
+      Office,
+      {},
+    )
+    res.status(200).json({ message: 'Find all offices', data: offices });
   } catch (error: any) {
-    res.status(500).json({ message: 'Error retrieving offices'})
+    res.status(500).json({ message: 'Error retrieving offices' });
   }
-}
-    
-async function findOne(req: Request, res: Response) {
- try {
-  const id = Number.parseInt(req.params.idOffice)
-  const office = await em.findOneOrFail(Office, { idOffice: id }) 
-  res.status(200).json({ message: 'Office found', data: office })
- } catch (error: any) {
-  res.status(500).json({ message: error.message })
- }
 }
 
 async function add(req: Request, res: Response) {
   try {
-    const office = em.create(Office, req.body)
-    await em.flush()
-    res.status(201).json({ message: 'Office created successfully', data: office })
+    const office = em.create(Office, req.body.sanitizedInput);
+    await em.flush();
+    res.status(201).json({ message: 'Office created successfully', data: office });
   } catch (error: any) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: error.message });
   }
 }
 
-//CHAQUEAR
-async function update(req: Request, res: Response) {
+async function findOne(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idOffice)
-    const office = em.findOneOrFail(Office, {idOffice: id})
-    em.assign(office, req.body)
-    await em.flush()
-    res.status(200).json({ message: 'Office updated successfully', data: office })
+    const office = await em.findOneOrFail(
+      Office,
+      {idOffice: id},
+    )
+    res.status(200).json({ message: 'Office found', data: office });
   } catch (error: any) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: error.message });
   }
 }
 
+//no está igual al video "api40". Hecho de la misma forma que el video, tira error en la linea 136.
 async function remove(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idOffice)
-    const office = em.findOneOrFail(Office, { idOffice: id })
+    const office = await em.findOneOrFail(Office, { idOffice: id })
     await em.removeAndFlush(office)
     res.status(200).json({ message: 'Office deleted successfully' })
   } catch (error: any) {
@@ -94,4 +87,14 @@ async function remove(req: Request, res: Response) {
   }
 }
 
-export { findAll, findOne, add, update, remove }
+async function update(req: Request, res: Response) {
+  try {
+    const id = Number.parseInt(req.params.idOffice)
+    const officeToUpdate = await em.findOneOrFail(Office, { idOffice: id })
+    em.assign(officeToUpdate, req.body.sanitizedInput)
+    await em.flush()
+    res.status(200).json({ message: 'Office updated successfully', data: officeToUpdate })
+  } catch (error: any) {
+    res.status(500).json({ message: error.message })
+  }
+}

@@ -21,4 +21,6 @@ export class Office {
   @ManyToOne(() => City, { nullable: false })
   city!: Rel<City>
 
+  //falta OneToMany con "Rooms".
+
 }
