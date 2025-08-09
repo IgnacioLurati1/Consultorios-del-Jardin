@@ -11,12 +11,16 @@ import { City } from '../cities/cities.entity.js'
 export class Office {
 
   @PrimaryKey()
-  idOffice?: string
+  idOffice?: number
   @Property({ nullable: false, unique: false })
   closingTime!: string
+  @Property({ nullable: false, unique: false })
+  openingTime!: string
   @Property({ nullable: false, unique: false })
   description!: string
   @ManyToOne(() => City, { nullable: false })
   city!: Rel<City>
+
+  //falta OneToMany con "Rooms".
 
 }
