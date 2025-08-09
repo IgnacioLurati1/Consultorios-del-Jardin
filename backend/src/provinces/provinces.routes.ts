@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { 
+    sanitizeProvinceInput,
     findAll, 
     findOne, 
     add, 
@@ -11,6 +12,6 @@ export const provinceRouter = Router()
 
 provinceRouter.get('/', findAll)
 provinceRouter.get('/:idProvince', findOne)
-provinceRouter.post('/', add)
-provinceRouter.put('/:idProvince', update)
+provinceRouter.post('/',sanitizeProvinceInput, add)
+provinceRouter.put('/:idProvince',sanitizeProvinceInput, update)
 provinceRouter.delete('/:idProvince', remove)

@@ -1,6 +1,22 @@
-import { Request, Response} from 'express'
+import { Request, Response, NextFunction} from 'express'
 import { Province } from './provinces.entity.js'
 import { orm } from '../shared/db/orm.js'
+
+function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) {
+  req.body.sanitizedInput = {
+    name: req.body.name,
+    idProvince: req.body.idProvince,
+    cities: req.body.cities
+
+  }
+
+  Object.keys(req.body.sanitizedInput).forEach((key) => {
+    if (req.body.sanitizedInput[key] === undefined) {
+      delete req.body.sanitizedInput[key]
+    }
+  })
+  next()
+}
 
 const em = orm.em
 
@@ -31,7 +47,7 @@ async function findOne(req: Request, res: Response) {
 async function add(req: Request, res: Response) {
   try {
 
-    const province = em.create(Province, req.body)
+    const province = em.create(Province, req.body.sanitizedInput)
     await em.flush()
     res.status(201).json({ message: 'Province created', data: province })
   
@@ -44,7 +60,8 @@ async function update(req: Request, res: Response) {
   try {
     
     const id = Number.parseInt(req.params.idProvince)
-    const province = em.getReference(Province, id as any)
+    const province = await em.findOneOrFail(Province, id as any)
+    em.assign(province, req.body.sanitizedInput)
     await em.flush()
     res.status(200).json({ message: 'Province updated', data: province })
 
@@ -59,6 +76,7 @@ async function remove(req: Request, res: Response) {
     const id = Number.parseInt(req.params.idProvince)
     const province = em.getReference(Province, id as any)
     await em.removeAndFlush(province)
+
     res.status(204).json({ message: 'Province removed' })
 
   }catch(error: any) {
@@ -66,4 +84,4 @@ async function remove(req: Request, res: Response) {
   }
 }
 
-export {findAll, findOne, add, update, remove }
+export {sanitizeProvinceInput, findAll, findOne, add, update, remove }
