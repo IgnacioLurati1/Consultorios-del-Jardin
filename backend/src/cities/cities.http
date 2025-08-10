@@ -13,7 +13,7 @@ POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "nameCity": "Santa Teresita",
+    "nameCity": "Rosario",
     "province": "1",
     "offices" : []
 }
