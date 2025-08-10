@@ -40,7 +40,7 @@ export function ProvincesAdmin() {
             provinces.filter((province: Province) => province.nameProvince.replace(/\p{Diacritic}/gu, '').normalize("NFD").toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
-    }, [searchTerm]);
+    }, [searchTerm, provinces]);
 
     if (loading) {
         return <div>Loading...</div>;
