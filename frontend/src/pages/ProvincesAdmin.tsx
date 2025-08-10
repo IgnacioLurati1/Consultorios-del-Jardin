@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "../styles/AdminHome.css";
 import { ProvinceLabel } from "../components/ProvinceLabel";
 import { FaSearch } from 'react-icons/fa';
+import { ProvinceModal } from "../components/ProvinceModal";
 
 
 export function ProvincesAdmin() {
@@ -17,6 +18,8 @@ export function ProvincesAdmin() {
     const [error, setError] = useState(null);
     const [newName, setNewName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
 
     useEffect(() => {
         fetch('/api/provinces')
@@ -37,7 +40,7 @@ export function ProvincesAdmin() {
 
     useEffect(() => {
         setFilteredProvinces(
-            provinces.filter((province: Province) => province.nameProvince.replace(/\p{Diacritic}/gu, '').normalize("NFD").toLowerCase().includes(searchTerm.toLowerCase()))
+            provinces.filter((province: Province) => province.nameProvince.normalize("NFD").replace(/\p{Diacritic}/gu, '').toLowerCase().includes(searchTerm.normalize("NFD").replace(/\p{Diacritic}/gu, '').toLowerCase()))
         );
 
     }, [searchTerm, provinces]);
@@ -49,6 +52,8 @@ export function ProvincesAdmin() {
     if (error) {
         return <div>Error: {error}</div>;
     }
+
+
 
     function addProvince() {
         if (!newName.trim()) return;
@@ -79,6 +84,7 @@ export function ProvincesAdmin() {
       .then(() => {
         // Eliminamos la provincia del array
         setProvinces(provinces.filter(prov => prov.idProvince !== id));
+        setModalVisible(false);
       })
       .catch(err => {
         alert('Error al eliminar provincia: ' + err.message);
@@ -104,7 +110,20 @@ export function ProvincesAdmin() {
       });
   }
 
+  
+
+
     return (
+      <>
+        {modalVisible && selectedProvince != null && (
+            <ProvinceModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                province={selectedProvince}
+                onDelete={() => deleteProvince(selectedProvince.idProvince)}
+            />
+        )
+        }
         <div className="admin-home">
             <h1>Provinces Admin</h1>
             <div className="province-searchBar">
@@ -118,7 +137,10 @@ export function ProvincesAdmin() {
             <div className="province-grid">
                 <ul className="province-list">
                     {filteredProvinces.map(prov => (
-                    <li key={prov.idProvince}>
+                    <li key={prov.idProvince} onClick={() => {
+                      setModalVisible(true);
+                      setSelectedProvince(prov);
+                    }}>
                         <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince)} />
                     </li>
                 ))}
@@ -134,6 +156,6 @@ export function ProvincesAdmin() {
        <button onClick={addProvince}>Añadir</button>
 
         </div>
-            
+    </> 
     );
 }

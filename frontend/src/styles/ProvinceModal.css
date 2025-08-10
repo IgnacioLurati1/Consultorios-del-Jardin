@@ -1,0 +1,29 @@
+.province-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;  /* ancho total viewport */
+    height: 100vh; /* alto total viewport */
+    background: rgba(0, 0, 0, 0.6); /* negro semitransparente */
+    display: flex;
+    justify-content: center; /* centrado horizontal */
+    align-items: center;     /* centrado vertical */
+    z-index: 1000;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.province-modal-content {
+    position: relative;
+    margin: auto;
+    padding: 20px;
+    background: white;
+    border-radius: 5px;
+    max-width: 500px;
+    width: 100%;
+    color: black;
+}
