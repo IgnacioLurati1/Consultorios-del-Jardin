@@ -48,7 +48,7 @@ export function ProvincesAdmin() {
     if (loading) {
         return <div>Loading...</div>;
     }
-
+//Falta estilizar cacheado de errores
     if (error) {
         return <div>Error: {error}</div>;
     }
@@ -136,7 +136,7 @@ export function ProvincesAdmin() {
         )
         }
         <div className="admin-home">
-            <h1>Administrador de Provincias</h1>
+            <h1 style={{ textAlign: 'center' }}>Administrador de Provincias</h1>
             <div className="province-searchBar">
                 <FaSearch className="search-icon"/>
                 <input className="province-searchInput"
@@ -157,15 +157,17 @@ export function ProvincesAdmin() {
                 ))}
             </ul>
             </div>
-
-            <input
-                type="text"
-                placeholder="Nombre de provincia"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-        />
-       <button onClick={addProvince}>Añadir</button>
-
+            
+              <h1>Crear Provincia</h1>
+            <div className="create-province">
+              <input className="create-province-input"
+                  type="text"
+                  placeholder="Nombre de provincia"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+              />
+              <button onClick={addProvince}>Añadir</button>
+            </div>
         </div>
     </> 
     );

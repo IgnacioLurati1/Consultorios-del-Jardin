@@ -29,12 +29,32 @@
   animation: fadeIn 0.5s ease forwards;
 }
 
+.create-province {
+    display: flex;
+    gap: 5%;
+}
+
+.create-province-input {
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 8px;
+}
+
+.create-province button {
+    border-radius: 5px;
+    border: 1px solid green;
+    padding: 8px 12px;
+    background-color: white;
+    color: green;
+    cursor: pointer;
+}
+
 .province-searchBar {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
     width: 80%;
-    font-size: 30px;
+    font-size: 30%;
     background-color: white;
     border: 1px solid black;
     border-radius: 10px;
@@ -93,6 +113,19 @@
     .admin-home {
         
         width: 100%;
+    }
+
+    .search-icon {
+    font-size: 20px;
+    }
+
+    .province-searchInput {
+
+    font-size: 20px;
+    }
+
+    .create-province {
+        margin-bottom: 10%;
     }
 }
 

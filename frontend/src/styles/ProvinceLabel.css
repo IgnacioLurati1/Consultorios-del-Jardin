@@ -1,6 +1,6 @@
 .province-label {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 8fr 1fr;
   font-size: 20px;
   color: black;
   border-radius: 5px;
