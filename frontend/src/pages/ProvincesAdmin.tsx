@@ -3,6 +3,7 @@ import "../styles/AdminHome.css";
 import { ProvinceLabel } from "../components/ProvinceLabel";
 import { FaSearch } from 'react-icons/fa';
 import { ProvinceModal } from "../components/ProvinceModal";
+import "../styles/ProvincesCRUD.css";
 
 
 export function ProvincesAdmin() {

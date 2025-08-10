@@ -19,88 +19,6 @@
 
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.province-list li {
-  opacity: 0;
-  animation: fadeIn 0.5s ease forwards;
-}
-
-.create-province {
-    display: flex;
-    gap: 5%;
-}
-
-.create-province-input {
-    border-radius: 5px;
-    border: 1px solid black;
-    padding: 8px;
-}
-
-.create-province button {
-    border-radius: 5px;
-    border: 1px solid green;
-    padding: 8px 12px;
-    background-color: white;
-    color: green;
-    cursor: pointer;
-}
-
-.province-searchBar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-    width: 80%;
-    font-size: 30%;
-    background-color: white;
-    border: 1px solid black;
-    border-radius: 10px;
-    margin-bottom: 3%;
-}
-
-.search-icon {
-    font-size: 30px;
-    margin-left: 8px;
-    color: gray;
-}
-
-.province-searchInput {
-
-    font-size: 30px;
-    outline: none;
-    border: none !important;
-    background: transparent;
-    width: 100%;
-}
-
-.province-searchBar input {
-    margin-left: 8px;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.province-grid {
-  display: grid;
-  overflow-y: auto;
-  width: 100%;
-  height: 500px;
-  background-color: rgb(201, 201, 201);
-  border-radius: 10px;
-
-}
-
-
-.province-list {
-    list-style-type: none;
-    display: block;
-    padding: 0;
-    margin-left: 2.5%;
-    margin-right: 2.5%;
-}
 
 @media (max-width: 768px) {
     .options-container {
@@ -115,17 +33,6 @@
         width: 100%;
     }
 
-    .search-icon {
-    font-size: 20px;
-    }
 
-    .province-searchInput {
-
-    font-size: 20px;
-    }
-
-    .create-province {
-        margin-bottom: 10%;
-    }
 }
 
