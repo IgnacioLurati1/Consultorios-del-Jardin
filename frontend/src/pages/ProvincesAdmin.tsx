@@ -62,7 +62,12 @@ export function ProvincesAdmin() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nameProvince: newName }) // idProvince se genera en el backend
     })
-      .then(res => res.json())
+      .then(res => {
+        if(res.ok) {
+          return res.json();
+        }
+        throw new Error('El nombre coincide con otra provincia existente');
+      })
       .then(created => {
         // añadimos la provincia nueva al array
         console.log('Provincia creada:', created);
@@ -91,8 +96,7 @@ export function ProvincesAdmin() {
       });
   }
 
-  function editProvince(id: string) {
-    const newName = prompt('Nuevo nombre de provincia:');
+  function editProvince(id: string, newName: string) {
     if (!newName) return;
 
     fetch(`/api/provinces/${id}`, {
@@ -100,9 +104,13 @@ export function ProvincesAdmin() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nameProvince: newName })
     })
-      .then(res => res.json())
+      .then(res => {
+        if(res.ok) {
+          return res.json();
+        }
+        throw new Error('El nombre de la provincia coincide con otra existente');
+      })
       .then(updated => {
-        // Actualizamos la provincia en el array
         setProvinces(provinces.map(prov => (prov.idProvince === id ? updated.data : prov)));
       })
       .catch(err => {
@@ -121,6 +129,7 @@ export function ProvincesAdmin() {
                 onClose={() => setModalVisible(false)}
                 province={selectedProvince}
                 onDelete={() => deleteProvince(selectedProvince.idProvince)}
+                onEdit={editProvince}
             />
         )
         }
@@ -141,7 +150,7 @@ export function ProvincesAdmin() {
                       setModalVisible(true);
                       setSelectedProvince(prov);
                     }}>
-                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince)} />
+                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "")} />
                     </li>
                 ))}
             </ul>
