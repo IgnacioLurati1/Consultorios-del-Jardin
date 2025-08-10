@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "../styles/AdminHome.css";
 import { ProvinceLabel } from "../components/ProvinceLabel";
+import { FaSearch } from 'react-icons/fa';
 
 
 export function ProvincesAdmin() {
@@ -11,9 +12,11 @@ export function ProvincesAdmin() {
     }
 
     const [provinces, setProvinces] = useState<Province[]>([]);
+    const [filteredProvinces, setFilteredProvinces] = useState<Province[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [newName, setNewName] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetch('/api/provinces')
@@ -21,7 +24,9 @@ export function ProvincesAdmin() {
             .then(data => {
                 console.log('Provinces fetched:', data.data);
                 setLoading(false);
-                setProvinces(data.data); //Es asi?
+                setProvinces(data.data);
+                setFilteredProvinces(data.data);
+
             })
             .catch(error => {
                 setLoading(false);
@@ -29,6 +34,13 @@ export function ProvincesAdmin() {
                 console.error('Error fetching provinces:', error);
             });
     }, []);
+
+    useEffect(() => {
+        setFilteredProvinces(
+            provinces.filter((province: Province) => province.nameProvince.replace(/\p{Diacritic}/gu, '').normalize("NFD").toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+
+    }, [searchTerm]);
 
     if (loading) {
         return <div>Loading...</div>;
@@ -95,19 +107,29 @@ export function ProvincesAdmin() {
     return (
         <div className="admin-home">
             <h1>Provinces Admin</h1>
-            <ul className="province-list">
-                {provinces.map(prov => (
+            <div className="province-searchBar">
+                <FaSearch className="search-icon"/>
+                <input className="province-searchInput"
+                    type="text"
+                    placeholder="Ingrese el nombre de una provincia"
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="province-grid">
+                <ul className="province-list">
+                    {filteredProvinces.map(prov => (
                     <li key={prov.idProvince}>
                         <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince)} />
                     </li>
                 ))}
             </ul>
+            </div>
 
-        <input
-            type="text"
-            placeholder="Nombre de provincia"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
+            <input
+                type="text"
+                placeholder="Nombre de provincia"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
         />
        <button onClick={addProvince}>Añadir</button>
 
