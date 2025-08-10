@@ -27,3 +27,32 @@
     width: 100%;
     color: black;
 }
+
+.delete-button {
+    border: 1px solid red;
+    color: red;
+    padding: 2%;
+    border-radius: 5px;
+    background-color: transparent;
+}
+
+.edit-button {
+    border: 1px solid blue;
+    color: blue;
+    padding: 2%;
+    border-radius: 5px;
+    background-color: transparent;
+}
+
+.buttons {
+  display: flex;
+  gap: 3%;
+}
+
+.input-province {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 2%;
+    margin-left: 1%;
+    box-sizing: border-box;
+}

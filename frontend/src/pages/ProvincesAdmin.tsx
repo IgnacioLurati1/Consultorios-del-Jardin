@@ -40,7 +40,7 @@ export function ProvincesAdmin() {
 
     useEffect(() => {
         setFilteredProvinces(
-            provinces.filter((province: Province) => province.nameProvince.normalize("NFD").replace(/\p{Diacritic}/gu, '').toLowerCase().includes(searchTerm.normalize("NFD").replace(/\p{Diacritic}/gu, '').toLowerCase()))
+            provinces.filter((province: Province) => province.nameProvince.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase().includes(searchTerm.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase()))
         );
 
     }, [searchTerm, provinces]);
@@ -111,7 +111,9 @@ export function ProvincesAdmin() {
         throw new Error('El nombre de la provincia coincide con otra existente');
       })
       .then(updated => {
-        setProvinces(provinces.map(prov => (prov.idProvince === id ? updated.data : prov)));
+        const newProvinces = [updated.data, ...provinces.filter(prov => prov.idProvince !== id)];
+        setProvinces(newProvinces);
+        setModalVisible(false);
       })
       .catch(err => {
         alert('Error al modificar provincia: ' + err.message);
@@ -134,7 +136,7 @@ export function ProvincesAdmin() {
         )
         }
         <div className="admin-home">
-            <h1>Provinces Admin</h1>
+            <h1>Administrador de Provincias</h1>
             <div className="province-searchBar">
                 <FaSearch className="search-icon"/>
                 <input className="province-searchInput"
