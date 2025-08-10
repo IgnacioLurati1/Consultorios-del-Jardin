@@ -19,6 +19,16 @@
 
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.province-list li {
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards;
+}
+
 .province-searchBar {
     display: flex;
     align-items: center;
