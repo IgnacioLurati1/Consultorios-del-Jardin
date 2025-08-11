@@ -7,8 +7,9 @@ import { FaTrash } from "react-icons/fa";
 
 
 
-export function ProvinceModal({visible, onClose, province, onDelete, onEdit}: {visible: boolean; onClose: () => void; province: any | null; onDelete: () => void; onEdit: (id: string, newName: string) => void}) {
-    if (!visible || !province) return null;
+export function ProvinceModal({visible, onClose, province, onDelete, onEdit, action, onCreate}: {visible: boolean; onClose: () => void; province: any | null; onDelete: () => void; onEdit: (id: string, newName: string) => void; action: string; onCreate: (newName: string) => void;}) {
+    if (!visible) return null;
+    if (action === "edit" && province) {
     const [newName, setNewName] = useState('');
 
     return (
@@ -30,6 +31,29 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit}: {v
         </div>
       </div>
     </div>
-  );
+  );}
+
+  if (action === "create") {
+    const [newName, setNewName] = useState('');
+    return (
+      <div className="province-modal" onClick={onClose}>
+        <div className="province-modal-content" onClick={e => e.stopPropagation()}>
+          <div className="titleAndClose">
+            <h2 className="province-modal-title">Crear Nueva Provincia <FaChevronRight /></h2>
+            <FaTimes className="close-icon" onClick={onClose} />
+          </div>
+
+          <p>Nombre:  <input type="text" className="input-province" placeholder="Nombre de la provincia" value={newName} onChange={e => {
+              setNewName(e.target.value);
+          }}/></p>
+
+          <div className="buttons">
+            <button className="create-button" onClick={() => onCreate(newName)}>Crear provincia</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 }
 

@@ -40,6 +40,20 @@
     color: black;
 }
 
+.create-button {
+    background-color: #3B5576;
+    color: #FEFAE0;
+    padding: 2%;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 25px;
+    gap: 15px;
+
+}
+
 
 .delete-button {
     background-color: #CD6965;

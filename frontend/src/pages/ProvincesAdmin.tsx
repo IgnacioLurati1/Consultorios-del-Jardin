@@ -20,11 +20,10 @@ export function ProvincesAdmin() {
     const [filteredProvinces, setFilteredProvinces] = useState<Province[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [newName, setNewName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
-    const [modalVisibleCreate, setModalVisibleCreate] = useState(false);
     const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+    const [modalAction, setModalAction] = useState<'create' | 'edit'>('create');
 
     useEffect(() => {
         fetch('/api/provinces')
@@ -60,12 +59,12 @@ export function ProvincesAdmin() {
 
 
 
-    function addProvince() {
-        if (!newName.trim()) return;
+    function addProvince(nameProvince: string) {
+        if (!nameProvince.trim()) return;
         fetch('/api/provinces', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nameProvince: newName }) // idProvince se genera en el backend
+            body: JSON.stringify({ nameProvince: nameProvince }) // idProvince se genera en el backend
     })
       .then(res => {
         if(res.ok) {
@@ -77,7 +76,6 @@ export function ProvincesAdmin() {
         // añadimos la provincia nueva al array
         console.log('Provincia creada:', created);
         setProvinces([...provinces, created.data]);
-        setNewName('');
       })
       .catch(err => {
         alert('Error al crear provincia: ' + err.message);
@@ -85,6 +83,8 @@ export function ProvincesAdmin() {
   };
 
   function deleteProvince(id: string) {
+    if (!id) return;
+
     fetch(`/api/provinces/${id}`, {
       method: 'DELETE',
     })
@@ -130,17 +130,6 @@ export function ProvincesAdmin() {
 
     return (
       <>
-        {modalVisible && selectedProvince != null && (
-            <ProvinceModal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
-                province={selectedProvince}
-                onDelete={() => deleteProvince(selectedProvince.idProvince)}
-                onEdit={editProvince}
-            />
-        )
-        }
-
         <div className="admin-home">
             <NavZone title="Administrador de Provincias"/>
             <div className="province-searchBar">
@@ -156,6 +145,7 @@ export function ProvincesAdmin() {
                     {filteredProvinces.map(prov => (
                     <li key={prov.idProvince} onClick={() => {
                       setModalVisible(true);
+                      setModalAction('edit');
                       setSelectedProvince(prov);
                     }}>
                         <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "")} />
@@ -163,7 +153,29 @@ export function ProvincesAdmin() {
                 ))}
             </ul>
             </div>
-            <button className="add-button" onClick={() => setModalVisibleCreate(true)}><strong>Agregar Provincia </strong><FaPlus /></button>
+            <button className="add-button" onClick={() => (setModalVisible(true), setModalAction('create'))}><strong>Agregar Provincia </strong><FaPlus /></button>
+
+           {selectedProvince != null && modalAction === "edit" && (
+            <ProvinceModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                province={selectedProvince}
+                onDelete={() => deleteProvince(selectedProvince.idProvince)}
+                onEdit={editProvince}
+                action={modalAction}
+                onCreate={() => {}}
+            />)}
+
+            {modalAction === "create" && (
+            <ProvinceModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                province={null}
+                onCreate={addProvince}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                action={modalAction}
+            />)}
 
         </div>
     </> 
