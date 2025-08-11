@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { CityLabel  } from "../components/CityLabel";   
-import { EditCityModal} from "../components/EditCityModal";
-import { CreateCityModal } from "../components/CreateCityModal";
+import {CityModal} from "../components/CityModal";
 import "../styles/AdminHome.css";
 
 export function CitiesAdmin() {
@@ -19,14 +18,14 @@ export function CitiesAdmin() {
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [cities, setCities] = useState<City[]>([]);
-     const [filteredCities, setFilteredCities] = useState<City[]>([]);
+    const [filteredCities, setFilteredCities] = useState<City[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [editVisible, setEditVisible] = useState(false);
-    const [createVisible, setCreateVisible] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
     const [editData, setEditData] = useState<City | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-
+    const [modalType, setModalType] = useState("");
+    const emptyCity: City = { idCity: "", nameCity: "", province: { idProvince: "", nameProvince: "" } };
 
     function addCity(newCity: { nameCity: string; province: string }) {
         fetch("/api/cities", {
@@ -44,7 +43,7 @@ export function CitiesAdmin() {
             return res.json();})
         .then(response => {
             setCities([...cities, response.data]);
-            setCreateVisible(false);
+            setModalVisible(false);
         })
         .catch(err => {
             alert('Error al crear ciudad: ' + err.message);
@@ -99,15 +98,7 @@ export function CitiesAdmin() {
         })
         }
 
-    function EditCity(id: string) {
-        const cityToEdit = cities.find(city => city.idCity === id);
-        if (cityToEdit) {
-            setEditData(cityToEdit);
-            setEditVisible(true);
-        }
-    }
-
-    function EditSubmit(updatedCity: { idCity: string; nameCity: string; province: string }){
+    function EditCity(updatedCity: { idCity: string; nameCity: string; province: string }){
         if (!editData) return;
         fetch(`/api/cities/${updatedCity.idCity}`, {
             method: 'PUT',
@@ -129,7 +120,7 @@ export function CitiesAdmin() {
         .then(response => {
                 const updatedCityFromBackend = response.data;
                 setCities(cities.map(city => city.idCity === updatedCityFromBackend.idCity ? updatedCityFromBackend : city));
-                setEditVisible(false);
+                setModalVisible(false);
                 setEditData(null);
             }
         )
@@ -159,17 +150,17 @@ export function CitiesAdmin() {
             <div className="city-grid">
                 <ul className = "cities-list">
                     {filteredCities.map(city => (
-                        <li key={city.idCity}>
-                            <CityLabel key={city.idCity} city={city} onDelete={DeleteCity} onEdit={()=>EditCity(city.idCity)}></CityLabel>
+                        <li key={city.idCity}
+                        onClick={()=>{setModalVisible(true); setEditData(city); setModalType("edit")}}>
+                            <CityLabel key={city.idCity} city={city}></CityLabel>
                         </li>
                     ))}
                 </ul>
             </div>
             <div>
-                <button className="createCity" onClick={()=>setCreateVisible(true)}>Agregar ciudad</button>
+                <button className="createCity" onClick={()=>{setModalVisible(true) ; setEditData(emptyCity);setModalType("create")}}>Agregar ciudad</button>
             </div>
-            <EditCityModal visible={editVisible} city={editData} provinces={provinces} onClose={()=> setEditVisible(false)} onSave={EditSubmit}/>
-            <CreateCityModal visible={createVisible} provinces={provinces} onClose={()=> setCreateVisible(false)} onSave={addCity}/>
+            <CityModal visible={modalVisible} city={editData} provinces={provinces} onClose={()=> setModalVisible(false)} onEdit={EditCity} onDelete={DeleteCity} onCreate={addCity} type = {modalType} />
         </div>
     );
 

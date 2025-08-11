@@ -24,7 +24,16 @@ function validateCityInput(req: Request, res: Response, next: NextFunction) {
     !req.body.sanitizedInput.idCity || 
     !req.body.sanitizedInput.province ||
     req.body.sanitizedInput.nameCity.trim() === '') {
-    return res.status(400).json({ message: 'Description and Office ID are required.' })
+    return res.status(400).json({ message: 'Description and province are required.' })
+  }
+  next()
+}
+
+function validateCreateCityInput(req: Request, res: Response, next: NextFunction) {
+  if (!req.body.sanitizedInput.nameCity || 
+    !req.body.sanitizedInput.province ||
+    req.body.sanitizedInput.nameCity.trim() === '') {
+    return res.status(400).json({ message: 'Description and province are required.' })
   }
   next()
 }
@@ -89,4 +98,4 @@ async function remove(req: Request, res: Response) {
   }
 }
 
-export {sanitizeCityInput, validateCityInput, findAll, findOne, add, update, remove }
+export {sanitizeCityInput, validateCityInput, validateCreateCityInput, findAll, findOne, add, update, remove }
