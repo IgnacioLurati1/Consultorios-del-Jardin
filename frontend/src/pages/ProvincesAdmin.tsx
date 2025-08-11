@@ -19,7 +19,7 @@ export function ProvincesAdmin() {
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [filteredProvinces, setFilteredProvinces] = useState<Province[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<any>();
     const [searchTerm, setSearchTerm] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
@@ -49,15 +49,16 @@ export function ProvincesAdmin() {
 
     }, [searchTerm, provinces]);
 
+    useEffect(() => {
+        setTimeout(() => {
+            setError("");
+        }, 11000);
+    }, [error]);
+
     if (loading) {
         return <div>Loading...</div>;
     }
 //Falta estilizar cacheado de errores
-    if (error) {
-        return <div>Error: {error}</div>;
-    }
-
-
 
     function addProvince(nameProvince: string) {
         if (!nameProvince.trim()) return;
@@ -67,18 +68,24 @@ export function ProvincesAdmin() {
             body: JSON.stringify({ nameProvince: nameProvince }) // idProvince se genera en el backend
     })
       .then(res => {
-        if(res.ok) {
-          return res.json();
+        if(!res.ok) {
+          setModalVisible(false);
+          throw new Error('El nombre coincide con otra provincia existente');
         }
-        throw new Error('El nombre coincide con otra provincia existente');
+        return res.json();
+        
       })
       .then(created => {
         // añadimos la provincia nueva al array
         console.log('Provincia creada:', created);
+        setModalVisible(false);
+        setError({});
         setProvinces([...provinces, created.data]);
       })
       .catch(err => {
-        alert('Error al crear provincia: ' + err.message);
+        setError({ baseMessage: "Error al crear provincia: ",
+                  detail: err.message
+        });
       });
   };
 
@@ -89,15 +96,20 @@ export function ProvincesAdmin() {
       method: 'DELETE',
     })
       .then(res => {
-        if(!res.ok) throw new Error('Error al eliminar provincia');
+        if(!res.ok) {
+          setModalVisible(false);
+          throw new Error('Pruebe más tarde');}
       })
       .then(() => {
         // Eliminamos la provincia del array
         setProvinces(provinces.filter(prov => prov.idProvince !== id));
+        setError({});
         setModalVisible(false);
       })
       .catch(err => {
-        alert('Error al eliminar provincia: ' + err.message);
+        setError({ baseMessage: "Error al eliminar provincia: ",
+          detail: err.message
+        });
       });
   }
 
@@ -113,21 +125,23 @@ export function ProvincesAdmin() {
         if(res.ok) {
           return res.json();
         }
+        setModalVisible(false);
         throw new Error('El nombre de la provincia coincide con otra existente');
       })
       .then(updated => {
         const newProvinces = [updated.data, ...provinces.filter(prov => prov.idProvince !== id)];
         setProvinces(newProvinces);
+        setError({});
         setModalVisible(false);
       })
       .catch(err => {
-        alert('Error al modificar provincia: ' + err.message);
+        setError({ baseMessage: "Error al modificar provincia: ",
+          detail: err.message
+        });
       });
   }
 
   
-
-
     return (
       <>
         <div className="admin-home">
@@ -176,6 +190,10 @@ export function ProvincesAdmin() {
                 onDelete={() => {}}
                 action={modalAction}
             />)}
+
+            {error != "" && (
+                <p className="error-message"><strong>{error.baseMessage}</strong>{error.detail}</p>
+            )}
 
         </div>
     </> 
