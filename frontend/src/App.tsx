@@ -8,6 +8,7 @@ import {Layout} from './components/Layout';
 import { NotFoundPage } from './pages/NotFoundPage.tsx'
 import { AdminHome } from './pages/AdminHome.tsx';
 import { ProvincesAdmin } from './pages/ProvincesAdmin.tsx';
+import { CitiesAdmin } from './pages/CitiesAdmin.tsx';
 import  { RecoverPassword }  from './pages/RecoverPassword.tsx'
 import { NewPassword } from './pages/NewPassword.tsx';
 
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
       { path: '/Login', element: <Login /> },
       { path: '/AdminHome', element: <AdminHome /> },
       { path: '/AdminHome/ProvincesAdmin', element: <ProvincesAdmin /> },
+      { path: '/AdminHome/CitiesAdmin', element: <CitiesAdmin/> },
       { path: '/forgot-password', element: <RecoverPassword /> },
       { path: '/NewPassword', element: <NewPassword /> },
       { path:'*', element: <NotFoundPage/>}
