@@ -4,6 +4,9 @@ import { ProvinceLabel } from "../components/ProvinceLabel";
 import { FaSearch } from 'react-icons/fa';
 import { ProvinceModal } from "../components/ProvinceModal";
 import "../styles/ProvincesCRUD.css";
+import { NavZone } from "../components/NavZone.tsx";
+import { FaPlus } from "react-icons/fa";
+
 
 
 export function ProvincesAdmin() {
@@ -20,6 +23,7 @@ export function ProvincesAdmin() {
     const [newName, setNewName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [modalVisibleCreate, setModalVisibleCreate] = useState(false);
     const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
 
     useEffect(() => {
@@ -136,8 +140,9 @@ export function ProvincesAdmin() {
             />
         )
         }
+
         <div className="admin-home">
-            <h1 style={{ textAlign: 'center' }}>Administrador de Provincias</h1>
+            <NavZone title="Administrador de Provincias"/>
             <div className="province-searchBar">
                 <FaSearch className="search-icon"/>
                 <input className="province-searchInput"
@@ -158,17 +163,8 @@ export function ProvincesAdmin() {
                 ))}
             </ul>
             </div>
-            
-              <h1>Crear Provincia</h1>
-            <div className="create-province">
-              <input className="create-province-input"
-                  type="text"
-                  placeholder="Nombre de provincia"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-              />
-              <button onClick={addProvince}>Añadir</button>
-            </div>
+            <button className="add-button" onClick={() => setModalVisibleCreate(true)}><strong>Agregar Provincia </strong><FaPlus /></button>
+
         </div>
     </> 
     );
