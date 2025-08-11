@@ -9,7 +9,7 @@ POST http://localhost:3000/api/people
 Content-Type: application/json
 
 {
-    "email": "genaro20038@gmail.com",
+    "email": "genarooooooooooo20038@gmail.com",
     "docType": "dni",
     "docNumber": "45265010",
     "name": "Genaro",
@@ -32,8 +32,5 @@ PATCH http://localhost:3000/api/people/olivieri03@gmail.com
 Content-Type: application/json
 
 {
-    "password": "56789"
+    "state": false
 }
-
-### borrar una persona
-DELETE http://localhost:3000/api/people/olivieri03@gmail.com

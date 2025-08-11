@@ -5,7 +5,7 @@ GET http://localhost:3000/api/offices
 ### Obtain an office by ID
 @idOffice = ({office.response.body.data.id})
 
-GET http://localhost:3000/api/offices/{{idOffice}}
+GET http://localhost:3000/api/offices/1
 
 ### Create a new office
 # @name CreateOffice
@@ -24,8 +24,8 @@ POST http://localhost:3000/api/offices
 Content-Type: application/json
 
 {
-    "city": "02",
-    "description": "Rojo",
+    "city": "2",
+    "description": "oeste",
     "closingTime": "8:00",
     "openingTime": "18:00"
 }
@@ -46,13 +46,10 @@ Content-Type: application/json
   "idOffice": "2"
 }
 
-### Modify an office (PATCH)
-PATCH http://localhost:3000/api/offices/01
+### Delete an office
+PATCH http://localhost:3000/api/offices/2
 Content-Type: application/json
 
 {
-  "description": "Verde"
+  "state": false
 }
-
-### Delete an office
-DELETE http://localhost:3000/api/offices/1

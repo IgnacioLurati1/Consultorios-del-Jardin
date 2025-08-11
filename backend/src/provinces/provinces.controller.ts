@@ -6,8 +6,8 @@ function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) 
   req.body.sanitizedInput = {
     nameProvince: req.body.nameProvince,
     idProvince: req.body.idProvince,
-    cities: req.body.cities
-
+    cities: req.body.cities,
+    state: req.body.state !== undefined ? req.body.state : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -70,18 +70,4 @@ async function update(req: Request, res: Response) {
   }
 }
 
-async function remove(req: Request, res: Response) {
-  try {
-
-    const id = Number.parseInt(req.params.idProvince)
-    const province = em.getReference(Province, id as any)
-    await em.removeAndFlush(province)
-
-    res.status(204).json({ message: 'Province removed' })
-
-  }catch(error: any) {
-    res.status(500).json({ message: error.message })
-  }
-}
-
-export {sanitizeProvinceInput, findAll, findOne, add, update, remove }
+export {sanitizeProvinceInput, findAll, findOne, add, update}

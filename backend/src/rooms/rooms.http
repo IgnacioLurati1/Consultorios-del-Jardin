@@ -11,7 +11,7 @@ POST http://localhost:3000/api/rooms
 Content-Type: application/json
 
 {
-    "description": "Sala Roja",
+    "description": "Sala arcoiris",
     "office": "1"
 }
 
@@ -39,5 +39,10 @@ Content-Type: application/json
   "idOffice": "02"
 }
 
-### Delete a room
-DELETE http://localhost:3000/api/rooms/05
+### CAMBIA ESTADO
+PATCH http://localhost:3000/api/rooms/2
+Content-Type: application/json
+
+{
+  "state": false
+}

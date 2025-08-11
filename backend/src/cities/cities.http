@@ -5,7 +5,7 @@ GET http://localhost:3000/api/cities
 @id = {{createCity.response.body.data.idCity}}
 
 ### obtener una Localidad (GET ONE)
-GET http://localhost:3000/api/cities/{{id}}
+GET http://localhost:3000/api/cities/18
 
 ### crear una nueva localidad
 # @name createCity
@@ -13,19 +13,23 @@ POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "nameCity": "Rosario",
-    "province": "3",
+    "nameCity": "usuhaia",
+    "province": "12",
     "offices" : []
 }
 
 ### modificar una localidad (PUT - recurso completo e idempotente)
-PUT http://localhost:3000/api/cities/{{id}}
+PUT http://localhost:3000/api/cities/4
 Content-Type: application/json
 
 {
-  "name": "Negrario",
-  "province": "4"
+  "state": false
 }
 
-### borrar una localidad
-DELETE http://localhost:3000/api/cities/{{id}}
+### modificar una localidad (PATCH - recurso parcial)
+PATCH http://localhost:3000/api/cities/18
+Content-Type: application/json
+
+{
+  "state": false
+}

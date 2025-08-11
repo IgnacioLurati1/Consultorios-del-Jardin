@@ -4,7 +4,6 @@ import {
   findOne,
   add,
   update,
-  remove,
   sanitizeRoomInput,
   validateRoomInput,
   validateRoomUpdateInput
@@ -16,8 +15,4 @@ import {
   roomRouter.get('/:idRoom', findOne);
   roomRouter.post('/', sanitizeRoomInput, validateRoomInput, add);
   roomRouter.put('/:idRoom', sanitizeRoomInput, validateRoomUpdateInput, update);
-  roomRouter.patch('/:idRoom', sanitizeRoomInput, validateRoomUpdateInput, update);
-  roomRouter.delete('/:idRoom', remove);
-  roomRouter.delete('/', (req, res) => {
-  res.status(400).json({ error: 'idRoom is required in the URL' });
-  });
+  roomRouter.patch('/:idRoom', sanitizeRoomInput, update);

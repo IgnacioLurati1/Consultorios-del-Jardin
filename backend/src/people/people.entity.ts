@@ -23,5 +23,8 @@ export class Person {
 
     @Property({ nullable: false, unique: false })
     password!: string
+
+    @Property({nullable: false})
+    state!: boolean
     
 }

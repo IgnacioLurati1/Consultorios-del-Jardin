@@ -8,7 +8,8 @@ function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
     nameCity: req.body.nameCity,
     idCity: req.body.idCity,
     province: req.body.province,
-    offices: req.body.offices
+    offices: req.body.offices,
+    state: req.body.state !== undefined ? req.body.state : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -84,18 +85,4 @@ async function update(req: Request, res: Response) {
   }
 }
 
-async function remove(req: Request, res: Response) {
-  try{
-    const id = Number.parseInt(req.params.idCity)
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid city id" })
-    }
-    const city = em.getReference(City, id as any)
-    await em.removeAndFlush(city)
-    res.status(200).json({ message: 'City removed successfully' })
-  }catch (error: any) {
-    res.status(500).json({ message: error.message })
-  }
-}
-
-export {sanitizeCityInput, validateCityInput, validateCreateCityInput, findAll, findOne, add, update, remove }
+export {sanitizeCityInput, validateCityInput, validateCreateCityInput, findAll, findOne, add, update}
