@@ -1,13 +1,11 @@
 import "../styles/ProvinceLabel.css";
 
 
-export function ProvinceLabel(props: {name: String, id: String}) {
+export function ProvinceLabel(props: {name: String, id: String, onDelete: (id: String) => void, onEdit: (id: String) => void}) {
   return (
     <div className="province-label">
-      <p>Nombre: {props.name}</p>
-      <p>Id: {props.id}</p>
-      <p> Eliminar </p>
-      <p> Modificar </p>
+      <p className="province-name">{props.name}</p>
+      <p className="province-id">Id: {props.id}</p>
     </div>
   );
 }

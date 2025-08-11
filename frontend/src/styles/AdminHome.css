@@ -15,6 +15,7 @@
     flex-direction: column;
     margin: auto;
     color: black;
+    width: 60%;
 
 }
 
@@ -31,5 +32,7 @@
         
         width: 100%;
     }
+
+
 }
 

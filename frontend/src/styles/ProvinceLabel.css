@@ -1,7 +1,31 @@
 .province-label {
-  display: flex;
+  display: grid;
+  grid-template-columns: 8fr 1fr;
   font-size: 20px;
-  gap: 3%;
   color: black;
-  width: 100%;
+  border-radius: 5px;
+  margin-bottom: 1%;
+  background-color: rgb(255, 255, 255);
+  padding: 1%;
+  white-space: nowrap;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+
+.province-label:hover {
+  background-color: rgb(240, 240, 240);
+}
+
+.province-name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 30px;
+    margin-left: 1%;
+}
+
+
+.province-id{
+
+    font-size: 30px;
+    margin-right: 1%;
 }

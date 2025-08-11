@@ -1,0 +1,58 @@
+.province-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;  /* ancho total viewport */
+    height: 100vh; /* alto total viewport */
+    background: rgba(0, 0, 0, 0.6); /* negro semitransparente */
+    display: flex;
+    justify-content: center; /* centrado horizontal */
+    align-items: center;     /* centrado vertical */
+    z-index: 1000;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.province-modal-content {
+    position: relative;
+    margin: auto;
+    padding: 20px;
+    background: white;
+    border-radius: 5px;
+    max-width: 500px;
+    width: 100%;
+    color: black;
+}
+
+.delete-button {
+    border: 1px solid red;
+    color: red;
+    padding: 2%;
+    border-radius: 5px;
+    background-color: transparent;
+}
+
+.edit-button {
+    border: 1px solid blue;
+    color: blue;
+    padding: 2%;
+    border-radius: 5px;
+    background-color: transparent;
+}
+
+.buttons {
+  display: flex;
+  gap: 3%;
+}
+
+.input-province {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 2%;
+    margin-left: 1%;
+    box-sizing: border-box;
+}
