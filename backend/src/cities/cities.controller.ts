@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction} from 'express'
 import { orm } from '../shared/db/orm.js'
 import { City } from './cities.entity.js'
+import { error } from 'console'
 
 function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -15,6 +16,16 @@ function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
       delete req.body.sanitizedInput[key]
     }
   })
+  next()
+}
+
+function validateCityInput(req: Request, res: Response, next: NextFunction) {
+  if (!req.body.sanitizedInput.nameCity || 
+    !req.body.sanitizedInput.idCity || 
+    !req.body.sanitizedInput.province ||
+    req.body.sanitizedInput.nameCity.trim() === '') {
+    return res.status(400).json({ message: 'Description and Office ID are required.' })
+  }
   next()
 }
 
@@ -57,7 +68,8 @@ async function update(req: Request, res: Response) {
     const city = await em.findOneOrFail(City,  { idCity : id })
     em.assign(city, req.body.sanitizedInput)
     await em.flush() 
-    res.status(200).json({ message: 'City updated successfully'})
+    const updatedCity = await em.findOneOrFail(City, { idCity: id }, {populate: ['province']})
+    res.status(200).json({ message: 'City updated successfully', data: updatedCity })
   }catch (error: any) {
     res.status(500).json({ message: error.message })
   }
@@ -77,4 +89,4 @@ async function remove(req: Request, res: Response) {
   }
 }
 
-export {sanitizeCityInput, findAll, findOne, add, update, remove }
+export {sanitizeCityInput, validateCityInput, findAll, findOne, add, update, remove }
