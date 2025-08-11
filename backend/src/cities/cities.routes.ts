@@ -5,6 +5,6 @@ export const cityRouter = Router()
 
 cityRouter.get('/', findAll)
 cityRouter.get('/:idCity', findOne)
-cityRouter.post('/',sanitizeCityInput, add)
+cityRouter.post('/',sanitizeCityInput, validateCityInput, add)
 cityRouter.put('/:idCity',sanitizeCityInput, validateCityInput, update)
 cityRouter.delete('/:idCity', remove)

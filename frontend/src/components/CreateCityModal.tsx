@@ -1,60 +1,38 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-interface EditCityModalProps {
+interface CreateCityModalProps {
     visible: boolean;
-    city: {
-        idCity: string;
-        nameCity: string;
-        province: {
-            idProvince: string;
-            nameProvince: string;
-        };
-        
-    } | null;
     provinces: {idProvince:string, nameProvince:string}[];
     onClose: () => void;
-    onSave : (Updatedcity: {
-        idCity: string;
+    onSave: (newCity: {
         nameCity: string;
-        province:  string;
-    }
-    ) => void;
+        province: string;
+    }) => void;
 }
 
-export function EditCityModal({ visible, city, provinces, onClose, onSave }: EditCityModalProps) {
-    const [cityData, setCityData] = useState({ idCity: "", nameCity: "", province:""   });
-    const [provinceName, setProvinceName] = useState("");
+    export function CreateCityModal({visible, provinces, onClose, onSave}: CreateCityModalProps) {
+        
+        const [cityData, setCityData] = useState({ nameCity: "", province: "" });
+        const [provinceName, setProvinceName] = useState("");
 
-    useEffect(() => {
-        if (city) {
-            setCityData({idCity: city.idCity, nameCity: city.nameCity, province: city.province.idProvince});
-            setProvinceName(city.province.nameProvince);
+        if (!visible) {
+            return null;
         }
-    }, [city]);
 
-    if (!visible|| !city) {
-        return null;
-    }
-
-    return (
+        return (
         <div>
-            <h2>Editar Ciudad</h2>
+            <h2>Crear Ciudad</h2>
             <form onSubmit={(e) => {
-            e.preventDefault();
-            onSave(cityData);}}>
-                <div>
-                    <label>ID Ciudad:</label>
-                    <input
-                        type="text"
-                        value={city.idCity}
-                        readOnly
-                    />
-                </div>
+                e.preventDefault();
+                onSave(cityData);
+                onClose();
+                }}>
                 <div>
                     <label>Nombre Ciudad:</label>
                     <input
                         type="text"
-                        value={cityData.nameCity}
+                        required
+                        value = {cityData.nameCity}
                         onChange={(e) => setCityData({ ...cityData, nameCity: e.target.value })}
                     />
                 </div>
@@ -85,7 +63,8 @@ export function EditCityModal({ visible, city, provinces, onClose, onSave }: Edi
                         ))}
                     </datalist>
                 </div>
-                <button type="submit">Guardar</button>
+            
+                <button type="submit">Crear</button>
                 <button type="button" onClick={onClose}>Cancelar</button>
             </form>
         </div>
