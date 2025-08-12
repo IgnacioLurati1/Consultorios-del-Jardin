@@ -1,12 +1,13 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
 import '../register/Register.css';
-import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
 import Logo from '../../assets/Logo.png';
 import { useState } from "react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
 import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
+import { DataInputSelector } from '../../components/inputs/selectorInput/DataInputSelector';
 
 export function RegisterProf() {
 
@@ -84,7 +85,7 @@ export function RegisterProf() {
                         <DataInput label="Teléfono" type="text" value={formData.telefono} onChange={(e) => handleChange('telefono', e.target.value)}/>
                         <div className='document-dataInput'>
                             <div className='tipoDoc'>
-                            <DataInput label="Tipo documento" type="selector"
+                            <DataInputSelector label="Tipo documento" type="selector"
                             options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}
                             value={formData.tipoDocumento} onChange={(e) => handleChange('tipoDocumento', e.target.value)}/>
                             </div>
@@ -93,7 +94,7 @@ export function RegisterProf() {
                             </div>
                         </div>
                         <div className='speciality'>
-                            <DataInput label="Especialidad" type="selector"
+                            <DataInputSelector label="Especialidad" type="selector"
                             options={["Especialidad1", "Especialidad2", "Especialidad3", "Especialidad4", "Especialidad5", "Otro"]}
                             value={formData.speciality} onChange={(e) => handleChange('speciality', e.target.value)}
                             />

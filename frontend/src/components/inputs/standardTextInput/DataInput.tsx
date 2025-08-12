@@ -16,31 +16,13 @@ export function DataInput(props: dataInputProps) {
                     value={props.value}
                     onChange={props.onChange}
                 />;
-
-    if (props.type === "selector" && props.options) {
-
-        input =  <select className='data-input-selector' 
-                id={`datalist-${props.label}`}
-                value={props.value}
-                onChange={props.onChange}>
-                    <option value="" disabled>Seleccionar...</option>
-                    {props.options.map((option, index) => (
-                        <option key={index} value={option}>{option}</option>   
-                    ))}
-                </select>
-        }
                 
     return (
 
-        
-        <div className="data-input-container">
-            
+        <div className="data-input-container"> 
             <label className="data-input-label">{props.label}</label>
             {input}
-        
         </div>
+
     );
-
-    
-
 }

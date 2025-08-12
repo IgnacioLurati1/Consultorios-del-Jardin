@@ -1,4 +1,4 @@
-import "./DataInput.css";
+import "../standardTextInput/DataInput.css";
 
 type dataInputProps ={
     label:string,
