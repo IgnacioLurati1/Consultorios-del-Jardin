@@ -1,14 +1,11 @@
 import { useState } from "react";
-import { ShowPassword } from "../../components/inputs/passwordInput/ShowPassword";
 import "./NewPassword.css";
 import Logo from '../../assets/LogoRecortado.png';
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { DataInputPassword } from "../../components/inputs/passwordInput/DataInputPassword";
 
 export function NewPassword() {
-  const [showPassword1, setShowPassword1] = useState(false);
-  const [showPassword2, setShowPassword2] = useState(false);
-
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -29,34 +26,18 @@ export function NewPassword() {
         <div className='newPassword-upper'>
 
           <div className="newPassword-input-group">
-            <div className="data-input-container">
-              <label className="data-input-label">Ingrese su nueva contraseña</label>
-              <input
-                type={showPassword1 ? "text" : "password"}
-                className="data-input-input"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </div>
-            <ShowPassword
-              visible={showPassword1}
-              onClick={() => setShowPassword1(!showPassword1)}
+            <DataInputPassword
+              label="Ingrese su nueva contraseña"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
             />
           </div>
 
           <div className="newPassword-input-group">
-            <div className="data-input-container">
-              <label className="data-input-label">Confirme su nueva contraseña</label>
-              <input
-                type={showPassword2 ? "text" : "password"}
-                className="data-input-input"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-            <ShowPassword
-              visible={showPassword2}
-              onClick={() => setShowPassword2(!showPassword2)}
+            <DataInputPassword
+              label="Confirme su nueva contraseña"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
 
