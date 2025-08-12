@@ -4,16 +4,20 @@ interface CityLabelProps {
         nameCity: string;
         province: {
             nameProvince: string;
+            active?: boolean;
         };
     };
+    active?: boolean;
 }
 
-export function CityLabel({ city }: CityLabelProps){
+export function CityLabel({ city, active }: CityLabelProps){
     return (
-        <div className="city-label">
-            <p className="idCity">ID: {city.idCity}</p>
-            <p className="nameCity"> {city.nameCity}</p>
-            <p className="cityNameProvince"> {city.province.nameProvince}</p>
+        <div className={`${active && city.province.active? 'crud-label-green' : 
+            active && !city.province.active? 'crud-label-green-inactive': 
+            !active && city.province.active? 'crud-label-red' : 'crud-label-red-inactive'} crud-label city-label`}>
+            <p className="crud-id">ID: {city.idCity}</p>
+            <p className="crud-name">{city.nameCity}</p>
+            <p className="crud-name">{city.province.nameProvince}</p>
         </div>
     );
 }

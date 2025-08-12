@@ -1,5 +1,5 @@
 import {useState} from "react";
-import "./ProvinceModal.css";
+import "../CRUDSModal.css";
 import { FaTimes } from "react-icons/fa";
 import { FaChevronRight } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
@@ -13,15 +13,15 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit, act
     const [newName, setNewName] = useState('');
 
     return (
-    <div className="province-modal" onClick={onClose}>
-      <div className="province-modal-content" onClick={e => e.stopPropagation()}>
+    <div className="crud-modal" onClick={onClose}>
+      <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
         <div className="titleAndClose">
-          <h2 className="province-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
+          <h2 className="crud-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
           <FaTimes className="close-icon" onClick={onClose} />
         </div>
         <p>ID: {province.idProvince}</p>
 
-        <p>Nombre:  <input type="text" className="input-province" placeholder={province.nameProvince} value={newName} onChange={e => {
+        <p>Nombre:  <input type="text" className="input-crud" placeholder={province.nameProvince} value={newName} onChange={e => {
             setNewName(e.target.value);
         }}/></p>
 
@@ -36,18 +36,18 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit, act
   if (action === "create") {
     const [newName, setNewName] = useState('');
     return (
-      <div className="province-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
+      <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
         if (e.key === 'Enter') {
           onCreate(newName);
         }
       }}>
-        <div className="province-modal-content" onClick={e => e.stopPropagation()}>
+        <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="province-modal-title">Crear Nueva Provincia <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Crear Nueva Provincia <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
 
-          <p>Nombre:  <input type="text" className="input-province" placeholder="Nombre de la provincia" value={newName} onChange={e => {
+          <p>Nombre:  <input type="text" className="input-crud" placeholder="Nombre de la provincia" value={newName} onChange={e => {
               setNewName(e.target.value);
           }}/></p>
 
@@ -61,14 +61,14 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit, act
 
   if(action === "edit" && province.active == false){
     return (
-      <div className="province-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
+      <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
         if (e.key === 'Enter') {
           onEdit(province.idProvince, " ", false);
         }
       }}>
-        <div className="province-modal-content" onClick={e => e.stopPropagation()} >
+        <div className="crud-modal-content" onClick={e => e.stopPropagation()} >
           <div className="titleAndClose">
-            <h2 className="province-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
           <p>ID: {province.idProvince}</p>

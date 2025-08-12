@@ -2,18 +2,24 @@ import { useEffect, useState } from "react";
 import { CityLabel  } from "./CityLabel";   
 import {CityModal} from "./CityModal";
 import "../../adminHome/AdminHome.css";
+import "../adminCRUDS.css";
+import { NavZone } from "../../../components/navZone/NavZone";
+import { FaSearch } from 'react-icons/fa';
+import { FaPlus } from "react-icons/fa";
 
 export function CitiesAdmin() {
 
     interface Province {
     idProvince: string;
     nameProvince: string;
+    active?: boolean;
     }
 
     interface City {
         idCity: string;
         nameCity: string;
-        province: Province; 
+        province: Province;
+        active: boolean;
     }
 
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -25,36 +31,13 @@ export function CitiesAdmin() {
     const [editData, setEditData] = useState<City | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [modalType, setModalType] = useState("");
-    const emptyCity: City = { idCity: "", nameCity: "", province: { idProvince: "", nameProvince: "" } };
-
-    function addCity(newCity: { nameCity: string; province: string }) {
-        fetch("/api/cities", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(newCity),
-        })
-        .then(async (res) => {
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || res.statusText);
-            }
-            return res.json();})
-        .then(response => {
-            setCities([...cities, response.data]);
-            setModalVisible(false);
-        })
-        .catch(err => {
-            alert('Error al crear ciudad: ' + err.message);
-        });
-    }
+    const emptyCity: City = { idCity: "", nameCity: "", province: { idProvince: "", nameProvince: ""}, active: true };
 
     useEffect(() => {
     fetch("/api/provinces")
       .then(res => res.json())
       .then(data => {
-        setProvinces(data.data)
+        setProvinces(data.data.filter((province: Province) => province.active));
         setLoading(false); })
       .catch(err => {
         setLoading(false);
@@ -66,7 +49,18 @@ export function CitiesAdmin() {
       .then(res => res.json())
       .then(data => {
         setCities(data.data)
-        setFilteredCities(data.data);
+        setFilteredCities(
+            data.data.sort((a: City, b: City) => {
+                function weight(city: City) {
+                if (city.province.active) {
+                    return city.active ? 1 : 2;  // provincia activa: ciudad activa=1, ciudad inactiva=2
+                } else {
+                    return city.active ? 3 : 4;  // provincia inactiva: ciudad activa=3, ciudad inactiva=4
+                }
+                }
+                return weight(a) - weight(b);
+            })
+            );
         setLoading(false);
       })
       .catch(err => {
@@ -82,31 +76,58 @@ export function CitiesAdmin() {
 
     }, [searchTerm, cities]);
 
-    function DeleteCity(id: string) {
-        fetch(`/api/cities/${id}`, { method: 'DELETE' })
-        .then(async(res) => {
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || res.statusText);
-            }
-            return res.json();})
-        .then(() => {
-                setCities(cities.filter(city => city.idCity !== id));
+    function addCity(newCity: { nameCity: string; province: string }) {
+            fetch("/api/cities", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(newCity),
             })
-        .catch(err => {
-            alert('Error al eliminar ciudad: ' + err.message);
-        })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(res.statusText);
+                }
+                return res.json();})
+            .then(response => {
+                setCities([response.data, ...cities]);
+                setModalVisible(false);
+            })
+            .catch(err => {
+                alert('Error al crear ciudad: ' + err.message);
+            });
         }
 
-    function EditCity(updatedCity: { idCity: string; nameCity: string; province: string }){
+    function deleteCity(id: string) {
+    if (!id) return;
+
+    fetch(`/api/cities/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false })
+    })
+      .then(async(res) => {
+        if(!res.ok) {
+        const errorData = await res.json();
+          throw new Error(errorData.message || res.statusText);
+        }
+        return res.json();
+      })
+      .then(() => {
+        setCities(cities.map(city => city.idCity !== id ? city : { ...city, active: false }));
+        setModalVisible(false);
+      })
+  }
+
+    function EditCity(updatedCity: { idCity: string; nameCity: string; province: string} , active: boolean) {
         if (!editData) return;
+        if(active){
         fetch(`/api/cities/${updatedCity.idCity}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                idCity: updatedCity.idCity,
                 nameCity: updatedCity.nameCity,
                 province: updatedCity.province,
             }),
@@ -126,7 +147,34 @@ export function CitiesAdmin() {
         )
         .catch(err => {
             alert('Error al editar ciudad: ' + err.message);
-        })
+        })}
+        else{
+            fetch(`/api/cities/${updatedCity.idCity}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    active: true
+                }),
+            })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || res.statusText);
+                }
+                return res.json();})
+            .then(response => {
+                    const updatedCityFromBackend = response.data;
+                    setCities(cities.map(city => city.idCity !== updatedCityFromBackend.idCity ? city : { ...city, active: true }));
+                    setModalVisible(false);
+                    setEditData(null);
+                }
+            )
+            .catch(err => {
+                alert('Error al editar ciudad: ' + err.message);
+            });
+        }
     }
 
     if (loading) {
@@ -139,28 +187,33 @@ export function CitiesAdmin() {
 
     return (
         <div className="admin-home">
-            <h1>Administrador de Ciudades</h1>
-            <div className="city-searchBar">
-                <input className="city-searchInput"
+            <NavZone title="Administrador de Ciudades"/>
+            <div className="crud-searchBar">
+                <FaSearch className="search-icon"/>
+                <input className="crud-searchInput"
                 type="text"
                 placeholder="Ingrese el nombre de la ciudad"
                 onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="city-grid">
-                <ul className = "cities-list">
+            <div className="crud-grid">
+                <ul className = "crud-list">
                     {filteredCities.map(city => (
                         <li key={city.idCity}
-                        onClick={()=>{setModalVisible(true); setEditData(city); setModalType("edit")}}>
-                            <CityLabel key={city.idCity} city={city}></CityLabel>
+                        onClick={()=>{
+                            setEditData(city);
+                            setModalVisible(true); 
+                            setModalType("edit")
+                            }}>
+                            <CityLabel key={city.idCity} city={city} active={city.active}></CityLabel>
                         </li>
                     ))}
                 </ul>
             </div>
             <div>
-                <button className="createCity" onClick={()=>{setModalVisible(true) ; setEditData(emptyCity);setModalType("create")}}>Agregar ciudad</button>
+                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyCity);setModalType("create")}}><strong>Agregar ciudad</strong><FaPlus /></button>
             </div>
-            <CityModal visible={modalVisible} city={editData} provinces={provinces} onClose={()=> setModalVisible(false)} onEdit={EditCity} onDelete={DeleteCity} onCreate={addCity} type = {modalType} />
+            <CityModal visible={modalVisible} city={editData} provinces={provinces} onClose={()=> setModalVisible(false)} onEdit={EditCity} onDelete={deleteCity} onCreate={addCity} type = {modalType}/>
         </div>
     );
 

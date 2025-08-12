@@ -1,4 +1,4 @@
-.province-modal {
+.crud-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -28,7 +28,7 @@
     cursor: pointer;
 }
 
-.province-modal-content {
+.crud-modal-content {
     position: relative;
     margin: auto;
     padding: 20px;
@@ -82,7 +82,7 @@
 
 }
 
-.province-modal-title {
+.crud-modal-title {
     margin: 0;
     font-size: 30px;
     color: #3B7658;
@@ -98,7 +98,7 @@
   margin-top: 40px;
 }
 
-.input-province {
+.input-crud {
     border: 1px solid black;
     border-radius: 5px;
     padding: 2%;
