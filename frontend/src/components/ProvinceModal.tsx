@@ -74,7 +74,7 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit, act
           <p>ID: {province.idProvince}</p>
           <p>Nombre:  {province.nameProvince}</p>
           <div className="buttons">
-            <button className="create-button" onClick={() => onEdit(province.idProvince, " ", false)}>Activar</button>
+            <button autoFocus className="create-button" onClick={() => onEdit(province.idProvince, " ", false)}>Activar</button>
           </div>
         </div>
       </div>
