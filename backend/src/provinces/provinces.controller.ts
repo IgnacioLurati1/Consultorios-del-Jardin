@@ -7,7 +7,7 @@ function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) 
     nameProvince: req.body.nameProvince,
     idProvince: req.body.idProvince,
     cities: req.body.cities,
-    state: req.body.state !== undefined ? req.body.state : true, // Default state to true if not provided
+    active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {

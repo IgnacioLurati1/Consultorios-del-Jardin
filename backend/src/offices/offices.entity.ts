@@ -27,7 +27,7 @@ export class Office {
   description!: string
 
   @Property({nullable: false})
-  state!: boolean
+  active!: boolean
 
   @ManyToOne(() => City, { nullable: false })
   city!: Rel<City>

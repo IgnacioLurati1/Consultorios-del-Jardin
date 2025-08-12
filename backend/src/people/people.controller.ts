@@ -14,7 +14,7 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
         surname: req.body.surname,
         phoneNumber: req.body.phoneNumber,
         password: req.body.password,
-        state: req.body.state !== undefined ? req.body.state : true, // Default state to true if not provided
+        active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
     }
 
     //more checks here

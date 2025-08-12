@@ -9,7 +9,7 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
     city: req.body.city,
     closingTime: req.body.closingTime,
     openingTime: req.body.openingTime,
-    state: req.body.state !== undefined ? req.body.state : true, // Default state to true if not provided
+    active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {

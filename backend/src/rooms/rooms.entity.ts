@@ -17,7 +17,7 @@ export class Room {
   description!: string
 
   @Property({nullable: false})
-  state!: boolean
+  active!: boolean
 
   @ManyToOne(() => Office, { nullable: false })
   office!: Rel<Office>

@@ -30,6 +30,6 @@ PATCH  http://localhost:3000/api/provinces/15
 Content-Type: application/json
 
 {
-  "state": true
+  "active": true
 }
 

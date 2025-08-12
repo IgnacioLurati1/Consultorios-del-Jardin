@@ -31,5 +31,5 @@ PATCH http://localhost:3000/api/cities/18
 Content-Type: application/json
 
 {
-  "state": false
+  "active": false
 }

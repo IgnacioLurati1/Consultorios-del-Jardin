@@ -32,5 +32,5 @@ PATCH http://localhost:3000/api/people/olivieri03@gmail.com
 Content-Type: application/json
 
 {
-    "state": false
+    "active": false
 }

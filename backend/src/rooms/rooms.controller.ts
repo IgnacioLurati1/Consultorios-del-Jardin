@@ -10,7 +10,7 @@ function sanitizeRoomInput(req:Request, res:Response, next:NextFunction) {
     idRoom: req.body.idRoom,
     description: req.body.description,
     office: req.body.office,
-    state: req.body.state !== undefined ? req.body.state : true, // Default state to true if not provided
+    active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {

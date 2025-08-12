@@ -25,6 +25,6 @@ export class Person {
     password!: string
 
     @Property({nullable: false})
-    state!: boolean
+    active!: boolean
     
 }
