@@ -66,7 +66,7 @@ export function ProvincesAdmin() {
         fetch('/api/provinces', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nameProvince: nameProvince }) // idProvince se genera en el backend
+            body: JSON.stringify({ nameProvince: nameProvince, active: true }) // idProvince se genera en el backend
     })
       .then(res => {
         if(!res.ok) {
@@ -81,7 +81,7 @@ export function ProvincesAdmin() {
         console.log('Provincia creada:', created);
         setModalVisible(false);
         setError({});
-        setProvinces([...provinces, created.data]);
+        setProvinces([created.data, ...provinces]);
       })
       .catch(err => {
         setError({ baseMessage: "Error al crear provincia: ",
@@ -100,7 +100,7 @@ export function ProvincesAdmin() {
     })
       .then(() => {
         // Eliminamos la provincia del array
-        setProvinces(provinces.filter(prov => prov.idProvince !== id));
+        setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: false }));
         setError({});
         setModalVisible(false);
       })
