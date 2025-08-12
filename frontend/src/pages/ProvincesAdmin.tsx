@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, act } from "react";
 import "../styles/AdminHome.css";
 import { ProvinceLabel } from "../components/ProvinceLabel";
 import { FaSearch } from 'react-icons/fa';
@@ -111,14 +111,15 @@ export function ProvincesAdmin() {
       });
   }
 
-  function editProvince(id: string, newName: string) {
+  function editProvince(id: string, newName: string, active: boolean) {
     if (!newName) return;
-
-    fetch(`/api/provinces/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nameProvince: newName })
-    })
+    console.log(active);
+    if(active) {
+      fetch(`/api/provinces/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nameProvince: newName })
+      })
       .then(res => {
         if(res.ok) {
           return res.json();
@@ -137,9 +138,32 @@ export function ProvincesAdmin() {
           detail: err.message
         });
       });
+  } else {
+
+    fetch(`/api/provinces/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true})
+    })
+      .then(res => {
+        if (res.ok) {
+          setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
+          setError({});
+          setModalVisible(false);
+          return res.json();
+        }
+        setModalVisible(false);
+        throw new Error('Ocurrió un error al activar la provincia');
+      })
+      .catch(err => {
+        setError({ baseMessage: "Error al modificar provincia: ",
+          detail: err.message
+        });
+      });
   }
 
-  
+}  
+
     return (
       <>
         <div className="admin-home">
@@ -160,7 +184,7 @@ export function ProvincesAdmin() {
                       setModalAction('edit');
                       setSelectedProvince(prov);
                     }}>
-                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "")} active={prov.active} />
+                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "", prov.active)} active={prov.active} />
                     </li>
                 ))}
             </ul>
