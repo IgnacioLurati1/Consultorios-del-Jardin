@@ -50,15 +50,15 @@ export function ProvincesAdmin() {
     }, [searchTerm, provinces]);
 
     useEffect(() => {
-        setTimeout(() => {
-            setError("");
-        }, 11000);
+        if (error == null) return;
+        setTimeout(() => { 
+          setError(null);  
+        }, 12000);
     }, [error]);
 
     if (loading) {
         return <div>Loading...</div>;
     }
-//Falta estilizar cacheado de errores
 
     function addProvince(nameProvince: string) {
         if (!nameProvince.trim()) return;
@@ -93,13 +93,10 @@ export function ProvincesAdmin() {
     if (!id) return;
 
     fetch(`/api/provinces/${id}`, {
-      method: 'DELETE',
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false })
     })
-      .then(res => {
-        if(!res.ok) {
-          setModalVisible(false);
-          throw new Error('Pruebe más tarde');}
-      })
       .then(() => {
         // Eliminamos la provincia del array
         setProvinces(provinces.filter(prov => prov.idProvince !== id));
@@ -191,7 +188,7 @@ export function ProvincesAdmin() {
                 action={modalAction}
             />)}
 
-            {error != "" && (
+            {error != null && (
                 <p className="error-message"><strong>{error.baseMessage}</strong>{error.detail}</p>
             )}
 
