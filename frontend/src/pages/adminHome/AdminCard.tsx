@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "../styles/AdminCard.css";
+import "./AdminCard.css";
 
 export function AdminCard({ title, description, imageUrl, link }: { title: string; description: string; imageUrl: string; link: string }) {
     return (

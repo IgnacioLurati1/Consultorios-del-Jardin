@@ -1,10 +1,10 @@
-import { DataInput } from "../components/DataInput";
+import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { Link } from "react-router-dom";
-import "../styles/Login.css";
-import Logo from '../assets/LogoRecortado.png';
+import "./Login.css";
+import Logo from '../../assets/LogoRecortado.png';
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DataInputPassword } from "../components/DataInputPassword";
+import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
 import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';

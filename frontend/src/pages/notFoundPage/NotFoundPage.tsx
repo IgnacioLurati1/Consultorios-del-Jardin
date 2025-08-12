@@ -1,6 +1,6 @@
-import '../styles/NotFoundPage.css';
+import './NotFoundPage.css';
 import { Link } from 'react-router-dom';
-import Logo from '../assets/Logo.png';
+import Logo from '../../assets/Logo.png';
 
 // This component represents a 404 Not Found page in a React application.
 export function NotFoundPage() {

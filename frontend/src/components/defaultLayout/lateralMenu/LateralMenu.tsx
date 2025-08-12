@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import "../styles/LateralMenu.css"; 
-import Logo from '../assets/Logo.png';
-import "../styles/Header.css";
+import "./LateralMenu.css"; 
+import Logo from '../../../assets/Logo.png';
+import "../../header/Header.css";
 
 type LateralMenuItem = {
   faviconName: string;

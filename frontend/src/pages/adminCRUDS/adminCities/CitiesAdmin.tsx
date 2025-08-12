@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CityLabel  } from "../components/CityLabel";   
-import {CityModal} from "../components/CityModal";
-import "../styles/AdminHome.css";
+import { CityLabel  } from "./CityLabel";   
+import {CityModal} from "./CityModal";
+import "../../adminHome/AdminHome.css";
 
 export function CitiesAdmin() {
 

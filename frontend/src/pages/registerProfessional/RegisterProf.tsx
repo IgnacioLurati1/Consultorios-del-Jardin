@@ -1,12 +1,12 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
-import '../styles/Register.css';
-import { DataInput } from '../components/DataInput';
-import Logo from '../assets/Logo.png';
+import '../register/Register.css';
+import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
+import Logo from '../../assets/Logo.png';
 import { useState } from "react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { DataInputPassword } from '../components/DataInputPassword'; 
+import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
 
 export function RegisterProf() {
 

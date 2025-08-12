@@ -1,6 +1,6 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
-import '../styles/NavZone.css';
+import './NavZone.css';
 
 export function NavZone(props: { title: string }) {
     return (

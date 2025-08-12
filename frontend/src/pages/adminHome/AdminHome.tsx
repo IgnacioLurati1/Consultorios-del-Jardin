@@ -1,7 +1,7 @@
-import "../styles/AdminHome.css";
-import {AdminCard} from "../components/AdminCard";
-import Logo from '../assets/LogoRecortado.png';
-import {NavZone} from "../components/NavZone";
+import "./AdminHome.css";
+import {AdminCard} from ".//AdminCard";
+import Logo from '../../assets/LogoRecortado.png';
+import {NavZone} from "../../components/navZone/NavZone";
 
 // FALTA VALIDACIONES DE SEGURIDAD EN EL ENRUTAMIENTO!!!!
 export function AdminHome() {

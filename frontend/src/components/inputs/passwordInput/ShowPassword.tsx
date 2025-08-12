@@ -1,6 +1,6 @@
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import '../styles/ShowPassword.css';
+import './ShowPassword.css';
 
 type ShowPasswordProps = {
   visible: boolean;

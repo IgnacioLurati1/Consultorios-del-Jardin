@@ -1,7 +1,7 @@
-import { DataInput } from "../components/DataInput";
+import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { Link } from "react-router-dom";
-import "../styles/RecoverPassword.css";
-import Logo from '../assets/LogoRecortado.png';
+import "./RecoverPassword.css";
+import Logo from '../../assets/LogoRecortado.png';
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 

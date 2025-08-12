@@ -1,7 +1,7 @@
 import {useState } from "react";
 import {LoginRegister} from "./LoginRegister";
 import {Profile} from "./Profile";
-import '../styles/Header.css';
+import '../Header.css';
 
 export function Session() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);

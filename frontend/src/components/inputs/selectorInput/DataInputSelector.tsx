@@ -1,25 +1,16 @@
-import "../styles/DataInput.css";
+import "./DataInput.css";
 
 type dataInputProps ={
     label:string,
     type: string,
-    options?: string[]
+    options: string[]
     value?: string,
     onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
 }
 
-export function DataInput(props: dataInputProps) {
-    
-    let input = <input 
-                    type={props.type} 
-                    className="data-input-input"
-                    value={props.value}
-                    onChange={props.onChange}
-                />;
+export function DataInputSelector(props: dataInputProps) {
 
-    if (props.type === "selector" && props.options) {
-
-        input =  <select className='data-input-selector' 
+        let input =  <select className='data-input-selector' 
                 id={`datalist-${props.label}`}
                 value={props.value}
                 onChange={props.onChange}>
@@ -28,19 +19,13 @@ export function DataInput(props: dataInputProps) {
                         <option key={index} value={option}>{option}</option>   
                     ))}
                 </select>
-        }
-                
+
     return (
 
-        
-        <div className="data-input-container">
-            
+        <div className="data-input-container">      
             <label className="data-input-label">{props.label}</label>
-            {input}
-        
+            {input}  
         </div>
+        
     );
-
-    
-
 }

@@ -1,10 +1,10 @@
 import { useState, useEffect, act } from "react";
-import "../styles/AdminHome.css";
-import { ProvinceLabel } from "../components/ProvinceLabel";
+import "../../adminHome/AdminHome.css";
+import { ProvinceLabel } from "./ProvinceLabel.tsx";
 import { FaSearch } from 'react-icons/fa';
-import { ProvinceModal } from "../components/ProvinceModal";
-import "../styles/ProvincesCRUD.css";
-import { NavZone } from "../components/NavZone.tsx";
+import { ProvinceModal } from "./ProvinceModal.tsx";
+import "./ProvincesCRUD.css";
+import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
 
 

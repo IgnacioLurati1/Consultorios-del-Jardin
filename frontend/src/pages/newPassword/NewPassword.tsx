@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { DataInput } from "../components/DataInput";
-import { ShowPassword } from "../components/ShowPassword";
-import "../styles/NewPassword.css";
-import Logo from '../assets/LogoRecortado.png';
+import { ShowPassword } from "../../components/inputs/passwordInput/ShowPassword";
+import "./NewPassword.css";
+import Logo from '../../assets/LogoRecortado.png';
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 

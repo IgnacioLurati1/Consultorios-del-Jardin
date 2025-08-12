@@ -1,11 +1,11 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faBars} from '@fortawesome/free-solid-svg-icons'
 import {Link} from 'react-router-dom';
-import {Session} from './Session';
-import '../styles/Header.css';
+import {Session} from './session/Session';
+import './Header.css';
 import {useState} from 'react';
-import {LateralMenu} from './LateralMenu';
-import LogoHojas from '../assets/LogoHojasRecortado.png';
+import {LateralMenu} from '../defaultLayout/lateralMenu/LateralMenu';
+import LogoHojas from '../../assets/LogoHojasRecortado.png';
 
 export function Header(){
 

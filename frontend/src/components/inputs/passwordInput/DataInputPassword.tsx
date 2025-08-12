@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { DataInput } from "./DataInput";
+import { DataInput } from "../standardTextInput/DataInput";
 import { ShowPassword } from "./ShowPassword";
 import { Link } from "react-router-dom";
-import '../styles/DataInputPassword.css';
+import './DataInputPassword.css';
 
 type PasswordInputProps = {
   label: string;

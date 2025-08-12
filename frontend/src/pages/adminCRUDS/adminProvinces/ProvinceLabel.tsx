@@ -1,4 +1,4 @@
-import "../styles/ProvinceLabel.css";
+import "./ProvinceLabel.css";
 
 
 export function ProvinceLabel(props: {name: String, id: String, onDelete: (id: String) => void, onEdit: (id: String) => void, active: boolean}) {

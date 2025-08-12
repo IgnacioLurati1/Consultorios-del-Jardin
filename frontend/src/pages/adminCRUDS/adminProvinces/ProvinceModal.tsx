@@ -1,5 +1,5 @@
 import {useState} from "react";
-import "../styles/ProvinceModal.css";
+import "./ProvinceModal.css";
 import { FaTimes } from "react-icons/fa";
 import { FaChevronRight } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
