@@ -6,7 +6,6 @@
   border-radius: 5px;
   margin-bottom: 2%;
   border: 1px solid black;
-  background-color: rgb(255, 255, 255);
   padding: 1%;
   white-space: nowrap;
   box-sizing: border-box;
@@ -14,7 +13,20 @@
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.province-label:hover {
+.province-label-green {
+  background-color: rgb(255, 255, 255);
+}
+
+.province-label-red {
+  background-color: rgb(255, 0, 0);
+}
+
+.province-label-red:hover {
+  background-color: rgb(255, 157, 157);
+  transition: background-color 0.1s ease;
+}
+
+.province-label-green:hover {
   background-color: #C9E6C3;
   transition: background-color 0.1s ease;
 }

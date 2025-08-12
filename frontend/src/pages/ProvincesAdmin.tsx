@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, act } from "react";
 import "../styles/AdminHome.css";
 import { ProvinceLabel } from "../components/ProvinceLabel";
 import { FaSearch } from 'react-icons/fa';
@@ -14,6 +14,7 @@ export function ProvincesAdmin() {
     interface Province {
         idProvince: string;
         nameProvince: string;
+        active: boolean;
     }
 
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -32,7 +33,7 @@ export function ProvincesAdmin() {
                 console.log('Provinces fetched:', data.data);
                 setLoading(false);
                 setProvinces(data.data);
-                setFilteredProvinces(data.data);
+                setFilteredProvinces(data.data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
 
             })
             .catch(error => {
@@ -50,22 +51,22 @@ export function ProvincesAdmin() {
     }, [searchTerm, provinces]);
 
     useEffect(() => {
-        setTimeout(() => {
-            setError("");
-        }, 11000);
+        if (error == null) return;
+        setTimeout(() => { 
+          setError(null);  
+        }, 12000);
     }, [error]);
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <div className="loading">Loading...</div>;
     }
-//Falta estilizar cacheado de errores
 
     function addProvince(nameProvince: string) {
         if (!nameProvince.trim()) return;
         fetch('/api/provinces', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nameProvince: nameProvince }) // idProvince se genera en el backend
+            body: JSON.stringify({ nameProvince: nameProvince, active: true }) // idProvince se genera en el backend
     })
       .then(res => {
         if(!res.ok) {
@@ -80,7 +81,7 @@ export function ProvincesAdmin() {
         console.log('Provincia creada:', created);
         setModalVisible(false);
         setError({});
-        setProvinces([...provinces, created.data]);
+        setProvinces([created.data, ...provinces]);
       })
       .catch(err => {
         setError({ baseMessage: "Error al crear provincia: ",
@@ -93,16 +94,13 @@ export function ProvincesAdmin() {
     if (!id) return;
 
     fetch(`/api/provinces/${id}`, {
-      method: 'DELETE',
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false })
     })
-      .then(res => {
-        if(!res.ok) {
-          setModalVisible(false);
-          throw new Error('Pruebe más tarde');}
-      })
       .then(() => {
         // Eliminamos la provincia del array
-        setProvinces(provinces.filter(prov => prov.idProvince !== id));
+        setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: false }));
         setError({});
         setModalVisible(false);
       })
@@ -113,14 +111,15 @@ export function ProvincesAdmin() {
       });
   }
 
-  function editProvince(id: string, newName: string) {
+  function editProvince(id: string, newName: string, active: boolean) {
     if (!newName) return;
-
-    fetch(`/api/provinces/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nameProvince: newName })
-    })
+    console.log(active);
+    if(active) {
+      fetch(`/api/provinces/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nameProvince: newName })
+      })
       .then(res => {
         if(res.ok) {
           return res.json();
@@ -139,9 +138,32 @@ export function ProvincesAdmin() {
           detail: err.message
         });
       });
+  } else {
+
+    fetch(`/api/provinces/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true})
+    })
+      .then(res => {
+        if (res.ok) {
+          setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
+          setError({});
+          setModalVisible(false);
+          return res.json();
+        }
+        setModalVisible(false);
+        throw new Error('Ocurrió un error al activar la provincia');
+      })
+      .catch(err => {
+        setError({ baseMessage: "Error al modificar provincia: ",
+          detail: err.message
+        });
+      });
   }
 
-  
+}  
+
     return (
       <>
         <div className="admin-home">
@@ -162,7 +184,7 @@ export function ProvincesAdmin() {
                       setModalAction('edit');
                       setSelectedProvince(prov);
                     }}>
-                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "")} />
+                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "", prov.active)} active={prov.active} />
                     </li>
                 ))}
             </ul>
@@ -191,7 +213,7 @@ export function ProvincesAdmin() {
                 action={modalAction}
             />)}
 
-            {error != "" && (
+            {error != null && (
                 <p className="error-message"><strong>{error.baseMessage}</strong>{error.detail}</p>
             )}
 

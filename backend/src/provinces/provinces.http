@@ -25,6 +25,14 @@ Content-Type: application/json
   "nameProvince": "Tierra del Fuego"
 }
 
+### PUT - activar una provincia
+PUT http://localhost:3000/api/provinces/1
+Content-Type: application/json
+
+{
+  "active": true
+}
+
 ### PATCH - modificar una provincia
 PATCH  http://localhost:3000/api/provinces/15
 Content-Type: application/json

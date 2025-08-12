@@ -89,6 +89,14 @@
     text-align: center;
 }
 
+.loading {
+    color: black;
+    font-weight: bold;
+    font-size: 50px;
+    text-align: center;
+    margin-top: 20px;
+}
+
 .add-button {
     border-radius: 3px;
     color: #FEFAE0;
