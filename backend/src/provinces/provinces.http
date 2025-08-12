@@ -13,7 +13,7 @@ POST http://localhost:3000/api/provinces
 Content-Type: application/json
 
 {
-  "nameProvince": "Entre Ríos",
+  "nameProvince": "Santa Cruz",
   "cities": []
 }
 
@@ -25,5 +25,10 @@ Content-Type: application/json
   "nameProvince": "Tierra del Fuego"
 }
 
-### DELETE - borrar un provincia
-DELETE http://localhost:3000/api/provinces/{{idProvince}}
+### PATCH - modificar una provincia
+PATCH  http://localhost:3000/api/provinces/15
+Content-Type: application/json
+
+{
+  "active": true
+}

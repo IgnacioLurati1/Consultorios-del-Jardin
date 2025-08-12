@@ -17,6 +17,9 @@ export class Province {
     @Property({nullable: false, unique: true})
     nameProvince!: string
 
+    @Property({nullable: false})
+    active!: boolean
+
     @OneToMany(() => City, (city) => city.province, {
       cascade: [Cascade.ALL],
     })

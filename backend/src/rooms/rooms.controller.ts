@@ -10,6 +10,7 @@ function sanitizeRoomInput(req:Request, res:Response, next:NextFunction) {
     idRoom: req.body.idRoom,
     description: req.body.description,
     office: req.body.office,
+    active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -32,7 +33,7 @@ function validateRoomUpdateInput(req: Request, res: Response, next: NextFunction
   if (
     (!req.body.sanitizedInput.description && !req.body.sanitizedInput.office) ||
     (req.body.sanitizedInput.description !== undefined && req.body.sanitizedInput.description.trim() === '')||
-     (req.body.sanitizedInput.office !== undefined && req.body.sanitizedInput.office.trim() === '')
+    (req.body.sanitizedInput.office !== undefined && req.body.sanitizedInput.office.trim() === '')
   ){
     return res.status(400).json({ message: 'Fields cannot be empty.' })
   }
@@ -84,30 +85,4 @@ async function add(req: Request, res: Response) {
   }
 }   
 
-async function remove(req: Request, res: Response) {
-  try {
-    const idRoomParam = req.params.idRoom;
-    if (!idRoomParam) {
-      return res.status(400).json({ error: 'idRoom is required' });
-    }
-
-    const idRoom = Number.parseInt(idRoomParam);
-    if (isNaN(idRoom)) {
-      return res.status(400).json({ error: 'idRoom must be a valid number' });
-    }
-
-    const room = await em.findOne(Room, { idRoom });
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' });
-    }
-
-    em.remove(room)
-    await em.flush()
-    res.status(200).json({ message: 'room deleted' })
-  }
-  catch(error:any) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
-export {sanitizeRoomInput, validateRoomInput,validateRoomUpdateInput, findAll, findOne, add, update, remove}
+export {sanitizeRoomInput, validateRoomInput,validateRoomUpdateInput, findAll, findOne, add, update}

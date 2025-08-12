@@ -19,6 +19,9 @@ export class City {
 
   @Property({ nullable: false, unique: false })
   nameCity!: string
+  
+  @Property({nullable: false})
+  active!: boolean
 
   @ManyToOne(() => Province, { nullable: false })
   province!: Rel<Province>;

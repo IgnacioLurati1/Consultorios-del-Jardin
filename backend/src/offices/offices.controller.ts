@@ -9,6 +9,7 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
     city: req.body.city,
     closingTime: req.body.closingTime,
     openingTime: req.body.openingTime,
+    active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
   }
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -77,18 +78,6 @@ async function findOne(req: Request, res: Response) {
   }
 }
 
-//no está igual al video "api40". Hecho de la misma forma que el video, tira error en la linea 136.
-async function remove(req: Request, res: Response) {
-  try {
-    const id = Number.parseInt(req.params.idOffice)
-    const office = await em.findOneOrFail(Office, { idOffice: id })
-    await em.removeAndFlush(office)
-    res.status(200).json({ message: 'Office deleted successfully' })
-  } catch (error: any) {
-    res.status(500).json({ message: error.message })
-  }
-}
-
 async function update(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idOffice)
@@ -101,4 +90,4 @@ async function update(req: Request, res: Response) {
   }
 }
 
-export {sanitizeOfficeInput, findAll, findOne, add, update, remove}
+export {sanitizeOfficeInput, findAll, findOne, add, update}
