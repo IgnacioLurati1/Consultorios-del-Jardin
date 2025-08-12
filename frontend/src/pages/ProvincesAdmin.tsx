@@ -58,7 +58,7 @@ export function ProvincesAdmin() {
     }, [error]);
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <div className="loading">Loading...</div>;
     }
 
     function addProvince(nameProvince: string) {
