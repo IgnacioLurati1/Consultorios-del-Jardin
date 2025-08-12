@@ -1,4 +1,7 @@
 
+body {
+    background-color: #EDEDF2;
+}
 
 .options-container {
     display: flex; 

@@ -17,42 +17,92 @@
   to { opacity: 1; }
 }
 
+.titleAndClose {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-icon {
+    font-size: 30px;
+    cursor: pointer;
+}
+
 .province-modal-content {
     position: relative;
     margin: auto;
     padding: 20px;
     background: white;
     border-radius: 5px;
+    font-size: 20px;
     max-width: 500px;
     width: 100%;
     color: black;
 }
 
-.delete-button {
-    border: 1px solid red;
-    color: red;
+.create-button {
+    background-color: #3B5576;
+    color: #FEFAE0;
     padding: 2%;
+    border: none;
     border-radius: 5px;
-    background-color: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 25px;
+    gap: 15px;
+
+}
+
+
+.delete-button {
+    background-color: #CD6965;
+    color: #FEFAE0;
+    padding: 2%;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 25px;
+    gap: 15px;
 }
 
 .edit-button {
-    border: 1px solid blue;
-    color: blue;
+    background-color: #3B5576;
+    color: #FEFAE0;
     padding: 2%;
+    border: none;
     border-radius: 5px;
-    background-color: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 25px;
+    gap: 15px;
+
+}
+
+.province-modal-title {
+    margin: 0;
+    font-size: 30px;
+    color: #3B7658;
+    display: flex;
+    align-items: center;
+    gap: 20px;
 }
 
 .buttons {
   display: flex;
   gap: 3%;
+  justify-content: space-between;
+  margin-top: 40px;
 }
 
 .input-province {
-    border: 1px solid #ccc;
+    border: 1px solid black;
     border-radius: 5px;
     padding: 2%;
     margin-left: 1%;
+    font-size: 20px;
     box-sizing: border-box;
 }
