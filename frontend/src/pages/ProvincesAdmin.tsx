@@ -14,6 +14,7 @@ export function ProvincesAdmin() {
     interface Province {
         idProvince: string;
         nameProvince: string;
+        active: boolean;
     }
 
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -32,7 +33,7 @@ export function ProvincesAdmin() {
                 console.log('Provinces fetched:', data.data);
                 setLoading(false);
                 setProvinces(data.data);
-                setFilteredProvinces(data.data);
+                setFilteredProvinces(data.data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
 
             })
             .catch(error => {
@@ -159,7 +160,7 @@ export function ProvincesAdmin() {
                       setModalAction('edit');
                       setSelectedProvince(prov);
                     }}>
-                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "")} />
+                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "")} active={prov.active} />
                     </li>
                 ))}
             </ul>
