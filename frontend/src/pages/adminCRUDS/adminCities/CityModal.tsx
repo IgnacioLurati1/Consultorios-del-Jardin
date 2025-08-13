@@ -3,6 +3,7 @@ import "../CRUDSModal.css";
 import { FaTimes } from "react-icons/fa";
 import { FaChevronRight } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 interface CityModalProps {
     visible: boolean;
@@ -158,7 +159,8 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
 
                             onBlur = {() => {
                                 if (!provinces.find(p => p.nameProvince === provinceName)) {
-                                    alert("Provincia inválida");
+                                    toast.dismiss();
+                                    toast.error("Provincia inválida");
                                     setCityData({ ...cityData, province:""});
                             }}}
                         />

@@ -6,6 +6,7 @@
     height: 100vh; /* alto total viewport */
     background: rgba(0, 0, 0, 0.6); /* negro semitransparente */
     display: flex;
+    flex-direction: column;
     justify-content: center; /* centrado horizontal */
     align-items: center;     /* centrado vertical */
     z-index: 1000;

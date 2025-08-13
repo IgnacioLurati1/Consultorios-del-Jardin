@@ -6,6 +6,7 @@ import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone";
 import { FaSearch } from 'react-icons/fa';
 import { FaPlus } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
 
 export function CitiesAdmin() {
 
@@ -26,7 +27,6 @@ export function CitiesAdmin() {
     const [cities, setCities] = useState<City[]>([]);
     const [filteredCities, setFilteredCities] = useState<City[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [editData, setEditData] = useState<City | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +41,7 @@ export function CitiesAdmin() {
         setLoading(false); })
       .catch(err => {
         setLoading(false);
-        setError(err.message);console.error("Error cargando provincias:", err)});
+        toast.error("Error cargando provincias:" + err)});
     }, []);
 
     useEffect(() => {
@@ -65,8 +65,7 @@ export function CitiesAdmin() {
       })
       .catch(err => {
         setLoading(false);
-        setError(err.message);
-        console.error("Error cargando ciudades:", err)});
+        toast.error("Error cargando ciudades: " + err.message);});
     }, []);
   
     useEffect(() => {
@@ -92,9 +91,10 @@ export function CitiesAdmin() {
             .then(response => {
                 setCities([response.data, ...cities]);
                 setModalVisible(false);
+                toast.success("Ciudad creada exitosamente");
             })
             .catch(err => {
-                alert('Error al crear ciudad: ' + err.message);
+                toast.error('Error al crear ciudad: ' + err.message);
             });
         }
 
@@ -116,7 +116,11 @@ export function CitiesAdmin() {
       .then(() => {
         setCities(cities.map(city => city.idCity !== id ? city : { ...city, active: false }));
         setModalVisible(false);
+        toast.success("Ciudad eliminada exitosamente");
       })
+        .catch(err => {
+            toast.error('Error al eliminar ciudad: ' + err.message);
+        });
   }
 
     function EditCity(updatedCity: { idCity: string; nameCity: string; province: string} , active: boolean) {
@@ -143,10 +147,11 @@ export function CitiesAdmin() {
                 setCities(cities.map(city => city.idCity === updatedCityFromBackend.idCity ? updatedCityFromBackend : city));
                 setModalVisible(false);
                 setEditData(null);
+                toast.success("Ciudad editada exitosamente");
             }
         )
         .catch(err => {
-            alert('Error al editar ciudad: ' + err.message);
+           toast.error('Error al editar ciudad: ' + err.message);
         })}
         else{
             fetch(`/api/cities/${updatedCity.idCity}`, {
@@ -169,10 +174,11 @@ export function CitiesAdmin() {
                     setCities(cities.map(city => city.idCity !== updatedCityFromBackend.idCity ? city : { ...city, active: true }));
                     setModalVisible(false);
                     setEditData(null);
+                    toast.success("Ciudad reactivada exitosamente");
                 }
             )
             .catch(err => {
-                alert('Error al editar ciudad: ' + err.message);
+                toast.error('Error reactivar ciudad: ' + err.message);
             });
         }
     }
@@ -181,13 +187,14 @@ export function CitiesAdmin() {
         return <div>Loading...</div>;
     }
 
-    if (error) {
-        return <div>Error: {error}</div>;
-    }
-
     return (
         <div className="admin-home">
+
             <NavZone title="Administrador de Ciudades"/>
+            <ToastContainer 
+                className = {`toast-container`}
+                draggable={false}
+            />
             <div className="crud-searchBar">
                 <FaSearch className="search-icon"/>
                 <input className="crud-searchInput"

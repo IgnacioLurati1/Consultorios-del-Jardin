@@ -32,14 +32,13 @@
 .crud-searchBar {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
     width: 80%;
     font-size: 30%;
     background-color: white;
     border: 1px solid black;
     border-radius: 10px;
-    margin-bottom: 3%;
-    margin-top: 3%;
+    margin-bottom: 1%;
+    margin-top: 1.5%;
 }
 
 .navZone {
@@ -74,7 +73,7 @@
   display: grid;
   overflow-y: auto;
   width: 100%;
-  height: 400px;
+  height: 50vh;
   background-color: #F3F7F8;
   border-radius: 10px;
 
@@ -110,7 +109,7 @@
     justify-content: center;
     width: 270px;
     gap: 5%;
-    margin-top: 20px;
+    margin-top: 5%;
 }
 
 .crud-list {
@@ -119,6 +118,18 @@
     padding: 0;
     margin-left: 2.5%;
     margin-right: 2.5%;
+}
+
+.toast-container {
+    margin-top:2vh;
+    width: auto;
+    font-size: 1.5vw;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.hidden {
+    display: none;
 }
 
 @media (max-width: 768px) {
@@ -140,4 +151,12 @@
     .create-entity {
         margin-bottom: 10%;
     }
+
+    .toast-container {
+        width: 100%;
+        font-size: 4vw;
+    }
 }
+
+
+
