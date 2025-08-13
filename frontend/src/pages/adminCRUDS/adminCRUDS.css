@@ -121,6 +121,7 @@
 }
 
 .toast-container {
+    position: fixed !important;
     margin-top:2vh;
     width: auto;
     font-size: 1.5vw;
