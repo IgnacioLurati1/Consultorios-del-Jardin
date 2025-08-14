@@ -5,7 +5,7 @@ type dataInputProps ={
     type: string,
     options?: string[]
     value?: string,
-    onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
 export function DataInput(props: dataInputProps) {

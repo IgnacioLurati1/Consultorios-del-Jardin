@@ -3,24 +3,24 @@
   to { opacity: 1; }
 }
 
-.province-list li {
+.crud-list li {
   opacity: 0;
   animation: fadeIn 0.5s ease forwards;
 }
 
 
-.create-province {
+.crud-create-entity {
     display: flex;
     gap: 5%;
 }
 
-.create-province-input {
+.crud-create-entity-input {
     border-radius: 5px;
     border: 1px solid black;
     padding: 8px;
 }
 
-.create-province button {
+.crud-create-entity button {
     border-radius: 5px;
     border: 1px solid green;
     padding: 8px 12px;
@@ -29,17 +29,16 @@
     cursor: pointer;
 }
 
-.province-searchBar {
+.crud-searchBar {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
     width: 80%;
     font-size: 30%;
     background-color: white;
     border: 1px solid black;
     border-radius: 10px;
-    margin-bottom: 3%;
-    margin-top: 3%;
+    margin-bottom: 1%;
+    margin-top: 1.5%;
 }
 
 .navZone {
@@ -54,7 +53,7 @@
     color: gray;
 }
 
-.province-searchInput {
+.crud-searchInput {
 
     font-size: 30px;
     outline: none;
@@ -63,24 +62,24 @@
     width: 100%;
 }
 
-.province-searchBar input {
+.crud-searchBar input {
     margin-left: 8px;
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
-.province-grid {
+.crud-grid {
   display: grid;
   overflow-y: auto;
   width: 100%;
-  height: 400px;
+  height: 50vh;
   background-color: #F3F7F8;
   border-radius: 10px;
 
 }
 
-.error-message {
+.crud-error-message {
     color: red;
     font-size: 25px;
     animation: 
@@ -89,7 +88,7 @@
     text-align: center;
 }
 
-.loading {
+.crud-loading {
     color: black;
     font-weight: bold;
     font-size: 50px;
@@ -97,7 +96,7 @@
     margin-top: 20px;
 }
 
-.add-button {
+.crud-add-button {
     border-radius: 3px;
     color: #FEFAE0;
     padding: 8px 12px;
@@ -110,10 +109,10 @@
     justify-content: center;
     width: 270px;
     gap: 5%;
-    margin-top: 20px;
+    margin-top: 5%;
 }
 
-.province-list {
+.crud-list {
     list-style-type: none;
     display: block;
     padding: 0;
@@ -121,9 +120,22 @@
     margin-right: 2.5%;
 }
 
+.toast-container {
+    position: fixed !important;
+    margin-top:2vh;
+    width: auto;
+    font-size: 1.5vw;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.hidden {
+    display: none;
+}
+
 @media (max-width: 768px) {
 
-    .search-icon {
+    .crud-search-icon {
     font-size: 20px;
     }
 
@@ -132,12 +144,20 @@
         font-size: 15px;
     }
 
-    .province-searchInput {
+    .crud-searchInput {
 
     font-size: 20px;
     }
 
-    .create-province {
+    .create-entity {
         margin-bottom: 10%;
     }
+
+    .toast-container {
+        width: 100%;
+        font-size: 4vw;
+    }
 }
+
+
+

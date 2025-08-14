@@ -1,9 +1,9 @@
-import { useState, useEffect, act } from "react";
+import { useState, useEffect } from "react";
 import "../../adminHome/AdminHome.css";
 import { ProvinceLabel } from "./ProvinceLabel.tsx";
 import { FaSearch } from 'react-icons/fa';
 import { ProvinceModal } from "./ProvinceModal.tsx";
-import "./ProvincesCRUD.css";
+import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
 
@@ -168,16 +168,16 @@ export function ProvincesAdmin() {
       <>
         <div className="admin-home">
             <NavZone title="Administrador de Provincias"/>
-            <div className="province-searchBar">
+            <div className="crud-searchBar">
                 <FaSearch className="search-icon"/>
-                <input className="province-searchInput"
+                <input className="crud-searchInput"
                     type="text"
                     placeholder="Ingrese el nombre de una provincia"
                     onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="province-grid">
-                <ul className="province-list">
+            <div className="crud-grid">
+                <ul className="crud-list">
                     {filteredProvinces.map(prov => (
                     <li key={prov.idProvince} onClick={() => {
                       setModalVisible(true);
@@ -189,7 +189,7 @@ export function ProvincesAdmin() {
                 ))}
             </ul>
             </div>
-            <button className="add-button" onClick={() => (setModalVisible(true), setModalAction('create'))}><strong>Agregar Provincia </strong><FaPlus /></button>
+            <button className="crud-add-button" onClick={() => (setModalVisible(true), setModalAction('create'))}><strong>Agregar Provincia </strong><FaPlus /></button>
 
            {selectedProvince != null && modalAction === "edit" && (
             <ProvinceModal
@@ -214,7 +214,7 @@ export function ProvincesAdmin() {
             />)}
 
             {error != null && (
-                <p className="error-message"><strong>{error.baseMessage}</strong>{error.detail}</p>
+                <p className="crud-error-message"><strong>{error.baseMessage}</strong>{error.detail}</p>
             )}
 
         </div>

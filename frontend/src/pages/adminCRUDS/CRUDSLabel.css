@@ -1,4 +1,4 @@
-.province-label {
+.crud-label {
   display: grid;
   grid-template-columns: 8fr 1fr;
   align-items: center;
@@ -13,25 +13,39 @@
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.province-label-green {
+.city-label{
+  display: grid;
+  grid-template-columns: 1fr 6fr 2fr;
+  text-align: center;
+}
+
+.crud-label-green {
   background-color: rgb(255, 255, 255);
 }
 
-.province-label-red {
-  background-color: rgb(255, 0, 0);
+.crud-label-red{
+  background-color: rgb(224, 98, 98);
 }
 
-.province-label-red:hover {
+.crud-label-red-inactive {
+  background-color: rgb(153, 81, 81);
+}
+
+.crud-label-green-inactive {
+  background-color: rgb(163, 162, 162);
+}
+
+.crud-label-red:hover {
   background-color: rgb(255, 157, 157);
   transition: background-color 0.1s ease;
 }
 
-.province-label-green:hover {
+.crud-label-green:hover {
   background-color: #C9E6C3;
   transition: background-color 0.1s ease;
 }
 
-.province-name {
+.crud-name {
     text-overflow: ellipsis;
     overflow: hidden;
     font-size: 30px;
@@ -40,9 +54,16 @@
 }
 
 
-.province-id{
+.crud-id{
 
     font-size: 30px;
     margin: 10px;
     margin-right: 1%;
+}
+
+@media (max-width: 750px) {
+
+    .city-label .crud-name{
+      font-size: 5vw;
+    }
 }

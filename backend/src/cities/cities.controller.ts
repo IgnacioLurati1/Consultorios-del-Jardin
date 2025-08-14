@@ -2,6 +2,7 @@ import { Request, Response, NextFunction} from 'express'
 import { orm } from '../shared/db/orm.js'
 import { City } from './cities.entity.js'
 import { error } from 'console'
+import { create } from 'domain'
 
 function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -66,7 +67,8 @@ async function add(req: Request, res: Response) {
   try{
   const city = em.create(City, req.body.sanitizedInput)
   await em.flush()
-  res.status(201).json({ message: 'City created successfully', data: city })
+  const createdCity = await em.findOne(City, { idCity: city.idCity }, {populate: ['province']})
+  res.status(201).json({ message: 'City created successfully', data: createdCity })
   } catch (error: any) {
     res.status(500).json({ message: error.message })
   }

@@ -1,12 +1,12 @@
-import "./ProvinceLabel.css";
+import "../CRUDSLabel.css";
 
 
-export function ProvinceLabel(props: {name: String, id: String, onDelete: (id: String) => void, onEdit: (id: String) => void, active: boolean}) {
+export function ProvinceLabel(props: {name: string, id: string, onDelete: (id: string) => void, onEdit: (id: string) => void, active: boolean}) {
 
   return (
-    <div className={`${props.active ? 'province-label-green' : 'province-label-red'} province-label`}>
-      <p className="province-name"><strong>{props.name}</strong></p>
-      <p className="province-id"><strong>ID : {props.id}</strong></p>
+    <div className={`${props.active ? 'crud-label-green' : 'crud-label-red'} crud-label`}>
+      <p className="crud-name"><strong>{props.name}</strong></p>
+      <p className="crud-id"><strong>ID : {props.id}</strong></p>
     </div>
   );
 }
