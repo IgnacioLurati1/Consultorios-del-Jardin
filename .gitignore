@@ -27,3 +27,6 @@ Thumbs.db
 
 ## built vscode extensions
 *.vsix
+
+## TEMPORAL API PROTECTION
+/backend/src/config/serviceAccountKey.json
