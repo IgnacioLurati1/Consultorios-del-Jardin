@@ -24,8 +24,8 @@ export function OfficeLabel({ office }: OfficeLabelProps) {
             <p className="crud-name"><strong>{office.description}</strong></p> 
             <p className="crud-id"><strong>ID : {office.idOffice}</strong></p>
             <p className="crud-time">
-                <strong>Opening Time: {office.openingTime}</strong> | 
-                <strong> Closing Time: {office.closingTime}</strong>
+                <strong>Horario de Apertura: {office.openingTime}</strong> | 
+                <strong> Horario de Cierre: {office.closingTime}</strong>
                 <p className="crud-province">{office.city?.nameCity || 'Unknown City'}</p>
                 <p className="crud-city">{office.city?.province?.nameProvince || 'Unknown Province'}</p>
             </p>  
