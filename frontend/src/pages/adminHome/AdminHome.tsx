@@ -23,6 +23,14 @@ export function AdminHome() {
             imageUrl={Logo}
             link="/CitiesAdmin"
           />
+
+          <AdminCard
+            title="Administrar consultorios"
+            description="Añadir, eliminar o modificar consultorios."
+            imageUrl={Logo}
+            link="/OfficesAdmin"
+            />
+
           <AdminCard
             title="Administrar usuarios"
             description="Añadir, eliminar o modificar usuarios."

@@ -20,7 +20,6 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   next()
 }
 
-/*
 function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
 
   if('openingTime' in req.body.sanitizedInput && 'closingTime' in req.body.sanitizedInput) { //This is because our sanitizer function eliminates all keys that are undefined, therefore not working on put or patch http requets that don't have the correct keys
@@ -39,7 +38,6 @@ function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
 
   next()
 } 
-*/
 
 const em = orm.em
 
@@ -90,4 +88,4 @@ async function update(req: Request, res: Response) {
   }
 }
 
-export {sanitizeOfficeInput, findAll, findOne, add, update}
+export {sanitizeOfficeInput,validateOfficeTimes, findAll, findOne, add, update}
