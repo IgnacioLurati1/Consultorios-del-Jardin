@@ -28,8 +28,9 @@ export function AdminHome() {
             title="Administrar consultorios"
             description="Añadir, eliminar o modificar consultorios."
             imageUrl={Logo}
-            link="./OfficesAdmin"
-          /> 
+
+            link="/OfficesAdmin"
+            />
 
           <AdminCard
             title="Administrar usuarios"

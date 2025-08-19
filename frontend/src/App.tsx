@@ -9,7 +9,7 @@ import { NotFoundPage } from './pages/notFoundPage/NotFoundPage.tsx'
 import { AdminHome } from './pages/adminHome/AdminHome.tsx';
 import { ProvincesAdmin } from './pages/adminCRUDS/adminProvinces/ProvincesAdmin.tsx';
 import { CitiesAdmin } from './pages/adminCRUDS/adminCities/CitiesAdmin.tsx';
-import { OfficesAdmin } from './pages/adminCRUDS/adminOffices/OfficeAdmin';
+import { OfficeAdmin } from './pages/adminCRUDS/adminOffices/OfficesAdmin.tsx';
 import  { RecoverPassword }  from './pages/newPassword/RecoverPassword.tsx'
 import { NewPassword } from './pages/newPassword/NewPassword.tsx';
 
@@ -28,6 +28,8 @@ const router = createBrowserRouter([
       { path: '/AdminHome/OfficesAdmin', element: <OfficesAdmin /> },
       { path: '/forgot-password', element: <RecoverPassword /> },
       { path: '/NewPassword', element: <NewPassword /> },
+      {path: '/OfficesAdmin', element: <OfficeAdmin />},
+      {path: '/AdminHome/OfficesAdmin', element: <OfficeAdmin />},
       { path:'*', element: <NotFoundPage/>}
 
     ]

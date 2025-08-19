@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import {sanitizeOfficeInput, validateOfficeTimes, findAll, findOne, add, update} from './offices.controller.js'
 
-
 export const officeRouter = Router()
 
 officeRouter.get('/', findAll)

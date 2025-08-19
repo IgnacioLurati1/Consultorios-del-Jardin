@@ -20,7 +20,6 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   next()
 }
 
-
 function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
 
   if('openingTime' in req.body.sanitizedInput && 'closingTime' in req.body.sanitizedInput) {
@@ -39,7 +38,6 @@ function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
 
   next()
 } 
-
 
 const em = orm.em
 
