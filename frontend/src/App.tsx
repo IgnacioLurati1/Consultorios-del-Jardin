@@ -9,7 +9,7 @@ import { NotFoundPage } from './pages/notFoundPage/NotFoundPage.tsx'
 import { AdminHome } from './pages/adminHome/AdminHome.tsx';
 import { ProvincesAdmin } from './pages/adminCRUDS/adminProvinces/ProvincesAdmin.tsx';
 import { CitiesAdmin } from './pages/adminCRUDS/adminCities/CitiesAdmin.tsx';
-import { OfficesAdmin } from './pages/adminCRUDS/adminOffices/OfficeAdmin.tsx';
+import { OfficesAdmin } from './pages/adminCRUDS/adminOffices/OfficesAdmin.tsx';
 import  { RecoverPassword }  from './pages/newPassword/RecoverPassword.tsx'
 import { NewPassword } from './pages/newPassword/NewPassword.tsx';
 
