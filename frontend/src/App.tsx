@@ -25,6 +25,7 @@ const router = createBrowserRouter([
       { path: '/AdminHome', element: <AdminHome /> },
       { path: '/AdminHome/ProvincesAdmin', element: <ProvincesAdmin /> },
       { path: '/AdminHome/CitiesAdmin', element: <CitiesAdmin/> },
+      { path: '/AdminHome/OfficesAdmin', element: <OfficesAdmin /> },
       { path: '/forgot-password', element: <RecoverPassword /> },
       { path: '/NewPassword', element: <NewPassword /> },
       {path: '/OfficesAdmin', element: <OfficeAdmin />},
