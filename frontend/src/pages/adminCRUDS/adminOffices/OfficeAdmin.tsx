@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { OfficeLabel } from "./OfficeLabel";
-import { OfficeModal } from "./OfficeModal";
+import { OfficeLabel } from "./officeLabel.tsx";
+import { OfficeModal } from "./officeModal.tsx";
 import "../../adminHome/AdminHome.css";
 
 export function OfficesAdmin() {
