@@ -1,212 +1,278 @@
-import { useState, useEffect } from "react";
-import { FaTimes, FaTrash, FaChevronRight } from "react-icons/fa";
+import { useEffect, useState } from "react";
 
-interface OfficeModalProps {
-  visible: boolean;
-  office: {
-    idOffice: string;
-    description: string;
-    openingTime: string;
-    closingTime: string;
-    active: boolean;
-    city: {
-      idCity: string;
-        nameCity: string;
-        province: {
-            idProvince: string;
-            nameProvince: string;
-        };
-    };
-  } | null;
-  cities: {
-    idCity: string;
-    nameCity: string;
-    province: {
-        idProvince: string;
-        nameProvince: string;
-    };
-  }[];
-    provinces: {
+interface Province {
     idProvince: string;
     nameProvince: string;
-  }[];
-    onClose: () => void;
-    onDelete: () => void;
-    onEdit: (idOffice: string, description: string, openingTime: string, closingTime: string, cityId: string, active: boolean) => void;
-    onCreate: (description: string, openingTime: string, closingTime: string, cityId: string) =>
-        void;
-    action: 'create' | 'edit';
 }
 
-export function OfficeModal({ visible, office, cities, provinces, onClose, onDelete, onEdit, onCreate, action }: OfficeModalProps) {
-  if (!visible) return null;
+interface City {
+    idCity: string;
+    nameCity: string;
+    province: { idProvince: string; nameProvince?: string };
+}
 
-const [description, setDescription] = useState(office?.description || "");
-const [openingTime, setOpeningTime] = useState(office?.openingTime || "");
-const [closingTime, setClosingTime] = useState(office?.closingTime || "");
-const [selectedCity, setSelectedCity] = useState(office?.city?.idCity || "");
-const [selectedProvince, setSelectedProvince] = useState(office?.city?.province?.idProvince || "");
-const isTimeValid = () => openingTime < closingTime;
+interface OfficeModalProps {
+    visible: boolean;
+    office: {
+        idOffice: string;
+        description: string;
+        openingTime: string;
+        closingTime: string;
+        active: boolean;
+        city: {
+            idCity: string;
+            nameCity: string;
+            province?: Province;
+        };
+    } | null;
+    cities: City[];
+    provinces: Province[];
+    onClose: () => void;
+    onDelete: (idOffice: string) => void;
+    onEdit: (updatedOffice: {
+        idOffice: string;
+        description: string;
+        openingTime: string;
+        closingTime: string;
+        city: string;
+        active: boolean;
+    }) => void;
+    onCreate: (newOffice: {
+        description: string;
+        openingTime: string;
+        closingTime: string;
+        city: string;
+        active: boolean;
+    }) => void;
+    type: string; 
+}
 
+export function OfficeModal({
+    visible,
+    office,
+    cities,
+    provinces,
+    onClose,
+    onDelete,
+    onEdit,
+    onCreate,
+    type,
+}: OfficeModalProps) {
+    const [officeData, setOfficeData] = useState({
+        idOffice: "",
+        description: "",
+        openingTime: "",
+        closingTime: "",
+        city: "",
+        active: true,
+    });
 
-const handleCreate = () => {
-  if (!isTimeValid()) {
-    alert("El horario de cierre debe ser mayor al de apertura.");
-    return;
-  }
-  onCreate(description, openingTime, closingTime, selectedCity);
-};
+    const [selectedProvince, setSelectedProvince] = useState("");
 
-const handleEdit = () => {
-  if (!isTimeValid()) {
-    alert("El horario de cierre debe ser mayor al de apertura.");
-    return;
-  }
-  if (office)
-    onEdit(office.idOffice, description, openingTime, closingTime, selectedCity, office.active);
-};
+    useEffect(() => {
+        if (office) {
+            setOfficeData({
+                idOffice: office.idOffice,
+                description: office.description,
+                openingTime: office.openingTime,
+                closingTime: office.closingTime,
+                city: office.city.idCity,
+                active: office.active,
+            });
 
-const handleActivate = () => {
-  if (office)
-    onEdit(office.idOffice, description, openingTime, closingTime, selectedCity, office.active);
-};
+            const provinceId = office.city.province?.idProvince || "";
+            setSelectedProvince(provinceId);
+        } else {
+            setOfficeData({
+                idOffice: "",
+                description: "",
+                openingTime: "",
+                closingTime: "",
+                city: "",
+                active: true,
+            });
+            setSelectedProvince("");
+        }
+    }, [office]);
 
-useEffect(() => {
-  if (office) {
-    setDescription(office.description);
-    setOpeningTime(office.openingTime);
-    setClosingTime(office.closingTime);
-    setSelectedCity(office.city?.idCity || "");
-    setSelectedProvince(office.city?.province?.idProvince || "");
-  } else {
-    setDescription("");
-    setOpeningTime("");
-    setClosingTime("");
-    setSelectedCity("");
-    setSelectedProvince("");
-  }
-}, [office]);
+    if (!visible) return null;
 
-const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  const provinceId = e.target.value;
-  setSelectedProvince(provinceId);
-  setSelectedCity("");
-};
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type: inputType } = e.target;
+        setOfficeData((prev) => ({
+            ...prev,
+            [name]: inputType === "checkbox"
+                ? (e.target as HTMLInputElement).checked
+                : value,
+        }));
+    };
 
+    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const provinceId = e.target.value;
+        setSelectedProvince(provinceId);
 
-const filteredCities = cities.filter(city => String(city.province.idProvince) === String(selectedProvince));
+        const firstCity = cities.find(c => String(c.province.idProvince) === String(provinceId));
+        setOfficeData(prev => ({
+            ...prev,
+            city: firstCity ? firstCity.idCity : "",
+        }));
+    };
 
-  return (
-    <div className="crud-modal" onClick={onClose}>
-      <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
-        <div className="titleAndClose">
-          <h2 className="crud-modal-title">
-            {action === "edit" ? `Detalles de la Oficina ${office?.idOffice}` : "Crear Nueva Oficina"} <FaChevronRight /> 
-          </h2>
-          <FaTimes className="close-icon" onClick={onClose} />
+    const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setOfficeData(prev => ({
+            ...prev,
+            city: e.target.value,
+        }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!officeData.city) {
+            alert("Debe seleccionar una ciudad");
+            return;
+        }
+
+        const payload = {
+            description: officeData.description,
+            openingTime: officeData.openingTime,
+            closingTime: officeData.closingTime,
+            city: officeData.city,
+            active: officeData.active,
+        };
+
+        if (type === "edit" && office) {
+            onEdit({ ...payload, idOffice: office.idOffice });
+        } else {
+            onCreate(payload);
+        }
+
+        onClose();
+    };
+
+    const handleDelete = () => {
+        if (office && window.confirm("¿Seguro que deseas dar de baja esta oficina?")) {
+            onDelete(office.idOffice);
+            onClose();
+        }
+    };
+
+    const filteredCities = selectedProvince
+        ? cities.filter(c => String(c.province.idProvince) === String(selectedProvince))
+        : [];
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <h2>{type === "edit" ? "Editar Oficina" : "Nueva Oficina"}</h2>
+                <form onSubmit={handleSubmit}>
+
+                    {/* Description */}
+                    <div className="form-group">
+                        <label htmlFor="description">Descripción</label>
+                        <input
+                            type="text"
+                            id="description"
+                            name="description"
+                            value={officeData.description}
+                            onChange={handleInputChange}
+                            required
+                        />
+                    </div>
+
+                    {/* Provinces */}
+                    <div className="form-group">
+                        <label htmlFor="province">Provincia</label>
+                        <select
+                            id="province"
+                            name="province"
+                            value={selectedProvince}
+                            onChange={handleProvinceChange}
+                            required
+                        >
+                            <option value="">Selecciona una provincia</option>
+                            {provinces.map((prov) => (
+                                <option key={prov.idProvince} value={prov.idProvince}>
+                                    {prov.nameProvince}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Cities */}
+                    <div className="form-group">
+                        <label htmlFor="city">Ciudad</label>
+                        <select
+                            id="city"
+                            name="city"
+                            value={officeData.city}
+                            onChange={handleCityChange}
+                            required
+                            disabled={filteredCities.length === 0}
+                        >
+                            <option value="">Selecciona una ciudad</option>
+                            {filteredCities.map(city => (
+                                <option key={city.idCity} value={city.idCity}>
+                                    {city.nameCity}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Hour */}
+                    <div className="form-group">
+                        <label htmlFor="openingTime">Hora de apertura</label>
+                        <input
+                            type="time"
+                            id="openingTime"
+                            name="openingTime"
+                            value={officeData.openingTime}
+                            onChange={handleInputChange}
+                            required
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="closingTime">Hora de cierre</label>
+                        <input
+                            type="time"
+                            id="closingTime"
+                            name="closingTime"
+                            value={officeData.closingTime}
+                            onChange={handleInputChange}
+                            required
+                        />
+                    </div>
+
+                    {/* State */}
+                    <div className="form-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="active"
+                                checked={officeData.active}
+                                onChange={handleInputChange}
+                            />
+                            Activo
+                        </label>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="modal-actions">
+                        <button type="submit" className="btn btn-primary">
+                            {type === "edit" ? "Guardar Cambios" : "Crear Oficina"}
+                        </button>
+                        {type === "edit" && (
+                            <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                                Dar de Baja
+                            </button>
+                        )}
+                        <button type="button" className="btn btn-secondary" onClick={onClose}>
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        {action === "edit" && office && office.active && (
-  <>
-    <p>ID: {office.idOffice}</p>
-    <p>Descripción: <input type="text" className="input-crud" placeholder={office.description} value={description} onChange={e => setDescription(e.target.value)} /></p>
-    <p>Horario de Apertura: <input type="time" className="input-crud" value={openingTime} onChange={e => setOpeningTime(e.target.value)} /></p>
-    <p>Horario de Cierre: <input type="time" className="input-crud" value={closingTime} onChange={e => setClosingTime(e.target.value)} /></p>
-    <p>Provincia:
-      <select value={selectedProvince} onChange={handleProvinceChange} className="input-crud">
-        <option value="" disabled>Seleccione una provincia</option>
-        {provinces.map(province => (
-          <option key={province.idProvince} value={province.idProvince}>{province.nameProvince}</option>
-        ))}
-      </select>
-    </p>
-    <p>Ciudad:
-      <select
-        value={selectedCity}
-        onChange={e => setSelectedCity(e.target.value)}
-        className="input-crud"
-        disabled={!selectedProvince || filteredCities.length === 0}
-      >
-        <option value="" disabled>
-          { !selectedProvince
-            ? "Seleccione una provincia primero"
-            : filteredCities.length === 0
-              ? "No hay ciudades disponibles"
-              : "Seleccione una ciudad"
-          }
-        </option>
-        {filteredCities.map(city => (
-          <option key={city.idCity} value={city.idCity}>{city.nameCity}</option>
-        ))}
-      </select>
-    </p>
-    <div className="buttons">
-      
-      {office.active && (
-        <>
-        <button className="delete-button" onClick={onDelete}>Eliminar oficina <FaTrash /></button>
-        <button className="edit-button" onClick={handleEdit}>Modificar oficina</button> 
-        </>
-      )}
-      {!office.active && (
-        <button className="edit-button" onClick={handleActivate}>Activar oficina</button>
-      )}
-    </div>
-  </>
-)}
-
-{action === "edit" && office && !office.active && (
-  <div>
-    <p>ID: {office.idOffice}</p>
-    <p>Descripción: {office.description}</p>
-    <p>Horario de Apertura: {office.openingTime}</p>
-    <p>Horario de Cierre: {office.closingTime}</p>
-    <p>Provincia: {office.city?.province.nameProvince}</p>
-    <p>Ciudad: {office.city?.nameCity}</p>
-    <div className="buttons">
-      <button autoFocus className="create-button" onClick={handleActivate}>Activar</button>
-    </div>
-  </div>
-)}
-
-        {action === "create" && (
-  <>
-    <p>Descripción: <input type="text" className="input-crud" placeholder="Descripción de la oficina" value={description} onChange={e => setDescription(e.target.value)} /></p>
-    <p>Horario de Apertura: <input type="time" className="input-crud" value={openingTime} onChange={e => setOpeningTime(e.target.value)} /></p>
-    <p>Horario de Cierre: <input type="time" className="input-crud" value={closingTime} onChange={e => setClosingTime(e.target.value)} /></p>
-    <p>Provincia:
-      <select value={selectedProvince} onChange={handleProvinceChange} className="input-crud">
-        <option value="" disabled>Seleccione una provincia</option> 
-        {provinces.map(province => (
-          <option key={province.idProvince} value={province.idProvince}>{province.nameProvince}</option>
-        ))}
-      </select>
-    </p>
-    <p>Ciudad:
-      <select
-        value={selectedCity}
-        onChange={e => setSelectedCity(e.target.value)}
-        className="input-crud"
-        disabled={!selectedProvince || filteredCities.length === 0}
-      >
-        <option value="" disabled>
-          { !selectedProvince
-            ? "Seleccione una provincia primero"
-            : filteredCities.length === 0
-              ? "No hay ciudades disponibles"
-              : "Seleccione una ciudad"
-          }
-        </option>
-        {filteredCities.map(city => (
-          <option key={city.idCity} value={city.idCity}>{city.nameCity}</option>
-        ))}
-      </select>
-    </p>
-    <div className="buttons">
-      <button className="create-button" onClick={handleCreate}>Crear oficina</button>
-    </div>
-  </>
-        )}
-      </div>
-    </div>
-  );
+    );
 }

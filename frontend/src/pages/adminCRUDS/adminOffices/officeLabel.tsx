@@ -1,34 +1,27 @@
-
 interface OfficeLabelProps {
-  office: {
-    idOffice: string; 
-    description: string;
-    openingTime: string;
-    closingTime: string;
-    active: boolean;
-    city: {
-      idCity: string;
-        nameCity: string;
-        province: {
-            idProvince: string;
-            nameProvince: string;
+    office: {
+        idOffice: string;
+        description: string;
+        openingTime: string;
+        closingTime: string;
+        active: boolean;
+        city: {
+            nameCity: string;
+            province: {
+                nameProvince: string;
+            };
         };
     };
-  };
 }
 
 export function OfficeLabel({ office }: OfficeLabelProps) {
-    
     return (
-        <div className={`${office.active ? 'crud-label-green' : 'crud-label-red'} crud-label`}>
-            <p className="crud-name"><strong>{office.description}</strong></p> 
-            <p className="crud-id"><strong>ID : {office.idOffice}</strong></p>
-            <p className="crud-id">
-                Horario de Apertura: {office.openingTime}   
-                {" / "}
-                Horario de Cierre: {office.closingTime}
-                <p className="crud-id">{office.city?.nameCity}, {office.city?.province?.nameProvince}</p>
-            </p>   
+        <div className="office-label">
+            <p className="idOffice">ID: {office.idOffice}</p>
+            <p className="officeDescription">{office.description}</p>
+            <p className="officeCity">{office.city?.nameCity ?? 'Sin ciudad'}, {office.city?.province?.nameProvince ?? 'Sin provincia'}</p>
+            <p className="officeHours">Horario: {office.openingTime} - {office.closingTime}</p>
+            <p className={`officeStatus ${office.active ? 'active' : 'inactive'}`}>{office.active ? 'Activo' : 'Inactivo'}</p>
         </div>
-            );            
-        };
+    );
+}
