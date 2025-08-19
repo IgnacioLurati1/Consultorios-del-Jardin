@@ -23,13 +23,12 @@ export function OfficeLabel({ office }: OfficeLabelProps) {
         <div className={`${office.active ? 'crud-label-green' : 'crud-label-red'} crud-label`}>
             <p className="crud-name"><strong>{office.description}</strong></p> 
             <p className="crud-id"><strong>ID : {office.idOffice}</strong></p>
-            <p className="crud-time">
-                <strong>Horario de Apertura: {office.openingTime}</strong> | 
-                <strong> Horario de Cierre: {office.closingTime}</strong>
-                <p className="crud-province">{office.city?.nameCity || 'Unknown City'}</p>
-                <p className="crud-city">{office.city?.province?.nameProvince || 'Unknown Province'}</p>
-            </p>  
+            <p className="crud-id">
+                Horario de Apertura: {office.openingTime}   
+                {" / "}
+                Horario de Cierre: {office.closingTime}
+                <p className="crud-id">{office.city?.nameCity}, {office.city?.province?.nameProvince}</p>
+            </p>   
         </div>
-            );
-            
+            );            
         };

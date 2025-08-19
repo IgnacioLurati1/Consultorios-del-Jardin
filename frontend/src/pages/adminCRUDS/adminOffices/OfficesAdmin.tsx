@@ -51,23 +51,28 @@ export function OfficeAdmin() {
         const cityData = await cityRes.json();
         const offData = await offRes.json();
 
-        const provincesArray: Province[] = provData.data;
-        const citiesArray: City[] = cityData.data;
+        const provincesArray: Province[] = provData.data.filter((p: any) => p.active);
+        const citiesArray: City[] = cityData.data.filter((cities: any) => cities.active);
 
-        const enrichedOffices: Office[] = offData.data.map((office: any) => {
+        const enrichedOffices: Office[] = offData.data
+        .map((office: any) => {
           const city = citiesArray.find(c => c.idCity === office.city);
-          if (!city) return { ...office, city: undefined };
+          if (!city) return null;
 
           const province = provincesArray.find(p => p.idProvince === city.province.idProvince);
+          if (!province) return null;
 
           return {
             ...office,
             city: {
               ...city,
-              province: province ? province : undefined
+              province: {
+                ...province
+              }
             }
           };
-        });
+        })
+        .filter((office: Office | null): office is Office => office !== null);
 
         setProvinces(provincesArray);
         setCities(citiesArray);
@@ -121,7 +126,7 @@ useEffect(() => {
 
       setOffices(offices.map(o => o.idOffice === id ? { ...o, active: false } : o));
       setFilteredOffices(filteredOffices.map(o => o.idOffice === id ? { ...o, active: false } : o));
-      await fetchAll();
+      //await fetchAll();
       setModalVisible(false);
       setSelectedOffice(null);
     } catch (err: any) {
@@ -188,7 +193,7 @@ const editOffice = async (updatedOffice: {
     };
     setOffices(offices.map(o => o.idOffice === enrichedOffice.idOffice ? enrichedOffice : o));
     setFilteredOffices(offices.map(o => o.idOffice === enrichedOffice.idOffice ? enrichedOffice : o));
-    await fetchAll();
+    //await fetchAll();
     setModalVisible(false);
     setEditData(null);
   } catch (err: any) {
