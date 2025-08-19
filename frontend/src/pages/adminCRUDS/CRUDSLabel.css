@@ -1,0 +1,69 @@
+.crud-label {
+  display: grid;
+  grid-template-columns: 8fr 1fr;
+  align-items: center;
+  color: black;
+  border-radius: 5px;
+  margin-bottom: 2%;
+  border: 1px solid black;
+  padding: 1%;
+  white-space: nowrap;
+  box-sizing: border-box;
+  align-items: stretch;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.city-label{
+  display: grid;
+  grid-template-columns: 1fr 6fr 2fr;
+  text-align: center;
+}
+
+.crud-label-green {
+  background-color: rgb(255, 255, 255);
+}
+
+.crud-label-red{
+  background-color: rgb(224, 98, 98);
+}
+
+.crud-label-red-inactive {
+  background-color: rgb(153, 81, 81);
+}
+
+.crud-label-green-inactive {
+  background-color: rgb(163, 162, 162);
+}
+
+.crud-label-red:hover {
+  background-color: rgb(255, 157, 157);
+  transition: background-color 0.1s ease;
+}
+
+.crud-label-green:hover {
+  background-color: #C9E6C3;
+  transition: background-color 0.1s ease;
+}
+
+.crud-name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 30px;
+    margin: 10px;
+    margin-left: 1%;
+}
+
+
+.crud-id{
+
+    font-size: 30px;
+    margin: 10px;
+    margin-right: 1%;
+}
+
+@media (max-width: 750px) {
+
+    .city-label .crud-name{
+      font-size: 5vw;
+    }
+}

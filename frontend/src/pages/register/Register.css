@@ -1,0 +1,287 @@
+/*---------------------------------------------------------*/
+/*---------------------------Register----------------------*/
+/*---------------------------------------------------------*/
+
+.user-register-container {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #EDEDF2;
+    height: auto;
+    min-height: 90vh;
+    overflow-x: hidden;
+}
+
+.register-title {
+    box-sizing: border-box;
+    background-color: rgba(243, 247, 248, 0.7);
+    width: 95%;
+    height: 8%;
+    gap: 15px;
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: row;
+    align-items: center;
+    box-shadow: 0px 2px 10px #6C788E;
+    margin: 20px;
+    margin-bottom: 0;
+    border-radius: 5px;
+}
+
+.title-icon {
+    box-sizing: border-box;
+    color: #3B7658;
+    width: 1.8rem;
+    height: 1.8rem;
+    margin-left:2vw;
+}
+.title-text{
+    color: #3B7658; 
+}
+
+.register-body{
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    margin: 20px;
+    background-color: rgba(243, 247, 248, 0.7);
+    width: 95%;
+    height: auto;
+    box-shadow: 0px 2px 10px #6C788E;
+    overflow: visible;
+    border-radius: 5px;
+}
+
+.register-body-left{
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: 70%;
+    color: black;
+    padding: 20px;
+    height: auto;
+}
+
+.register-body-left-inputs{
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    width: 100%;
+    gap: 20px;
+}
+
+.register-body-right{
+    width: 30%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    height: auto;
+}
+
+.logo-consultorios img{
+    width:90%;
+}
+
+.register-button {
+    background-color: #3B7658;
+    color: #FEFAE0;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.4em;
+    font-weight: bold;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.register-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.register-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.document-dataInput{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1em;
+}
+
+.register-namesurname{
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+}
+
+.tipoDoc {
+    width: 20%;
+}
+.nroDoc {
+    width: 80%;
+}
+
+.next{
+    display: none;
+}
+
+.register-body .toast-container{
+    height: 10vh;
+}
+
+.feedBack-box {
+
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-radius: 5px;
+    border-style: solid;
+    border-width: 1px;
+    font-size: 1.3em;
+}
+
+.success {
+    color: #4177b4 !important;
+    border-color: #4177b4;
+}
+
+.error{
+    color: #ce5f5f !important;
+    border-color: #ce5f5f;
+}
+
+.Toastify__toast-container {
+    position: static !important;
+}
+
+.register-body-right .Toastify__close-button > svg {
+  width: 1.8em;
+  height: 1.8em; 
+  /*Aumenta el tamaño de la X para cerrar el toast*/
+}
+
+.register-form {
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+@media (max-width: 750px){
+    
+.user-register-container {
+    height: auto;
+    width: 100%;
+    box-shadow: none;
+    justify-content: flex-start;
+}
+
+.register-form{
+    width: 100%;
+    height: auto;
+    padding: 0;
+}
+
+.register-body {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    background-color: inherit;
+    box-shadow: none;
+    align-items: center;
+    width: 100%;
+}
+
+.register-body-left {
+    width: 90%;
+    padding-top: 0;
+}
+
+.register-title{
+    width: 100%;
+    margin: 0;
+    margin-bottom: 5px;
+    background-color: inherit;
+    box-shadow: none;
+    align-items: center;
+}
+
+.logo-consultorios{
+    display: none;
+}
+
+.document-dataInput{
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+}
+
+.nroDoc{
+    width: 100%;
+}
+
+.tipoDoc{
+    width: 100%;
+}
+
+.register-title{
+    width: 95%;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5vw;
+    border-radius: 0;
+    border-bottom: 2px solid #ccc;
+}
+
+.mobile-page-two {
+    display: none;
+}
+
+.registerBut{
+    display: none;
+}
+
+.next{
+    display: block;
+}
+
+.not-shown {
+    display: none;
+}
+
+.shown{
+    display: block;
+}
+
+.register-body-right{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around ;
+}
+
+.Toastify__toast-container {
+  position: fixed !important;}
+
+/* Professional Register */
+
+.register-namesurname{
+    display: flex;
+    flex-direction: column;
+    gap:0;
+}
+
+.document-dataInput{
+gap: 0;
+}
+
+.register-button{
+margin-bottom: 10px;
+}
+}

@@ -1,0 +1,163 @@
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.crud-list li {
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+
+.crud-create-entity {
+    display: flex;
+    gap: 5%;
+}
+
+.crud-create-entity-input {
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 8px;
+}
+
+.crud-create-entity button {
+    border-radius: 5px;
+    border: 1px solid green;
+    padding: 8px 12px;
+    background-color: white;
+    color: green;
+    cursor: pointer;
+}
+
+.crud-searchBar {
+    display: flex;
+    align-items: center;
+    width: 80%;
+    font-size: 30%;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 10px;
+    margin-bottom: 1%;
+    margin-top: 1.5%;
+}
+
+.navZone {
+    margin: 0;
+    margin-top: 3%;
+    width: 100%;
+}
+
+.search-icon {
+    font-size: 30px;
+    margin-left: 8px;
+    color: gray;
+}
+
+.crud-searchInput {
+
+    font-size: 30px;
+    outline: none;
+    border: none !important;
+    background: transparent;
+    width: 100%;
+}
+
+.crud-searchBar input {
+    margin-left: 8px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.crud-grid {
+  display: grid;
+  overflow-y: auto;
+  width: 100%;
+  height: 50vh;
+  background-color: #F3F7F8;
+  border-radius: 10px;
+
+}
+
+.crud-error-message {
+    color: red;
+    font-size: 25px;
+    animation: 
+    fadeIn 0.5s ease-in-out 0s forwards,
+    fadeIn 0.5s ease-in-out reverse 10s forwards;
+    text-align: center;
+}
+
+.crud-loading {
+    color: black;
+    font-weight: bold;
+    font-size: 50px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.crud-add-button {
+    border-radius: 3px;
+    color: #FEFAE0;
+    padding: 8px 12px;
+    background-color: #3B7658;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 270px;
+    gap: 5%;
+    margin-top: 5%;
+}
+
+.crud-list {
+    list-style-type: none;
+    display: block;
+    padding: 0;
+    margin-left: 2.5%;
+    margin-right: 2.5%;
+}
+
+.toast-container {
+    position: fixed !important;
+    margin-top:2vh;
+    width: auto;
+    font-size: 1.5vw;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+
+    .crud-search-icon {
+    font-size: 20px;
+    }
+
+    .navZone {
+        text-align: center;
+        font-size: 15px;
+    }
+
+    .crud-searchInput {
+
+    font-size: 20px;
+    }
+
+    .create-entity {
+        margin-bottom: 10%;
+    }
+
+    .toast-container {
+        width: 100%;
+        font-size: 4vw;
+    }
+}
+
+
+
