@@ -1,5 +1,7 @@
 import "../CRUDSLabel.css";
 
+
+
 export function OfficeLabel(office: {description: string, id: string, openingTime: string, closingTime: string, city: string, provinces: string , onDelete: () => void, onEdit: () => void, active: boolean}) {
   return (
     <div className={`${office.active ? 'crud-label-green' : 'crud-label-red'} crud-label`}>
@@ -9,8 +11,9 @@ export function OfficeLabel(office: {description: string, id: string, openingTim
                 Horario de Apertura: {office.openingTime}   
                 {" / "}
                 Horario de Cierre: {office.closingTime}
-                <p className="crud-id"> la ciudad: {office.city}, {office.provinces}</p>
-            </p>
+                <br />
+                {office.city}, {office.provinces}.
+      </p>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaSearch, FaPlus } from "react-icons/fa";
 import { OfficeLabel } from "./OfficeLabel.tsx";
 import { OfficeModal } from "./OfficeModal.tsx";
+import { toast, ToastContainer } from "react-toastify";
 
 export function OfficesAdmin() {
   interface Province {
@@ -15,6 +16,7 @@ export function OfficesAdmin() {
     idCity: string;
     nameCity: string;
     province: Province;
+    active: boolean;
   }
 
   interface Office {
@@ -52,7 +54,7 @@ export function OfficesAdmin() {
       })
       .catch((error) => {
         setLoading(false);
-        setError({ baseMessage: "Error fetching offices: ", detail: error.message });
+        toast.error("Error cargando oficinas " + error);
       });
   }, []);
 
@@ -82,10 +84,6 @@ export function OfficesAdmin() {
     }, 12000);
   }, [error]);
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-
   useEffect(() => {
     fetch("/api/cities")
       .then((response) => response.json())
@@ -94,7 +92,7 @@ export function OfficesAdmin() {
         setCities(data.data);
       })
       .catch((error) => {
-        setError({ baseMessage: "Error fetching cities: ", detail: error.message });
+        toast.error("Error cargando ciudades: " + error);
       });
   }, []);
 
@@ -106,7 +104,7 @@ export function OfficesAdmin() {
         setProvinces(data.data);
       })
       .catch((error) => {
-        setError({ baseMessage: "Error fetching provinces: ", detail: error.message });
+        toast.error("Error cargando provincias: " + error);
       });
   }, []);
 
@@ -116,12 +114,15 @@ export function OfficesAdmin() {
     closingTime: string,
     cityId: string
   ) {
-    if (!description.trim() || !openingTime || !closingTime || !cityId) return;
+
+    console.log("Adding office with data:", { description, openingTime, closingTime, cityId });
+
+    if (!description || !openingTime || !closingTime || !cityId) return;
     fetch("/api/offices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: description,
+        description,
         openingTime,
         closingTime,
         active: true,
@@ -142,10 +143,8 @@ export function OfficesAdmin() {
         setOffices((prev) => [...prev, created]);
       })
       .catch((error) => {
-        setError({
-          baseMessage: "Error creating office: ",
-          detail: error.message,
-        });
+        setLoading(false);
+        toast.error("Error creando oficina: " + error);
       });
   }
 
@@ -167,10 +166,7 @@ export function OfficesAdmin() {
         setModalVisible(false);
       })
       .catch((error) => {
-        setError({
-          baseMessage: "Error deleting office: ",
-          detail: error.message,
-        });
+        toast.error("Error eliminando oficina: " + error);
       });
   }
 
@@ -179,9 +175,13 @@ export function OfficesAdmin() {
     description: string,
     openingTime: string,
     closingTime: string,
-    cityId: string
+    cityId: string,
+    active: boolean,
   ) {
-    if (!id || !description.trim() || !openingTime || !closingTime || !cityId) return;
+    console.log(active);
+    console.log("activado");
+    if (!id || !description || !openingTime || !closingTime || !cityId) return;
+    if (active) {
     fetch(`/api/offices/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -204,12 +204,36 @@ export function OfficesAdmin() {
         setModalVisible(false);
       })
       .catch((error) => {
-        setError({
-          baseMessage: "Error updating office: ",
-          detail: error.message,
-        });
+        toast.error("error actualizando la oficina: " + error);
+      });
+    } else {
+      fetch(`/api/offices/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: true }),
+      })
+
+      .then((res) => {
+        if (res.ok) {
+          return res.json();
+        }
+        setModalVisible(false);
+        throw new Error("ocurrio un error al activar la oficina");
+      })
+      .then((updated) => {
+        const newOffices = [
+          updated.data,
+          ...offices.filter((office) => office.idOffice !== id),
+        ];
+        setOffices(newOffices);
+        setError(null);
+        setModalVisible(false);
+      })
+      .catch((error) => {
+        toast.error("error activando la oficina: " + error);
       });
   }
+}
 
   return (
     <>
@@ -241,32 +265,23 @@ export function OfficesAdmin() {
                   openingTime={office.openingTime} 
                   closingTime={office.closingTime}
                   city={office.city.nameCity}
-                  provinces={office.city.province.nameProvince}
+                  provinces={office.city?.province?.nameProvince}
                   onDelete={() => deleteOffice(office.idOffice)}
                   onEdit={() => editOffice(
                     office.idOffice,
                     office.description,
                     office.openingTime,
                     office.closingTime,
-                    office.city.idCity
+                    office.city.idCity,
+                    office.active
                   )}
                   active={office.active}
                 />
               </li>
             ))}
           </ul>
-          <button
-            className="crud-add-button"
-            onClick={() => {
-              setModalVisible(true);
-              setModalAction("create");
-            }}
-          >
-            <strong>Agregar Oficina </strong>
-            <FaPlus />
-          </button>
 
-            {selectedOffice !== null && modalAction === "edit" && (
+             {selectedOffice !== null && modalAction === "edit" && (
               <OfficeModal
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}
@@ -293,7 +308,7 @@ export function OfficesAdmin() {
                 provinces={provinces}
               />
             )}
-
+          
           {error != null && (
             <p className="crud-error-message">
               <strong>{error.baseMessage}</strong>
@@ -301,6 +316,16 @@ export function OfficesAdmin() {
             </p>
           )}
         </div>
+                  <button
+            className="crud-add-button"
+            onClick={() => {
+              setModalVisible(true);
+              setModalAction("create");
+            }}
+          >
+            <strong>Agregar Oficina </strong>
+            <FaPlus />
+          </button>
       </div>
     </>
   );

@@ -43,9 +43,7 @@ const em = orm.em
 
 async function findAll(req: Request, res: Response) {
   try {
-    const offices = await em.find(
-      Office,
-      {},
+    const offices = await em.find(Office, {}, { populate: ['city.province'] }
     )
     res.status(200).json({ message: 'Find all offices', data: offices });
   } catch (error: any) {

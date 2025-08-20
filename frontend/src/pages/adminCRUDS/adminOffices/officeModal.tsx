@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FaTimes, FaTrash, FaChevronRight } from "react-icons/fa";
 
-export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities}: {visible: boolean; onClose: () => void; office: any | null; onDelete: () => void; onEdit: (id: string, newOpeningTime: string, newClosingTime: string, newDescription: string, newCityId: string) => void; action: string; onCreate: (newOpeningTime: string, newClosingTime: string, newDescription: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
+export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities}: {visible: boolean; onClose: () => void; office: any | null; onDelete: () => void; onEdit: (id: string, newOpeningTime: string, newClosingTime: string, newDescription: string, newCityId: string, active: boolean) => void; action: string; onCreate: (newOpeningTime: string, newClosingTime: string, newDescription: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
   if (!visible) return null;
 
   if (action === "edit" && office && office.active) {
@@ -33,7 +33,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
           </p>
           <div className="buttons">
             <button className="delete-button" onClick={onDelete}>Eliminar Oficina <FaTrash /></button>
-            <button className="edit-button" onClick={() => onEdit(office.idOffice, newOpeningTime, newClosingTime, newDescription, newCityId)}>Modificar</button>
+            <button className="edit-button" onClick={() => onEdit(office.idOffice, newOpeningTime, newClosingTime, newDescription, newCityId, office.active)}>Modificar</button>
           </div>
         </div>
       </div>
@@ -63,13 +63,14 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
               <select className="input-crud" value={newCityId} onChange={e => setNewCityId(e.target.value)}>
                 {cities.map(city => (
                   <option key={city.idCity} value={city.idCity}>
+                    
                     {city.nameCity} - {city.province.nameProvince}
                   </option>
                 ))}
               </select>
             </p>
             <div className="buttons">
-              <button className="create-button" onClick={() => onCreate(newOpeningTime, newClosingTime, newDescription, newCityId)}>Crear Oficina</button>
+              <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Oficina</button>
             </div>
           </div>
         </div>
@@ -80,7 +81,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       return (
         <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
           if (e.key === 'Enter') {
-            onEdit(office.idOffice, " ", " ", " ", office.city.idCity);
+            onEdit(office.idOffice, " ", " ", " ", office.city.idCity, false);
           }
         }}>
           <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
@@ -92,10 +93,10 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             <p>Descripción: {office.description}</p>
             <p>Horario de Apertura: {office.openingTime}</p>
             <p>Horario de Cierre: {office.closingTime}</p>
-            <p>Ciudad: {office.city.nameCity} , {office.city.province.nameProvince}</p>
+            <p>Provincia: {office.city.province.nameProvince}</p>
+            <p>Ciudad: {office.city.nameCity}</p>
             <div className="buttons">
-              <button className="delete-button" onClick={onDelete}>Eliminar Oficina <FaTrash /></button>
-              <button className="edit-button" onClick={() => onEdit(office.idOffice, " ", " ", " ", office.city.idCity)}>Activar</button>
+              <button className="edit-button" onClick={() => onEdit(office.idOffice, " ", " ", " ", office.city.idCity, false)}>Activar</button>
             </div>
           </div>
         </div>
