@@ -54,9 +54,6 @@ async function validateCreateAndUpdateCityInput(req: Request, res: Response, nex
   const {sanitizedInput} = req.body
   const errors: string[] = []
 
-  console.log('=== VALIDACIÓN DUPLICADOS ===')
-  console.log('sanitizedInput:', sanitizedInput)
-
   if (!sanitizedInput.nameCity) {
     errors.push('El nombre de la ciudad es obligatorio');
   }
@@ -78,37 +75,24 @@ async function validateCreateAndUpdateCityInput(req: Request, res: Response, nex
         whereClause.idCity = { $ne: cityId } //le agrego el id con $ne que es un operador de MikroORM que significa "not equal", busca pero ignora la que tiene ese id
       }
 
-      console.log('Ejecutando query con whereClause:', whereClause)
 
       const existingCity = await em.findOne(City, whereClause) 
 
-      console.log('Ciudad encontrada:', existingCity)
-
       if (existingCity) {
-        console.log('¡Ciudad duplicada detectada!')
         errors.push('Ya existe una ciudad con el mismo nombre en la misma provincia')
-        console.log('Error agregado. Errors array:', errors)
-      }else{
-        console.log('No se encontró ciudad duplicada')
       }
   } catch(error: any) {
-      console.log('Error en la query:', error.message)
       errors.push('Error al validar ciudades con mismo nombre')
     }
   }
 
-  console.log('Errors finales antes del response:', errors)
-  console.log('Cantidad de errores:', errors.length)
 
   if (errors.length > 0) {
     const errorMessage = errors.join(', ')
-    console.log('Mensaje de error final:', errorMessage)
-    console.log('Enviando response 400 con mensaje:', errorMessage)
     return res.status(400).json({ 
       message: errorMessage
     });
   }
-  console.log('No hay errores, llamando next()')
   next();
 }
 
