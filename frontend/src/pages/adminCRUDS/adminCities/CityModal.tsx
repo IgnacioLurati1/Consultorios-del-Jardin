@@ -39,11 +39,11 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
     const [provinceName, setProvinceName] = useState("");
 
     useEffect(() => {
-        if (city) {
+        if (visible && city) {
             setCityData({idCity: city.idCity, nameCity: city.nameCity, province: city.province.idProvince, active: city.active});
             setProvinceName(city.province.nameProvince);
         }
-    }, [city]);
+    }, [visible, city]);
 
     const activateButtonRef = useRef<HTMLButtonElement| null>(null);
     const createButtonRef = useRef<HTMLButtonElement| null>(null);

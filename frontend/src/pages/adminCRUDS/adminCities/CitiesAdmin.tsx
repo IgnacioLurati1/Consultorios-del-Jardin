@@ -83,11 +83,12 @@ export function CitiesAdmin() {
                 },
                 body: JSON.stringify(newCity),
             })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(res.statusText);
-                }
-                return res.json();})
+            .then(async (res) => {
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || res.statusText);
+            }
+            return res.json();})
             .then(response => {
                 setCities([response.data, ...cities]);
                 setModalVisible(false);
@@ -155,7 +156,7 @@ export function CitiesAdmin() {
         })}
         else{
             fetch(`/api/cities/${updatedCity.idCity}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
