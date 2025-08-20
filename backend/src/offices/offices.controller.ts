@@ -46,6 +46,7 @@ async function findAll(req: Request, res: Response) {
     const offices = await em.find(
       Office,
       {},
+      {populate: ['city']}
     )
     res.status(200).json({ message: 'Find all offices', data: offices });
   } catch (error: any) {

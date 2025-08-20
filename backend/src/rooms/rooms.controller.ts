@@ -42,7 +42,7 @@ function validateRoomUpdateInput(req: Request, res: Response, next: NextFunction
 
 async function findAll(req: Request, res: Response) {
   try {
-    const rooms = await em.find(Room, {})
+    const rooms = await em.find(Room, {}, {populate: ['office']})
     res.status(200).json({message: 'finded all rooms', data: rooms})
 } catch (error: any) {
   res.status(500).json({ error: error.message })
