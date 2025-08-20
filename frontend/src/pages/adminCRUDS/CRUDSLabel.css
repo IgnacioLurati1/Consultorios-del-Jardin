@@ -63,7 +63,7 @@
 
 @media (max-width: 750px) {
 
-    .city-label .crud-name{
+    .city-label .crud-name, .crud-id{
       font-size: 5vw;
     }
 }
