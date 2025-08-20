@@ -5,39 +5,46 @@ import { FaChevronRight } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
 
+interface Province {
+        idProvince: string;
+        nameProvince: string;
+        active?: boolean;
+    }
+
+    interface City {
+        idCity: string;
+        nameCity: string;
+        province: Province;
+        active?: boolean;
+    }
+
+    interface Office {
+        idOffice: string;
+        description: string;
+        openingTime: string;
+        closingTime: string;
+        city: City
+        active?: boolean;
+    }
+
+    interface Room {
+        idRoom: string;
+        description: string;
+        office: Office;
+        active: boolean;
+    }
+
 interface RoomModalProps {
     visible: boolean;
 
-    room: {
-        idRoom: string;
-        description: string;
-        active: boolean;
-        office: {
-            idOffice: string;
-            description: string;
-            openingTime: string;
-            closingTime: string;
-            active?: boolean;
-            city: {
-                idCity: string;
-                nameCity: string;
-                active?: boolean;
-                province: {
-                    idProvince: string;
-                    nameProvince: string;
-                    active?: boolean;
-                };
-            };
-        };
-    } | null;
+    room: Room | null;
 
-    offices: {idOffice:string, 
-                description: string,
-                openingTime: string,
-                closingTime: string;}[];
+    offices: Office[];
 
     onClose: () => void;
+
     onDelete: (idRoom: string) => void;
+
     onEdit : (UpdatedRoom: {
         idRoom: string;
         description: string;
@@ -45,10 +52,12 @@ interface RoomModalProps {
     }, 
     active: boolean
     ) => void;
+
     onCreate: (newRoom: {
         description: string;
         office: string;
     }) => void;
+
     type: string;
 }
 
@@ -159,33 +168,39 @@ export function RoomModal({ visible, room, offices, onClose, onDelete, onEdit, o
                         /></p>
                     </div>
                     <div>
-                        <label>Oficinas:</label>
-                        <select
-                            className="input-crud"
-                            value={officeDescription}
-                            onChange={e => {
-                            const value = e.target.value;
-                            setOfficeDescription(value);
+                    <label>Oficina:</label>
+                    <input
+                        className="input-crud"
+                        type="text"
+                        list = "offices"
+                        value={officeDescription}
+                        placeholder="Seleccione una oficina"
+                        onChange={e => {
+                        const value = e.target.value;
+                        setOfficeDescription(value);
 
-                            const selectedOffice = offices.find(p => p.description === value);
+                        const selectedOffice = offices.find(p => p.description === value);
 
-                            if (selectedOffice) {
-                            setRoomData({ ...roomData, office: selectedOffice.description });
-                            } else {
-                            setRoomData({ ...roomData, office:"" });
-                            }}}
-                            onBlur = {() => {
-                                if (!offices.find(p => p.description === officeDescription)) {
-                                    toast.dismiss();
-                                    toast.error("Provincia inválida");
-                                    setRoomData({ ...roomData, office:""});
-                            }}}
-                        >
-                            {offices.map((office) => (
-                                <option key={office.idOffice} value={office.description}> {office.description} </option>
-                            ))}
-                        </select>
-                    </div>
+                        if (selectedOffice) {
+                        setRoomData({ ...roomData, office: selectedOffice.idOffice });
+                        } else {
+                        setRoomData({ ...roomData, office:"" });
+                        }}}
+
+                        onBlur = {() => {
+                            if (!offices.find(p => p.description === officeDescription)) {
+                                toast.dismiss();
+                                toast.error("Oficina inválida");
+                                setRoomData({ ...roomData, office:""});
+                        }}}
+                    />
+                    <datalist id="offices">  
+                        {offices.map((office) => (
+                            <option key={office.idOffice} value={office.description}/>
+                        ))}
+                    </datalist>
+                    
+                </div>
                     <div className="buttons">
                         {type === "edit" && room? (
                             room.active === false ? (

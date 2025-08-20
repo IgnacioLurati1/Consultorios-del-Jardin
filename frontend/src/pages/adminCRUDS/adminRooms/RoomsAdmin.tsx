@@ -104,7 +104,6 @@ export function RoomsAdmin() {
             setLoading(false);
             toast.error("Error cargando salas: " + err.message);});
     }, []);
-    console.log(rooms);
     useEffect(() => {
         setFilteredRooms(
             rooms.filter((room: Room) => room.description.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase().includes(searchTerm.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase()))
@@ -163,7 +162,7 @@ export function RoomsAdmin() {
     function EditRoom(updatedRoom: { idRoom: string; description: string; office: string} , active: boolean) {
         if (!editData) return;
         if(active){
-        fetch(`/api/cities/${updatedRoom.idRoom}`, {
+        fetch(`/api/rooms/${updatedRoom.idRoom}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -177,6 +176,7 @@ export function RoomsAdmin() {
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || res.statusText);
+                console.log(res.statusText);
             }
             return res.json();})
         .then(response => {
@@ -191,8 +191,8 @@ export function RoomsAdmin() {
             toast.error('Error al editar sala: ' + err.message);
         })}
         else{
-            fetch(`/api/cities/${updatedRoom.idRoom}`, {
-                method: 'PUT',
+            fetch(`/api/rooms/${updatedRoom.idRoom}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -217,6 +217,9 @@ export function RoomsAdmin() {
             .catch(err => {
                 toast.error('Error reactivar sala: ' + err.message);
             });
+            console.log(updatedRoom);
+            console.log(active);
+            
         }
     }
 
