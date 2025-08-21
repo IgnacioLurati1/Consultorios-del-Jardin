@@ -8,4 +8,4 @@ cityRouter.get('/:idCity', findOne)
 cityRouter.post('/',sanitizeCityInput, validateCityData, validateCreateAndUpdateCityInput, add)
 cityRouter.put('/:idCity',sanitizeCityInput, validateCityData, validateUpdateCityInput, validateCreateAndUpdateCityInput, update)
 cityRouter.patch('/:idCity',sanitizeCityInput, validateUpdateCityInput, update)
-cityRouter.patch('/cities/:idCity/toggle-state', toggleCityState);
+cityRouter.patch('/:idCity/toggle-state', toggleCityState);
