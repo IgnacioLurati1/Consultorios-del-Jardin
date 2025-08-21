@@ -39,6 +39,7 @@ export function RoomsAdmin() {
         active: boolean;
     }
 
+    const [cities, setCities] = useState<City[]>([]);
     const [offices, setOffices] = useState<Office[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
     const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
@@ -58,16 +59,16 @@ export function RoomsAdmin() {
             closingTime: "",
             active: true,
             city: {
-            idCity: "",
-            nameCity: "",
-            active: true,
-            province: {
-                idProvince: "",
-                nameProvince: "",
+                idCity: "",
+                nameCity: "",
                 active: true,
+                    province: {
+                        idProvince: "",
+                        nameProvince: "",
+                        active: true,
+                    }
+                }
             }
-            }
-        }
         };
 
     useEffect(() => {
@@ -79,6 +80,17 @@ export function RoomsAdmin() {
         .catch(err => {
             setLoading(false);
             toast.error("Error cargando oficinas:" + err)});
+    }, []);
+
+    useEffect(() => {
+    fetch("/api/cities")
+        .then(res => res.json())
+        .then(data => {
+            setCities(data.data.filter((city: City) => city.active));
+            setLoading(false); })
+        .catch(err => {
+            setLoading(false);
+            toast.error("Error cargando ciudades:" + err)});
     }, []);
 
     useEffect(() => {
@@ -192,7 +204,7 @@ export function RoomsAdmin() {
         })}
         else{
             fetch(`/api/rooms/${updatedRoom.idRoom}`, {
-                method: 'PATCH',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -260,7 +272,7 @@ export function RoomsAdmin() {
             <div>
                 <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyRoom);setModalType("create")}}><strong>Agregar sala</strong><FaPlus /></button>
             </div>
-            <RoomModal visible={modalVisible} room={editData} offices={offices} onClose={()=> setModalVisible(false)} onEdit={EditRoom} onDelete={deleteRoom} onCreate={addRoom} type = {modalType}/>
+            <RoomModal visible={modalVisible} room={editData} offices={offices} cities={cities} onClose={()=> setModalVisible(false)} onEdit={EditRoom} onDelete={deleteRoom} onCreate={addRoom} type = {modalType}/>
         </div>
     );
 
