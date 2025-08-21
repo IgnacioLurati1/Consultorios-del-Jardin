@@ -42,7 +42,7 @@ function validateRoomUpdateInput(req: Request, res: Response, next: NextFunction
 
 async function findAll(req: Request, res: Response) {
   try {
-    const rooms = await em.find(Room, {}, {populate: ['office']})
+    const rooms = await em.find(Room, {}, {populate: ['office.city']})
     res.status(200).json({message: 'finded all rooms', data: rooms})
 } catch (error: any) {
   res.status(500).json({ error: error.message })
@@ -52,7 +52,7 @@ async function findAll(req: Request, res: Response) {
 async function findOne(req: Request, res: Response) {
   try {
     const idRoom = Number.parseInt(req.params.idRoom);
-    const room = await em.findOneOrFail(Room, {idRoom})
+    const room = await em.findOneOrFail(Room, {idRoom}, {populate: ['office.city']})
     res.status(200).json({ message: 'finded one room', data: room })
   }
   catch(error:any) {
@@ -64,7 +64,7 @@ async function add(req: Request, res: Response) {
   try{
     const room = em.create(Room, req.body.sanitizedInput)
     await em.flush()
-    const createdRoom = await em.findOne(Room, { idRoom: room.idRoom }, {populate: ['office']})
+    const createdRoom = await em.findOne(Room, { idRoom: room.idRoom }, {populate: ['office.city']})
     res.status(201).json({ message: 'room created', data: room })
   }
   catch(error:any) {
@@ -79,7 +79,7 @@ async function add(req: Request, res: Response) {
       const room = await em.findOneOrFail(Room,  { idRoom : id })
       em.assign(room, req.body.sanitizedInput)
       await em.flush() 
-      const updatedRoom = await em.findOneOrFail(Room, { idRoom: id }, {populate: ['office']})
+      const updatedRoom = await em.findOneOrFail(Room, { idRoom: id }, {populate: ['office.city']})
       res.status(200).json({ message: 'Room updated successfully', data: updatedRoom })
     }catch (error: any) {
       res.status(500).json({ message: error.message })

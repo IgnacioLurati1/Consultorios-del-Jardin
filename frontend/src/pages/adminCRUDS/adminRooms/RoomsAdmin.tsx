@@ -3,6 +3,7 @@ import { RoomLabel  } from "./RoomLabel";
 import {RoomModal} from "./RoomModal";
 import "../../adminHome/AdminHome.css";
 import "../adminCRUDS.css";
+import "./RoomLabelStyle.css";
 import { NavZone } from "../../../components/navZone/NavZone";
 import { FaSearch } from 'react-icons/fa';
 import { FaPlus } from "react-icons/fa";
@@ -39,6 +40,7 @@ export function RoomsAdmin() {
         active: boolean;
     }
 
+    const [cities, setCities] = useState<City[]>([]);
     const [offices, setOffices] = useState<Office[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
     const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
@@ -58,16 +60,16 @@ export function RoomsAdmin() {
             closingTime: "",
             active: true,
             city: {
-            idCity: "",
-            nameCity: "",
-            active: true,
-            province: {
-                idProvince: "",
-                nameProvince: "",
+                idCity: "",
+                nameCity: "",
                 active: true,
+                    province: {
+                        idProvince: "",
+                        nameProvince: "",
+                        active: true,
+                    }
+                }
             }
-            }
-        }
         };
 
     useEffect(() => {
@@ -82,6 +84,17 @@ export function RoomsAdmin() {
     }, []);
 
     useEffect(() => {
+    fetch("/api/cities")
+        .then(res => res.json())
+        .then(data => {
+            setCities(data.data.filter((city: City) => city.active));
+            setLoading(false); })
+        .catch(err => {
+            setLoading(false);
+            toast.error("Error cargando ciudades:" + err)});
+    }, []);
+
+    useEffect(() => {
         fetch("/api/rooms")
         .then(res => res.json())
         .then(data => {
@@ -90,9 +103,9 @@ export function RoomsAdmin() {
                 data.data.sort((a: Room, b: Room) => {
                     function weight(room: Room) {
                     if (room.office.active) {
-                        return room.active ? 1 : 2;  // provincia activa: ciudad activa=1, ciudad inactiva=2
+                        return room.active ? 1 : 2;  // oficina activa: sala activa=1, sala inactiva=2
                     } else {
-                        return room.active ? 3 : 4;  // provincia inactiva: ciudad activa=3, ciudad inactiva=4
+                        return room.active ? 3 : 4;  // oficina inactiva: sala activa=3, sala inactiva=4
                     }
                     }
                     return weight(a) - weight(b);
@@ -192,7 +205,7 @@ export function RoomsAdmin() {
         })}
         else{
             fetch(`/api/rooms/${updatedRoom.idRoom}`, {
-                method: 'PATCH',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -216,10 +229,7 @@ export function RoomsAdmin() {
             )
             .catch(err => {
                 toast.error('Error reactivar sala: ' + err.message);
-            });
-            console.log(updatedRoom);
-            console.log(active);
-            
+            });  
         }
     }
 
@@ -260,7 +270,7 @@ export function RoomsAdmin() {
             <div>
                 <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyRoom);setModalType("create")}}><strong>Agregar sala</strong><FaPlus /></button>
             </div>
-            <RoomModal visible={modalVisible} room={editData} offices={offices} onClose={()=> setModalVisible(false)} onEdit={EditRoom} onDelete={deleteRoom} onCreate={addRoom} type = {modalType}/>
+            <RoomModal visible={modalVisible} room={editData} offices={offices} cities={cities} onClose={()=> setModalVisible(false)} onEdit={EditRoom} onDelete={deleteRoom} onCreate={addRoom} type = {modalType}/>
         </div>
     );
 

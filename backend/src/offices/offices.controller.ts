@@ -70,6 +70,7 @@ async function findOne(req: Request, res: Response) {
     const office = await em.findOneOrFail(
       Office,
       {idOffice: id},
+      {populate: ['city']}
     )
     res.status(200).json({ message: 'Office found', data: office });
   } catch (error: any) {

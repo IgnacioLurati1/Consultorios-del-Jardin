@@ -10,7 +10,6 @@ interface Province {
         nameProvince: string;
         active?: boolean;
     }
-
     interface City {
         idCity: string;
         nameCity: string;
@@ -40,6 +39,8 @@ interface RoomModalProps {
     room: Room | null;
 
     offices: Office[];
+    
+    cities: City[];
 
     onClose: () => void;
 
@@ -61,15 +62,18 @@ interface RoomModalProps {
     type: string;
 }
 
-export function RoomModal({ visible, room, offices, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
+export function RoomModal({ visible, room, offices, cities, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
 
     const [roomData, setRoomData] = useState({ idRoom: "", description: "", office:"", active:true   });
     const [officeDescription, setOfficeDescription] = useState("");
+    const [filteredOffices, setFilteredOffices] = useState<Office[]>(offices);
+    const [cityName, setCityName] = useState("");
 
     useEffect(() => {
         if (room) {
             setRoomData({idRoom: room.idRoom, description: room.description, office: room.office.idOffice, active: room.active});
             setOfficeDescription(room.office.description);
+            setCityName(room.office.city.nameCity);
         }
     }, [room]);
 
@@ -149,25 +153,64 @@ export function RoomModal({ visible, room, offices, onClose, onDelete, onEdit, o
         <div className="crud-modal" onClick={onClose}>
             <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
                 <div className="titleAndClose">
-                <h2>{type === "edit"?
-                    "Detalles de la Sala":"Crear Sala"}<FaChevronRight /></h2>
-                    {type === "edit" && room? (
-                    <div>
-                        <p><strong> ID: {room.idRoom}</strong></p>
-                    </div>
-                    ) : null}
+                    <h2 className="crud-modal-title">{type === "edit"?
+                        "Detalles de la Sala":"Crear Sala"}<FaChevronRight />
+                    </h2>
                     <FaTimes className="close-icon" onClick={onClose} />
-                    </div>
-                    <div>
-                        <p>Descripción:
-                        <input
-                            className="input-crud"
-                            type="text"
-                            value={roomData.description}
-                            onChange={(e) => setRoomData({ ...roomData, description: e.target.value })}
-                        /></p>
-                    </div>
-                    <div>
+
+                </div>
+                <div>
+                    {type === "edit" && room? (   
+                        <p>ID: {room.idRoom}</p>
+                    ) : null}
+                </div>
+                <div className="crud-input-container">
+                    <label>Descripción:</label>
+                    <input
+                        className="input-crud"
+                        type="text"
+                        value={roomData.description}
+                        onChange={(e) => setRoomData({ ...roomData, description: e.target.value })}
+                    />
+                    
+                </div>
+
+                <div className="crud-input-container">
+                    <label>Ciudad:</label>
+                    <input
+                        className="input-crud"
+                        type="text"
+                        list = "cities"
+                        value = {cityName}
+                        placeholder="Seleccione una ciudad"
+                        onChange={e => {
+                            
+                        const value = e.target.value;
+                        setCityName(value);
+                        setOfficeDescription("");
+
+                        const selectedCity = cities.find(p => p.nameCity === value);
+
+                        if (selectedCity) {
+                        setFilteredOffices(offices.filter(office => office.city.idCity === selectedCity.idCity));
+                        }}}
+
+                        onBlur = {() => {
+                            if (!cities.find(p => p.nameCity === cityName)) {
+                                toast.dismiss();
+                                toast.error("Ciudad inválida");
+                                setFilteredOffices(offices);
+                        }}}
+                    />
+                    <datalist id="cities">  
+                        {cities.map((city) => (
+                            <option key={city.idCity} value={city.nameCity}/>
+                        ))}
+                    </datalist>
+                    
+                </div>
+
+                <div className="crud-input-container">
                     <label>Oficina:</label>
                     <input
                         className="input-crud"
@@ -195,24 +238,27 @@ export function RoomModal({ visible, room, offices, onClose, onDelete, onEdit, o
                         }}}
                     />
                     <datalist id="offices">  
-                        {offices.map((office) => (
+                        
+                        {cityName && filteredOffices.map((office) => (
                             <option key={office.idOffice} value={office.description}/>
                         ))}
+
                     </datalist>
                     
                 </div>
-                    <div className="buttons">
-                        {type === "edit" && room? (
-                            room.active === false ? (
-                                <>
-                                <button autoFocus ref={activateButtonRef} className="create-button" onClick={() => onEdit(roomData, false)}>Activar</button>
-                                </>
-                            ):
-                        <>
-                        <button type="button" className="delete-button" onClick={() => {onDelete(roomData.idRoom); onClose()}} >Eliminar<FaTrash /></button>
-                        <button type="submit" className="edit-button" onClick={()=>onEdit(roomData, true)}>Modificar</button></>
-                        ) : (<button autoFocus ref={createButtonRef} type="submit" className="create-button"  onClick={()=>onCreate({description: roomData.description, office:roomData.office})}>Añadir</button>)}
-                    </div>
+                <div className="buttons">
+                    {type === "edit" && room? (
+                        room.active === false ? (
+                            <>
+                            <button autoFocus ref={activateButtonRef} className="create-button" onClick={() => onEdit(roomData, false)}>Activar</button>
+                            </>
+                        ):
+                    <>
+                    <button type="button" className="delete-button" onClick={() => {onDelete(roomData.idRoom); onClose()}} >Eliminar<FaTrash /></button>
+                    <button type="submit" className="edit-button" onClick={()=>onEdit(roomData, true)}>Modificar</button></>
+                    ) : (<button autoFocus ref={createButtonRef} type="submit" className="create-button"  onClick={()=>onCreate({description: roomData.description, office:roomData.office})}>Añadir</button>)}
+                </div>
+
             </div>
         </div>
     )
