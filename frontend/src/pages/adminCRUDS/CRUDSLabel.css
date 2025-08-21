@@ -11,6 +11,7 @@
   box-sizing: border-box;
   align-items: stretch;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  font-size: 30px;
 }
 
 .city-label{
@@ -48,7 +49,6 @@
 .crud-name {
     text-overflow: ellipsis;
     overflow: hidden;
-    font-size: 30px;
     margin: 10px;
     margin-left: 1%;
 }

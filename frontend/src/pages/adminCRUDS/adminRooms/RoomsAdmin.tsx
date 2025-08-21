@@ -3,6 +3,7 @@ import { RoomLabel  } from "./RoomLabel";
 import {RoomModal} from "./RoomModal";
 import "../../adminHome/AdminHome.css";
 import "../adminCRUDS.css";
+import "./RoomLabelStyle.css";
 import { NavZone } from "../../../components/navZone/NavZone";
 import { FaSearch } from 'react-icons/fa';
 import { FaPlus } from "react-icons/fa";
@@ -102,9 +103,9 @@ export function RoomsAdmin() {
                 data.data.sort((a: Room, b: Room) => {
                     function weight(room: Room) {
                     if (room.office.active) {
-                        return room.active ? 1 : 2;  // provincia activa: ciudad activa=1, ciudad inactiva=2
+                        return room.active ? 1 : 2;  // oficina activa: sala activa=1, sala inactiva=2
                     } else {
-                        return room.active ? 3 : 4;  // provincia inactiva: ciudad activa=3, ciudad inactiva=4
+                        return room.active ? 3 : 4;  // oficina inactiva: sala activa=3, sala inactiva=4
                     }
                     }
                     return weight(a) - weight(b);
@@ -228,10 +229,7 @@ export function RoomsAdmin() {
             )
             .catch(err => {
                 toast.error('Error reactivar sala: ' + err.message);
-            });
-            console.log(updatedRoom);
-            console.log(active);
-            
+            });  
         }
     }
 

@@ -73,6 +73,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         if (room) {
             setRoomData({idRoom: room.idRoom, description: room.description, office: room.office.idOffice, active: room.active});
             setOfficeDescription(room.office.description);
+            setCityName(room.office.city.nameCity);
         }
     }, [room]);
 
@@ -162,16 +163,19 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                     {type === "edit" && room? (   
                         <p>ID: {room.idRoom}</p>
                     ) : null}
-                    <p>Descripción:
+                </div>
+                <div className="crud-input-container">
+                    <label>Descripción:</label>
                     <input
                         className="input-crud"
                         type="text"
                         value={roomData.description}
                         onChange={(e) => setRoomData({ ...roomData, description: e.target.value })}
-                    /></p>
+                    />
+                    
                 </div>
 
-                <div>
+                <div className="crud-input-container">
                     <label>Ciudad:</label>
                     <input
                         className="input-crud"
@@ -183,6 +187,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                             
                         const value = e.target.value;
                         setCityName(value);
+                        setOfficeDescription("");
 
                         const selectedCity = cities.find(p => p.nameCity === value);
 
@@ -205,8 +210,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                     
                 </div>
 
-
-                <div>
+                <div className="crud-input-container">
                     <label>Oficina:</label>
                     <input
                         className="input-crud"
@@ -234,9 +238,11 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                         }}}
                     />
                     <datalist id="offices">  
-                        {filteredOffices.map((office) => (
+                        
+                        {cityName && filteredOffices.map((office) => (
                             <option key={office.idOffice} value={office.description}/>
                         ))}
+
                     </datalist>
                     
                 </div>
