@@ -10,7 +10,6 @@ interface Province {
         nameProvince: string;
         active?: boolean;
     }
-
     interface City {
         idCity: string;
         nameCity: string;
@@ -63,7 +62,7 @@ interface RoomModalProps {
     type: string;
 }
 
-export function RoomModal({ visible, room, offices,cities, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
+export function RoomModal({ visible, room, offices, cities, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
 
     const [roomData, setRoomData] = useState({ idRoom: "", description: "", office:"", active:true   });
     const [officeDescription, setOfficeDescription] = useState("");
@@ -157,6 +156,7 @@ export function RoomModal({ visible, room, offices,cities, onClose, onDelete, on
                         "Detalles de la Sala":"Crear Sala"}<FaChevronRight />
                     </h2>
                     <FaTimes className="close-icon" onClick={onClose} />
+
                 </div>
                 <div>
                     {type === "edit" && room? (   
@@ -252,6 +252,7 @@ export function RoomModal({ visible, room, offices,cities, onClose, onDelete, on
                     <button type="submit" className="edit-button" onClick={()=>onEdit(roomData, true)}>Modificar</button></>
                     ) : (<button autoFocus ref={createButtonRef} type="submit" className="create-button"  onClick={()=>onCreate({description: roomData.description, office:roomData.office})}>Añadir</button>)}
                 </div>
+
             </div>
         </div>
     )

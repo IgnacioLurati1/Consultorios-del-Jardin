@@ -116,7 +116,6 @@ export function RoomsAdmin() {
             setLoading(false);
             toast.error("Error cargando salas: " + err.message);});
     }, []);
-    console.log(rooms);
     useEffect(() => {
         setFilteredRooms(
             rooms.filter((room: Room) => room.description.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase().includes(searchTerm.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase()))
@@ -189,6 +188,7 @@ export function RoomsAdmin() {
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || res.statusText);
+                console.log(res.statusText);
             }
             return res.json();})
         .then(response => {
@@ -229,6 +229,9 @@ export function RoomsAdmin() {
             .catch(err => {
                 toast.error('Error reactivar sala: ' + err.message);
             });
+            console.log(updatedRoom);
+            console.log(active);
+            
         }
     }
 
