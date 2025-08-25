@@ -59,23 +59,25 @@ export function OfficesAdmin() {
   }, []);
 
   useEffect(() => {
-    setFilteredOffices(
-      offices.filter((office: Office) =>
-        office.description
-          .normalize("NFD")
-          .replace(/\p{Diacritic}/gu, "")
-          .replace(/\s+/g, "")
-          .toLowerCase()
-          .includes(
-            searchTerm
-              .normalize("NFD")
-              .replace(/\p{Diacritic}/gu, "")
-              .replace(/\s+/g, "")
-              .toLowerCase()
-          )
-      )
-    );
-  }, [searchTerm, offices]);
+  setFilteredOffices(
+    offices.filter((office: Office) => {
+      if (!office.description) return false;
+      
+      return office.description
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .replace(/\s+/g, "")
+        .toLowerCase()
+        .includes(
+          searchTerm
+            .normalize("NFD")
+            .replace(/\p{Diacritic}/gu, "")
+            .replace(/\s+/g, "")
+            .toLowerCase()
+        );
+    })
+  );
+}, [searchTerm, offices]);
 
   useEffect(() => {
     if (error == null) return;
@@ -109,44 +111,58 @@ export function OfficesAdmin() {
   }, []);
 
   function addOffice(
-    description: string,
-    openingTime: string,
-    closingTime: string,
-    cityId: string
-  ) {
-
-    console.log("Adding office with data:", { description, openingTime, closingTime, cityId });
-
-    if (!description || !openingTime || !closingTime || !cityId) return;
-    fetch("/api/offices", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        description,
-        openingTime,
-        closingTime,
-        active: true,
-        cityId,
-      }),
+  description: string,
+  openingTime: string,
+  closingTime: string,
+  cityId: string
+) {
+  console.log("Adding office with data:", { description, openingTime, closingTime, city: cityId});
+  if (!description || !openingTime || !closingTime || !cityId) return; 
+  fetch("/api/offices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      description,
+      openingTime,
+      closingTime,
+      active: true,
+      city: cityId,
+    }),
+  })
+    .then((res) => {
+      if (!res.ok) {
+        setModalVisible(false);
+        throw new Error("Error creating office");
+      }
+      return res.json();
     })
-      .then((res) => {
-        if (!res.ok) {
-          setModalVisible(false);
-          throw new Error("Error creating office");
-        }
-        return res.json();
-      })
-      .then((created) => {
-        console.log("Office created:", created);
+    .then((created) => {
+      console.log("Office created from backend:", created);
+      const fullCity = cities.find(city => city.idCity === created.city || city.idCity === cityId);     
+      if (fullCity) {
+        const completeOffice = {
+          ...created,
+          city: fullCity
+        };   
+        console.log("Complete office object:", completeOffice); 
         setModalVisible(false);
         setError(null);
-        setOffices((prev) => [...prev, created]);
-      })
-      .catch((error) => {
-        setLoading(false);
-        toast.error("Error creando oficina: " + error);
-      });
-  }
+        setOffices((prev) => [...prev, completeOffice]);
+      } else {
+        console.log("City not found, reloading all offices...");
+        fetch("/api/offices")
+          .then((response) => response.json())
+          .then((data) => {
+            setOffices(data.data);
+            setModalVisible(false);
+          });
+      }
+    })
+    .catch((error) => {
+      setLoading(false);
+      toast.error("Error creando oficina: " + error);
+    });
+}
 
   function deleteOffice(id: string) {
     if (!id) return;
@@ -170,22 +186,23 @@ export function OfficesAdmin() {
       });
   }
 
-  function editOffice(
-    id: string,
-    description: string,
-    openingTime: string,
-    closingTime: string,
-    cityId: string,
-    active: boolean,
-  ) {
-    console.log(active);
-    console.log("activado");
-    if (!id || !description || !openingTime || !closingTime || !cityId) return;
-    if (active) {
+function editOffice(
+  id: string,
+  description: string,
+  openingTime: string,
+  closingTime: string,
+  cityId: string,
+  active: boolean,
+) {
+  console.log(active);
+  console.log("activado");
+  if (!id || !description || !openingTime || !closingTime || !cityId) return;
+  
+  if (active) {
     fetch(`/api/offices/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: description, openingTime, closingTime, cityId }),
+      body: JSON.stringify({description, openingTime, closingTime, city: cityId }),
     })
       .then((res) => {
         if (res.ok) {
@@ -195,8 +212,23 @@ export function OfficesAdmin() {
         throw new Error("Office name is already in use");
       })
       .then((updated) => {
+        console.log("Updated office from backend:", updated.data);
+        const fullCity = cities.find(city => city.idCity === cityId);
+        
+        let completeOffice;
+        if (fullCity) {
+          completeOffice = {
+            ...updated.data,
+            city: fullCity
+          };
+        } else {
+          completeOffice = updated.data;
+        }
+        
+        console.log("Complete updated office:", completeOffice);
+        
         const newOffices = [
-          updated.data,
+          completeOffice,
           ...offices.filter((office) => office.idOffice !== id),
         ];
         setOffices(newOffices);
@@ -206,32 +238,40 @@ export function OfficesAdmin() {
       .catch((error) => {
         toast.error("error actualizando la oficina: " + error);
       });
-    } else {
-      fetch(`/api/offices/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ active: true }),
-      })
-
-      .then((res) => {
-        if (res.ok) {
-          return res.json();
-        }
-        setModalVisible(false);
-        throw new Error("ocurrio un error al activar la oficina");
-      })
-      .then((updated) => {
-        const newOffices = [
-          updated.data,
-          ...offices.filter((office) => office.idOffice !== id),
-        ];
-        setOffices(newOffices);
-        setError(null);
-        setModalVisible(false);
-      })
-      .catch((error) => {
-        toast.error("error activando la oficina: " + error);
-      });
+  } else {
+    fetch(`/api/offices/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: true }),
+    })
+    .then((res) => {
+      if (res.ok) {
+        return res.json();
+      }
+      setModalVisible(false);
+      throw new Error("ocurrio un error al activar la oficina");
+    })
+    .then((updated) => {
+      console.log("Activated office from backend:", updated.data);
+      const originalOffice = offices.find(office => office.idOffice === id);
+      const completeOffice = {
+        ...updated.data,
+        city: originalOffice?.city || updated.data.city
+      };
+      
+      console.log("Complete activated office:", completeOffice);
+      
+      const newOffices = [
+        completeOffice,
+        ...offices.filter((office) => office.idOffice !== id),
+      ];
+      setOffices(newOffices);
+      setError(null);
+      setModalVisible(false);
+    })
+    .catch((error) => {
+      toast.error("error activando la oficina: " + error);
+    });
   }
 }
 
