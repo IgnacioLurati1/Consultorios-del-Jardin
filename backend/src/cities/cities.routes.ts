@@ -1,10 +1,12 @@
 import { Router } from 'express'
-import {sanitizeCityInput, validateCityInput, validateCreateCityInput,findAll, findOne, add, update} from './cities.controller.js'
+import {sanitizeCityInput, validateCityData, validateCreateAndUpdateCityInput, validateUpdateCityInput,findAll, findOne, add, update, toggleCityState} from './cities.controller.js'
 
 export const cityRouter = Router()
 
 cityRouter.get('/', findAll)
 cityRouter.get('/:idCity', findOne)
-cityRouter.post('/',sanitizeCityInput, validateCreateCityInput, add)
-cityRouter.put('/:idCity',sanitizeCityInput, update)
-cityRouter.patch('/:idCity',sanitizeCityInput, update)
+cityRouter.post('/',sanitizeCityInput, validateCityData, validateCreateAndUpdateCityInput, add)
+cityRouter.put('/:idCity',sanitizeCityInput, validateCityData, validateUpdateCityInput, validateCreateAndUpdateCityInput, update)
+cityRouter.patch('/:idCity',sanitizeCityInput, validateUpdateCityInput, update)
+cityRouter.patch('/:idCity/toggle-state', toggleCityState);
+
