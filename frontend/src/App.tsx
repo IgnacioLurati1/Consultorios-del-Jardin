@@ -9,7 +9,8 @@ import { NotFoundPage } from './pages/notFoundPage/NotFoundPage.tsx'
 import { AdminHome } from './pages/adminHome/AdminHome.tsx';
 import { ProvincesAdmin } from './pages/adminCRUDS/adminProvinces/ProvincesAdmin.tsx';
 import { CitiesAdmin } from './pages/adminCRUDS/adminCities/CitiesAdmin.tsx';
-import { OfficesAdmin } from './pages/adminCRUDS/adminOffices/OfficesAdmin.tsx';
+import { OfficesAdmin } from './pages/adminCRUDS/adminOffices/OfficeAdmin.tsx';
+import { RoomsAdmin } from './pages/adminCRUDS/adminRooms/RoomsAdmin.tsx';
 import  { RecoverPassword }  from './pages/newPassword/RecoverPassword.tsx'
 import { NewPassword } from './pages/newPassword/NewPassword.tsx';
 
@@ -26,10 +27,9 @@ const router = createBrowserRouter([
       { path: '/AdminHome/ProvincesAdmin', element: <ProvincesAdmin /> },
       { path: '/AdminHome/CitiesAdmin', element: <CitiesAdmin/> },
       { path: '/AdminHome/OfficesAdmin', element: <OfficesAdmin /> },
+      { path: '/AdminHome/RoomsAdmin', element: <RoomsAdmin /> },
       { path: '/forgot-password', element: <RecoverPassword /> },
       { path: '/NewPassword', element: <NewPassword /> },
-      {path: '/OfficesAdmin', element: <OfficesAdmin />},
-      {path: '/AdminHome/OfficesAdmin', element: <OfficesAdmin />},
       { path:'*', element: <NotFoundPage/>}
 
     ]

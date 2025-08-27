@@ -8,7 +8,8 @@ export function AdminHome() {
   return (
      
     <div className ="admin-home"> 
-        <NavZone title="Inicio de sesión" />
+
+        <NavZone title="Panel de administración" />
 
         <div className="options-container">
           <AdminCard
@@ -31,6 +32,13 @@ export function AdminHome() {
 
             link="/OfficesAdmin"
             />
+
+          <AdminCard
+            title="Administrar Salas"
+            description="Añadir, eliminar o modificar localidades."
+            imageUrl={Logo}
+            link="./RoomsAdmin"
+          />
 
           <AdminCard
             title="Administrar usuarios"

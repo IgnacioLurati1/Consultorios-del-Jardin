@@ -83,11 +83,12 @@ export function CitiesAdmin() {
                 },
                 body: JSON.stringify(newCity),
             })
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(res.statusText);
-                }
-                return res.json();})
+            .then(async (res) => {
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || res.statusText);
+            }
+            return res.json();})
             .then(response => {
                 setCities([response.data, ...cities]);
                 setModalVisible(false);
@@ -101,11 +102,13 @@ export function CitiesAdmin() {
     function deleteCity(id: string) {
     if (!id) return;
 
-    fetch(`/api/cities/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: false })
-    })
+    fetch(`/api/cities/${id}/toggle-state`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            })
       .then(async(res) => {
         if(!res.ok) {
         const errorData = await res.json();
@@ -154,14 +157,12 @@ export function CitiesAdmin() {
            toast.error('Error al editar ciudad: ' + err.message);
         })}
         else{
-            fetch(`/api/cities/${updatedCity.idCity}`, {
-                method: 'PUT',
+            fetch(`/api/cities/${updatedCity.idCity}/toggle-state`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    active: true
-                }),
+                body: JSON.stringify({}),
             })
             .then(async (res) => {
                 if (!res.ok) {

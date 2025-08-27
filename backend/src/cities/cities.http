@@ -5,7 +5,7 @@ GET http://localhost:3000/api/cities
 @id = {{createCity.response.body.data.idCity}}
 
 ### obtener una Localidad (GET ONE)
-GET http://localhost:3000/api/cities/18
+GET http://localhost:3000/api/cities/7
 
 ### crear una nueva localidad
 # @name createCity
@@ -33,3 +33,10 @@ Content-Type: application/json
 {
   "active": false
 }
+
+
+### Eliminar / Reactivar localidad
+PATCH http://localhost:3000/api/cities/7/toggle-state
+Content-Type: application/json
+
+{}

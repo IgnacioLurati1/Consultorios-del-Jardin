@@ -4,22 +4,21 @@ body {
 }
 
 .options-container {
-    display: flex; 
-    flex-direction: row;
-    width: 80%;
-    margin-top: 20px;
-    gap: 3%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    width: 90%;
+    margin: 20px auto;
 }
 
 .admin-home {
-    justify-content: center;
     display: flex;
+    justify-content: center;
     align-items: center;
     flex-direction: column;
     margin: auto;
     color: black;
     width: 60%;
-
 }
 
 
@@ -32,10 +31,7 @@ body {
     }
 
     .admin-home {
-        
         width: 100%;
     }
-
-
 }
 

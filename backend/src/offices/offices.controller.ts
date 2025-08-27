@@ -43,7 +43,11 @@ const em = orm.em
 
 async function findAll(req: Request, res: Response) {
   try {
-    const offices = await em.find(Office, {}, { populate: ['city.province'] }
+
+    const offices = await em.find(
+      Office,
+      {},
+      {populate: ['city']}
     )
     res.status(200).json({ message: 'Find all offices', data: offices });
   } catch (error: any) {
@@ -67,6 +71,7 @@ async function findOne(req: Request, res: Response) {
     const office = await em.findOneOrFail(
       Office,
       {idOffice: id},
+      {populate: ['city']}
     )
     res.status(200).json({ message: 'Office found', data: office });
   } catch (error: any) {
