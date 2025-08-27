@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction} from 'express'
 import { CityService } from './cities.service.js'
+import { error } from 'console';
 
 const cityService = new CityService();
 
@@ -29,11 +30,14 @@ export function validateCityData(req: Request, res:Response, next: NextFunction)
   if (sanitizedInput.nameCity !== undefined) {
     if (typeof sanitizedInput.nameCity !== 'string') {
       errors.push('El nombre de la ciudad debe ser una cadena de texto');
-    } else if (sanitizedInput.nameCity.trim().length < 2) {
+    } 
+    if (sanitizedInput.nameCity.trim().length < 2) {
       errors.push('El nombre de la ciudad es obligatorio y debe tener al menos 2 caracteres');
-    } else if (sanitizedInput.nameCity.length > 100) {
+    } 
+    if (sanitizedInput.nameCity.length > 100) {
       errors.push('El nombre de la ciudad no puede tener más de 100 caracteres');
-    } else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
+    } 
+    if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
       errors.push('El nombre de la ciudad solo puede contener letras, espacios, guiones y apóstrofes');
     }
   }
@@ -51,19 +55,13 @@ export async function validateCreateAndUpdateCityInput(req: Request, res: Respon
   const {sanitizedInput} = req.body
   const errors: string[] = []
 
-  if (!sanitizedInput.nameCity) {
-    errors.push('El nombre de la ciudad es obligatorio');
-  }
-
-  if (!sanitizedInput.province || sanitizedInput.province === '') {
-    errors.push('La provincia es obligatoria');
-  }
-
   if(sanitizedInput.nameCity && sanitizedInput.province){
       try {
       const cityId = req.params.idCity ? Number(req.params.idCity) : undefined;
       const existingCity = await cityService.cityExistsWithNameAndProvince(sanitizedInput.nameCity, sanitizedInput.province, cityId);
-
+      
+      //The city is created even when the province is inactive >>IMPORTANTE<<
+      
       if (existingCity) {
         errors.push('Ya existe una ciudad con el mismo nombre en la misma provincia')
       }
@@ -96,7 +94,8 @@ export function validateUpdateCityInput(req: Request, res: Response, next: NextF
 
 export async function findAll(req: Request, res: Response) {
   try {
-    const cities = await cityService.findAllCities()
+    let cities = await cityService.findAllCities()
+    cities = cities.filter(city => city.province.active) //Filter all cities by state
     res.status(200).json({ message: 'find all cities', data: cities })
   }catch (error : any) {
     res.status(500).json({ message: error.message })
@@ -118,6 +117,7 @@ export async function findOne(req: Request, res: Response) {
 export async function add(req: Request, res: Response) {
   try{
   const city = cityService.createCity(req.body.sanitizedInput)
+  res.status(201).json({ message: 'City created successfully', data: city }) // City created successfully
   } catch (error: any) {
     res.status(500).json({ message: error.message })
   }
@@ -126,6 +126,7 @@ export async function add(req: Request, res: Response) {
 export async function update(req: Request, res: Response) {
   try{
     const id = Number.parseInt(req.params.idCity)
+    delete req.body.sanitizedInput.active // Prevent changing active state through this endpoint  
     const updatedCity = cityService.updateCity(id, req.body.sanitizedInput)
     res.status(200).json({ message: 'City updated successfully', data: updatedCity })
   }catch (error: any) {

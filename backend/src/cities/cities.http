@@ -13,8 +13,8 @@ POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "nameCity": "usuhaia",
-    "province": "12",
+    "nameCity": "cornudo",
+    "province": "1",
     "offices" : []
 }
 

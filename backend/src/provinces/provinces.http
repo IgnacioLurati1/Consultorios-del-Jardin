@@ -13,7 +13,7 @@ POST http://localhost:3000/api/provinces
 Content-Type: application/json
 
 {
-  "nameProvince": "Santa Cruz",
+  "nameProvince": "AlanLandia",
   "cities": []
 }
 
