@@ -8,8 +8,7 @@ import { officeRouter } from './offices/offices.routes.js'
 import { roomRouter } from './rooms/rooms.routes.js'
 import { orm, syncSchema } from './shared/db/orm.js'
 import { RequestContext } from '@mikro-orm/core'
-
-import { Request, Response, NextFunction } from "express";
+import { verifyToken } from './config/middlewares.js'
 
 const app = express()
 app.use(express.json())

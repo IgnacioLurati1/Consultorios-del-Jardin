@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { Person } from './people.entity.js'
 import { orm } from '../shared/db/orm.js'
+import jwt from 'jsonwebtoken';
 
 const em = orm.em;
 
@@ -50,7 +51,8 @@ async function add(req: Request, res: Response) {
     try {
         const person = em.create(Person, req.body.sanitizedInput)
         await em.flush();
-        res.status(201).json({ message: 'Person created', data: person })
+        const token = jwt.sign({ email: req.body.sanitizedInput.email }, process.env.JWT_SECRET as jwt.Secret, { expiresIn: '3000h' });
+        res.status(201).json({ message: 'Person created', data: person, token }) // return person data and token
     } catch (error: any) {
         res.status(500).json({ message: error.message })
     }
@@ -77,5 +79,6 @@ async function update(req: Request, res: Response) {
             res.status(500).json({ message: error.message })
         }
 }
+
 
 export { sanitizePersonInput, findAll, findOne, add, update, remove }
