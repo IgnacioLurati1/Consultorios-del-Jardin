@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
 import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
 import { DataInputSelector } from '../../components/inputs/selectorInput/DataInputSelector';
+import { data } from 'react-router-dom';
 
 export function Register() {
 
@@ -47,11 +48,32 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             return;
     }
 
-    // Simular envío (Acá va el fetch al backend)
-    console.log("Formulario enviado con:", formData);
-    toast.success("Usuario registrado con éxito", {
-    className: "feedBack-box success"})
-};
+    fetch('/api/people', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: formData.nombre, surname: formData.apellido, email: formData.email, docType: formData.tipoDocumento, docNumber: formData.nroDocumento, phoneNumber : formData.telefono, password: formData.contraseña})
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                toast.error("Error al registrar usuario", {
+                    className: "feedBack-box error"
+                });
+            }
+        })
+        .then(data => {
+            localStorage.setItem("token", data.token);
+            toast.success("Usuario registrado con éxito", {
+                className: "feedBack-box success"
+            });
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            toast.error("Error al registrar usuario", {
+                className: "feedBack-box error"
+            });
+        })};
 
 const [activo, setPage] = useState(false);
 
@@ -114,4 +136,5 @@ return (
             </div>
         </form>
     </div>
-);}
+);
+}
