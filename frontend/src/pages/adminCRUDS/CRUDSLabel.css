@@ -16,7 +16,7 @@
 
 .city-label{
   display: grid;
-  grid-template-columns: 1fr 6fr 2fr;
+  grid-template-columns: 2fr 3fr 2fr;
   text-align: center;
 }
 
@@ -55,15 +55,13 @@
 
 
 .crud-id{
-
-    font-size: 30px;
-    margin: 10px;
-    margin-right: 1%;
+  margin: 10px;
+  margin-right: 1%;
 }
 
 @media (max-width: 750px) {
 
-    .city-label .crud-name, .crud-id{
+    .city-label, .crud-name, .crud-id{
       font-size: 5vw;
     }
 }
