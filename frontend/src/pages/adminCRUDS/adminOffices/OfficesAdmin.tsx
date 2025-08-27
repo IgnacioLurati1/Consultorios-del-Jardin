@@ -132,12 +132,13 @@ export function OfficesAdmin() {
     .then((res) => {
       if (!res.ok) {
         setModalVisible(false);
-        throw new Error("Error creating office");
+        throw new Error(res.statusText);
       }
       return res.json();
     })
     .then((created) => {
       console.log("Office created from backend:", created);
+      toast.success("ofinica creada exitosamente");
       const fullCity = cities.find(city => city.idCity === created.city || city.idCity === cityId);     
       if (fullCity) {
         const completeOffice = {
@@ -160,7 +161,8 @@ export function OfficesAdmin() {
     })
     .catch((error) => {
       setLoading(false);
-      toast.error("Error creando oficina: " + error);
+      toast.error("Error al crear oficina: La hora de apertura debe ser mayor a la hora de cierre ");
+      return error
     });
 }
 
@@ -173,13 +175,14 @@ export function OfficesAdmin() {
       body: JSON.stringify({ active: false }),
     })
       .then(() => {
-        setOffices((prev) =>
+        setOffices((prev) =>        
           prev.map((office) =>
             office.idOffice !== id ? office : { ...office, active: false }
           )
         );
         setError(null);
         setModalVisible(false);
+        toast.success("ofinica eliminada exitosamente");
       })
       .catch((error) => {
         toast.error("Error eliminando oficina: " + error);
@@ -209,7 +212,7 @@ function editOffice(
           return res.json();
         }
         setModalVisible(false);
-        throw new Error("Office name is already in use");
+        throw new Error(error);
       })
       .then((updated) => {
         console.log("Updated office from backend:", updated.data);
@@ -234,9 +237,11 @@ function editOffice(
         setOffices(newOffices);
         setError(null);
         setModalVisible(false);
+        toast.success("ofinica modificada exitosamente");
       })
       .catch((error) => {
-        toast.error("error actualizando la oficina: " + error);
+        toast.error("Error actualizando la oficina, la hora de cierre debe ser mayor a la hora de apertura ");
+        return error
       });
   } else {
     fetch(`/api/offices/${id}`, {
@@ -279,6 +284,10 @@ function editOffice(
     <>
       <div className="admin-home">
         <NavZone title="Administrador de Oficinas" />
+        <ToastContainer 
+                className = {`toast-container`}
+                draggable={false}
+            />
         <div className="crud-searchBar">
           <FaSearch className="search-icon" />
           <input

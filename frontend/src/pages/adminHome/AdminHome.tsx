@@ -30,7 +30,7 @@ export function AdminHome() {
             description="Añadir, eliminar o modificar consultorios."
             imageUrl={Logo}
 
-            link="/OfficesAdmin"
+            link="./OfficesAdmin"
             />
 
           <AdminCard
