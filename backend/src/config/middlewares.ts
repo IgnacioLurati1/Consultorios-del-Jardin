@@ -1,19 +1,23 @@
-import { Request, Response, NextFunction } from "express";
-import admin from "./firebase";
+import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from 'express';
+import dotenv from 'dotenv';
 
-export async function verifyToken(req: Request, res: Response, next: NextFunction) {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "Token requerido" });
-  }
+dotenv.config();
 
-  try {
-    const decoded = await admin.auth().verifyIdToken(token);
-    (req as any).user = decoded;
-    next();
-  } catch {
-    res.status(401).json({ message: "Token inválido" });
-  }
+interface RequestWithUser extends Request {
+    user?: any;
 }
 
-export default verifyToken;
+export async function verifyToken(req: RequestWithUser, res: Response, next: NextFunction) {
+    const token = req.headers.authorization?.split(' ')[1]; //Del header, nos quedamos con el authorization: Bearer, el ? pregunta si existe, de lo contrario undefined y el split separa el bearer del token y nos quedamos con este ultimo
+    if (!token) return res.status(401).send('Unauthorized');
+
+    try {
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET as jwt.Secret);
+        req.user = decodedToken;
+        next();
+    } catch (error) {
+        console.error('Error verifying token:', error);
+        res.status(401).send('Token inválido');
+    }
+}
