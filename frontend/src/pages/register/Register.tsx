@@ -8,7 +8,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
 import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
 import { DataInputSelector } from '../../components/inputs/selectorInput/DataInputSelector';
-import { data } from 'react-router-dom';
 
 export function Register() {
 
