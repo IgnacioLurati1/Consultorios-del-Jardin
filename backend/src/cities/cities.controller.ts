@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction} from 'express'
 import { CityService } from './cities.service.js'
+import { ProvinceService } from '../provinces/provinces.service.js';
 import { wrap } from '@mikro-orm/core';
 
 const cityService = new CityService();
+const provinceService = new ProvinceService()
 
 async function validateCityAdd(sanitizedInput: any): Promise<string[]> {
   const errors: string[] = []
@@ -27,7 +29,15 @@ async function validateCityAdd(sanitizedInput: any): Promise<string[]> {
   if(sanitizedInput.province === undefined || sanitizedInput.province === ''){
     errors.push('La provincia es obligatoria')
   }else{
-    //Traer la provincia y validar el estado de la provincia
+    try{
+      const id = Number.parseInt(sanitizedInput.province)
+      const province = await provinceService.findProvinceById(id)
+      if(province && !province.active){
+        errors.push('La provincia está deshabilitada')
+      }
+    }catch(error: any) {
+      errors.push('Error al validar estado de la provincia seleccionada')
+    }
   }
 
   if(errors.length == 0){
@@ -52,8 +62,8 @@ async function validateCityUpdate(sanitizedInput: any): Promise<string[]> {
   if ((sanitizedInput.nameCity === undefined || sanitizedInput.nameCity === "")&&(sanitizedInput.province === undefined || sanitizedInput.province === '')){
     errors.push('Se necesita al menos un campo, nombre o provincia, para modificar');
     }
-    else if(sanitizedInput.nameCity !== "") {
-      if (typeof sanitizedInput.nameCity !== 'string') {
+  else if(sanitizedInput.nameCity !== "") {
+    if (typeof sanitizedInput.nameCity !== 'string') {
       errors.push('El nombre de la ciudad debe ser una cadena de texto');
     } 
     if (sanitizedInput.nameCity.length < 2) {
@@ -65,8 +75,20 @@ async function validateCityUpdate(sanitizedInput: any): Promise<string[]> {
     if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
       errors.push('El nombre de la ciudad solo puede contener letras, espacios, guiones y apóstrofes');
     }
-
-    //Traer la provincia y validar el estado de la provincia
+  }
+  
+  if(sanitizedInput.province !== ""){
+    try{
+      const id = Number.parseInt(sanitizedInput.province)
+      const province = await provinceService.findProvinceById(id)
+      if(province && !province.active){
+        errors.push('La provincia está deshabilitada')
+      }
+    }catch(error: any) {
+      errors.push('Error al validar estado de la provincia seleccionada')
+    }
+  }
+  
 
   if(errors.length == 0){
       try {
@@ -79,7 +101,7 @@ async function validateCityUpdate(sanitizedInput: any): Promise<string[]> {
             errors.push('Error al validar ciudades con mismo nombre')
     }
   }
-  }
+  
 
   return errors
 }
@@ -99,7 +121,7 @@ export async function findAllActive(req:Request, res:Response){
     let cities = await cityService.findAllCities()
     cities = cities.filter(city => city.province.active) 
     cities = cities.filter(city => city.active) //Filter all cities by its province state
-    res.status(200).json({ message: 'find all cities', data: cities })
+    res.status(200).json({ message: 'find all active cities', data: cities })
   }catch (error : any) {
     res.status(500).json({ message: error.message })
   }

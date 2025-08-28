@@ -1,6 +1,9 @@
 ### GET ALL -obtener todos los provincias
 GET http://localhost:3000/api/provinces
 
+### GET ALL ACTIVE-obtener todos los provincias activas
+GET http://localhost:3000/api/provinces/active
+
 ### ID
 
 ### GET ONE - obtener una provincia
