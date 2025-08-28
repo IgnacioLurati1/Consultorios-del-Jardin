@@ -30,6 +30,18 @@ async function findAll(req: Request, res: Response) {
   }
 }
 
+export async function findAllActive(req: Request, res: Response) {
+  try {
+
+    let provinces = await provinceService.findAllProvinces()
+    provinces = provinces.filter(province => province.active) 
+    res.status(200).json({message: 'finded all active Provinces', data:provinces })
+  
+  }catch(error: any){
+    res.status(500).json({ message: error.message })
+  }
+}
+
 async function findOne(req: Request, res: Response) {
   try {
 

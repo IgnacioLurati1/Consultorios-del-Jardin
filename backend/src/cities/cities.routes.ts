@@ -4,7 +4,7 @@ import {findAll, findAllActive, findOne, add, update, toggleCityState} from './c
 export const cityRouter = Router()
 
 cityRouter.get('/', findAll)
-cityRouter.get('/actives', findAllActive)
+cityRouter.get('/active', findAllActive)
 cityRouter.get('/:idCity', findOne)
 cityRouter.post('/', add)
 cityRouter.put('/:idCity', update)

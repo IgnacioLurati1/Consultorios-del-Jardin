@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { 
     sanitizeProvinceInput,
     findAll, 
+    findAllActive,
     findOne, 
     add, 
     update, 
@@ -11,6 +12,7 @@ import {
 export const provinceRouter = Router()
 
 provinceRouter.get('/', findAll)
+provinceRouter.get('/active', findAllActive)
 provinceRouter.get('/:idProvince', findOne)
 provinceRouter.post('/',sanitizeProvinceInput, add)
 provinceRouter.put('/:idProvince',sanitizeProvinceInput, update)
