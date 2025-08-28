@@ -110,6 +110,23 @@ export function OfficesAdmin() {
       });
   }, []);
 
+useEffect(() => {
+  if (offices.length > 0 && cities.length > 0) {
+    setOffices((prev) =>
+      prev.map((office) => {
+        const fullCity = cities.find(
+          (c) =>
+            c.idCity ===
+            (typeof office.city === "string"
+              ? office.city
+              : office.city.idCity)
+        );
+        return fullCity ? { ...office, city: fullCity } : office;
+      })
+    );
+  }
+}, [cities]);
+
   function addOffice(
   description: string,
   openingTime: string,
@@ -144,6 +161,7 @@ export function OfficesAdmin() {
         const completeOffice = {
           ...created,
           city: fullCity
+          
         };   
         console.log("Complete office object:", completeOffice); 
         setModalVisible(false);
@@ -161,10 +179,13 @@ export function OfficesAdmin() {
     })
     .catch((error) => {
       setLoading(false);
-      toast.error("Error al crear oficina: La hora de apertura debe ser mayor a la hora de cierre ");
+      toast.error("Error al crear la oficina: La hora de apertura debe ser mayor a la hora de cierre ");
       return error
     });
 }
+
+
+
 
   function deleteOffice(id: string) {
     if (!id) return;
@@ -314,7 +335,6 @@ function editOffice(
                   openingTime={office.openingTime} 
                   closingTime={office.closingTime}
                   city={office.city.nameCity}
-                  provinces={office.city?.province?.nameProvince}
                   onDelete={() => deleteOffice(office.idOffice)}
                   onEdit={() => editOffice(
                     office.idOffice,
