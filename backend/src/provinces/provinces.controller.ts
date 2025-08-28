@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction} from 'express'
-import { ProvinceService } from './provinces.services.js'
-import { orm } from '../shared/db/orm.js'
+import { ProvinceService } from './provinces.service.js'
 
 function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
