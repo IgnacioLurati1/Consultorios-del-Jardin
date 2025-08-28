@@ -4,7 +4,27 @@ import { ProvinceService } from '../provinces/provinces.service.js';
 import { wrap } from '@mikro-orm/core';
 
 const cityService = new CityService();
-const provinceService = new ProvinceService()
+const provinceService = new ProvinceService();
+
+export function sanitizeCityInput(req: Request, res: Response, next: NextFunction) {
+  req.body.sanitizedInput = {
+    nameCity: req.body.nameCity?.toString().trim(),
+    idCity: req.body.idCity,
+    province: req.body.province && req.body.province.toString().trim() !== '' 
+      ? req.body.province 
+      : undefined,
+    offices: req.body.offices,
+    active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
+  }
+
+  Object.keys(req.body.sanitizedInput).forEach((key) => {
+    if (req.body.sanitizedInput[key] === undefined) {
+      delete req.body.sanitizedInput[key]
+    }
+  })
+  next()
+}
+
 
 async function validateCityAdd(sanitizedInput: any): Promise<string[]> {
   const errors: string[] = []
@@ -142,13 +162,7 @@ export async function findOne(req: Request, res: Response) {
 export async function add(req: Request, res: Response) {
   try{
 
-    const sanitizedInput = {
-      nameCity: req.body.nameCity?.toString().trim(),
-      province: req.body.province?.toString().trim(),
-      active: true
-    }
-
-  const errors = await validateCityAdd(sanitizedInput)
+  const errors = await validateCityAdd(req.body.sanitizedInput)
 
   if(errors.length > 0){
     const errorMessage = errors.join(', ')
@@ -156,7 +170,7 @@ export async function add(req: Request, res: Response) {
       message: errorMessage
     });
   }
-  const city = await cityService.createCity(sanitizedInput)
+  const city = await cityService.createCity(req.body.sanitizedInput)
   res.status(201).json({ message: 'City created successfully', data: wrap(city).toObject() }) // City created successfully
   } catch (error: any) {
     res.status(500).json({ message: error.message })
@@ -166,12 +180,7 @@ export async function add(req: Request, res: Response) {
 export async function update(req: Request, res: Response) {
   try{
 
-    const sanitizedInput = {
-      nameCity: req.body.nameCity?.toString().trim(),
-      province: req.body.province?.toString().trim(),
-    }
-
-    const errors = await validateCityUpdate(sanitizedInput)
+    const errors = await validateCityUpdate(req.body.sanitizedInput)
 
     if(errors.length > 0){
       const errorMessage = errors.join(', ')
@@ -181,7 +190,7 @@ export async function update(req: Request, res: Response) {
     }
 
     const id = Number.parseInt(req.params.idCity)
-    const updatedCity = await cityService.updateCity(id, sanitizedInput)
+    const updatedCity = await cityService.updateCity(id, req.body.sanitizedInput)
     res.status(200).json({ message: 'City updated successfully', data: wrap(updatedCity).toObject() })
   }catch (error: any) {
     res.status(500).json({ message: error.message })
