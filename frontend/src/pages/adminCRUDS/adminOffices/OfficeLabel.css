@@ -20,8 +20,6 @@
   align-items: baseline;
 }
 
-
-/* Ajustes específicos para mobile */
 @media (max-width: 770px) {
   .office-label {
     padding: 0.5rem;
@@ -37,8 +35,7 @@
   .office-label .crud-id {
     font-size: 0.925rem; 
   }
-  
-  /* Asegurar que la ciudad siempre sea visible */
+
   .office-label .crud-name:last-child {
     font-weight: 100;
     opacity: 1;
@@ -48,22 +45,20 @@
   }
 }
 
-/* Variante más compacta para mobile pequeño */
 @media (max-width: 349px) {
   .office-label {
     padding: 0.375rem;
   }
   
   .office-label .crud-name {
-    font-size: 0.8rem; /* 11px */
+    font-size: 0.8rem;
   }
   
   .office-label .crud-id {
-    font-size: 0.8rem; /* 9px */
+    font-size: 0.8rem;
   }
 }
 
-/*pantalla grande*/
 @media (max-width: 1400px) {
   .office-label {
     padding: 0.5rem;
@@ -80,3 +75,5 @@
     font-size: 0.925rem; 
   }
 }
+
+/*good*/

@@ -27,3 +27,5 @@ export function OfficeLabel(office: {
     </div>
   );
 }
+
+/*good*/
