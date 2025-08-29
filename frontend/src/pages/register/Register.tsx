@@ -50,7 +50,16 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     fetch('/api/people', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: formData.nombre, surname: formData.apellido, email: formData.email, docType: formData.tipoDocumento, docNumber: formData.nroDocumento, phoneNumber : formData.telefono, password: formData.contraseña})
+            body: JSON.stringify({ 
+                name: formData.nombre, 
+                surname: formData.apellido, 
+                email: formData.email, 
+                docType: formData.tipoDocumento, 
+                docNumber: formData.nroDocumento, 
+                phoneNumber : formData.telefono, 
+                password: formData.contraseña,
+                type: "cliente"
+            })
         })
         .then(response => {
             if (response.ok) {
