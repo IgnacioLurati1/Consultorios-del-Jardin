@@ -71,16 +71,17 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
             <div className="crud-modal" onClick={onClose}>
                 <div className ="crud-modal-content" onClick={e => e.stopPropagation()}>
                     <div className="titleAndClose">
-                        <h2>{type === "edit"?
+                        <h2 className="crud-modal-title">{type === "edit"?
                             "Detalles de la Localidad":"Crear Localidad"}<FaChevronRight />
                         </h2>
-                        {type === "edit" && city? (
+
+                        <FaTimes className="close-icon" onClick={onClose} />
+                    </div>
+                    {type === "edit" && city? (
                         <div>
                             <p><strong> ID: {city.idCity}</strong></p>
                         </div>
-                        ) : null}
-                        <FaTimes className="close-icon" onClick={onClose} />
-                    </div>
+                    ) : null}
                     {city && type === "edit" ? (<div>
                         <p>Nombre: {cityData.nameCity}</p>
                         <p>Provincia: {provinceName}    <strong>(Inhabilitada)</strong></p>
@@ -99,12 +100,12 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
             <div className="crud-modal" onClick={onClose}>
                 <div className ="crud-modal-content" onClick={e => e.stopPropagation()}>
                     <div className="titleAndClose">
-                        <h2>
+                        <h2 className="crud-modal-title">
                         "Detalles de la Localidad":<FaChevronRight />
                         </h2>
-                        <p><strong> ID: {city.idCity}</strong></p>
                         <FaTimes className="close-icon" onClick={onClose} />
                     </div>
+                    <p><strong> ID: {city.idCity}</strong></p>
                     <div>
                         <p>Nombre: {cityData.nameCity}</p>
                         <p>Provincia: {provinceName}    <strong>(Inhabilitada)</strong></p>
@@ -120,15 +121,15 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
         <div className="crud-modal" onClick={onClose}>
             <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
                 <div className="titleAndClose">
-                <h2>{type === "edit"?
-                    "Detalles de la Ciudad":"Crear Ciudad"}<FaChevronRight /></h2>
+                <h2 className="crud-modal-title">{type === "edit"?
+                    "Detalles de la Localidad":"Crear Localidad"}<FaChevronRight /></h2>
+                    <FaTimes className="close-icon" onClick={onClose} />
+                    </div>
                     {type === "edit" && city? (
                     <div>
                         <p><strong> ID: {city.idCity}</strong></p>
                     </div>
                     ) : null}
-                    <FaTimes className="close-icon" onClick={onClose} />
-                    </div>
                     <div>
                         <p>Nombre:
                         <input

@@ -65,7 +65,7 @@ export function CitiesAdmin() {
       })
       .catch(err => {
         setLoading(false);
-        toast.error("Error cargando ciudades: " + err.message);});
+        toast.error("Error cargando localidades: " + err.message);});
     }, []);
   
     useEffect(() => {
@@ -92,10 +92,10 @@ export function CitiesAdmin() {
             .then(response => {
                 setCities([response.data, ...cities]);
                 setModalVisible(false);
-                toast.success("Ciudad creada exitosamente");
+                toast.success("Localidad creada exitosamente");
             })
             .catch(err => {
-                toast.error('Error al crear ciudad: ' + err.message);
+                toast.error('Error al crear localidad: ' + err.message);
             });
         }
 
@@ -119,10 +119,10 @@ export function CitiesAdmin() {
       .then(() => {
         setCities(cities.map(city => city.idCity !== id ? city : { ...city, active: false }));
         setModalVisible(false);
-        toast.success("Ciudad eliminada exitosamente");
+        toast.success("Localidad eliminada exitosamente");
       })
         .catch(err => {
-            toast.error('Error al eliminar ciudad: ' + err.message);
+            toast.error('Error al eliminar localidad: ' + err.message);
         });
   }
 
@@ -150,11 +150,11 @@ export function CitiesAdmin() {
                 setCities(cities.map(city => city.idCity === updatedCityFromBackend.idCity ? updatedCityFromBackend : city));
                 setModalVisible(false);
                 setEditData(null);
-                toast.success("Ciudad editada exitosamente");
+                toast.success("Localidad editada exitosamente");
             }
         )
         .catch(err => {
-           toast.error('Error al editar ciudad: ' + err.message);
+           toast.error('Error al editar Localidad: ' + err.message);
         })}
         else{
             fetch(`/api/cities/${updatedCity.idCity}/toggle-state`, {
@@ -175,11 +175,11 @@ export function CitiesAdmin() {
                     setCities(cities.map(city => city.idCity !== updatedCityFromBackend.idCity ? city : { ...city, active: true }));
                     setModalVisible(false);
                     setEditData(null);
-                    toast.success("Ciudad reactivada exitosamente");
+                    toast.success("Localidad reactivada exitosamente");
                 }
             )
             .catch(err => {
-                toast.error('Error reactivar ciudad: ' + err.message);
+                toast.error('Error reactivar Localidad: ' + err.message);
             });
         }
     }
@@ -191,7 +191,7 @@ export function CitiesAdmin() {
     return (
         <div className="admin-home">
 
-            <NavZone title="Administrador de Ciudades"/>
+            <NavZone title="Administrador de Localidades"/>
             <ToastContainer 
                 className = {`toast-container`}
                 draggable={false}
@@ -200,7 +200,7 @@ export function CitiesAdmin() {
                 <FaSearch className="search-icon"/>
                 <input className="crud-searchInput"
                 type="text"
-                placeholder="Ingrese el nombre de la ciudad"
+                placeholder="Ingrese el nombre de la localidad"
                 onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
@@ -219,7 +219,7 @@ export function CitiesAdmin() {
                 </ul>
             </div>
             <div>
-                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyCity);setModalType("create")}}><strong>Agregar ciudad</strong><FaPlus /></button>
+                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyCity);setModalType("create")}}><strong>Agregar Localidad</strong><FaPlus /></button>
             </div>
             <CityModal visible={modalVisible} city={editData} provinces={provinces} onClose={()=> setModalVisible(false)} onEdit={EditCity} onDelete={deleteCity} onCreate={addCity} type = {modalType}/>
         </div>

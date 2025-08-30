@@ -16,7 +16,7 @@ export function CityLabel({ city, active }: CityLabelProps){
             active && !city.province.active? 'crud-label-green-inactive': 
             !active && city.province.active? 'crud-label-red' : 'crud-label-red-inactive'} crud-label city-label`}>
             <p className="crud-id">ID: {city.idCity}</p>
-            <p className="crud-name">{city.nameCity}</p>
+            <p className="crud-name city">{city.nameCity}</p>
             <p className="crud-name">{city.province.nameProvince}</p>
         </div>
     );
