@@ -20,6 +20,15 @@ Content-Type: application/json
     "speciality": "TESTING"
 }
 
+### loguear una persona
+POST http://localhost:3000/api/people/login
+Content-Type: application/json
+
+{
+    "email": "mateoprueba@gmail.com",
+    "password": "mateo"
+}
+
 ### modificar una persona (PUT - recurso completo e idempotente)
 PUT http://localhost:3000/api/people/genaro20038@gmail.com
 Content-Type: application/json
