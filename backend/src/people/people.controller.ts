@@ -3,8 +3,10 @@ import { Person } from './people.entity.js'
 import { orm } from '../shared/db/orm.js'
 import jwt from 'jsonwebtoken';
 import bcrypt from "bcrypt";
+import dotenv from "dotenv";
 
 const em = orm.em;
+dotenv.config();
 
 function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
 
@@ -66,7 +68,7 @@ async function add(req: Request, res: Response) {
 
         const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
 
-        res.status(201).json({ message: 'Person created', data: safeData, token }) // return person data and token
+        res.status(201).json({ message: 'Person created', data: safeData, token}) // return person data and token
     } catch (error: any) {
         res.status(500).json({ message: error.message })
     }

@@ -9,13 +9,15 @@ POST http://localhost:3000/api/people
 Content-Type: application/json
 
 {
-    "email": "genarooooooooooo20038@gmail.com",
+    "email": "hola6@gmail.com",
     "docType": "dni",
-    "docNumber": "45265010",
-    "name": "Genaro",
-    "surname": "Ortiz",
-    "phoneNumber": "3413493886",
-    "password": "1234"
+    "docNumber": "222222",
+    "name": "Hola",
+    "surname": "Mundo",
+    "phoneNumber": "123",
+    "password": "1234",
+    "type": "admin",
+    "speciality": "TESTING"
 }
 
 ### modificar una persona (PUT - recurso completo e idempotente)
