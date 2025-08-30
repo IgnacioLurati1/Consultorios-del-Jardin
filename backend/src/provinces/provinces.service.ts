@@ -9,6 +9,12 @@ export class ProvinceService{
         return await em.find(Province, {});
     }
 
+    async findAllActiveProvinces(): Promise<Province[]>{
+        let provinces = await em.find(Province, {});
+        provinces = provinces.filter(province => province.active);
+        return provinces;
+    }
+    
     async findProvinceById(idProvince:number): Promise<Province | null>{
         return await em.findOneOrFail(Province, { idProvince });
     }

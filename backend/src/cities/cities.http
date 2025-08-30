@@ -2,10 +2,7 @@
 GET http://localhost:3000/api/cities
 
 ### Obtener todas las localidades activas
-GET http://localhost:3000/api/cities/actives
-
-### ID
-@id = {{createCity.response.body.data.idCity}}
+GET http://localhost:3000/api/cities/active
 
 ### obtener una Localidad (GET ONE)
 GET http://localhost:3000/api/cities/18
@@ -16,7 +13,7 @@ POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "nameCity": "Roldan",
+    "nameCity": "Nueva ciudad en Santa Fe",
     "province": "2",
     "offices" : []
 }
@@ -26,12 +23,12 @@ PUT http://localhost:3000/api/cities/2
 Content-Type: application/json
 
 {
-  "nameCity": "Nuevisima ciudad de santafe",
+  "nameCity": "Nueva ciudad de Santa Cruz",
   "province": 1
 }
 
 ### cambiar el estado de una ciudad)
-PATCH http://localhost:3000/api/cities/2/toggle-state
+PATCH http://localhost:3000/api/cities/10/toggle-state
 Content-Type: application/json
 
 {
