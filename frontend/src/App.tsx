@@ -13,23 +13,29 @@ import { OfficesAdmin } from './pages/adminCRUDS/adminOffices/OfficesAdmin.tsx';
 import { RoomsAdmin } from './pages/adminCRUDS/adminRooms/RoomsAdmin.tsx';
 import  { RecoverPassword }  from './pages/newPassword/RecoverPassword.tsx'
 import { NewPassword } from './pages/newPassword/NewPassword.tsx';
+import { PrivateRoutes } from './PrivateRoutes.tsx'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />, 
     children: [
+
+      // Public Routes
       { index:true, element: <Home /> },
       { path: '/Register', element: <Register /> },
       { path: '/RegisterProf', element: <RegisterProf />},
       { path: '/Login', element: <Login /> },
-      { path: '/AdminHome', element: <AdminHome /> },
-      { path: '/AdminHome/ProvincesAdmin', element: <ProvincesAdmin /> },
-      { path: '/AdminHome/CitiesAdmin', element: <CitiesAdmin/> },
-      { path: '/AdminHome/OfficesAdmin', element: <OfficesAdmin /> },
-      { path: '/AdminHome/RoomsAdmin', element: <RoomsAdmin /> },
+      // Private Routes
+      { path: '/AdminHome', element: <PrivateRoutes allowedType="admin"><AdminHome /></PrivateRoutes> },
+      { path: '/AdminHome/ProvincesAdmin', element: <PrivateRoutes allowedType="admin"><ProvincesAdmin /></PrivateRoutes> },
+      { path: '/AdminHome/CitiesAdmin', element: <PrivateRoutes allowedType="admin"><CitiesAdmin /></PrivateRoutes> },
+      { path: '/AdminHome/OfficesAdmin', element: <PrivateRoutes allowedType="admin"><OfficesAdmin /></PrivateRoutes> },
+      { path: '/AdminHome/RoomsAdmin', element: <PrivateRoutes allowedType="admin"><RoomsAdmin /></PrivateRoutes> },
+      // Password Recovery Routes
       { path: '/forgot-password', element: <RecoverPassword /> },
       { path: '/NewPassword', element: <NewPassword /> },
+      // 404 Routes
       { path:'*', element: <NotFoundPage/>}
 
     ]
