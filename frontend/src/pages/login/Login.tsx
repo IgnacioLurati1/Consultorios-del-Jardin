@@ -8,6 +8,7 @@ import { DataInputPassword } from '../../components/inputs/passwordInput/DataInp
 import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import api from '../../axios';
 
 export function Login() {
 
@@ -34,14 +35,23 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         return;
     }
 
-    // Faltan las notificaciones de respuesta del backend
-
-    // Simular envío (Acá va el fetch al backend)
-    console.log("Formulario enviado con:", formData);
-    toast.success("Inicio de sesión exitoso", {
-    className: "feedBack-box success"});
-    // Esto no se si iría en realidad, ya que cuando se loguea se debería redirigir a otra página
-};
+    api.post('/people/login', {
+        email: formData.email,
+        password: formData.contraseña
+    }).then(response => {
+        if (response.data.token) {
+            localStorage.setItem("token", response.data.token);
+            toast.success("Inicio de sesión exitoso", {
+                className: "feedBack-box success"
+            });
+        }
+    }).catch(error => {
+        console.error("Login error:", error);
+        toast.error("Error en el inicio de sesión", {
+            className: "feedBack-box error"
+        });
+    });
+}
 
     return (
         <div className="user-login-container">

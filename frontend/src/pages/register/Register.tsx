@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
 import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
 import { DataInputSelector } from '../../components/inputs/selectorInput/DataInputSelector';
+import api from '../../axios';
 
 export function Register() {
 
@@ -47,6 +48,34 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             return;
     }
 
+    api.post('/people', {
+        name: formData.nombre,
+        surname: formData.apellido,
+        email: formData.email,
+        docType: formData.tipoDocumento,
+        docNumber: formData.nroDocumento,
+        phoneNumber : formData.telefono,
+        password: formData.contraseña,
+        type: "cliente"
+    })
+    .then(response => {
+        if(response.data.token){
+            localStorage.setItem("token", response.data.token);
+            toast.success("Usuario registrado con éxito", {
+                className: "feedBack-box success"
+            });
+        }
+
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        toast.error("Error al registrar usuario", {
+            className: "feedBack-box error"
+        });
+    });
+};
+
+/*
     fetch('/api/people', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -61,6 +90,7 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
                 type: "cliente"
             })
         })
+
         .then(response => {
             if (response.ok) {
                 return response.json();
@@ -82,6 +112,7 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
                 className: "feedBack-box error"
             });
         })};
+*/
 
 const [activo, setPage] = useState(false);
 
