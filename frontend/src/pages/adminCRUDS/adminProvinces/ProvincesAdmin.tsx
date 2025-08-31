@@ -6,7 +6,8 @@ import { ProvinceModal } from "./ProvinceModal.tsx";
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
-
+import api from '../../../axios';
+import { toast, ToastContainer } from "react-toastify";
 
 
 export function ProvincesAdmin() {
@@ -20,15 +21,13 @@ export function ProvincesAdmin() {
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [filteredProvinces, setFilteredProvinces] = useState<Province[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<any>();
     const [searchTerm, setSearchTerm] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
     const [modalAction, setModalAction] = useState<'create' | 'edit'>('create');
 
     useEffect(() => {
-        fetch('/api/provinces')
-            .then(response => response.json())
+        api.get('/provinces')
             .then(data => {
                 console.log('Provinces fetched:', data.data);
                 setLoading(false);
@@ -38,8 +37,7 @@ export function ProvincesAdmin() {
             })
             .catch(error => {
                 setLoading(false);
-                setError(error.message);
-                console.error('Error fetching provinces:', error);
+                toast.error(`Error al obtener las provincias: ${error.message}`);
             });
     }, []);
 
@@ -50,124 +48,82 @@ export function ProvincesAdmin() {
 
     }, [searchTerm, provinces]);
 
-    useEffect(() => {
-        if (error == null) return;
-        setTimeout(() => { 
-          setError(null);  
-        }, 12000);
-    }, [error]);
-
     if (loading) {
         return <div className="loading">Loading...</div>;
     }
 
     function addProvince(nameProvince: string) {
         if (!nameProvince.trim()) return;
-        fetch('/api/provinces', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nameProvince: nameProvince, active: true }) // idProvince se genera en el backend
-    })
-      .then(res => {
-        if(!res.ok) {
-          setModalVisible(false);
-          throw new Error('El nombre coincide con otra provincia existente');
-        }
-        return res.json();
-        
+
+      api.post('/provinces', {
+          nameProvince: nameProvince,
+          active: true
       })
       .then(created => {
         // añadimos la provincia nueva al array
-        console.log('Provincia creada:', created);
+        toast.success(`Provincia creada!`);
         setModalVisible(false);
-        setError({});
         setProvinces([created.data, ...provinces]);
       })
       .catch(err => {
-        setError({ baseMessage: "Error al crear provincia: ",
-                  detail: err.message
+        toast.error(`Error al crear provincia: ${err.message}`);
         });
-      });
-  };
+      }
+
 
   function deleteProvince(id: string) {
     if (!id) return;
 
-    fetch(`/api/provinces/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: false })
-    })
+    api.patch(`/provinces/${id}/toggle-state`)
       .then(() => {
         // Eliminamos la provincia del array
         setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: false }));
-        setError({});
+        toast.success(`Provincia eliminada!`);
         setModalVisible(false);
       })
       .catch(err => {
-        setError({ baseMessage: "Error al eliminar provincia: ",
-          detail: err.message
-        });
+        toast.error(`Error al eliminar provincia: ${err.message}`);
       });
   }
 
   function editProvince(id: string, newName: string, active: boolean) {
     if (!newName) return;
-    console.log(active);
+
     if(active) {
-      fetch(`/api/provinces/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nameProvince: newName })
-      })
-      .then(res => {
-        if(res.ok) {
-          return res.json();
-        }
-        setModalVisible(false);
-        throw new Error('El nombre de la provincia coincide con otra existente');
+      api.put(`/provinces/${id}`, {
+        nameProvince: newName
       })
       .then(updated => {
         const newProvinces = [updated.data, ...provinces.filter(prov => prov.idProvince !== id)];
         setProvinces(newProvinces);
-        setError({});
+        toast.success(`Provincia modificada!`);
         setModalVisible(false);
       })
       .catch(err => {
-        setError({ baseMessage: "Error al modificar provincia: ",
-          detail: err.message
+        toast.error(`Error al modificar provincia: ${err.message}`);
         });
-      });
-  } else {
+      } else {
 
-    fetch(`/api/provinces/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: true})
-    })
+      api.patch(`/provinces/${id}/toggle-state`)
       .then(res => {
-        if (res.ok) {
-          setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
-          setError({});
-          setModalVisible(false);
-          return res.json();
-        }
+        setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
+        toast.success(`Provincia activada!`);
         setModalVisible(false);
-        throw new Error('Ocurrió un error al activar la provincia');
       })
       .catch(err => {
-        setError({ baseMessage: "Error al modificar provincia: ",
-          detail: err.message
-        });
+        toast.error(`Error al modificar provincia: ${err.message}`);
       });
+    }; 
   }
-
-}  
 
     return (
       <>
         <div className="admin-home">
             <NavZone title="Administrador de Provincias"/>
+            <ToastContainer 
+                className = {`toast-container`}
+                draggable={false}
+            />
             <div className="crud-searchBar">
                 <FaSearch className="search-icon"/>
                 <input className="crud-searchInput"
@@ -212,11 +168,6 @@ export function ProvincesAdmin() {
                 onDelete={() => {}}
                 action={modalAction}
             />)}
-
-            {error != null && (
-                <p className="crud-error-message"><strong>{error.baseMessage}</strong>{error.detail}</p>
-            )}
-
         </div>
     </> 
     );
