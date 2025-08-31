@@ -86,10 +86,9 @@ export function ProvincesAdmin() {
                         <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "", prov.active)} active={prov.active} />
                     </li>
                 ))}
-            </ul>
+                </ul>
             </div>
-            <button className="crud-add-button" onClick={() => (setModalVisible(true), setModalAction('create'))}><strong>Agregar Provincia </strong><FaPlus /></button>
-
+          <div><button className="crud-add-button" onClick={() => (setModalVisible(true), setModalAction('create'))}><strong>Agregar Provincia </strong><FaPlus /></button></div>
            {selectedProvince != null && modalAction === "edit" && (
             <ProvinceModal
                 visible={modalVisible}

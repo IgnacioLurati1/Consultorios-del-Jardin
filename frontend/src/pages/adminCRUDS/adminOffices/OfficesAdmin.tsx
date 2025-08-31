@@ -385,7 +385,7 @@ function editOffice(
             </p>
           )}
         </div>
-                  <button
+                  <div><button
             className="crud-add-button"
             onClick={() => {
               setModalVisible(true);
@@ -395,7 +395,7 @@ function editOffice(
             <strong>Agregar Oficina </strong>
             <FaPlus />
           </button>
-      </div>
+      </div></div>
     </>
   );
 }
