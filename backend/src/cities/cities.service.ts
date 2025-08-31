@@ -2,6 +2,7 @@ import { orm } from '../shared/db/orm.js';
 import { City } from './cities.entity.js';
 import { ProvinceService } from '../provinces/provinces.service.js';
 import type { RequiredEntityData } from '@mikro-orm/core';
+import { ValidationError } from '../errors/ValidationError.js';
 
 const em = orm.em;
 export class CityService {
@@ -139,7 +140,7 @@ export class CityService {
     const errors = await this.validateCityAdd(data)
 
     if (errors.length > 0){
-      throw new Error(errors.join(", "))
+      throw new ValidationError(errors.join(", "))
     }
 
     const city = em.create(City, data);
@@ -153,7 +154,7 @@ export class CityService {
     const errors = await this.validateCityUpdate(id, data)
     
     if(errors.length > 0){
-      throw new Error(errors.join(", "))
+      throw new ValidationError(errors.join(", "))
     }
     
     const city = await em.findOneOrFail(City,  { idCity : id })

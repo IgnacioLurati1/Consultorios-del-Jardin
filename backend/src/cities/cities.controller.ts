@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction} from 'express'
 import { CityService } from './cities.service.js'
-import { ProvinceService } from '../provinces/provinces.service.js';
 import { wrap } from '@mikro-orm/core';
+import { ValidationError } from '../errors/ValidationError.js';
 
 const cityService = new CityService();
 
@@ -61,7 +61,10 @@ export async function add(req: Request, res: Response) {
   res.status(201).json({ message: 'City created successfully', data: wrap(city).toObject() }) // City created successfully
 
   } catch (error: any) {
-    res.status(500).json({ message: error.message })
+    if(error instanceof ValidationError){
+      res.status(error.statusCode).json({message: error.message});
+    }
+    else {res.status(500).json({ message: 'Internal Server Error' })}
   }
 }
 
@@ -71,7 +74,10 @@ export async function update(req: Request, res: Response) {
     const updatedCity = await cityService.updateCity(id, req.body.sanitizedInput)
     res.status(200).json({ message: 'City updated successfully', data: wrap(updatedCity).toObject() })
   }catch (error: any) {
-    res.status(500).json({ message: error.message })
+    if(error instanceof ValidationError){
+      res.status(error.statusCode).json({message: error.message});
+    }
+    else {res.status(500).json({ message: 'Internal Server Error' })}
   }
 }
 
