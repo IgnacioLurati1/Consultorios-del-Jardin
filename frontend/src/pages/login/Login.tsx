@@ -1,5 +1,6 @@
 import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import {jwtDecode} from "jwt-decode";
 import "./Login.css";
 import Logo from '../../assets/LogoRecortado.png';
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
@@ -10,12 +11,20 @@ import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import api from '../../axios';
 
+interface TokenPayload {
+    email:string;
+    type:string;
+    exp:number;
+}
+
 export function Login() {
 
 const [formData, setFormData] = useState({
         email: '',
         contraseña: ''
     });
+
+const navigate= useNavigate()
 
 const handleChange = (field: string, value: string) => {
         setFormData(prev => ({
@@ -44,6 +53,13 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             toast.success("Inicio de sesión exitoso", {
                 className: "feedBack-box success"
             });
+            
+            const decoded: TokenPayload = jwtDecode(response.data.token);
+
+            if(decoded.type ==="admin"){     
+                navigate('/adminHome')
+            }} else {
+            navigate('/');
         }
     }).catch(error => {
         console.error("Login error:", error);
