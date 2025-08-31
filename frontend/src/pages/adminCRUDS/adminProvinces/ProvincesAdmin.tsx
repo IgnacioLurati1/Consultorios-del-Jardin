@@ -6,8 +6,7 @@ import { ProvinceModal } from "./ProvinceModal.tsx";
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
-import api from '../../../axios';
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import { createProvince, removeProvince, updateProvince, findAllProvinces } from "./ProvinceService.ts";  
 import type { Province } from "../../types.ts";
 
