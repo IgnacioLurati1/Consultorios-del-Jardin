@@ -27,12 +27,12 @@ export function ProvincesAdmin() {
     const [modalAction, setModalAction] = useState<'create' | 'edit'>('create');
 
     useEffect(() => {
-        api.get('/provinces')
-            .then(data => {
-                console.log('Provinces fetched:', data.data);
+            api.get('/provinces')
+            .then(response => {
+                console.log('Provinces fetched:', response.data.data);
                 setLoading(false);
-                setProvinces(data.data);
-                setFilteredProvinces(data.data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
+                setProvinces(response.data.data);
+                setFilteredProvinces(response.data.data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
 
             })
             .catch(error => {
@@ -63,7 +63,7 @@ export function ProvincesAdmin() {
         // añadimos la provincia nueva al array
         toast.success(`Provincia creada!`);
         setModalVisible(false);
-        setProvinces([created.data, ...provinces]);
+        setProvinces([created.data.data, ...provinces]);
       })
       .catch(err => {
         toast.error(`Error al crear provincia: ${err.message}`);
@@ -94,7 +94,7 @@ export function ProvincesAdmin() {
         nameProvince: newName
       })
       .then(updated => {
-        const newProvinces = [updated.data, ...provinces.filter(prov => prov.idProvince !== id)];
+        const newProvinces = [updated.data.data, ...provinces.filter(prov => prov.idProvince !== id)];
         setProvinces(newProvinces);
         toast.success(`Provincia modificada!`);
         setModalVisible(false);
@@ -105,7 +105,7 @@ export function ProvincesAdmin() {
       } else {
 
       api.patch(`/provinces/${id}/toggle-state`)
-      .then(res => {
+      .then(() => {
         setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
         toast.success(`Provincia activada!`);
         setModalVisible(false);
