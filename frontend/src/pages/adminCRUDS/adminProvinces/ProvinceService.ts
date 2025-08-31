@@ -11,6 +11,15 @@ export function findAllProvinces(): Promise<Province[]> {
         });
 }
 
+export function findAllActiveProvinces(): Promise<Province[]>{
+  return api.get('provinces/active')
+    .then(response => response.data.data)
+    .catch(err => {
+      toast.error(`Error al obtener provincias activas: ${err.message}`);
+      return [];
+    });
+}
+
 export function createProvince(nameProvince: string) : Promise<Province | undefined> {
 
     if (!nameProvince.trim()) return Promise.resolve(undefined);
