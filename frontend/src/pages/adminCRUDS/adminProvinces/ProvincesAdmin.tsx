@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import "../../adminHome/AdminHome.css";
 import { ProvinceLabel } from "./ProvinceLabel.tsx";
-import { FaSearch } from 'react-icons/fa';
 import { ProvinceModal } from "./ProvinceModal.tsx";
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone.tsx";
@@ -9,6 +8,7 @@ import { FaPlus } from "react-icons/fa";
 import { ToastContainer } from "react-toastify";
 import { createProvince, removeProvince, updateProvince, findAllProvinces } from "./ProvinceService.ts";  
 import type { Province } from "../../types.ts";
+import SearchBar from "../../../components/searchBar/searchBar.tsx";
 
 export function ProvincesAdmin() {
 
@@ -74,14 +74,7 @@ export function ProvincesAdmin() {
                 className = {`toast-container`}
                 draggable={false}
             />
-            <div className="crud-searchBar">
-                <FaSearch className="search-icon"/>
-                <input className="crud-searchInput"
-                    type="text"
-                    placeholder="Ingrese el nombre de una provincia"
-                    onChange={e => setSearchTerm(e.target.value)}
-                />
-            </div>
+            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una provincia" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 <ul className="crud-list">
                     {filteredProvinces.map(prov => (
