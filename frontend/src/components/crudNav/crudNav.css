@@ -1,0 +1,24 @@
+.crud-nav{
+    max-width: 300px;
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 50%;        
+    transform: translateX(-50%);
+}
+
+.crud-nav-items {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 10px;
+    background-color: rgb(31, 31, 240);
+    box-sizing: border-box;
+    color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+.crud-nav-link {
+    text-decoration: none;
+    color: inherit;
+}
