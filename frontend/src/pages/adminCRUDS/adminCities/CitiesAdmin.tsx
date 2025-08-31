@@ -4,12 +4,12 @@ import {CityModal} from "./CityModal";
 import "../../adminHome/AdminHome.css";
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone";
-import { FaSearch } from 'react-icons/fa';
 import { FaPlus } from "react-icons/fa";
 import { ToastContainer } from "react-toastify";
 import { findAllCities, createCity, removeCity, updateCity} from "./CityService.ts";
 import { findAllActiveProvinces} from "../adminProvinces/ProvinceService.ts"
 import type {Province, City} from "../../types.ts";
+import SearchBar from "../../../components/searchBar/searchBar.tsx";
 
 export function CitiesAdmin() {
 
@@ -95,15 +95,8 @@ export function CitiesAdmin() {
                 className = {`toast-container`}
                 draggable={false}
             />
-            <div className="crud-searchBar">
-                <FaSearch className="search-icon"/>
-                <input className="crud-searchInput"
-                type="text"
-                placeholder="Ingrese el nombre de la localidad"
-                onChange={e => setSearchTerm(e.target.value)}
-                />
-            </div>
-            <div className="crud-grid">
+            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una localidad" />
+            <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 <ul className = "crud-list">
                     {filteredCities.map(city => (
                         <li key={city.idCity}
