@@ -129,6 +129,22 @@
     margin-bottom: 0;
 }
 
+.skeleton-loading {
+    animation: skeletonLoading 1.5s infinite ease-in-out;
+}
+
+@keyframes skeletonLoading {
+    0% {
+        background-color: #ababab;
+    }
+    50% {
+        background-color: #ddd;
+    }
+    100% {
+        background-color: #ababab;
+    }
+}
+
 .hidden {
     display: none;
 }

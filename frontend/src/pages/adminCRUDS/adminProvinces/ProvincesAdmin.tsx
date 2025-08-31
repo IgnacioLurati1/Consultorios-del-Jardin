@@ -36,10 +36,6 @@ export function ProvincesAdmin() {
 
     }, [searchTerm, provinces]);
 
-  if (loading) {
-        return <div className="loading">Loading...</div>;
-  }
-
 // Handlers
 
   async function addProvince(newName: string) {
@@ -86,7 +82,7 @@ export function ProvincesAdmin() {
                     onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="crud-grid">
+            <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 <ul className="crud-list">
                     {filteredProvinces.map(prov => (
                     <li key={prov.idProvince} onClick={() => {
