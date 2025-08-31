@@ -9,6 +9,7 @@ import { roomRouter } from './rooms/rooms.routes.js'
 import { orm, syncSchema } from './shared/db/orm.js'
 import { RequestContext } from '@mikro-orm/core'
 import { verifyToken } from './config/middlewares.js'
+import { Request, Response } from 'express'
 
 
 const app = express()
@@ -24,6 +25,9 @@ app.use('/api/cities', cityRouter)
 app.use('/api/people', personRouter)
 app.use('/api/offices', officeRouter)
 app.use('/api/rooms', roomRouter)
+app.use('/api/tokenStatus', verifyToken, (req: Request, res: Response) => {
+  res.status(200).json({ message: 'Token válido' });
+});
 
 app.use((_, res) => {
   return res.status(404).send({ message: 'Resource not found' })

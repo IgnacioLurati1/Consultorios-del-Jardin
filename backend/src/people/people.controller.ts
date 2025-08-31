@@ -120,4 +120,5 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
     }
 }
 
+
 export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword }
