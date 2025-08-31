@@ -35,13 +35,17 @@ interface CityModalProps {
 }
 
 export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit, onCreate, type }: CityModalProps) {
+    
     const [cityData, setCityData] = useState({ idCity: "", nameCity: "", province:"", active:true   });
     const [provinceName, setProvinceName] = useState("");
+    const [errors, setErrors] = useState<{ nameCity?:string, province?: string}>({})
+
 
     useEffect(() => {
         if (visible && city) {
             setCityData({idCity: city.idCity, nameCity: city.nameCity, province: city.province.idProvince, active: city.active});
             setProvinceName(city.province.nameProvince);
+            setErrors({})
         }
     }, [visible, city]);
 
@@ -60,7 +64,37 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
         }
     }
 
-    
+    function validateInputs(){
+        const newErrors: typeof errors = {};
+
+        if(!cityData.nameCity.trim()){
+            newErrors.nameCity = "El nombre es obligatorio"
+        }
+
+        if(!cityData.province){
+            newErrors.province = "Se debe elegir una provincia"
+        }
+
+        setErrors(newErrors);
+
+        if( Object.keys(newErrors).length ===0){
+            return true
+        }else 
+            {return false}
+    }
+
+    function handleSubmit(){
+
+        if(!validateInputs()) {
+            console.log("validacion fallida", errors)
+        return;}
+
+        if(type === "edit"){
+            onEdit(cityData, true)
+        }else{
+            onCreate({nameCity: cityData.nameCity, province:cityData.province})
+        }
+    }
 
     if (!visible|| (type ==="edit" && !city)) {
         return null;
@@ -125,6 +159,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
                     "Detalles de la Localidad":"Crear Localidad"}<FaChevronRight /></h2>
                     <FaTimes className="close-icon" onClick={onClose} />
                     </div>
+
                     {type === "edit" && city? (
                     <div>
                         <p><strong> ID: {city.idCity}</strong></p>
@@ -133,16 +168,19 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
                     <div>
                         <p>Nombre:
                         <input
-                            className="input-crud"
+                            className={`input-crud ${errors.nameCity? "input-error" : "input-valid"}`}
                             type="text"
                             value={cityData.nameCity}
                             onChange={(e) => setCityData({ ...cityData, nameCity: e.target.value })}
                         /></p>
+                        <div>
+                            {errors.nameCity && <p className="error-text">{errors.nameCity}</p>}
+                        </div>
                     </div>
                     <div>
                         <label>Provincia:</label>
                         <input
-                            className="input-crud"
+                            className={`input-crud ${errors.province? "input-error" : "input-valid"}`}
                             type="text"
                             list = "provinces"
                             value={provinceName}
@@ -161,15 +199,25 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
                             onBlur = {() => {
                                 if (!provinces.find(p => p.nameProvince === provinceName)) {
                                     toast.dismiss();
-                                    toast.error("Provincia inválida");
+                                    setErrors(prev => ({...prev, province: "Provincia inválida"}))
                                     setCityData({ ...cityData, province:""});
-                            }}}
+                            }
+                            else {
+                                setErrors(prev => {
+                                    const { province, ...rest } = prev;
+                                    return rest;
+                                    });
+                            }
+                            }}
                         />
                         <datalist id="provinces">  
                             {provinces.map((province) => (
                                 <option key={province.idProvince} value={province.nameProvince}/>
                             ))}
                         </datalist>
+                        <div>
+                            {errors.province && <p className="error-text">{errors.province}</p>}
+                        </div>
                     </div>
                     <div className="buttons">
                         {type === "edit" && city? (
@@ -180,8 +228,8 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
                             ):
                         <>
                         <button type="button" className="delete-button" onClick={() => {onDelete(cityData.idCity); onClose()}} >Eliminar<FaTrash /></button>
-                        <button type="submit" className="edit-button" onClick={()=>onEdit(cityData, true)}>Modificar</button></>
-                        ) : (<button autoFocus ref={createButtonRef} type="submit" className="create-button"  onClick={()=>onCreate({nameCity: cityData.nameCity, province:cityData.province})}>Añadir</button>)}
+                        <button type="button" className="edit-button" onClick={()=>handleSubmit()}>Modificar</button></>
+                        ) : (<button autoFocus ref={createButtonRef} type="button" className="create-button"  onClick={()=>handleSubmit()}>Añadir</button>)}
                     </div>
             </div>
         </div>
