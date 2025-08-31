@@ -4,24 +4,14 @@ import {CityModal} from "./CityModal";
 import "../../adminHome/AdminHome.css";
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone";
-import { FaSearch } from 'react-icons/fa';
 import { FaPlus } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import { findAllCities, createCity, removeCity, updateCity} from "./CityService.ts";
+import { findAllActiveProvinces} from "../adminProvinces/ProvinceService.ts"
+import type {Province, City} from "../../types.ts";
+import SearchBar from "../../../components/searchBar/searchBar.tsx";
 
 export function CitiesAdmin() {
-
-    interface Province {
-    idProvince: string;
-    nameProvince: string;
-    active?: boolean;
-    }
-
-    interface City {
-        idCity: string;
-        nameCity: string;
-        province: Province;
-        active: boolean;
-    }
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [cities, setCities] = useState<City[]>([]);
@@ -31,26 +21,21 @@ export function CitiesAdmin() {
     const [editData, setEditData] = useState<City | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [modalType, setModalType] = useState("");
-    const emptyCity: City = { idCity: "", nameCity: "", province: { idProvince: "", nameProvince: ""}, active: true };
+    const emptyCity: City = { idCity: "", nameCity: "", province: { idProvince: "", nameProvince: "", active:true}, active: true };
 
     useEffect(() => {
-    fetch("/api/provinces")
-      .then(res => res.json())
-      .then(data => {
-        setProvinces(data.data.filter((province: Province) => province.active));
-        setLoading(false); })
-      .catch(err => {
-        setLoading(false);
-        toast.error("Error cargando provincias:" + err)});
+        findAllActiveProvinces()
+        .then(data => {
+        setProvinces(data.filter((province: Province) => province.active));
+        setLoading(false); });
     }, []);
 
     useEffect(() => {
-    fetch("/api/cities")
-      .then(res => res.json())
-      .then(data => {
-        setCities(data.data)
+        findAllCities()
+        .then(data => {
+            setCities(data)
         setFilteredCities(
-            data.data.sort((a: City, b: City) => {
+            data.sort((a: City, b: City) => {
                 function weight(city: City) {
                 if (city.province.active) {
                     return city.active ? 1 : 2;  // provincia activa: ciudad activa=1, ciudad inactiva=2
@@ -62,10 +47,7 @@ export function CitiesAdmin() {
             })
             );
         setLoading(false);
-      })
-      .catch(err => {
-        setLoading(false);
-        toast.error("Error cargando localidades: " + err.message);});
+      });
     }, []);
   
     useEffect(() => {
@@ -75,117 +57,34 @@ export function CitiesAdmin() {
 
     }, [searchTerm, cities]);
 
-    function addCity(newCity: { nameCity: string; province: string }) {
-            fetch("/api/cities", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(newCity),
-            })
-            .then(async (res) => {
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || res.statusText);
-            }
-            return res.json();})
-            .then(response => {
-                setCities([response.data, ...cities]);
-                setModalVisible(false);
-                toast.success("Localidad creada exitosamente");
-            })
-            .catch(err => {
-                toast.error('Error al crear localidad: ' + err.message);
-            });
-        }
-
-    function deleteCity(id: string) {
-    if (!id) return;
-
-    fetch(`/api/cities/${id}/toggle-state`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({}),
-            })
-      .then(async(res) => {
-        if(!res.ok) {
-        const errorData = await res.json();
-          throw new Error(errorData.message || res.statusText);
-        }
-        return res.json();
-      })
-      .then(() => {
-        setCities(cities.map(city => city.idCity !== id ? city : { ...city, active: false }));
-        setModalVisible(false);
-        toast.success("Localidad eliminada exitosamente");
-      })
-        .catch(err => {
-            toast.error('Error al eliminar localidad: ' + err.message);
-        });
-  }
-
-    function EditCity(updatedCity: { idCity: string; nameCity: string; province: string} , active: boolean) {
-        if (!editData) return;
-        if(active){
-        fetch(`/api/cities/${updatedCity.idCity}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                nameCity: updatedCity.nameCity,
-                province: updatedCity.province,
-            }),
-        })
-        .then(async (res) => {
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || res.statusText);
-            }
-            return res.json();})
-        .then(response => {
-                const updatedCityFromBackend = response.data;
-                setCities(cities.map(city => city.idCity === updatedCityFromBackend.idCity ? updatedCityFromBackend : city));
-                setModalVisible(false);
-                setEditData(null);
-                toast.success("Localidad editada exitosamente");
-            }
-        )
-        .catch(err => {
-           toast.error('Error al editar Localidad: ' + err.message);
-        })}
-        else{
-            fetch(`/api/cities/${updatedCity.idCity}/toggle-state`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({}),
-            })
-            .then(async (res) => {
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.message || res.statusText);
-                }
-                return res.json();})
-            .then(response => {
-                    const updatedCityFromBackend = response.data;
-                    setCities(cities.map(city => city.idCity !== updatedCityFromBackend.idCity ? city : { ...city, active: true }));
-                    setModalVisible(false);
-                    setEditData(null);
-                    toast.success("Localidad reactivada exitosamente");
-                }
-            )
-            .catch(err => {
-                toast.error('Error reactivar Localidad: ' + err.message);
-            });
+    async function addCity(newCity: { nameCity: string; province: string }) {
+        const createdCity = await createCity(newCity)
+        if(createdCity){
+            setCities([createdCity, ...cities]);
+            setModalVisible(false);
         }
     }
 
-    if (loading) {
-        return <div>Loading...</div>;
+    async function deleteCity(id: string) {
+    if (await removeCity(id)){
+        setCities(cities.map(city => city.idCity !== id ? city : { ...city, active: false }));
+        setModalVisible(false);
+    }
+  }
+
+    async function EditCity(updatedCity: { idCity: string; nameCity: string; province: string} , active: boolean) {
+        
+        const updatedCityFromBackend = await updateCity(updatedCity, active);
+        if(active && updatedCityFromBackend){
+            setCities(cities.map(city => city.idCity === updatedCityFromBackend.idCity ? updatedCityFromBackend : city));
+            setModalVisible(false);
+            setEditData(null);
+        }
+        else if(!active){
+            setCities(cities.map(city => city.idCity !== updatedCity.idCity ? city : { ...city, active: true }));
+            setModalVisible(false);
+            setEditData(null);
+        }
     }
 
     return (
@@ -196,15 +95,8 @@ export function CitiesAdmin() {
                 className = {`toast-container`}
                 draggable={false}
             />
-            <div className="crud-searchBar">
-                <FaSearch className="search-icon"/>
-                <input className="crud-searchInput"
-                type="text"
-                placeholder="Ingrese el nombre de la localidad"
-                onChange={e => setSearchTerm(e.target.value)}
-                />
-            </div>
-            <div className="crud-grid">
+            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una localidad" />
+            <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 <ul className = "crud-list">
                     {filteredCities.map(city => (
                         <li key={city.idCity}
