@@ -112,7 +112,7 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
             return res.status(401).json({ message: 'Credenciales inválidas' });
         }
 
-        const token = jwt.sign({ email: person.email }, process.env.JWT_SECRET as jwt.Secret, { expiresIn: '1h' });
+        const token = jwt.sign({ email: person.email, type: person.type }, process.env.JWT_SECRET as jwt.Secret, { expiresIn: '1h' });
 
         res.status(200).json({ message: 'Login exitoso', token });
     } catch (error: any) {
