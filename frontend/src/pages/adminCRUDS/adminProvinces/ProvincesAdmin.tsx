@@ -8,114 +8,69 @@ import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
 import api from '../../../axios';
 import { toast, ToastContainer } from "react-toastify";
-
+import { createProvince, removeProvince, updateProvince, findAllProvinces } from "./ProvinceService.ts";  
+import type { Province } from "../../types.ts";
 
 export function ProvincesAdmin() {
 
-    interface Province {
-        idProvince: string;
-        nameProvince: string;
-        active: boolean;
-    }
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [filteredProvinces, setFilteredProvinces] = useState<Province[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+  const [modalAction, setModalAction] = useState<'create' | 'edit'>('create');
 
-    const [provinces, setProvinces] = useState<Province[]>([]);
-    const [filteredProvinces, setFilteredProvinces] = useState<Province[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [modalVisible, setModalVisible] = useState(false);
-    const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
-    const [modalAction, setModalAction] = useState<'create' | 'edit'>('create');
-
-    useEffect(() => {
-            api.get('/provinces')
-            .then(response => {
-                console.log('Provinces fetched:', response.data.data);
-                setLoading(false);
-                setProvinces(response.data.data);
-                setFilteredProvinces(response.data.data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
-
-            })
-            .catch(error => {
-                setLoading(false);
-                toast.error(`Error al obtener las provincias: ${error.message}`);
-            });
+  useEffect(() => {
+        findAllProvinces()
+        .then(data => {
+            setLoading(false);
+            setProvinces(data);
+            setFilteredProvinces(data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
+        });
     }, []);
 
-    useEffect(() => {
+  useEffect(() => {
         setFilteredProvinces(
             provinces.filter((province: Province) => province.nameProvince.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase().includes(searchTerm.normalize("NFD").replace(/\p{Diacritic}/gu, '').replace(/\s+/g, '').toLowerCase()))
         );
 
     }, [searchTerm, provinces]);
 
-    if (loading) {
+  if (loading) {
         return <div className="loading">Loading...</div>;
-    }
+  }
 
-    function addProvince(nameProvince: string) {
-        if (!nameProvince.trim()) return;
+// Handlers
 
-      api.post('/provinces', {
-          nameProvince: nameProvince,
-          active: true
-      })
-      .then(created => {
-        // añadimos la provincia nueva al array
-        toast.success(`Provincia creada!`);
+  async function addProvince(newName: string) {
+
+    const createdProvince = await createProvince(newName);
+    if (createdProvince) {
         setModalVisible(false);
-        setProvinces([created.data.data, ...provinces]);
-      })
-      .catch(err => {
-        toast.error(`Error al crear provincia: ${err.message}`);
-        });
+        setProvinces([createdProvince, ...provinces]);
       }
-
-
-  function deleteProvince(id: string) {
-    if (!id) return;
-
-    api.patch(`/provinces/${id}/toggle-state`)
-      .then(() => {
-        // Eliminamos la provincia del array
-        setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: false }));
-        toast.success(`Provincia eliminada!`);
-        setModalVisible(false);
-      })
-      .catch(err => {
-        toast.error(`Error al eliminar provincia: ${err.message}`);
-      });
   }
 
-  function editProvince(id: string, newName: string, active: boolean) {
-    if (!newName) return;
-
-    if(active) {
-      api.put(`/provinces/${id}`, {
-        nameProvince: newName
-      })
-      .then(updated => {
-        const newProvinces = [updated.data.data, ...provinces.filter(prov => prov.idProvince !== id)];
-        setProvinces(newProvinces);
-        toast.success(`Provincia modificada!`);
-        setModalVisible(false);
-      })
-      .catch(err => {
-        toast.error(`Error al modificar provincia: ${err.message}`);
-        });
-      } else {
-
-      api.patch(`/provinces/${id}/toggle-state`)
-      .then(() => {
-        setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
-        toast.success(`Provincia activada!`);
-        setModalVisible(false);
-      })
-      .catch(err => {
-        toast.error(`Error al modificar provincia: ${err.message}`);
-      });
-    }; 
+  async function deleteProvince(id: string) {
+    if(await removeProvince(id)) {
+      setModalVisible(false);
+      setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: false }));
+    }
   }
 
+  async function editProvince(id: string, newName: string, active: boolean) {
+    const updatedProvince = await updateProvince(id, newName, active);
+    if (active && updatedProvince) {
+      setModalVisible(false);
+      setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : updatedProvince));
+    } else if(!active) {
+      setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
+      setModalVisible(false);
+    }
+  }
+
+  // Jsx 
     return (
       <>
         <div className="admin-home">
