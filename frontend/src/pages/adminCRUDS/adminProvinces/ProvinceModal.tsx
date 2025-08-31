@@ -4,9 +4,6 @@ import { FaTimes } from "react-icons/fa";
 import { FaChevronRight } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
 
-
-
-
 export function ProvinceModal({visible, onClose, province, onDelete, onEdit, action, onCreate}: {visible: boolean; onClose: () => void; province: any | null; onDelete: () => void; onEdit: (id: string, newName: string, active:boolean) => void; action: string; onCreate: (newName: string) => void;}) {
     if (!visible) return null;
     if (action === "edit" && province && province.active) {

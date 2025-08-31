@@ -8,7 +8,6 @@
   animation: fadeIn 0.5s ease forwards;
 }
 
-
 .crud-create-entity {
     display: flex;
     gap: 5%;
@@ -29,44 +28,10 @@
     cursor: pointer;
 }
 
-.crud-searchBar {
-    display: flex;
-    align-items: center;
-    width: 80%;
-    font-size: 30%;
-    background-color: white;
-    border: 1px solid black;
-    border-radius: 10px;
-    margin-bottom: 1%;
-    margin-top: 1.5%;
-}
-
 .navZone {
     margin: 0;
     margin-top: 3%;
     width: 100%;
-}
-
-.search-icon {
-    font-size: 30px;
-    margin-left: 8px;
-    color: gray;
-}
-
-.crud-searchInput {
-
-    font-size: 25px;
-    outline: none;
-    border: none !important;
-    background: transparent;
-    width: 100%;
-}
-
-.crud-searchBar input {
-    margin-left: 8px;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
 }
 
 .crud-grid {
@@ -77,15 +42,6 @@
   background-color: #F3F7F8;
   border-radius: 10px;
 
-}
-
-.crud-error-message {
-    color: red;
-    font-size: 25px;
-    animation: 
-    fadeIn 0.5s ease-in-out 0s forwards,
-    fadeIn 0.5s ease-in-out reverse 10s forwards;
-    text-align: center;
 }
 
 .crud-loading {
@@ -129,24 +85,35 @@
     margin-bottom: 0;
 }
 
+.skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    #e0e0e0 25%,
+    #f0f0f0 50%,
+    #e0e0e0 75%
+  );
+  background-size: 200% 100%;
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .hidden {
     display: none;
 }
 
 @media (max-width: 768px) {
 
-    .crud-search-icon {
-    font-size: 20px;
-    }
-
     .navZone {
         text-align: center;
         font-size: 15px;
-    }
-
-    .crud-searchInput {
-
-    font-size: 4.5vw;
     }
 
     .create-entity {
