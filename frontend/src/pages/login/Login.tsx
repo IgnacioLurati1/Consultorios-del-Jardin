@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import api from '../../axios';
+import { useAuth } from "../../context/AuthContext";
 
 interface TokenPayload {
     email:string;
@@ -18,6 +19,8 @@ interface TokenPayload {
 }
 
 export function Login() {
+
+const {login} = useAuth();
 
 const [formData, setFormData] = useState({
         email: '',
@@ -56,6 +59,8 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             
             const decoded: TokenPayload = jwtDecode(response.data.token);
 
+            login(response.data.token);
+            
             if(decoded.type ==="admin"){     
                 navigate('/adminHome')
             }} else {
