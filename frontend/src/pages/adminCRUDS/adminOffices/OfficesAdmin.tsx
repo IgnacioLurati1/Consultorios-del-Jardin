@@ -1,32 +1,15 @@
 import { useEffect, useState } from "react";
 import "../../adminCRUDS/adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone.tsx";
-import { FaSearch, FaPlus } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { OfficeLabel } from "./OfficeLabel.tsx";
 import { OfficeModal } from "./OfficeModal.tsx";
 import { toast, ToastContainer } from "react-toastify";
+import type {Office, Province, City} from "../../types.ts";
+import SearchBar from "../../../components/searchBar/searchBar.tsx";
+
 
 export function OfficesAdmin() {
-  interface Province {
-    idProvince: string;
-    nameProvince: string;
-  }
-
-  interface City {
-    idCity: string;
-    nameCity: string;
-    province: Province;
-    active: boolean;
-  }
-
-  interface Office {
-    idOffice: string;
-    openingTime: string;
-    closingTime: string;
-    description: string;
-    active: boolean;
-    city: City;
-  }
 
   const [offices, setOffices] = useState<Office[]>([]);
   const [filteredOffices, setFilteredOffices] = useState<Office[]>([]);
@@ -43,7 +26,6 @@ export function OfficesAdmin() {
     fetch("/api/offices")
       .then((response) => response.json())
       .then((data) => {
-        console.log("Offices fetched:", data.data);
         setLoading(false);
         setOffices(data.data);
         setFilteredOffices(
@@ -54,7 +36,7 @@ export function OfficesAdmin() {
       })
       .catch((error) => {
         setLoading(false);
-        toast.error("Error cargando oficinas " + error);
+        toast.error("Error cargando consultorios " + error);
       });
   }, []);
 
@@ -90,7 +72,6 @@ export function OfficesAdmin() {
     fetch("/api/cities")
       .then((response) => response.json())
       .then((data) => {
-        console.log("Cities fetched:", data.data);
         setCities(data.data);
       })
       .catch((error) => {
@@ -102,7 +83,6 @@ export function OfficesAdmin() {
     fetch("/api/provinces")
       .then((response) => response.json())
       .then((data) => {
-        console.log("Provinces fetched:", data.data);
         setProvinces(data.data);
       })
       .catch((error) => {
@@ -127,13 +107,13 @@ useEffect(() => {
   }
 }, [cities]);
 
+
   function addOffice(
   description: string,
   openingTime: string,
   closingTime: string,
   cityId: string
 ) {
-  console.log("Adding office with data:", { description, openingTime, closingTime, city: cityId});
   if (!description || !openingTime || !closingTime || !cityId) return; 
   fetch("/api/offices", {
     method: "POST",
@@ -154,8 +134,7 @@ useEffect(() => {
       return res.json();
     })
     .then((created) => {
-      console.log("Office created from backend:", created);
-      toast.success("ofinica creada exitosamente");
+      toast.success("Oficina creada exitosamente");
       const fullCity = cities.find(city => city.idCity === created.city || city.idCity === cityId);     
       if (fullCity) {
         const completeOffice = {
@@ -163,12 +142,10 @@ useEffect(() => {
           city: fullCity
           
         };   
-        console.log("Complete office object:", completeOffice); 
         setModalVisible(false);
         setError(null);
         setOffices((prev) => [...prev, completeOffice]);
       } else {
-        console.log("City not found, reloading all offices...");
         fetch("/api/offices")
           .then((response) => response.json())
           .then((data) => {
@@ -179,12 +156,10 @@ useEffect(() => {
     })
     .catch((error) => {
       setLoading(false);
-      toast.error("Error al crear la oficina: La hora de apertura debe ser mayor a la hora de cierre ");
+      toast.error("La hora de apertura debe ser mayor a la hora de cierre");
       return error
     });
 }
-
-
 
 
   function deleteOffice(id: string) {
@@ -203,13 +178,14 @@ useEffect(() => {
         );
         setError(null);
         setModalVisible(false);
-        toast.success("ofinica eliminada exitosamente");
+        toast.success("Oficina eliminada exitosamente");
       })
       .catch((error) => {
-        toast.error("Error eliminando oficina: " + error);
+        toast.error("Ocurrió un error al eliminar el consultorio: " + error);
       });
   }
 
+  
 function editOffice(
   id: string,
   description: string,
@@ -218,8 +194,6 @@ function editOffice(
   cityId: string,
   active: boolean,
 ) {
-  console.log(active);
-  console.log("activado");
   if (!id || !description || !openingTime || !closingTime || !cityId) return;
   
   if (active) {
@@ -236,7 +210,6 @@ function editOffice(
         throw new Error(error);
       })
       .then((updated) => {
-        console.log("Updated office from backend:", updated.data);
         const fullCity = cities.find(city => city.idCity === cityId);
         
         let completeOffice;
@@ -249,8 +222,6 @@ function editOffice(
           completeOffice = updated.data;
         }
         
-        console.log("Complete updated office:", completeOffice);
-        
         const newOffices = [
           completeOffice,
           ...offices.filter((office) => office.idOffice !== id),
@@ -258,10 +229,10 @@ function editOffice(
         setOffices(newOffices);
         setError(null);
         setModalVisible(false);
-        toast.success("ofinica modificada exitosamente");
+        toast.success("Oficina modificada exitosamente");
       })
       .catch((error) => {
-        toast.error("Error actualizando la oficina, la hora de cierre debe ser mayor a la hora de apertura ");
+        toast.error("La hora de cierre debe ser mayor a la hora de apertura");
         return error
       });
   } else {
@@ -275,17 +246,14 @@ function editOffice(
         return res.json();
       }
       setModalVisible(false);
-      throw new Error("ocurrio un error al activar la oficina");
+      throw new Error("Ocurrió un error al activar el consultorio");
     })
     .then((updated) => {
-      console.log("Activated office from backend:", updated.data);
       const originalOffice = offices.find(office => office.idOffice === id);
       const completeOffice = {
         ...updated.data,
         city: originalOffice?.city || updated.data.city
       };
-      
-      console.log("Complete activated office:", completeOffice);
       
       const newOffices = [
         completeOffice,
@@ -296,7 +264,7 @@ function editOffice(
       setModalVisible(false);
     })
     .catch((error) => {
-      toast.error("error activando la oficina: " + error);
+      toast.error("Ocurrió un error al activar el consultorio:  consultorio: " + error);
     });
   }
 }
@@ -304,21 +272,13 @@ function editOffice(
   return (
     <>
       <div className="admin-home">
-        <NavZone title="Administrador de Oficinas" />
+        <NavZone title="Administrador de Consultorios" />
         <ToastContainer 
                 className = {`toast-container`}
                 draggable={false}
             />
-        <div className="crud-searchBar">
-          <FaSearch className="search-icon" />
-          <input
-            className="crud-searchInput"
-            type="text"
-            placeholder="ingrese el nombre de la oficina"
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="crud-grid">
+            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de un consultorio" />
+            <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
           <ul className="crud-list">
             {filteredOffices.map((office) => (
               <li
@@ -377,13 +337,7 @@ function editOffice(
                 provinces={provinces}
               />
             )}
-          
-          {error != null && (
-            <p className="crud-error-message">
-              <strong>{error.baseMessage}</strong>
-              {error.detail}
-            </p>
-          )}
+
         </div>
                   <div><button
             className="crud-add-button"
@@ -392,12 +346,10 @@ function editOffice(
               setModalAction("create");
             }}
           >
-            <strong>Agregar Oficina </strong>
+            <strong>Agregar Consultorio </strong>
             <FaPlus />
           </button>
       </div></div>
     </>
   );
 }
-
-/*good*/

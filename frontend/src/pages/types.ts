@@ -10,3 +10,12 @@ export interface City {
         province: Province;
         active: boolean;
     }
+
+export interface Office {
+    idOffice: string;
+    openingTime: string;
+    closingTime: string;
+    description: string;
+    active: boolean;
+    city: City;
+  }

@@ -24,7 +24,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       <div className="crud-modal" onClick={onClose}>
         <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles de la Oficina <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
           <p>ID: {office.idOffice}</p>
@@ -53,7 +53,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             </select>
           </p>
           <div className="buttons">
-            <button className="delete-button" onClick={onDelete}>Eliminar Oficina <FaTrash /></button>
+            <button className="delete-button" onClick={onDelete}>Eliminar Consultorio <FaTrash /></button>
             <button className="edit-button" onClick={() => onEdit(office.idOffice, newDescription , newOpeningTime, newClosingTime, newCityId, office.active)}>Modificar</button>
           </div>
         </div>
@@ -86,11 +86,11 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       }}>
         <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="crud-modal-title">Crear Nueva Oficina <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Crear Nuevo Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
 
-          <p>Descripción: <input type="text" className="input-crud" placeholder="Descripción de la oficina" value={newDescription} onChange={e => setNewDescription(e.target.value)} /></p>
+          <p>Descripción: <input type="text" className="input-crud" placeholder="Descripción del Consultorio" value={newDescription} onChange={e => setNewDescription(e.target.value)} /></p>
           <p>Horario de Apertura: <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} /></p>
           <p>Horario de Cierre: <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} /></p>       
           <p>Provincia:
@@ -114,7 +114,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             </select>
           </p>
           <div className="buttons">
-            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Oficina</button> {}
+            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Consultorio</button> {}
           </div>
         </div>
       </div>
@@ -130,7 +130,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       }}>
         <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles de la Oficina <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
           <p>ID: {office.idOffice}</p>
@@ -147,5 +147,3 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
     );
   }
 }
-
-/*good*/
