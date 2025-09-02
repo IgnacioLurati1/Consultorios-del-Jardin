@@ -1,41 +1,8 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faLocationDot} from '@fortawesome/free-solid-svg-icons'
-
-interface Province {
-        idProvince: string;
-        nameProvince: string;
-        active?: boolean;
-    }
-
-    interface City {
-        idCity: string;
-        nameCity: string;
-        province: Province;
-        active?: boolean;
-    }
-
-    interface Office {
-        idOffice: string;
-        description: string;
-        openingTime: string;
-        closingTime: string;
-        city: City
-        active?: boolean;
-    }
-
-    interface Room {
-        idRoom: string;
-        description: string;
-        office: Office;
-        active: boolean;
-    }
-interface RoomLabelProps {
-    room: Room;
-    active?: boolean;
-}
+import type {RoomLabelProps} from "./typesRoom.tsx"
 
 export function RoomLabel({ room, active }: RoomLabelProps){
-    console.log("name city", room.office.city.nameCity);
     return (
         <div className={`${active && room.office.active? 'crud-label-green' : 
             active && !room.office.active? 'crud-label-green-inactive': 

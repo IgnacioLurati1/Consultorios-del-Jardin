@@ -2,83 +2,38 @@ import { useEffect, useState, useRef } from "react";
 import "../CRUDSModal.css";
 import { FaTimes } from "react-icons/fa";
 import { FaChevronRight } from "react-icons/fa";
+import { FaExclamationTriangle } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
-
-interface Province {
-        idProvince: string;
-        nameProvince: string;
-        active?: boolean;
-    }
-    interface City {
-        idCity: string;
-        nameCity: string;
-        province: Province;
-        active?: boolean;
-    }
-
-    interface Office {
-        idOffice: string;
-        description: string;
-        openingTime: string;
-        closingTime: string;
-        city: City
-        active?: boolean;
-    }
-
-    interface Room {
-        idRoom: string;
-        description: string;
-        office: Office;
-        active: boolean;
-    }
-
-interface RoomModalProps {
-    visible: boolean;
-
-    room: Room | null;
-
-    offices: Office[];
-    
-    cities: City[];
-
-    onClose: () => void;
-
-    onDelete: (idRoom: string) => void;
-
-    onEdit : (UpdatedRoom: {
-        idRoom: string;
-        description: string;
-        office: string;
-    }, 
-    active: boolean
-    ) => void;
-
-    onCreate: (newRoom: {
-        description: string;
-        office: string;
-    }) => void;
-
-    type: string;
-}
+import type {Office, Room} from "../../types.ts"
+import type {RoomModalProps} from "./typesRoom.tsx"
 
 export function RoomModal({ visible, room, offices, cities, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
 
-    const [roomData, setRoomData] = useState({ idRoom: "", description: "", office:"", active:true   });
+    const [roomData, setRoomData] = useState({ idRoom: "", description: "", office: "", active:true   });
     const [officeDescription, setOfficeDescription] = useState("");
     const [filteredOffices, setFilteredOffices] = useState<Office[]>(offices);
     const [cityName, setCityName] = useState("");
+    const [errors, setErrors] = useState<{ description?:string, office?: string}>({});
 
     useEffect(() => {
         if (room) {
             setRoomData({idRoom: room.idRoom, description: room.description, office: room.office.idOffice, active: room.active});
             setOfficeDescription(room.office.description);
             setCityName(room.office.city.nameCity);
+            setErrors({});
         }
     }, [room]);
 
     const activateButtonRef = useRef<HTMLButtonElement| null>(null);
     const createButtonRef = useRef<HTMLButtonElement| null>(null);
+
+    function closingHandler(room: Room | null) {
+        if (room){
+            onClose();
+            setErrors({});
+            setRoomData({idRoom: room.idRoom, description: room.description, office: room.office.idOffice, active: room.active})}
+    }
 
     function handleKeyDown(event: React.KeyboardEvent) {
         if (event.key !== 'Enter') {
@@ -92,7 +47,37 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         }
     }
 
-    
+    function validateInputs(){
+        const newErrors: typeof errors = {};
+
+        if(!roomData.description.trim()){
+            newErrors.description = "La descripción es obligatoria"
+        }
+
+        if(!roomData.office){
+            newErrors.office = "Se debe elegir un consultorio"
+        }
+
+        setErrors(newErrors);
+
+        if( Object.keys(newErrors).length ===0){
+            return true
+        }else 
+            {return false}
+    }
+
+    function handleSubmit(){
+
+        if(!validateInputs()) {
+            console.log("Validación fallida", errors)
+        return;}
+
+        if(type === "edit"){
+            onEdit(roomData, true)
+        }else{
+            onCreate({description: roomData.description, office:roomData.office})
+        }
+    }
 
     if (!visible|| (type ==="edit" && !room)) {
         return null;
@@ -145,19 +130,16 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                     </div>
                 </div>
             </div>
-            );
+        );
     }
-
-
     return (
-        <div className="crud-modal" onClick={onClose}>
+        <div className="crud-modal" onClick={() => {closingHandler(room)}}>
             <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
                 <div className="titleAndClose">
                     <h2 className="crud-modal-title">{type === "edit"?
                         "Detalles de la Sala":"Crear Sala"}<FaChevronRight />
                     </h2>
-                    <FaTimes className="close-icon" onClick={onClose} />
-
+                    <FaTimes className="close-icon" onClick={() => {closingHandler(room)}}/>
                 </div>
                 <div>
                     {type === "edit" && room? (   
@@ -167,39 +149,56 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                 <div className="crud-input-container">
                     <label>Descripción:</label>
                     <input
-                        className="input-crud"
+                        className={`input-crud ${errors.description? "input-error" : "input-valid"}`}
                         type="text"
                         value={roomData.description}
-                        onChange={(e) => setRoomData({ ...roomData, description: e.target.value })}
+                        onChange={(e) => 
+                            setRoomData({ ...roomData, description: e.target.value })}
                     />
+                    <div className="error-container">
+                        {errors.description &&
+                        <div className="error-text">
+                                <FaExclamationTriangle className="error-icon"/>{errors.description}
+                            </div>
+                        }
+                    </div>
                     
                 </div>
 
                 <div className="crud-input-container">
                     <label>Ciudad:</label>
                     <input
-                        className="input-crud"
+                        className="input-crud input-valid"
                         type="text"
                         list = "cities"
                         value = {cityName}
                         placeholder="Seleccione una ciudad"
+                        onFocus={() => {
+                            setCityName("");
+                            setOfficeDescription("");
+                            setFilteredOffices(offices);
+                            }}
                         onChange={e => {
                             
-                        const value = e.target.value;
-                        setCityName(value);
-                        setOfficeDescription("");
+                            const value = e.target.value;
+                            setCityName(value);
 
-                        const selectedCity = cities.find(p => p.nameCity === value);
+                            const selectedCity = cities.find(p => p.nameCity === value);
 
-                        if (selectedCity) {
-                        setFilteredOffices(offices.filter(office => office.city.idCity === selectedCity.idCity));
+                            if (selectedCity) {
+                            setFilteredOffices(offices.filter(office => office.city.idCity === selectedCity.idCity));
                         }}}
 
                         onBlur = {() => {
                             if (!cities.find(p => p.nameCity === cityName)) {
                                 toast.dismiss();
-                                toast.error("Ciudad inválida");
+                                setErrors(prev => ({...prev, office: "Ciudad inválida"}))
                                 setFilteredOffices(offices);
+                        }else {
+                            setErrors(prev => {
+                                const { office, ...rest } = prev;
+                                return rest;
+                                });
                         }}}
                     />
                     <datalist id="cities">  
@@ -208,24 +207,30 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                         ))}
                     </datalist>
                     
+                    
                 </div>
 
                 <div className="crud-input-container">
                     <label>Oficina:</label>
                     <input
-                        className="input-crud"
+                        className={`input-crud ${errors.office? "input-error" : "input-valid"}`}
                         type="text"
                         list = "offices"
                         value={officeDescription}
                         placeholder="Seleccione una oficina"
+                        onFocus={() => {
+                            setOfficeDescription("");
+                            }}
                         onChange={e => {
                         const value = e.target.value;
                         setOfficeDescription(value);
+                        
 
                         const selectedOffice = offices.find(p => p.description === value);
 
                         if (selectedOffice) {
                         setRoomData({ ...roomData, office: selectedOffice.idOffice });
+                        setCityName(selectedOffice.city.nameCity);
                         } else {
                         setRoomData({ ...roomData, office:"" });
                         }}}
@@ -233,8 +238,12 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                         onBlur = {() => {
                             if (!offices.find(p => p.description === officeDescription)) {
                                 toast.dismiss();
-                                toast.error("Oficina inválida");
                                 setRoomData({ ...roomData, office:""});
+                        }else {
+                            setErrors(prev => {
+                                const { office, ...rest } = prev;
+                                return rest;
+                                });
                         }}}
                     />
                     <datalist id="offices">  
@@ -242,9 +251,14 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                         {cityName && filteredOffices.map((office) => (
                             <option key={office.idOffice} value={office.description}/>
                         ))}
-
                     </datalist>
-                    
+                    <div className="error-container">
+                        {errors.office && 
+                            <div className="error-text">
+                                <FaExclamationTriangle className="error-icon"/>{errors.office}
+                            </div>}
+                    </div>
+
                 </div>
                 <div className="buttons">
                     {type === "edit" && room? (
@@ -255,8 +269,8 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                         ):
                     <>
                     <button type="button" className="delete-button" onClick={() => {onDelete(roomData.idRoom); onClose()}} >Eliminar<FaTrash /></button>
-                    <button type="submit" className="edit-button" onClick={()=>onEdit(roomData, true)}>Modificar</button></>
-                    ) : (<button autoFocus ref={createButtonRef} type="submit" className="create-button"  onClick={()=>onCreate({description: roomData.description, office:roomData.office})}>Añadir</button>)}
+                    <button type="submit" className="edit-button" onClick={()=>handleSubmit()}>Modificar</button></>
+                    ) : (<button autoFocus ref={createButtonRef} type="submit" className="create-button"  onClick={()=>handleSubmit()}>Añadir</button>)}
                 </div>
 
             </div>
