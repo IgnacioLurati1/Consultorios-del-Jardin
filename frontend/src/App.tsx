@@ -40,7 +40,7 @@ const router = createBrowserRouter([
       { path: 'CitiesAdmin', element: <CitiesAdmin /> },
       { path: 'OfficesAdmin', element: <OfficesAdmin /> },
       { path: 'RoomsAdmin', element: <RoomsAdmin /> },
-      { path: '/DurationsAdmin', element: <DurationsAdmin/>},
+      { path: 'DurationsAdmin', element: <DurationsAdmin/>},
       ]},
 
 

@@ -5,7 +5,7 @@ import { FaChevronRight } from "react-icons/fa";
 import { FaExclamationTriangle } from "react-icons/fa";
 import { FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
-import type {Office, Room} from "../../types.ts"
+import type {Office} from "../../types.ts"
 import type {RoomModalProps} from "./typesRoom.tsx"
 
 export function RoomModal({ visible, room, offices, cities, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
