@@ -17,23 +17,16 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
     const [errors, setErrors] = useState<{ description?:string, office?: string}>({});
 
     useEffect(() => {
-        if (room) {
+        if (visible && room) {
             setRoomData({idRoom: room.idRoom, description: room.description, office: room.office.idOffice, active: room.active});
             setOfficeDescription(room.office.description);
             setCityName(room.office.city.nameCity);
             setErrors({});
         }
-    }, [room]);
+    }, [visible, room]);
 
     const activateButtonRef = useRef<HTMLButtonElement| null>(null);
     const createButtonRef = useRef<HTMLButtonElement| null>(null);
-
-    function closingHandler(room: Room | null) {
-        if (room){
-            onClose();
-            setErrors({});
-            setRoomData({idRoom: room.idRoom, description: room.description, office: room.office.idOffice, active: room.active})}
-    }
 
     function handleKeyDown(event: React.KeyboardEvent) {
         if (event.key !== 'Enter') {
@@ -133,13 +126,13 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         );
     }
     return (
-        <div className="crud-modal" onClick={() => {closingHandler(room)}}>
+        <div className="crud-modal" onClick={onClose}>
             <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
                 <div className="titleAndClose">
                     <h2 className="crud-modal-title">{type === "edit"?
                         "Detalles de la Sala":"Crear Sala"}<FaChevronRight />
                     </h2>
-                    <FaTimes className="close-icon" onClick={() => {closingHandler(room)}}/>
+                    <FaTimes className="close-icon" onClick={onClose}/>
                 </div>
                 <div>
                     {type === "edit" && room? (   
@@ -206,7 +199,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                             <option key={city.idCity} value={city.nameCity}/>
                         ))}
                     </datalist>
-                    
+                    <div>{/*Espacio para alinear inputs*/}</div>
                     
                 </div>
 
