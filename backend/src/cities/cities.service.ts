@@ -114,7 +114,7 @@ export class CityService {
     city.active = !city.active;
 
     if (city.offices?.length > 0 && !city.active) {
-      city.offices.map(office => office.active = city.active);
+      city.offices.map(office => office.active = false);
     }
 
     await em.flush();
