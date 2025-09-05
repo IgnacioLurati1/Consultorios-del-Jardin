@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction} from 'express'
 import { CityService } from './cities.service.js'
 import { wrap } from '@mikro-orm/core';
-import { ValidationError } from '../errors/ValidationError.js';
 
 const cityService = new CityService();
 
