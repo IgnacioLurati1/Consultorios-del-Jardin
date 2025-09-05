@@ -2,7 +2,6 @@
     import { Room } from './rooms.entity.js';
     //import { OfficeService } from '../offices/offices.service.js'; ----------- FALTA LO DE ALAN -
     import type { RequiredEntityData } from '@mikro-orm/core';
-    import { ValidationError } from '../errors/ValidationError.js';
 
     const em = orm.em;
     export class RoomService {
@@ -139,10 +138,6 @@
     async createRoom(data: RequiredEntityData<Room>): Promise<Room> {
         const errors = await this.validateRoomAdd(data)
 
-        if (errors.length > 0){
-        throw new ValidationError(errors.join(", "))
-        }
-
         const room = em.create(Room, data);
         await em.flush();
 
@@ -154,7 +149,7 @@
         const errors = await this.validateRoomUpdate(id, data)
         
         if(errors.length > 0){
-        throw new ValidationError(errors.join(", "))
+        throw new Error(errors.join(", "))
         }
         
         const room = await em.findOneOrFail(Room,  { idRoom : id })

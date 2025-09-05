@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction} from 'express'
 import { RoomService } from './rooms.services.js'
 import { wrap } from '@mikro-orm/core';
-import { ValidationError } from '../errors/ValidationError.js';
 
 
 const roomService = new RoomService();
@@ -61,12 +60,11 @@ export async function add(req: Request, res: Response) {
     res.status(201).json({ message: 'Room created successfully', data: wrap(room).toObject() })
   
     } catch (error: any) {
-      if(error instanceof ValidationError){
-        res.status(error.statusCode).json({message: error.message});
-      }
-      else {res.status(500).json({ message: 'Internal Server Error' })}
-    }
+
+      res.status(500).json({ message: 'Internal Server Error' })
+    
   }
+}
 
 export async function update(req: Request, res: Response) {
   try{
@@ -74,10 +72,9 @@ export async function update(req: Request, res: Response) {
       const updatedRoom = await roomService.updateRoom(id, req.body.sanitizedInput)
       res.status(200).json({ message: 'Room updated successfully', data: wrap(updatedRoom).toObject() })
     }catch (error: any) {
-      if(error instanceof ValidationError){
         res.status(error.statusCode).json({message: error.message});
-      }
-      else {res.status(500).json({ message: 'Internal Server Error' })}
+      
+      res.status(500).json({ message: 'Internal Server Error' })
     }
   }
 

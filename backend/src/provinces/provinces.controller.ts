@@ -23,7 +23,7 @@ async function findAll(req: Request, res: Response) {
   try {
 
     const provinces = await provinceService.findAllProvinces()
-    res.status(200).json({message: 'finded all Provinces', data:provinces })
+    res.status(200).json({message: 'Provincias encontradas', data:provinces })
   
   }catch(error: any){
     res.status(500).json({ message: error.message })
@@ -34,7 +34,7 @@ export async function findAllActive(req: Request, res: Response) {
   try {
 
     let provinces = await provinceService.findAllActiveProvinces() 
-    res.status(200).json({message: 'finded all active Provinces', data:provinces })
+    res.status(200).json({message: 'Provincias activas encontradas', data:provinces })
   
   }catch(error: any){
     res.status(500).json({ message: error.message })
@@ -46,7 +46,7 @@ async function findOne(req: Request, res: Response) {
 
     const id = Number.parseInt(req.params.idProvince)
     const province = await provinceService.findProvinceById(id)
-    res.status(200).json({ message: 'finded Province', data: province })
+    res.status(200).json({ message: 'Provincia encontrada', data: province })
   
   }catch(error: any) {
     res.status(500).json({ message: error.message })
@@ -58,10 +58,10 @@ async function add(req: Request, res: Response) {
   try {
 
     const province = await provinceService.createProvince(req.body.sanitizedInput)
-    res.status(201).json({ message: 'Province created', data: province })
+    res.status(201).json({ message: 'Provincia creada', data: province })
   
   }catch(error: any) {
-    res.status(500).json({ message: req.body.sanitizedInput.name + error.message })
+    res.status(500).json({ message: error.message })
   }
 }
 
@@ -71,7 +71,7 @@ async function update(req: Request, res: Response) {
     const id = Number.parseInt(req.params.idProvince)
     delete req.body.sanitizedInput.active
     const province = await provinceService.updateProvince(id, req.body.sanitizedInput)
-    res.status(200).json({ message: 'Province updated', data: province })
+    res.status(200).json({ message: 'Provincia actualizada', data: province })
 
   }catch(error: any) {
     res.status(500).json({ message: error.message })
@@ -82,7 +82,7 @@ async function toggleProvinceState(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idProvince)
     const province = await provinceService.toggleProvinceState(id)
-    res.status(200).json({ message: 'Province state toggled', data: province })
+    res.status(200).json({ message: 'Provincia y ciudades actualizadas', data: province })
   } catch (error: any) {
     res.status(500).json({ message: error.message })
   }

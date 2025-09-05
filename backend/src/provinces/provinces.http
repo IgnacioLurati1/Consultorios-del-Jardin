@@ -15,7 +15,7 @@ POST http://localhost:3000/api/provinces
 Content-Type: application/json
 
 {
-  "nameProvince": "Santa Fe",
+  "nameProvince": "Mendoza",
   "cities": []
 }
 

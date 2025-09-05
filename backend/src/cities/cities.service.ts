@@ -11,8 +11,7 @@ export class CityService {
 
     //VALIDATIONS
 
-
-   async validateCityAdd(sanitizedInput: any): Promise<boolean> {
+   async validateCityInput(sanitizedInput: any): Promise<boolean> {
 
     if (sanitizedInput.nameCity.length < 3 || sanitizedInput.nameCity.length > 25) {
       return true
@@ -33,32 +32,6 @@ export class CityService {
       return true
     }
   }
-
-
-  async validateCityUpdate(id: number, sanitizedInput: any): Promise<boolean> {
-
-      if (sanitizedInput.nameCity.length < 2 || sanitizedInput.nameCity.length > 100) {
-        return true;
-      } 
-      else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
-        return true;
-      }
-  
-    try{
-      const province = await this.provinceService.findProvinceById(sanitizedInput.province)
-      
-      if(province.active){
-        return false
-      }
-      return true
-
-    } catch(error:any){
-
-      return true
-
-    }
-  }
-    
   //SERVICES
 
   async findAllCities(): Promise<City[]> {
@@ -76,7 +49,7 @@ export class CityService {
   }
 
   async createCity(data: RequiredEntityData<City>): Promise<City> {
-    const error = await this.validateCityAdd(data)
+    const error = await this.validateCityInput(data)
 
     if (error){
       throw new Error("Error al crear localidad, datos inválidos")
@@ -90,7 +63,7 @@ export class CityService {
   }
 
   async updateCity(id:number, data:Partial<City>): Promise<City>{
-    const error = await this.validateCityUpdate(id, data)
+    const error = await this.validateCityInput(data)
     
     if(error){
       throw new Error("Error al modificar localidad, datos inválidos")

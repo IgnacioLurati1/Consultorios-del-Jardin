@@ -12,17 +12,17 @@ POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "nameCity": "Rosariooooo",
-    "province": "2",
+    "nameCity": "Rosariooooooooooooo 2",
+    "province": "1",
     "offices" : []
 }
 
 ### modificar una localidad (PUT - recurso completo e idempotente)
-PUT http://localhost:3000/api/cities/4
+PUT http://localhost:3000/api/cities/1
 Content-Type: application/json
 
 {
-  "nameCity": "Rosario",
+  "nameCity": "Santa Cruz ciudad",
   "province": 1
 }
 

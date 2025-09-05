@@ -75,7 +75,7 @@ export async function toggleCityState(req: Request, res: Response) {
   try {
     const idCity = Number(req.params.idCity);
     const city = await cityService.toggleCityState(idCity);
-    res.status(200).json({ message: 'Estado de la Localidad y offices actualizado', data: city });
+    res.status(200).json({ message: 'Estado de la Localidad y Consultorios actualizado', data: city });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
