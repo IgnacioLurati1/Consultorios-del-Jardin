@@ -4,10 +4,12 @@ import {
     PrimaryKey,
     ManyToOne,
     Rel,
+    Unique
 } from '@mikro-orm/core'
 import { Office } from '../offices/offices.entity.js'
 
 @Entity()
+@Unique({ properties: ['office', 'description'] })
 export class Room {
 
   @PrimaryKey()

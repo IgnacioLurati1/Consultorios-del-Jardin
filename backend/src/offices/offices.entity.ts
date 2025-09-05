@@ -7,11 +7,13 @@ import {
   OneToMany,
   Collection,
   Cascade,
+  Unique,
 } from '@mikro-orm/core'
 import { City } from '../cities/cities.entity.js'
 import { Room } from '../rooms/rooms.entity.js'
 
 @Entity()
+@Unique({ properties: ['city', 'description'] })
 export class Office {
 
   @PrimaryKey()
