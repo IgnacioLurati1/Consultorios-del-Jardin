@@ -8,27 +8,26 @@ GET http://localhost:3000/api/cities/active
 GET http://localhost:3000/api/cities/18
 
 ### crear una nueva localidad
-# @name createCity
 POST http://localhost:3000/api/cities
 Content-Type: application/json
 
 {
-    "nameCity": "Nueva ciudad en Santa Fe",
+    "nameCity": "Rosariooooo",
     "province": "2",
     "offices" : []
 }
 
 ### modificar una localidad (PUT - recurso completo e idempotente)
-PUT http://localhost:3000/api/cities/2
+PUT http://localhost:3000/api/cities/4
 Content-Type: application/json
 
 {
-  "nameCity": "Nueva ciudad de Santa Cruz",
+  "nameCity": "Rosario",
   "province": 1
 }
 
 ### cambiar el estado de una ciudad)
-PATCH http://localhost:3000/api/cities/10/toggle-state
+PATCH http://localhost:3000/api/cities/4/toggle-state
 Content-Type: application/json
 
 {

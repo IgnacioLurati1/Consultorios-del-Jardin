@@ -7,12 +7,13 @@ import {
   PrimaryKey,
   ManyToOne,
   Rel,
+  Unique
 } from '@mikro-orm/core'
 import { Province } from '../provinces/provinces.entity.js'
 import { Office } from '../offices/offices.entity.js'
 
 @Entity()
-
+@Unique({ properties: ['province', 'nameCity'] })
 export class City {
   @PrimaryKey()
   idCity?: number

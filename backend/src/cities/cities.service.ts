@@ -2,7 +2,6 @@ import { orm } from '../shared/db/orm.js';
 import { City } from './cities.entity.js';
 import { ProvinceService } from '../provinces/provinces.service.js';
 import type { RequiredEntityData } from '@mikro-orm/core';
-import { ValidationError } from '../errors/ValidationError.js';
 
 const em = orm.em;
 export class CityService {
@@ -13,105 +12,53 @@ export class CityService {
     //VALIDATIONS
 
 
-    async validateCityAdd(sanitizedInput: any): Promise<string[]> {
-    const errors: string[] = []
+   async validateCityAdd(sanitizedInput: any): Promise<boolean> {
 
-    if (sanitizedInput.nameCity === undefined || sanitizedInput.nameCity === "") {
-      errors.push('El nombre de la ciudad es obligatorio');
-      }
-      else {
-        if (typeof sanitizedInput.nameCity !== 'string') {
-        errors.push('El nombre de la ciudad debe ser una cadena de texto');
-      } 
-      if (sanitizedInput.nameCity.length < 2) {
-        errors.push('El nombre de la ciudad es obligatorio y debe tener al menos 2 caracteres');
-      } 
-      if (sanitizedInput.nameCity.length > 100) {
-        errors.push('El nombre de la ciudad no puede tener más de 100 caracteres');
-      } 
-      if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
-        errors.push('El nombre de la ciudad solo puede contener letras, espacios, guiones y apóstrofes');
-      }
-
-    if(sanitizedInput.province === undefined || sanitizedInput.province === ''){
-      errors.push('La provincia es obligatoria')
-    }else{
-      try{
-        const id = Number.parseInt(sanitizedInput.province)
-        const province = await this.provinceService.findProvinceById(id)
-        if(province && !province.active){
-          errors.push('La provincia está deshabilitada')
-        }
-      }catch(error: any) {
-        errors.push('Error al validar estado de la provincia seleccionada')
-      }
+    if (sanitizedInput.nameCity.length < 3 || sanitizedInput.nameCity.length > 25) {
+      return true
+    } 
+    else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
+      return true
     }
 
-    if(errors.length == 0){
-        try {
-              const existingCity = await this.cityExistsWithNameAndProvince(sanitizedInput.nameCity, sanitizedInput.province);
-
-              if (existingCity) {
-                errors.push('Ya existe una ciudad con el mismo nombre en la misma provincia')
-              }
-            }catch(error: any) {
-              errors.push('Error al validar ciudades con mismo nombre')
+    try{
+      const province = await this.provinceService.findProvinceById(sanitizedInput.province)
+      
+      if(province.active){
+        return false
       }
-    }
-    }
+      return true
 
-    return errors
+    } catch(error:any){
+      return true
+    }
   }
 
-  async validateCityUpdate(id: number, sanitizedInput: any): Promise<string[]> {
-    const errors: string[] = []
 
-    if ((sanitizedInput.nameCity === undefined || sanitizedInput.nameCity === "")&&(sanitizedInput.province === undefined || sanitizedInput.province === '')){
-      errors.push('Se necesita al menos un campo, nombre o provincia, para modificar');
-      }
-    else if(sanitizedInput.nameCity !== "") {
-      if (typeof sanitizedInput.nameCity !== 'string') {
-        errors.push('El nombre de la ciudad debe ser una cadena de texto');
+  async validateCityUpdate(id: number, sanitizedInput: any): Promise<boolean> {
+
+      if (sanitizedInput.nameCity.length < 2 || sanitizedInput.nameCity.length > 100) {
+        return true;
       } 
-      if (sanitizedInput.nameCity.length < 2) {
-        errors.push('El nombre de la ciudad es obligatorio y debe tener al menos 2 caracteres');
-      } 
-      if (sanitizedInput.nameCity.length > 100) {
-        errors.push('El nombre de la ciudad no puede tener más de 100 caracteres');
-      } 
-      if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
-        errors.push('El nombre de la ciudad solo puede contener letras, espacios, guiones y apóstrofes');
+      else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(sanitizedInput.nameCity)) {
+        return true;
       }
-    }
-    
-    if(sanitizedInput.province !== ""){
-      try{
-        const idProvince = Number.parseInt(sanitizedInput.province)
-        const province = await this.provinceService.findProvinceById(idProvince)
-        if(province && !province.active){
-          errors.push('La provincia está deshabilitada')
-        }
-      }catch(error: any) {
-        errors.push('Error al validar estado de la provincia seleccionada, asegúrese de ingresar una provincia existente')
+  
+    try{
+      const province = await this.provinceService.findProvinceById(sanitizedInput.province)
+      
+      if(province.active){
+        return false
       }
+      return true
+
+    } catch(error:any){
+
+      return true
+
     }
-    
-
-    if(errors.length == 0){
-        try {
-              const existingCity = await this.cityExistsWithNameAndProvince(sanitizedInput.nameCity, sanitizedInput.province, id);
-
-              if (existingCity) {
-                errors.push('Ya existe una ciudad con el mismo nombre en la misma provincia')
-              }
-            }catch(error: any) {
-              errors.push('Error al validar ciudades con mismo nombre')
-      }
-    }
-
-    return errors
   }
-
+    
   //SERVICES
 
   async findAllCities(): Promise<City[]> {
@@ -120,27 +67,21 @@ export class CityService {
     return cities;
   }
 
-
-
   async findAllActiveCities(): Promise<City[]> {
     let cities = await em.find(City, {}, { populate: ['province'] });
     cities = cities.filter(city => city.province.active && city.active); //Filter all cities by its province state and its own state
     return cities;
   }
 
-
-
   async findCityById(idCity:number): Promise<City>{
     return await em.findOneOrFail(City, { idCity }, { populate: ['province']})
   }
 
-
-  
   async createCity(data: RequiredEntityData<City>): Promise<City> {
-    const errors = await this.validateCityAdd(data)
+    const error = await this.validateCityAdd(data)
 
-    if (errors.length > 0){
-      throw new ValidationError(errors.join(", "))
+    if (error){
+      throw new Error("Error al crear localidad, datos inválidos")
     }
 
     const city = em.create(City, data);
@@ -151,16 +92,22 @@ export class CityService {
   }
 
   async updateCity(id:number, data:Partial<City>): Promise<City>{
-    const errors = await this.validateCityUpdate(id, data)
+    const error = await this.validateCityUpdate(id, data)
     
-    if(errors.length > 0){
-      throw new ValidationError(errors.join(", "))
+    if(error){
+      throw new Error("Error al modificar localidad, datos inválidos")
     }
     
     const city = await em.findOneOrFail(City,  { idCity : id })
-    em.assign(city, data)
-    await em.flush() 
-    return await em.findOneOrFail(City, { idCity: id }, {populate: ['province']})
+
+    if(city.active){
+      em.assign(city, data)
+      await em.flush() 
+      return await em.findOneOrFail(City, { idCity: id }, {populate: ['province']})
+    
+    } else {
+      throw new Error("Localidad desactivada, active primero antes de modificar")
+    }
   }
 
   async toggleCityState(id: number):Promise<City>{

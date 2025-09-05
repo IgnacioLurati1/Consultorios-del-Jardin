@@ -15,7 +15,7 @@ export class ProvinceService{
         return provinces;
     }
     
-    async findProvinceById(idProvince:number): Promise<Province | null>{
+    async findProvinceById(idProvince:number): Promise<Province>{
         return await em.findOneOrFail(Province, { idProvince });
     }
 
