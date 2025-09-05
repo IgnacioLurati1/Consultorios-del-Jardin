@@ -37,7 +37,7 @@ Content-Type: application/json
 }
 
 ### PATCH - Dar de baja ciudades y provincia
-PATCH  http://localhost:3000/api/provinces/1/toggle-state
+PATCH  http://localhost:3000/api/provinces/2/toggle-state
 Content-Type: application/json
 
 {

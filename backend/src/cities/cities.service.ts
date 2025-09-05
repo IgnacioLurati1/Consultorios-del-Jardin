@@ -62,14 +62,12 @@ export class CityService {
   //SERVICES
 
   async findAllCities(): Promise<City[]> {
-    let cities = await em.find(City, {}, { populate: ['province'] });
-    cities = cities.filter(city => city.province.active) ; //Filter all cities by its province state
+    let cities = await em.find(City, {province: {active: true}}, { populate: ['province'] });
     return cities;
   }
 
   async findAllActiveCities(): Promise<City[]> {
-    let cities = await em.find(City, {}, { populate: ['province'] });
-    cities = cities.filter(city => city.province.active && city.active); //Filter all cities by its province state and its own state
+    let cities = await em.find(City, {active: true, province: {active: true}}, { populate: ['province'] });
     return cities;
   }
 
