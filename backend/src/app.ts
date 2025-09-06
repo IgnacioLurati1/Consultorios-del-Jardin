@@ -20,12 +20,11 @@ app.use((req, res, next) => {
   RequestContext.create(orm.em, next);
 });
 
-//app.use('/api/provinces', verifyToken, provinceRouter)
-app.use("/api/provinces", provinceRouter);
-app.use("/api/cities", cityRouter);
+app.use("/api/provinces", verifyToken, provinceRouter);
+app.use("/api/cities", verifyToken, cityRouter);
 app.use("/api/people", personRouter);
-app.use("/api/offices", officeRouter);
-app.use("/api/rooms", roomRouter);
+app.use("/api/offices", verifyToken, officeRouter);
+app.use("/api/rooms", verifyToken, roomRouter);
 app.use("/api/tokenStatus", verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: "Token válido" });
 });
