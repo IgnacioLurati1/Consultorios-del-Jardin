@@ -58,14 +58,23 @@ export class PeopleService {
     return null;
   }
 
-  async deletePersonRequest(email: string){ //El metodo permite eliminar un profesional siempre y cuando no este activo, es decir, sea una request. Si ya trabajo previamente, la bd tirara error y no lo permitira
-    const person = await em.findOneOrFail(Person, {email});
+  async deletePersonRequest(email: string) {
+    //El metodo permite eliminar un profesional siempre y cuando no este activo, es decir, sea una request. Si ya trabajo previamente, la bd tirara error y no lo permitira
+    const person = await em.findOneOrFail(Person, { email });
 
-    if(!person.active && person.type == "professional"){
-        await em.removeAndFlush(person)
-        return true
+    if (!person.active && person.type == "professional") {
+      await em.removeAndFlush(person);
+      return true;
     }
 
-    return false
+    return false;
+  }
+
+  async toggleState(email: string) {
+    const person = await em.findOneOrFail(Person, { email });
+    if (person.type != "professional") throw new Error("Usuario no es profesional");
+    em.assign(person, { ...person, active: true });
+    await em.flush();
+    return true;
   }
 }

@@ -1,5 +1,15 @@
 import { Router } from "express";
-import { sanitizePersonInput, findAll, findOne, add, update, loginWithEmailAndPassword, logOut, remove } from "./people.controller.js";
+import {
+  sanitizePersonInput,
+  findAll,
+  findOne,
+  add,
+  update,
+  loginWithEmailAndPassword,
+  logOut,
+  remove,
+  accept,
+} from "./people.controller.js";
 import { verifyToken } from "../config/middlewares.js";
 
 export const personRouter = Router();
@@ -12,3 +22,4 @@ personRouter.post("/logout", logOut);
 personRouter.put("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.delete("/:email", verifyToken, sanitizePersonInput, remove);
+personRouter.patch("/:email/accept", verifyToken, sanitizePersonInput, accept);

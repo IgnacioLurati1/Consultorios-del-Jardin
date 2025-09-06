@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { orm } from "../shared/db/orm.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
 
-const em = orm.em;
 dotenv.config();
 
 interface RequestWithUser extends Request {
@@ -62,8 +60,9 @@ async function findOne(req: Request, res: Response) {
 
 async function add(req: Request, res: Response) {
   try {
-    const person = await peopleService.createPerson(req.body.sanitizedInput);
+    if (!["client", "professional"].includes(req.body.sanitizedInput.type)) return res.status(403).json({ message: "Credenciales inválidas" });
 
+    const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
     res.cookie("refreshToken", refreshToken, {
@@ -148,4 +147,14 @@ async function logOut(req: Request, res: Response) {
   });
 }
 
-export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut };
+async function accept(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type != "admin") return res.status(403).json({ message: "Credenciales inválidas" });
+    await peopleService.toggleState(req.params.email);
+    res.status(200).json({ message: "Persona activada con éxito!" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
+  }
+}
+
+export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut, accept };
