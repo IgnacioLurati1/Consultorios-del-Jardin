@@ -36,10 +36,8 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
 
 const peopleService = new PeopleService();
 
-async function findAll(req: RequestWithUser, res: Response) {
+async function findAll(req: Request, res: Response) {
   try {
-    if (!(req.user.type != "admin")) return res.status(403).json({ message: "Acceso inválido" });
-
     const people = await peopleService.findAllPeople();
     const safeData = people.map((person) => ({ ...person, password: undefined })); // no devolvemos la contraseña al front
     res.status(200).json({ message: "People found", data: safeData });
@@ -60,7 +58,8 @@ async function findOne(req: Request, res: Response) {
 
 async function add(req: Request, res: Response) {
   try {
-    if (!["client", "professional"].includes(req.body.sanitizedInput.type)) return res.status(403).json({ message: "Credenciales inválidas" });
+    if (!["client", "professional"].includes(req.body.sanitizedInput.type))
+      return res.status(403).json({ message: "Credenciales inválidas" });
 
     const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
@@ -96,9 +95,8 @@ async function update(req: RequestWithUser, res: Response) {
   }
 }
 
-async function remove(req: RequestWithUser, res: Response) {
+async function remove(req: Request, res: Response) {
   try {
-    if (req.user.type != "admin") return res.status(403).json({ message: "Acceso inválido" });
     const valid = await peopleService.deletePersonRequest(req.params.email);
 
     if (valid) {
@@ -147,9 +145,8 @@ async function logOut(req: Request, res: Response) {
   });
 }
 
-async function accept(req: RequestWithUser, res: Response) {
+async function accept(req: Request, res: Response) {
   try {
-    if (req.user.type != "admin") return res.status(403).json({ message: "Credenciales inválidas" });
     await peopleService.toggleState(req.params.email);
     res.status(200).json({ message: "Persona activada con éxito!" });
   } catch (error: any) {
