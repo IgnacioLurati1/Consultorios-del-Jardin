@@ -62,7 +62,7 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             login(response.data.token);
             
             if(decoded.type ==="admin"){     
-                navigate('/adminHome')
+                navigate('/adminHome/ProvincesAdmin')
             }} else {
             navigate('/');
         }
