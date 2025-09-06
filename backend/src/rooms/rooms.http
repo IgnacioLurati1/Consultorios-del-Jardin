@@ -11,8 +11,8 @@ POST http://localhost:3000/api/rooms
 Content-Type: application/json
 
 {
-    "description": "Sala arcoiris",
-    "office": "1"
+    "description": "Sala violeta",
+    "office": "4"
 }
 
 ### Modify a room
