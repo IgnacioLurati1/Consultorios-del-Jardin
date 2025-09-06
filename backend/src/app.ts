@@ -10,6 +10,7 @@ import { orm, syncSchema } from './shared/db/orm.js'
 import { RequestContext } from '@mikro-orm/core'
 import { verifyToken } from './config/middlewares.js'
 import { Request, Response } from 'express'
+import { scheduleRouter } from './schedule/schedule.routes.js'
 
 
 const app = express()
@@ -25,6 +26,7 @@ app.use('/api/cities', cityRouter)
 app.use('/api/people', personRouter)
 app.use('/api/offices', officeRouter)
 app.use('/api/rooms', roomRouter)
+app.use('/api/schedules', scheduleRouter)
 app.use('/api/tokenStatus', verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: 'Token válido' });
 });

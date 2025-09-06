@@ -21,16 +21,16 @@ export class Schedule {
     initialHour!: string
 
     @ManyToOne(() => Person, { nullable: false })
-    Person!: Rel<Person>
+    person!: Rel<Person>
     
     @ManyToOne(() => Room, { nullable: false })
-    Room!: Rel<Room>
+    room!: Rel<Room>
 
     @Property({nullable: false})
-    finalHour!: boolean
+    finalHour!: string
 
     @Property({nullable: false})
-    state!: string
+    active!: boolean
 
     @Property({nullable: false})
     allowedType!: string
