@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { sanitizePersonInput, findAll, findOne, add, update, loginWithEmailAndPassword, logOut } from "./people.controller.js";
+import { sanitizePersonInput, findAll, findOne, add, update, loginWithEmailAndPassword, logOut, remove } from "./people.controller.js";
 
 export const personRouter = Router();
 
@@ -10,3 +10,4 @@ personRouter.post("/login", loginWithEmailAndPassword);
 personRouter.post("/logout", logOut);
 personRouter.put("/:email", sanitizePersonInput, update);
 personRouter.patch("/:email", sanitizePersonInput, update);
+personRouter.delete("/delete:email", sanitizePersonInput, remove);
