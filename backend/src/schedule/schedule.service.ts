@@ -55,12 +55,14 @@ export class ScheduleService {
                     this.isValidHourRange(data.initialHour, data.finalHour);
 
     if (!isValid) {
-      return null;
-    }else {
-      const schedule = em.create(Schedule, data);
-      await em.flush();
-      return schedule;
+      throw new Error("Invalid schedule data");
     }
+    
+    //Creacion
+    const schedule = em.create(Schedule, data);
+    await em.flush();
+    return schedule;
+    
   }
 
   async updateSchedule(day: string, initialHour: string, data: Partial<Schedule>) : Promise<Schedule> {
