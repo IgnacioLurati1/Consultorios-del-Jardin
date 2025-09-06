@@ -40,7 +40,7 @@ async function findAll(req: Request, res: Response) {
   try {
     const people = await peopleService.findAllPeople();
     const safeData = people.map((person) => ({ ...person, password: undefined })); // no devolvemos la contraseña al front
-    res.status(200).json({ message: "People found", data: safeData });
+    res.status(200).json({ message: "Personas encontradas", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -50,7 +50,7 @@ async function findOne(req: Request, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email);
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
-    res.status(200).json({ message: "Person found", data: safeData });
+    res.status(200).json({ message: "Persona encontrada", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -72,7 +72,7 @@ async function add(req: Request, res: Response) {
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
 
-    res.status(201).json({ message: "Person created", data: safeData, token }); // return person data and token
+    res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token }); // return person data and token
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -89,7 +89,7 @@ async function update(req: RequestWithUser, res: Response) {
     }
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
-    res.status(200).json({ message: "Person updated", data: safeData });
+    res.status(200).json({ message: "Persona actualizada con éxito!", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -100,7 +100,7 @@ async function remove(req: Request, res: Response) {
     const valid = await peopleService.deletePersonRequest(req.params.email);
 
     if (valid) {
-      return res.status(200).json({ message: "Person removed" });
+      return res.status(200).json({ message: "Solicitud rechazada" });
     }
     return res.status(401).json({ message: "La persona no puede ser removida" });
   } catch (error: any) {
