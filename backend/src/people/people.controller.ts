@@ -7,6 +7,10 @@ import { PeopleService } from "./people.service.js";
 const em = orm.em;
 dotenv.config();
 
+interface RequestWithUser extends Request {
+  user?: any;
+}
+
 function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
     email: req.body.email,
@@ -34,8 +38,10 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
 
 const peopleService = new PeopleService();
 
-async function findAll(req: Request, res: Response) {
+async function findAll(req: RequestWithUser, res: Response) {
   try {
+    if (!(req.user.type != "admin")) return res.status(403).json({ message: "Acceso inválido" });
+
     const people = await peopleService.findAllPeople();
     const safeData = people.map((person) => ({ ...person, password: undefined })); // no devolvemos la contraseña al front
     res.status(200).json({ message: "People found", data: safeData });
@@ -74,10 +80,11 @@ async function add(req: Request, res: Response) {
   }
 }
 
-async function update(req: Request, res: Response) {
+async function update(req: RequestWithUser, res: Response) {
   try {
+    if (!(req.user.email == req.params.email)) res.status(401).json({ message: "Credenciales inválidas" });
+
     const person = await peopleService.updatePerson(req.body.sanitizedInput, req.params.email);
-    //Falta contastar el token
 
     if (!person) {
       return res.status(401).json({ message: "Credenciales inválidas" });
@@ -90,8 +97,9 @@ async function update(req: Request, res: Response) {
   }
 }
 
-async function remove(req: Request, res: Response) {
+async function remove(req: RequestWithUser, res: Response) {
   try {
+    if (req.user.type != "admin") return res.status(403).json({ message: "Acceso inválido" });
     const valid = await peopleService.deletePersonRequest(req.params.email);
 
     if (valid) {
