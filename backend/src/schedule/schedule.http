@@ -10,9 +10,9 @@ POST http://localhost:3000/api/schedules
 Content-Type: application/json
 
 {
-  "day": "2023-03-15",
-  "initialHour": "09:00",
-  "finalHour": "10:00",
+  "day": "LuNés",
+  "initialHour": "20:00",
+  "finalHour": "23:00",
   "person": "profesional@mail.com",
   "room": 3,
   "active": true,

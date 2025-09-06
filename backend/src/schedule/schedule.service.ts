@@ -5,6 +5,34 @@ import { RequiredEntityData } from "@mikro-orm/core";
 const em = orm.em;
 export class ScheduleService {
 
+  //Validaciones
+
+  async existingSchedule(day: string, initialHour: string): Promise<boolean> {
+    const schedule = await em.findOne(Schedule, { day, initialHour });
+    return !!schedule; // Retorna true si el horario ya existe
+  }
+
+  removeAccents(str: string): string {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Elimina acentos y caracteres especiales
+  }
+
+  isValidDay(day: string): boolean {
+    const normalizedDay = this.removeAccents(day.trim().toLowerCase()); // Convierte a minúsculas y elimina acentos
+    const validDays = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]; // Días válidos de la semana EN MINUSCULA Y SIN ACENTOS
+    return validDays.includes(normalizedDay); // Retorna false si el día no es válido
+  }
+
+  isValidHourFormat(hour: string): boolean {
+    const hourRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; // Formato HH:MM (24 horas)
+    return hourRegex.test(hour);
+  }
+
+  isValidHourRange(initialHour: string, finalHour: string): boolean {
+    return initialHour < finalHour;
+  }
+
+  //CRUD basico
+
   async findAllSchedules() : Promise<Schedule[]> {
     return await em.find(Schedule, {});
   }
@@ -13,17 +41,26 @@ export class ScheduleService {
     return await em.findOne(Schedule, { day, initialHour });
   }
 
-  async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
-    //MAS VALIDACIONES A FUTURO
+  async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule | null> {
 
-    const existingSchedule = await this.findScheduleByPK(data.day, data.initialHour);
+    //Validaciones fuertes
+    if (await this.existingSchedule(data.day, data.initialHour)) {
+      throw new Error("Schedule with the same primary key already exists");
+    }
 
-    if (existingSchedule) throw new Error("Schedule with the same primary key already exists");
+    //Validaciones debiles
+    const isValid = this.isValidDay(data.day) && 
+                    this.isValidHourFormat(data.initialHour) && 
+                    this.isValidHourFormat(data.finalHour) && 
+                    this.isValidHourRange(data.initialHour, data.finalHour);
 
-    const schedule = em.create(Schedule, data);
-    await em.flush();
-
-    return schedule;
+    if (!isValid) {
+      return null;
+    }else {
+      const schedule = em.create(Schedule, data);
+      await em.flush();
+      return schedule;
+    }
   }
 
   async updateSchedule(day: string, initialHour: string, data: Partial<Schedule>) : Promise<Schedule> {
