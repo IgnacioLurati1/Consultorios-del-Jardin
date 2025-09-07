@@ -154,4 +154,14 @@ async function accept(req: Request, res: Response) {
   }
 }
 
-export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut, accept };
+async function changePassword(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.email != req.params.email) return res.status(403).json({ message: "Credenciales inválidas" });
+    await peopleService.changePassword(req.params.email, req.body.sanitizedInput.password);
+    res.status(200).json({ message: "Contraseña cambiada con exita" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
+  }
+}
+
+export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut, accept, changePassword };
