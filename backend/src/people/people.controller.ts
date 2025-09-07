@@ -80,7 +80,7 @@ async function add(req: Request, res: Response) {
 
 async function update(req: RequestWithUser, res: Response) {
   try {
-    if (!(req.user.email == req.params.email)) res.status(401).json({ message: "Credenciales inválidas" });
+    if (!(req.user.email == req.params.email)) return res.status(401).json({ message: "Credenciales inválidas" });
 
     const person = await peopleService.updatePerson(req.body.sanitizedInput, req.params.email);
 
@@ -167,7 +167,7 @@ async function changePassword(req: RequestWithUser, res: Response) {
 async function sendPasswordMail(req: RequestWithUser, res: Response) {
   try {
     await peopleService.sendPasswordMail(req.user.email);
-    res.status(200).json({Message: "Mail enviado!"})
+    res.status(200).json({ Message: "Mail enviado!" });
   } catch (error: any) {
     res.status(500).json({ Message: "Ups! Algo salió mal" });
   }

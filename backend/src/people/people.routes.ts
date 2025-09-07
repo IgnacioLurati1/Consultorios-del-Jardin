@@ -10,7 +10,7 @@ import {
   remove,
   accept,
   changePassword,
-  sendPasswordMail
+  sendPasswordMail,
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 
