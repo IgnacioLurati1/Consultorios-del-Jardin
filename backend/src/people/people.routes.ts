@@ -9,6 +9,7 @@ import {
   logOut,
   remove,
   accept,
+  changePassword,
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 
@@ -23,3 +24,4 @@ personRouter.put("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, remove);
 personRouter.patch("/:email/accept", verifyToken, verifyAdmin, sanitizePersonInput, accept);
+personRouter.patch("/:email/changePassword", verifyToken, changePassword);

@@ -58,6 +58,13 @@ export class PeopleService {
     return null;
   }
 
+  async changePassword(email: string, newPassword: string) {
+    const person = await em.findOneOrFail(Person, { email });
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    person.password = newPasswordHash;
+    await em.flush;
+  }
+
   async deletePersonRequest(email: string) {
     //El metodo permite eliminar un profesional siempre y cuando no este activo, es decir, sea una request. Si ya trabajo previamente, la bd tirara error y no lo permitira
     const person = await em.findOneOrFail(Person, { email });
