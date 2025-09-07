@@ -76,13 +76,27 @@
   width: 14vw;
   height: 6vh;
 }
+.hourly-module.empty::after {
+  content: ""; /* nada por defecto */
+  font-size: 1.5em;
+  color: #666;
+}
+
+.hourly-module.empty:hover::after {
+  content: "+";  /* 👈 aparece el + */
+  font-size: 2em;
+  font-weight: bold;
+}
+
+
 .hourly-module:hover{
   background: #999D9A;
+
 }
-.hourly-module.workshop {
+.hourly-module.taller {
   background: #93C0E4;
 }
-.hourly-module.workshop:hover {
+.hourly-module.taller:hover {
   background: #569CD5;
 }
 .hourly-module.simple {

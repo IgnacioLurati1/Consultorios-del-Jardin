@@ -41,11 +41,11 @@ export interface Person{
 }
 
 export interface Schedule {
-    day: string;
+    day: "lunes"|"martes"|"miercoles"|"jueves"|"viernes"|"sabado";
     initialHour: string;
     Person: string;
     Room: string;
     finalHour: string;
     state: boolean;
-    allowedType: "simple" | "workshop";
+    allowedType: "simple" | "taller";
 }
