@@ -4,10 +4,10 @@ import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
 import { OfficeLabel } from "./OfficeLabel.tsx";
 import { OfficeModal } from "./OfficeModal.tsx";
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import type {Office, Province, City} from "../../types.ts";
 import SearchBar from "../../../components/searchBar/searchBar.tsx";
-import { findAllOffices, createOffice, updateOffice, removeOffice, findAllActiveOffices } from "./OfficeService.ts";
+import { findAllOffices, createOffice, updateOffice, removeOffice} from "./OfficeService.ts";
 import { findAllActiveCities } from "../adminCities/CityService.ts";
 import { findAllActiveProvinces } from "../adminProvinces/ProvinceService.ts";
 
@@ -40,13 +40,6 @@ export function OfficesAdmin() {
         }
     }
   }
-
-  useEffect(() => {
-    findAllActiveOffices()
-    .then(data => {
-      setOffices(data);
-      setLoading(false); })
-  }, []);
 
   useEffect(() => {
         findAllOffices()
@@ -94,9 +87,6 @@ export function OfficesAdmin() {
     .then(data => {
       setCities(data);
       setLoading(false); })
-      .catch(err => {
-            setLoading(false);
-            toast.error("Error cargando ciudades:" + err)});
   }, []);
 
   useEffect(() => {
@@ -104,9 +94,6 @@ export function OfficesAdmin() {
     .then(data => {
       setProvinces(data);
       setLoading(false); })
-      .catch(err => {
-            setLoading(false);
-            toast.error("Error cargando Provincias:" + err)});
   }, []);
 
 //async functions------------------

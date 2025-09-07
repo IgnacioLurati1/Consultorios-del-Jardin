@@ -9,8 +9,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
     const [newClosingTime, setNewClosingTime] = useState(office.closingTime);
     const [newDescription, setNewDescription] = useState(office.description);
     const [newCityId, setNewCityId] = useState(office.city.idCity);
-    const [newProvinceId, setNewProvinceId] = useState(office.city.province); //saque el .idProvince al final
-
+    const [newProvinceId, setNewProvinceId] = useState(office.city.province.nameProvince);
 
     const filteredCities = newProvinceId 
       ? cities.filter(city => city.province.idProvince == newProvinceId)
@@ -141,7 +140,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
           <p>Provincia: {office.city.province.nameProvince}</p>
           <p>Ciudad: {office.city.nameCity}</p>
           <div className="buttons">
-            <button className="edit-button" onClick={() => onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, true)}>Activar</button>
+            <button className="edit-button" onClick={() => onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, false)}>Activar</button>
           </div>
         </div>
       </div>

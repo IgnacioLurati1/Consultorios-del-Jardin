@@ -15,7 +15,7 @@ export function findAllActiveOffices(): Promise<Office[]>{
     return api.get('/offices/active')
     .then(response => response.data.data)
     .catch(err => {
-        toast.error(`Error al obtener consultorios: ${err.message}`)
+        toast.error(`Error al obtener consultorios: ${err.message}`) //.
         return[];
     });
 }
@@ -57,8 +57,8 @@ export function removeOffice(id: string): Promise<boolean> {
     });
 }
 
-export function updateOffice(id: string, newDescription: string, openingTime: string, closingTime: string, cityId: string, active: boolean): Promise<Office | void | undefined>{
-    if(!newDescription.trim() || !openingTime || !closingTime || !cityId){
+export function updateOffice(id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, cityId: string, active: boolean): Promise<Office | void | undefined>{
+    if(!newDescription.trim() || !newOpeningTime || !newClosingTime || !cityId){
         toast.error('No se pueden enviar parámetros vacíos')
         return Promise.resolve(undefined)
     }
@@ -66,7 +66,9 @@ export function updateOffice(id: string, newDescription: string, openingTime: st
     if(active){
         return api.put(`/offices/${id}`,{
             description: newDescription,
-            cityId: cityId
+            cityId: cityId,
+            openingTime: newOpeningTime,
+            closingTime: newClosingTime,
         })
         .then(updated => {
             toast.success(`Consultorio modificado con éxito`);

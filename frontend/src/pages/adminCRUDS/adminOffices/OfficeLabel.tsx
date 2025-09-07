@@ -14,7 +14,7 @@ export function OfficeLabel({ office,  active }: OfficeLabelProps){
       <hr />
       <div className="office-label-row-2">
         <p className="crud-name">De {office.openingTime}hs a {office.closingTime}hs</p>
-        <p className="crud-name">{office.city.nameCity}<FontAwesomeIcon className="icon-location"icon={faLocationDot}/></p>
+        <p className="crud-name">{office.city.nameCity}, {office.city.province.nameProvince}<FontAwesomeIcon className="icon-location"icon={faLocationDot}/></p>
       </div>
     </div>
   );
