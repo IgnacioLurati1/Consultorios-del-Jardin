@@ -28,7 +28,7 @@ export async function verifyToken(req: RequestWithUser, res: Response, next: Nex
 }
 
 export async function verifyAdmin(req: RequestWithUser, res: Response, next: NextFunction) {
-  if (req.user.type == "admin") next();
+  if (req.user.type == "admin") return next();
 
   return res.status(403).json({ message: "Acceso denegado" });
 }
