@@ -4,6 +4,7 @@ import { RequiredEntityData } from "@mikro-orm/core";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import sgMail from "@sendgrid/mail";
 
 dotenv.config();
 
@@ -75,6 +76,27 @@ export class PeopleService {
     }
 
     return false;
+  }
+
+  async sendPasswordMail(email: string) {
+    sgMail.setApiKey(process.env.SENDGRID_KEY as any);
+
+    const changeToken = jwt.sign({ email }, process.env.CHANGE_SECRET as jwt.Secret, { expiresIn: "30m" });
+    const url = `http://localhost:5173/reset-password?token=${changeToken}`;
+
+    const msg = {
+      to: email,
+      from: "ignaciolurati@gmail.com",
+      replyTo: "ignaciolurati@gmail.com",
+      subject: "Recuperar contraseña",
+      html: `
+          <h3>Hola!</h3>
+          <p>Para restablecer tu contraseña hacé click en el siguiente enlace:</p>
+          <a href="${url}">${url}</a>
+          <p>Este link expira en 30 minutos.</p>`,
+    };
+
+    await sgMail.send(msg);
   }
 
   async toggleState(email: string) {

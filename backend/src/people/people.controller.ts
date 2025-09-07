@@ -156,12 +156,32 @@ async function accept(req: Request, res: Response) {
 
 async function changePassword(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.email != req.params.email) return res.status(403).json({ message: "Credenciales inválidas" });
-    await peopleService.changePassword(req.params.email, req.body.sanitizedInput.password);
+    //if (req.user.email != req.params.email) return res.status(403).json({ message: "Credenciales inválidas" });
+    await peopleService.changePassword(req.user.email, req.body.sanitizedInput.password);
     res.status(200).json({ message: "Contraseña cambiada con exita" });
   } catch (error: any) {
     res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
   }
 }
 
-export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut, accept, changePassword };
+async function sendPasswordMail(req: RequestWithUser, res: Response) {
+  try {
+    await peopleService.sendPasswordMail(req.user.email);
+    res.status(200).json({Message: "Mail enviado!"})
+  } catch (error: any) {
+    res.status(500).json({ Message: "Ups! Algo salió mal" });
+  }
+}
+export {
+  sanitizePersonInput,
+  findAll,
+  findOne,
+  add,
+  update,
+  remove,
+  loginWithEmailAndPassword,
+  logOut,
+  accept,
+  changePassword,
+  sendPasswordMail,
+};
