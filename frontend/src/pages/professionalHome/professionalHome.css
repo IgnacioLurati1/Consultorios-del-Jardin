@@ -1,0 +1,32 @@
+
+.professional-home-container-whole {
+    display: flex;
+    height: 80vh;
+}
+
+.professional-home-container-left {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    margin-left: 3em;  
+}
+
+.nav-zone-container .navZone {
+    height: 70%;
+    margin-left: 0;
+    margin-right: 0;
+    width: 70vw;
+}
+
+.professional-cards-container {
+    display: flex;
+    justify-content: space-between;
+    height: 100%;
+    width: 70vw;
+}
+
+.professional-home-container-right {
+    flex: 1;
+    border-left: 1px solid #ddd;  
+}
