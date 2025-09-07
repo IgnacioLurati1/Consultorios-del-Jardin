@@ -19,24 +19,6 @@ function sanitizeOfficeInput(req: Request, res: Response, next: NextFunction) {
   next()
 }
 
-function validateOfficeTimes(req: Request, res: Response, next: NextFunction) {
-
-  if('openingTime' in req.body.sanitizedInput && 'closingTime' in req.body.sanitizedInput) {
-    let openingTime = req.body.sanitizedInput.openingTime
-    let closingTime = req.body.sanitizedInput.closingTime
-
-    openingTime = parseInt(openingTime.replace(":", ''), 10)
-    closingTime = parseInt(closingTime.replace(":", ''), 10)
-
-      if (openingTime >= closingTime) {
-        return res
-          .status(400)
-          .json({ message: 'La hora de cierre debe ser posterior a la hora de apertura.' })
-      }
-  }
-  next()
-} 
-
 const officeService = new OfficeService()
 
 async function findAll(req: Request, res: Response) {
@@ -110,4 +92,4 @@ async function toggleOfficeState(req: Request, res: Response) {
 }
 
 
-export {sanitizeOfficeInput, validateOfficeTimes, findAll, findOne, add, update, toggleOfficeState}
+export {sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState}
