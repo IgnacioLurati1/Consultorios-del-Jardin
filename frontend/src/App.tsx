@@ -16,6 +16,8 @@ import { PrivateRoutes } from './PrivateRoutes.tsx';
 import { Outlet } from 'react-router-dom';
 import CrudNav from './components/crudNav/CrudNav.tsx';
 import { DurationsAdmin } from './pages/adminCRUDS/adminDurations/DurationsAdmin.tsx';
+import { ProfessionalHome } from './pages/professionalHome/professionalHome.tsx';
+import { ScheduleProfessional } from './pages/scheduleProfessional/scheduleProfessional.tsx';
 
 
 const router = createBrowserRouter([
@@ -42,6 +44,23 @@ const router = createBrowserRouter([
       { path: 'RoomsAdmin', element: <RoomsAdmin /> },
       { path: 'DurationsAdmin', element: <DurationsAdmin/>},
       ]},
+
+      // Professional Routes
+      {
+      path: '/ProfessionalHome',
+      element: 
+        <PrivateRoutes allowedType="admin"> 
+          <Outlet />
+          <ProfessionalHome />
+        </PrivateRoutes>, // cambiar allowed type a professional Y ADMIN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      },
+      {
+      path: 'scheduleProfessional', element: 
+      <PrivateRoutes allowedType="admin"> 
+          <Outlet />
+          <ScheduleProfessional />
+        </PrivateRoutes>
+      }, //CHEQUEAR SI ASI ESTA BIEN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
