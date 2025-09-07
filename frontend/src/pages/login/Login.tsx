@@ -63,7 +63,9 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
             
             if(decoded.type ==="admin"){     
                 navigate('/adminHome')
-            }} else {
+            }else if(decoded.type ==="professional"){
+                navigate('/professionalHome')
+        }} else {
             navigate('/');
         }
     }).catch(error => {
