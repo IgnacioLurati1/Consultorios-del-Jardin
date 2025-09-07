@@ -9,16 +9,16 @@ POST http://localhost:3000/api/people
 Content-Type: application/json
 
 {
-    "email": "profesional1@gmail.com",
+    "email": "ignaciolurati2@gmail.com",
     "docType": "dni",
     "docNumber": "222222",
-    "name": "Hola",
-    "surname": "Mundo",
+    "name": "Ignacio",
+    "surname": "Lurati",
     "phoneNumber": "123",
     "password": "1234",
     "type": "professional",
     "speciality": "TESTING",
-    "active": false
+    "active": true
 }
 
 ### loguear una persona
@@ -59,4 +59,4 @@ Content-Type: application/json
 ### Enviar mail al usuario
 POST http://localhost:3000/api/people/passwordMail
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2Zlc2lvbmFsQGdtYWlsLmNvbSIsInR5cGUiOiJwcm9mZXNzaW9uYWwiLCJpYXQiOjE3NTcyNzIzMTAsImV4cCI6MTc1NzI3MzIxMH0.cEh8SzOBuZ4a-9hL8MVuTd-AnrfTKL3Sd16yfrDhIWs
+Authorization: Bearer token
