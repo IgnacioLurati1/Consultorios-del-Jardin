@@ -140,6 +140,9 @@ export function RoomsAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una sala" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
+                {rooms.length === 0 ? (
+                    <div className= "no-content"> No hay salas cargadas </div>
+                ):(
                 <ul className = "crud-list">
                     {filteredRooms.map(room => (
                         <li key={room.idRoom}
@@ -152,7 +155,7 @@ export function RoomsAdmin() {
                             <RoomLabel key={room.idRoom} room={room} active={room.active}></RoomLabel>
                         </li>
                     ))}
-                </ul>   
+                </ul>)}   
             </div>
             <div>
                 <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyRoom);setModalType("create")}}><strong>Agregar sala</strong><FaPlus /></button>
