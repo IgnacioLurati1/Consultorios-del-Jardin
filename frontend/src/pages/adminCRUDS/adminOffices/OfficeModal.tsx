@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FaTimes, FaTrash, FaChevronRight } from "react-icons/fa";
 
-export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces}: {visible: boolean; onClose: () => void; office: any | null; onDelete: () => void; onEdit: (id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string, active: boolean) => void; action: string; onCreate: ( newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
+export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces}: {visible: boolean; onClose: () => void; office: any | null; onDelete: (id: string) => void; onEdit: (id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string, active: boolean) => void; action: string; onCreate: ( newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
   if (!visible) return null;
 
   if (action === "edit" && office && office.active) {
@@ -9,7 +9,8 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
     const [newClosingTime, setNewClosingTime] = useState(office.closingTime);
     const [newDescription, setNewDescription] = useState(office.description);
     const [newCityId, setNewCityId] = useState(office.city.idCity);
-    const [newProvinceId, setNewProvinceId] = useState(office.city.province.idProvince);
+    const [newProvinceId, setNewProvinceId] = useState(office.city.province); //saque el .idProvince al final
+
 
     const filteredCities = newProvinceId 
       ? cities.filter(city => city.province.idProvince == newProvinceId)
@@ -53,7 +54,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             </select>
           </p>
           <div className="buttons">
-            <button className="delete-button" onClick={onDelete}>Eliminar Consultorio <FaTrash /></button>
+            <button className="delete-button" onClick={() => office && onDelete(office.idOffice)}>Eliminar Consultorio <FaTrash /></button>
             <button className="edit-button" onClick={() => onEdit(office.idOffice, newDescription , newOpeningTime, newClosingTime, newCityId, office.active)}>Modificar</button>
           </div>
         </div>
@@ -114,7 +115,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             </select>
           </p>
           <div className="buttons">
-            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Consultorio</button> {}
+            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Consultorio</button>
           </div>
         </div>
       </div>

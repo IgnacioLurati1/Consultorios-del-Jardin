@@ -15,6 +15,7 @@ import { NewPassword } from './pages/newPassword/NewPassword.tsx';
 import { PrivateRoutes } from './PrivateRoutes.tsx';
 import { Outlet } from 'react-router-dom';
 import CrudNav from './components/crudNav/CrudNav.tsx';
+import { DurationsAdmin } from './pages/adminCRUDS/adminDurations/DurationsAdmin.tsx';
 
 
 const router = createBrowserRouter([
@@ -39,6 +40,7 @@ const router = createBrowserRouter([
       { path: 'CitiesAdmin', element: <CitiesAdmin /> },
       { path: 'OfficesAdmin', element: <OfficesAdmin /> },
       { path: 'RoomsAdmin', element: <RoomsAdmin /> },
+      { path: 'DurationsAdmin', element: <DurationsAdmin/>},
       ]},
 
 

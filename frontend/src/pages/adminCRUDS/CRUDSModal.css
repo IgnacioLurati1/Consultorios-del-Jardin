@@ -129,3 +129,19 @@
     color: red;
     font-size: 0.8em;
 }
+
+.error-container {
+    grid-column: 2 / 3; /* lo coloca debajo del input */
+    margin-top: 4px;
+}
+
+.error-text {
+    color: red;
+    font-size: 0.8em;
+    margin: 0;
+}
+
+.error-icon{
+    color: red;
+    margin-right: 5px;
+}

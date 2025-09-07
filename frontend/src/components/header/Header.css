@@ -76,6 +76,11 @@
     border: 2px solid #FEFAE0;
 }
 
+/* "Log out" button */
+.out {
+    margin-left: 1vw;
+}
+
 /* "Register" button */
 .register {
     background-color: #FEFAE0;
@@ -92,6 +97,11 @@
   height: 100vh;
   background: rgba(0, 0, 0, 0.3);
   z-index: 998; 
+}
+
+.session{
+    display: flex;
+    flex-direction: row;
 }
 
 @media (max-width: 750px) {

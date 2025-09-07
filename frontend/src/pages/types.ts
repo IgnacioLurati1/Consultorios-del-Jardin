@@ -12,10 +12,18 @@ export interface City {
     }
 
 export interface Office {
-    idOffice: string;
-    openingTime: string;
-    closingTime: string;
-    description: string;
-    active: boolean;
-    city: City;
-  }
+
+        idOffice: string;
+        description: string;
+        openingTime: string;
+        closingTime: string;
+        city: City
+        active: boolean;
+    }
+
+export interface Room {
+        idRoom: string;
+        description: string;
+        office: Office;
+        active: boolean;
+    }
