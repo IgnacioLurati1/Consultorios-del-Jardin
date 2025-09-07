@@ -59,4 +59,4 @@ Content-Type: application/json
 ### Enviar mail al usuario
 PUT http://localhost:3000/api/people/sexo/a
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2Zlc2lvbmFsQGdtYWlsLmNvbSIsInR5cGUiOiJwcm9mZXNzaW9uYWwiLCJpYXQiOjE3NTcyNzkwOTcsImV4cCI6MTc1NzI3OTk5N30.CkikU8UMRNeF42O9qzmVsEumzUD1b807S8awpJu5wCM
+Authorization: Bearer token

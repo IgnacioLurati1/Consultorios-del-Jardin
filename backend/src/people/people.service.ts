@@ -83,11 +83,12 @@ export class PeopleService {
 
     const changeToken = jwt.sign({ email }, process.env.CHANGE_SECRET as jwt.Secret, { expiresIn: "30m" });
     const url = `http://localhost:5173/reset-password?token=${changeToken}`;
+    const fromMail = process.env.MAIL as string;
 
     const msg = {
       to: email,
-      from: "ignaciolurati@gmail.com",
-      replyTo: "ignaciolurati@gmail.com",
+      from: fromMail,
+      replyTo: fromMail,
       subject: "Recuperar contraseña",
       html: `
           <h3>Hola!</h3>
