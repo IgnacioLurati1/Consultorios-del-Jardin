@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from "express";
-import { Person } from "./people.entity.js";
-import { orm } from "../shared/db/orm.js";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import { PeopleService } from "./people.service.js";
 
-const em = orm.em;
 dotenv.config();
+
+interface RequestWithUser extends Request {
+  user?: any;
+}
 
 function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -33,11 +34,13 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+const peopleService = new PeopleService();
+
 async function findAll(req: Request, res: Response) {
   try {
-    const people = await em.find(Person, {});
+    const people = await peopleService.findAllPeople();
     const safeData = people.map((person) => ({ ...person, password: undefined })); // no devolvemos la contraseña al front
-    res.status(200).json({ message: "People found", data: safeData });
+    res.status(200).json({ message: "Personas encontradas", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -45,9 +48,9 @@ async function findAll(req: Request, res: Response) {
 
 async function findOne(req: Request, res: Response) {
   try {
-    const person = await em.findOneOrFail(Person, { email: req.params.email });
+    const person = await peopleService.findPersonByEmail(req.params.email);
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
-    res.status(200).json({ message: "Person found", data: safeData });
+    res.status(200).json({ message: "Persona encontrada", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -55,21 +58,11 @@ async function findOne(req: Request, res: Response) {
 
 async function add(req: Request, res: Response) {
   try {
-    const { password, ...rest } = req.body.sanitizedInput;
+    if (!["client", "professional"].includes(req.body.sanitizedInput.type))
+      return res.status(403).json({ message: "Credenciales inválidas" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const person = em.create(Person, { ...rest, password: hashedPassword });
-
-    await em.flush();
-
-    const token = jwt.sign({ email: person.email, type: person.type }, process.env.JWT_SECRET as jwt.Secret, {
-      expiresIn: "15m",
-    });
-
-    const refreshToken = jwt.sign({ email: person.email, type: person.type }, process.env.REFRESH_SECRET as jwt.Secret, {
-      expiresIn: "7d",
-    });
+    const person = await peopleService.createPerson(req.body.sanitizedInput);
+    const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -79,19 +72,24 @@ async function add(req: Request, res: Response) {
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
 
-    res.status(201).json({ message: "Person created", data: safeData, token }); // return person data and token
+    res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token }); // return person data and token
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
 }
 
-async function update(req: Request, res: Response) {
+async function update(req: RequestWithUser, res: Response) {
   try {
-    const person = await em.findOneOrFail(Person, { email: req.params.email });
-    em.assign(person, req.body.sanitizedInput);
-    await em.flush();
+    if (!(req.user.email == req.params.email)) res.status(401).json({ message: "Credenciales inválidas" });
+
+    const person = await peopleService.updatePerson(req.body.sanitizedInput, req.params.email);
+
+    if (!person) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
-    res.status(200).json({ message: "Person updated", data: safeData });
+    res.status(200).json({ message: "Persona actualizada con éxito!", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -99,10 +97,12 @@ async function update(req: Request, res: Response) {
 
 async function remove(req: Request, res: Response) {
   try {
-    const email = req.params.email;
-    const person = await em.findOneOrFail(Person, { email }); //Cambiado por que sino no andaba
-    await em.removeAndFlush(person);
-    res.status(200).json({ message: "Person removed" });
+    const valid = await peopleService.deletePersonRequest(req.params.email);
+
+    if (valid) {
+      return res.status(200).json({ message: "Solicitud rechazada" });
+    }
+    return res.status(401).json({ message: "La persona no puede ser removida" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -110,9 +110,9 @@ async function remove(req: Request, res: Response) {
 
 async function loginWithEmailAndPassword(req: Request, res: Response) {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body.sanitizedInput;
 
-    const person = await em.findOne(Person, { email });
+    const person = await peopleService.findPersonOrNull(email);
 
     if (!person) {
       return res.status(401).json({ message: "Credenciales inválidas" });
@@ -123,13 +123,7 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
-    const token = jwt.sign({ email: person.email, type: person.type }, process.env.JWT_SECRET as jwt.Secret, {
-      expiresIn: "15m",
-    });
-
-    const refreshToken = jwt.sign({ email: person.email, type: person.type }, process.env.REFRESH_SECRET as jwt.Secret, {
-      expiresIn: "7d",
-    });
+    const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -151,4 +145,23 @@ async function logOut(req: Request, res: Response) {
   });
 }
 
-export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut };
+async function accept(req: Request, res: Response) {
+  try {
+    await peopleService.toggleState(req.params.email);
+    res.status(200).json({ message: "Persona activada con éxito!" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
+  }
+}
+
+async function changePassword(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.email != req.params.email) return res.status(403).json({ message: "Credenciales inválidas" });
+    await peopleService.changePassword(req.params.email, req.body.sanitizedInput.password);
+    res.status(200).json({ message: "Contraseña cambiada con exita" });
+  } catch (error: any) {
+    res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
+  }
+}
+
+export { sanitizePersonInput, findAll, findOne, add, update, remove, loginWithEmailAndPassword, logOut, accept, changePassword };
