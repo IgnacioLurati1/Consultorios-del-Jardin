@@ -154,10 +154,11 @@ async function accept(req: Request, res: Response) {
   }
 }
 
-async function changePassword(req: RequestWithUser, res: Response) {
+async function changePassword(req: Request, res: Response) {
   try {
-    //if (req.user.email != req.params.email) return res.status(403).json({ message: "Credenciales inválidas" });
-    await peopleService.changePassword(req.user.email, req.body.sanitizedInput.password);
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Acceso denegado" });
+    await peopleService.changePassword(token, req.body.sanitizedInput.password);
     res.status(200).json({ message: "Contraseña cambiada con exita" });
   } catch (error: any) {
     res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
@@ -166,7 +167,8 @@ async function changePassword(req: RequestWithUser, res: Response) {
 
 async function sendPasswordMail(req: RequestWithUser, res: Response) {
   try {
-    await peopleService.sendPasswordMail(req.user.email);
+    const person = await peopleService.findPersonByEmail(req.params.email); //Revisamos que exista
+    await peopleService.sendPasswordMail(person.email);
     res.status(200).json({ Message: "Mail enviado!" });
   } catch (error: any) {
     res.status(500).json({ Message: "Ups! Algo salió mal" });

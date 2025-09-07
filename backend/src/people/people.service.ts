@@ -59,11 +59,17 @@ export class PeopleService {
     return null;
   }
 
-  async changePassword(email: string, newPassword: string) {
-    const person = await em.findOneOrFail(Person, { email });
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    person.password = newPasswordHash;
-    await em.flush;
+  async changePassword(token: any, newPassword: string) {
+    try {
+      const decodedToken = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
+      const email = decodedToken.email;
+      const person = await em.findOneOrFail(Person, { email });
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      person.password = newPasswordHash;
+      await em.flush();
+    } catch (error: any) {
+      throw new Error("Token expirado");
+    }
   }
 
   async deletePersonRequest(email: string) {
