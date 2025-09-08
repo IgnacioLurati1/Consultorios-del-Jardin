@@ -5,14 +5,16 @@ import {
   findOne,
   add,
   update,
-  toggleScheduleState
+  toggleScheduleState,
+  findByEmailAndRoom
 } from './schedule.controller.js';
 
 export const scheduleRouter = Router();
 
 scheduleRouter.get('/', findAll);
-scheduleRouter.get('/:day/:initialHour', findOne);
+scheduleRouter.get('/:idSchedule', findOne);
+scheduleRouter.get('/email/:email/room/:idRoom', findByEmailAndRoom);
 scheduleRouter.post('/', sanitizeScheduleInput, add);
-scheduleRouter.put('/:day/:initialHour', sanitizeScheduleInput, update);
-scheduleRouter.patch('/:day/:initialHour', sanitizeScheduleInput, update);
-scheduleRouter.patch('/:day/:initialHour/toggle', toggleScheduleState);
+scheduleRouter.put('/', sanitizeScheduleInput, update);
+scheduleRouter.patch('/', sanitizeScheduleInput, update);
+scheduleRouter.patch('/toggle', toggleScheduleState);

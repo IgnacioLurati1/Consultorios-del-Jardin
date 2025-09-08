@@ -6,18 +6,22 @@ import {
     Rel,
     ManyToMany,
     Cascade,
-    Collection
+    Collection,
+    Unique
 } from '@mikro-orm/core'
 import { Person } from '../people/people.entity.js'
 import { Room } from '../rooms/rooms.entity.js'
 import { Duration} from '../durations/durations.entity.js'
 @Entity()
+@Unique({ properties: ['day', 'initialHour', 'person', 'room'] })
 export class Schedule {
-
     @PrimaryKey()
+    idSchedule!: number
+    
+    @Property()
     day!: string
 
-    @PrimaryKey()
+    @Property()
     initialHour!: string
 
     @ManyToOne(() => Person, { nullable: false })

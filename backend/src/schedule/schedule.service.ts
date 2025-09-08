@@ -1,16 +1,13 @@
 import { orm } from "../shared/db/orm.js";
 import { Schedule } from "./schedules.entity.js";
 import { RequiredEntityData } from "@mikro-orm/core";
+import { Person } from "../people/people.entity.js";
+import { Room } from "../rooms/rooms.entity.js";
 
 const em = orm.em;
 export class ScheduleService {
 
   //Validaciones
-
-  async existingSchedule(day: string, initialHour: string): Promise<boolean> {
-    const schedule = await em.findOne(Schedule, { day, initialHour });
-    return !!schedule; // Retorna true si el horario ya existe
-  }
 
   removeAccents(str: string): string {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Elimina acentos y caracteres especiales
@@ -31,22 +28,32 @@ export class ScheduleService {
     return initialHour < finalHour;
   }
 
+  isValidAllowedTypes(allowedType: string): boolean {
+    const normalizedType = this.removeAccents(allowedType.trim().toLowerCase()); // Convierte a minúsculas y elimina acentos
+    const validTypes = ["simple", "taller"]; // Tipos permitidos
+    return validTypes.includes(normalizedType); // Retorna false si el tipo no es válido
+  }
+
+  /*isOverlappingSchedule(day: string, initialHour: string, finalHour: string, personMail: string, roomId: number): boolean {
+    const existingSchedulesByDayPersonRoom = em.find(Schedule, { day, person: personMail, room: roomId });
+
+  }*/
+
   //CRUD basico
 
   async findAllSchedules() : Promise<Schedule[]> {
     return await em.find(Schedule, {});
   }
 
-  async findScheduleByPK(day: string, initialHour: string): Promise<Schedule | null> {
-    return await em.findOne(Schedule, { day, initialHour });
+  async findScheduleById(id: number): Promise<Schedule> {
+    return await em.findOneOrFail(Schedule, { idSchedule: id });
   }
 
-  async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule | null> {
+  async findScheduleByEmailAndRoom(email: string, Id: number) : Promise<Schedule[]> {
+    return await em.find(Schedule, { person: { email }, room: { idRoom: Id } });
+  }
 
-    //Validaciones fuertes
-    if (await this.existingSchedule(data.day, data.initialHour)) {
-      throw new Error("Schedule with the same primary key already exists");
-    }
+  async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
 
     //Validaciones debiles
     const isValid = this.isValidDay(data.day) && 
