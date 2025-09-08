@@ -1,8 +1,6 @@
 import { orm } from "../shared/db/orm.js";
 import { Schedule } from "./schedules.entity.js";
 import { RequiredEntityData } from "@mikro-orm/core";
-import { Person } from "../people/people.entity.js";
-import { Room } from "../rooms/rooms.entity.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -45,12 +43,12 @@ export class ScheduleService {
     return await em.find(Schedule, {});
   }
 
-  async findScheduleById(id: number): Promise<Schedule> {
-    return await em.findOneOrFail(Schedule, { idSchedule: id });
+  async findScheduleByPK(day: string, initialHour: string): Promise<Schedule> {
+    return await em.findOneOrFail(Schedule, { day, initialHour });
   }
 
-  async findScheduleByEmailAndRoom(email: string, Id: number) : Promise<Schedule[]> {
-    return await em.find(Schedule, { person: { email }, room: { idRoom: Id } });
+  async findScheduleByEmail(email: string) : Promise<Schedule[]> {
+    return await em.find(Schedule, { person: { email } });
   }
 
   async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {

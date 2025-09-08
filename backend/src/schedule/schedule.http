@@ -1,11 +1,14 @@
 ### GET ALL - obtener todos los horarios
 GET http://localhost:3000/api/schedules
 
-### GET ONE - obtener un horario por ID
-GET http://localhost:3000/api/schedules/1
+### GET ALL - obtener horarios del profesional logueado
+GET http://localhost:3000/api/schedules/Profesional
 
-### GET ONE - obtener un horario por email y sala
-GET http://localhost:3000/api/schedules/email/profesional@mail.com/room/3
+### GET ONE - obtener un horario por día y hora
+GET http://localhost:3000/api/schedules/by-day-hour/miercoles/21:00
+
+### GET ONE - obtener un horario por email
+GET http://localhost:3000/api/schedules/by-email/profesional@mail.com
 
 ### POST - crear un nuevo horario
 # @name createSchedule
@@ -14,7 +17,7 @@ Content-Type: application/json
 
 {
   "day": "miercoles",
-  "initialHour": "21:00",
+  "initialHour": "22:00",
   "finalHour": "23:00",
   "person": "profesional@mail.com",
   "room": 3,

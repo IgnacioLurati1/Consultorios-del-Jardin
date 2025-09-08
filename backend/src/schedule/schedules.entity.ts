@@ -16,12 +16,9 @@ import { Duration} from '../durations/durations.entity.js'
 @Unique({ properties: ['day', 'initialHour', 'person', 'room'] })
 export class Schedule {
     @PrimaryKey()
-    idSchedule!: number
-    
-    @Property()
     day!: string
 
-    @Property()
+    @PrimaryKey()
     initialHour!: string
 
     @ManyToOne(() => Person, { nullable: false })

@@ -7,7 +7,6 @@ interface RequestWithUser extends Request {
 
 function sanitizeScheduleInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
-    idSchedule: req.body.idSchedule,
     day: req.body.day,
     initialHour: req.body.initialHour,
     person: req.body.person,
@@ -41,8 +40,9 @@ async function findAll(req: Request, res: Response) {
 
 async function findOne(req: Request, res: Response) {
   try {
-    const id = Number.parseInt(req.params.idSchedule)
-    const schedule = await scheduleService.findScheduleById(id)
+    const day = req.params.day // req.body.sanitizedInput.day para futuro
+    const initialHour = req.params.initialHour // req.body.sanitizedInput.initialHour para futuro
+    const schedule = await scheduleService.findScheduleByPK(day, initialHour)
     res.status(200).json({ message: 'Horario encontrado', data: schedule })
 
   } catch (error : any) {
@@ -50,11 +50,21 @@ async function findOne(req: Request, res: Response) {
   }
 }
 
-async function findByEmailAndRoom(req: RequestWithUser, res: Response) {
+async function findByProfesionalLogged(req: RequestWithUser, res: Response) {
   try {
-    const email = req.params.email
-    const idRoom = Number.parseInt(req.params.idRoom)
-    const schedule = await scheduleService.findScheduleByEmailAndRoom(email, idRoom)
+    const email = req.user.email
+    const schedule = await scheduleService.findScheduleByEmail(email)
+    res.status(200).json({ message: 'Horarios del profesional encontrado', data: schedule })
+
+  } catch (error : any) {
+    res.status(500).json({ message : error.message })
+  }
+}
+
+async function findByEmail(req: RequestWithUser, res: Response) { // Este endpoint es solo para PRUEBAS 
+  try {
+    const email = req.params.email 
+    const schedule = await scheduleService.findScheduleByEmail(email)
     res.status(200).json({ message: 'Horario encontrado', data: schedule })
   } catch (error : any) {
     res.status(500).json({ message : error.message })
@@ -96,4 +106,4 @@ async function toggleScheduleState(req: Request, res: Response) {
   }
 }
 
-export { sanitizeScheduleInput, findAll, findOne, add, update, toggleScheduleState , findByEmailAndRoom }
+export { sanitizeScheduleInput, findAll, findOne, add, update, toggleScheduleState , findByEmail, findByProfesionalLogged }
