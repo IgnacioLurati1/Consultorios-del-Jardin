@@ -130,20 +130,6 @@
     display: none;
 }
 
-.register-body .toast-container{
-    height: 10vh;
-}
-
-.feedBack-box {
-
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    border-radius: 5px;
-    border-style: solid;
-    border-width: 1px;
-    font-size: 1.3em;
-}
 
 .success {
     color: #4177b4 !important;
@@ -153,16 +139,6 @@
 .error{
     color: #ce5f5f !important;
     border-color: #ce5f5f;
-}
-
-.Toastify__toast-container {
-    position: static !important;
-}
-
-.register-body-right .Toastify__close-button > svg {
-  width: 1.8em;
-  height: 1.8em; 
-  /*Aumenta el tamaño de la X para cerrar el toast*/
 }
 
 .register-form {
@@ -265,9 +241,6 @@
     flex-direction: column;
     justify-content: space-around ;
 }
-
-.Toastify__toast-container {
-  position: fixed !important;}
 
 /* Professional Register */
 
