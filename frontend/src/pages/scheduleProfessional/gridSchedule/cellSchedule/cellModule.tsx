@@ -6,6 +6,7 @@ interface cellModuleProps{
     height: number;
     setScheduleModalOpen: (isOpen: boolean) => void; // Función para abrir el modal
     setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
+    className?: string;
 }
 
 export function CellModule({schedule,height,setScheduleModalOpen,setSelectedSchedule}:cellModuleProps){
@@ -17,7 +18,7 @@ export function CellModule({schedule,height,setScheduleModalOpen,setSelectedSche
     return(
         <div
             className={`hourly-module ${schedule ? schedule.allowedType : "empty"}`}
-            style={{ height: `calc(${height*6}vh + ${(height-1)}em)` }} //calculo la altura segun su duracion, le sumo la altura de cada uno (6vh) y la de los margenes 0.5em c/coso
+            style={{ height: `calc(${height*5}vh + ${((height*0.4)-0.4)}em)` }} //calculo la altura segun su duracion, le sumo la altura de cada uno (6vh) y la de los margenes 0.5em c/coso
             onClick={handleClick}
         >
 

@@ -9,8 +9,9 @@ interface scheduleModalProps {
 }
 
 export function ScheduleModal({ isOpen, onClose, schedule }: scheduleModalProps) {
-    if (!isOpen || !schedule) return null;
+    if (!isOpen) return null;
 
+    if(schedule){
     return (
         <div className="schedule-modal-overlay" onClick={onClose}>
             <div className="schedule-modal" onClick={(e) => e.stopPropagation()} /* Evita que el clic en el modal cierre el modal */ >
@@ -29,5 +30,7 @@ export function ScheduleModal({ isOpen, onClose, schedule }: scheduleModalProps)
                 </div>
             </div>
         </div>
-    );
+    );} else {
+        return null;
+    }
 }

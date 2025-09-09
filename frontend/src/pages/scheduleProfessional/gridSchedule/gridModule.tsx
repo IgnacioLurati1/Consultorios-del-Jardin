@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type{ Schedule } from "../../types.ts"
 import {CellModule} from "./cellSchedule/cellModule.tsx"
 import "./gridModule.css"
+import { FaAngleDown } from "react-icons/fa";
 
 interface columnModuleProps{
     schedules: Schedule[];
@@ -33,43 +35,53 @@ function stringHourToNumber(hour: string): number {
 export function GridModule({ schedules, daysSpanish, openingTime, closingTime, setScheduleModalOpen, setSelectedSchedule }: columnModuleProps) {
     const openedHours = diffHours(openingTime, closingTime)
     const startHour = stringHourToNumber(openingTime);   // hora de apertura del office
+    const [showDay, setShowDay] = useState<boolean[]>([false,false,false,false,false,false]); // estado para mostrar mas info del dia
 
     return (
         <div className="schedule">
             {daysSpanish.map((day, id) => (
                 <div className="day-column" key={id}>
-                    <div className="day-title">
+                    <div className="day-title" onClick={() => {
+                        const newShowDay = [...showDay];
+                        newShowDay[id] = !newShowDay[id];
+                        setShowDay(newShowDay);
+                    }}>
                         {day.charAt(0).toUpperCase() + day.slice(1)}
+                        <div className={`show-more-icon ${showDay[id] ? "rotated" : ""}`}><FaAngleDown/></div>
                     </div>
 
-                    {(() => {
-                        const cells: React.ReactNode[] = []; //array de componentes de react representa la columna
-                        let hourId = 0;
+                    <div className={`day-cells ${showDay[id] ? "expanded" : ""}`}>
+                        {(() => {
+                            const cells: React.ReactNode[] = []; //array de componentes de react representa la columna
+                            let hourId = 0;
 
-                        while (hourId < openedHours) {
-                            const currentHour = startHour + hourId;
-                            const currentHourStr = String(currentHour).padStart(2, "0") + ":00";
+                            while (hourId < openedHours) {
+                                const currentHour = startHour + hourId;
+                                const currentHourStr = String(currentHour).padStart(2, "0") + ":00";
 
-                            const schedule = schedules.find(
-                            (s) =>
-                                s.day.toLowerCase() === day.toLowerCase() &&
-                                s.initialHour === currentHourStr
-                            );
+                                const schedule = schedules.find(
+                                (s) =>
+                                    s.day.toLowerCase() === day.toLowerCase() &&
+                                    s.initialHour === currentHourStr
+                                );
 
-                            if (schedule) {
-                                const difference = diffHours(schedule.initialHour,schedule.finalHour);
+                                if (schedule) {
+                                    const difference = diffHours(schedule.initialHour,schedule.finalHour);
 
-                                cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={schedule} height={difference} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} />);
-                                
-                                hourId += difference; // salta horas
-                            } else {
-                                cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} />);
-                                hourId++;
+                                    cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={schedule} height={difference} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} />);
+                                    
+                                    hourId += difference; // salta horas
+                                } else {
+                                    cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} />);
+                                    hourId++;
+                                }
                             }
-                        }
-                        return cells;
+                            return cells;
 
-                    })()}
+                        })()}
+
+                            <CellModule schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} className="last-empty" />
+                    </div>
                 </div>
             ))}
         </div>

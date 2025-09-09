@@ -30,6 +30,9 @@
     padding-bottom:0.5em;
     padding-top:0.5em;
     border-bottom: 1px solid #ccc;
+    color: #3B7658;
+    font-weight: bold;
+    font-size: 1.2em;
 }
 
 .schedule-modal-header-title{
