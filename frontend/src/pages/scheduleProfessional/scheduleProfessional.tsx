@@ -1,6 +1,7 @@
 import "./scheduleProfessional.css";
 import {NavZone} from "../../components/navZone/NavZone";
-import type{ Person, Schedule } from "../types.ts"
+import { GridModule } from "./gridSchedule/gridModule.tsx";
+import type{ Person, Schedule, Duration } from "../types.ts"
 /*import {jwtDecode} from "jwt-decode";
 import {useNavigate} from "react-router-dom"
 import { useEffect, useState } from "react";
@@ -47,80 +48,86 @@ useEffect(() => {
 //------------------------------------------------------------FETCH DE LOS HORARIOS  ----------------- 
 */
 
-const schedules: Schedule[] = [ //carga manual de horarios 
+const durations: Duration[] = [
+  { idDuration: "1", duration: "15" },
+  { idDuration: "2", duration: "30" },
+  { idDuration: "3", duration: "45" },
+  { idDuration: "4", duration: "60" },
+];
+
+const schedules: Schedule[] = [
   {
     day: "lunes",
     initialHour: "08:00",
     finalHour: "10:00",
     Person: "maria.lopez@example.com",
     Room: "1",
-    state: true,
+    active: true,
     allowedType: "simple",
+    durations: [durations[3]], // 60
   },
   {
     day: "lunes",
-    initialHour: "10:30",
-    finalHour: "12:00",
-    Person: "juan.perez@example.com",
-    Room: "2",
-    state: false,
+    initialHour: "11:00",
+    finalHour: "16:00",
+    Person: "maria.lopez@example.com",
+    Room: "1",
+    active: true,
     allowedType: "simple",
+    durations: [durations[3]], // 60
   },
   {
     day: "martes",
-    initialHour: "09:00",
+    initialHour: "10:00",
     finalHour: "11:00",
-    Person: "sofia.gomez@example.com",
-    Room: "3",
-    state: true,
+    Person: "juan.perez@example.com",
+    Room: "2",
+    active: false,
     allowedType: "simple",
+    durations: [], // sin duration
   },
   {
     day: "miercoles",
-    initialHour: "13:00",
+    initialHour: "11:00",
     finalHour: "15:00",
-    Person: "carlos.ramos@example.com",
-    Room: "4",
-    state: false,
-    allowedType: "simple",
+    Person: "sofia.gomez@example.com",
+    Room: "3",
+    active: true,
+    allowedType: "taller", // único taller
+    durations: [durations[0], durations[1]], // 15 y 30
   },
   {
     day: "jueves",
-    initialHour: "14:00",
-    finalHour: "16:00",
-    Person: "ana.torres@example.com",
-    Room: "5",
-    state: true,
-    allowedType: "taller",
-  },
-  {
-    day: "viernes",
     initialHour: "09:00",
-    finalHour: "11:30",
-    Person: "diego.martinez@example.com",
-    Room: "1",
-    state: false,
+    finalHour: "10:00",
+    Person: "carlos.ramos@example.com",
+    Room: "4",
+    active: false,
     allowedType: "simple",
+    durations: [durations[2]], // 45
   },
   {
     day: "viernes",
-    initialHour: "12:00",
+    initialHour: "11:00",
     finalHour: "14:00",
     Person: "laura.fernandez@example.com",
-    Room: "2",
-    state: true,
+    Room: "5",
+    active: true,
     allowedType: "simple",
+    durations: [durations[1]],
   },
   {
     day: "sabado",
-    initialHour: "08:00",
-    finalHour: "15:00",
+    initialHour: "10:00",
+    finalHour: "16:00",
     Person: "laura.fernandez@example.com",
-    Room: "2",
-    state: true,
+    Room: "5",
+    active: true,
     allowedType: "taller",
+    durations: [durations[1]],
   },
 ];
+
 
 const daysSpanish: string[] = [
   "lunes",
@@ -130,33 +137,10 @@ const daysSpanish: string[] = [
   "viernes",
   "sabado",
 ];
-
-function diffHours(open: string, close: string): number { // PODRIA EN EL SERVICIO
-  const [h1, m1] = open.split(":").map(Number);
-  const [h2, m2] = close.split(":").map(Number);
-
-  const date1 = new Date(0, 0, 0, h1, m1);
-  const date2 = new Date(0, 0, 0, h2, m2);
-
-  const diffMs = date2.getTime() - date1.getTime();
-  return diffMs / (1000 * 60 * 60); // diferencia en horas
-}
-const openedHours = diffHours("10:00","18:00") //  aca irian los openingtime and closingtime del office
-
-function betweenHours(initialHour: string, finalHour: string, hourToCheck: string): boolean { // PODRIA EN EL SERVICIO
-  const [h1, m1] = initialHour.split(":").map(Number);
-  const [h2, m2] = finalHour.split(":").map(Number);
-  const [h3, m3] = hourToCheck.split(":").map(Number);
-
-  const initial = new Date(0, 0, 0, h1, m1);
-  const final = new Date(0, 0, 0, h2, m2);
-  const toCheck = new Date(0, 0, 0, h3, m3);
-
-  return toCheck >= initial && toCheck <= final;
-}
+const openingTime = "08:00"
+const closingTime = "16:00"
 
 export function ScheduleProfessional(){
-
 
   return (
     <div className="schedule-professional-container">
@@ -165,47 +149,7 @@ export function ScheduleProfessional(){
           <div className="filter-selector">Filtros</div> {/*agregar flechita hacia abajo para indicar abertura*/}
       </div>
       <div className="schedule-container">
-
-        <div className="schedule">
-          {daysSpanish.map((day, idx) => (
-            <div className="day-column" key={idx}>
-              <div className="day-title">
-                {day.charAt(0).toUpperCase() + day.slice(1)}
-              </div>
-
-              {Array.from({ length: openedHours }).map((_, hourIdx) => {
-                const startHour = 8; // ACA IRIA el openingTime del office
-                const currentHour = startHour + hourIdx;
-                const currentHourStr = String(currentHour).padStart(2, "0") + ":00";
-
-                // Busco si hay un schedule para este día y esta hora
-                const schedule = schedules.find(
-                  (s) =>
-                    s.day.toLowerCase() === day.toLowerCase() &&
-                    betweenHours(s.initialHour, s.finalHour, currentHourStr)
-                );
-
-                return (
-                  <div
-                    key={hourIdx}
-                    className={`hourly-module ${
-                      schedule ? schedule.allowedType : "empty"
-                    }`}
-                  >
-                    {schedule ? (
-                      <div className="hourly-module-text">
-                        <div>{schedule.initialHour} - {schedule.finalHour}</div>
-                        <div>{schedule.allowedType.charAt(0).toUpperCase()+schedule.allowedType.slice(1)}</div>
-                      </div>
-                    ) : (
-                      <div></div> // módulo vacío
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+        <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime}/>
       </div>
     </div>
   );

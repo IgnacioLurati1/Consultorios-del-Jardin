@@ -1,0 +1,24 @@
+.schedule {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  background: #F3F7F8;
+  color:black;
+  width: 100%;
+}
+
+.day-column {
+  border: 0.5px solid ;
+  display: flex;
+  flex-direction: column;
+ 
+}
+
+.day-title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 2em;
+  background: #C0C3C1;
+  height: 2em;
+}

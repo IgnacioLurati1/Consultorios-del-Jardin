@@ -40,12 +40,18 @@ export interface Person{
     active: boolean;
 }
 
+export interface Duration{
+    idDuration: string;
+    duration: string;
+}
+
 export interface Schedule {
     day: "lunes"|"martes"|"miercoles"|"jueves"|"viernes"|"sabado";
     initialHour: string;
     Person: string;
     Room: string;
     finalHour: string;
-    state: boolean;
+    active: boolean;
     allowedType: "simple" | "taller";
+    durations: Duration[]
 }

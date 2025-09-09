@@ -1,0 +1,45 @@
+.hourly-module {
+    border-radius: 10px;
+    margin: 0.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1em;
+    background: #C0C3C1;
+    width: 14vw;
+}
+.hourly-module.empty::after {
+    content: ""; /* nada por defecto */
+    font-size: 1.5em;
+    color: #666;
+}
+
+.hourly-module.empty:hover::after {
+    content: "+";  /* 👈 aparece el + */
+    font-size: 2em;
+    font-weight: bold;
+}
+
+
+.hourly-module:hover{
+    background: #999D9A;
+    cursor: pointer;
+}
+.hourly-module.taller {
+    background: #93C0E4;
+}
+.hourly-module.taller:hover {
+    background: #569CD5;
+}
+.hourly-module.simple {
+    background: #9CC2A3;
+}
+.hourly-module.simple:hover {
+    background: #6DA57A;
+}
+.hourly-module-text{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: bold;
+}
