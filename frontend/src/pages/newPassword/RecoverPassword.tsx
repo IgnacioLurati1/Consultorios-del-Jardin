@@ -5,9 +5,11 @@ import Logo from "../../assets/LogoRecortado.png";
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import api from "../../axios.ts";
-import { toast } from "react-toastify"
+import { toast, ToastContainer } from "react-toastify"
+import { useState } from "react";
 
 async function sendEmail(email: string) {
+
   api.post(`people/${email}/passwordMail`)
   .then(_ => {
     toast.success("Te mandamos un email, revisá tu bandeja de entrada")
@@ -18,6 +20,13 @@ async function sendEmail(email: string) {
 }
 
 export function RecoverPassword() {
+
+  const [email, setEmail] = useState("");
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setEmail(e.target.value);
+  }
+
   return (
     <div className="recoverPassword-container">
       <div className="recoverPassword-title">
@@ -27,7 +36,7 @@ export function RecoverPassword() {
 
       <div className="recoverPassword-body">
         <div className="recoverPassword-upper">
-          <DataInput label="Ingrese su email para recuperar contraseña" type="email" />
+          <DataInput label="Ingrese su email para recuperar contraseña" type="email" value={email} onChange={handleChange} />
         </div>
 
         <hr className="divider" />
@@ -46,12 +55,17 @@ export function RecoverPassword() {
             <img src={Logo} alt="Logo" />
           </div>
           <div className="recoverPassword-button-container">
-            <button className="recoverPassword-button" onClick={() => sendEmail("ignaciolurati2@gmail.com")}>
+            <button className="recoverPassword-button" onClick={() => sendEmail(email)}>
               Enviar instrucciones
             </button>
           </div>
         </div>
       </div>
+      <ToastContainer className="feedBack-box"
+          closeOnClick={false}
+          draggable={false}
+          toastClassName="feedBack-box"
+        />
     </div>
   );
 }

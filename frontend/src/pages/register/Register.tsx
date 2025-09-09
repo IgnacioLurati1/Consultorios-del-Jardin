@@ -160,12 +160,10 @@ return (
                         <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
 
                         <div className="toast-container">
-                        <ToastContainer className="feedBack-box"
-                        autoClose={false}
-                        hideProgressBar={true}
+                        <ToastContainer
+                        position='top-right'
                         closeOnClick={false}
-                        draggable={false}
-                        toastClassName="feedBack-box"/>
+                        draggable={false}/>
                         </div>
 
                         <button  className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
