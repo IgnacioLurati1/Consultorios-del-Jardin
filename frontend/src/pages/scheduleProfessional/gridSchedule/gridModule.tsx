@@ -7,6 +7,8 @@ interface columnModuleProps{
     daysSpanish: string[];
     openingTime: string;
     closingTime: string;
+    setScheduleModalOpen: (isOpen: boolean) => void; // Función para abrir el modal
+    setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
 }
 
 function diffHours(open: string, close: string): number { // PODRIA IR EN EL SERVICIO
@@ -28,7 +30,7 @@ function stringHourToNumber(hour: string): number {
     return hoursNumber;
 }
 
-export function GridModule({ schedules, daysSpanish, openingTime, closingTime }: columnModuleProps) {
+export function GridModule({ schedules, daysSpanish, openingTime, closingTime, setScheduleModalOpen, setSelectedSchedule }: columnModuleProps) {
     const openedHours = diffHours(openingTime, closingTime)
     const startHour = stringHourToNumber(openingTime);   // hora de apertura del office
 
@@ -57,11 +59,11 @@ export function GridModule({ schedules, daysSpanish, openingTime, closingTime }:
                             if (schedule) {
                                 const difference = diffHours(schedule.initialHour,schedule.finalHour);
 
-                                cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={schedule} height={difference}/>);
+                                cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={schedule} height={difference} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} />);
                                 
                                 hourId += difference; // salta horas
                             } else {
-                                cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={undefined}height={1}/>);
+                                cells.push(<CellModule key={`${day}-${currentHourStr}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} />);
                                 hourId++;
                             }
                         }

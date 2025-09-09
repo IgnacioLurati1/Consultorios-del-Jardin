@@ -1,0 +1,108 @@
+.filter-container{
+  width: 20vw;
+  position: relative;
+}
+
+.filter-selector {
+  margin-top: 20px;
+  box-shadow: 0px 1px 10px #6C788E;
+  background: #F3F7F8;
+  color: #3B7658;
+  height: 8vh;       
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-radius: 8px; 
+  font-size: 1.5em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-weight: bold;
+}
+
+.filter-selector:hover{
+    cursor: pointer;
+    background-color: #E1E8EB;
+    transform: scale(1.02);
+    box-shadow: 0px 1px 10px #6C788E;
+}
+
+.filter-selector:active {
+  transform: scale(0.95); /* achicar al hacer click */
+}
+
+.icon {
+  transition: transform 0.3s ease;
+  font-size: 1.5em;
+}
+
+.icon.rotated {
+  transform: rotate(180deg);
+}
+
+.filter-options{
+  position: absolute;
+  margin-top: 5px;
+  background-color:#F3F7F8;
+  width: 100%;
+  border-radius: 5px;
+}
+
+.disabled{
+    display: none;
+}
+
+.filter-option{
+  padding: 1vw;
+  padding-bottom: 0;
+}
+
+
+.filter-input-container{
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1vh;
+}
+
+.filter-input-container:last-of-type{
+  border-bottom: none;
+  padding-bottom: 1vw;
+}
+
+.filter-input{
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 1.2em;
+  color: #3B7658;
+}
+
+.filter-input:focus{
+  outline: none;
+}
+
+.filter-list{
+  color:#6C788E;
+  padding-left: 0;
+  margin-top:0;
+}
+
+.list-icon{
+  color: #3B7658;
+}
+
+.filter-list-item{
+  padding: 1vw;
+  border-bottom: 1px solid #ccc;
+  list-style-type: none;
+  transition: transform 0.2s ease
+}
+
+.filter-list-item:hover{
+  background-color: #E1E8EB;
+  cursor: pointer;
+}
+
+.filter-list-item:active{
+  transform: scale(1.02);
+}

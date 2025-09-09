@@ -2,6 +2,9 @@ import "./scheduleProfessional.css";
 import {NavZone} from "../../components/navZone/NavZone";
 import { GridModule } from "./gridSchedule/gridModule.tsx";
 import type{ Person, Schedule, Duration } from "../types.ts"
+import { GridFilter } from "./gridFilter/gridFilter.tsx";
+import { useState } from "react";
+import { ScheduleModal } from "./scheduceModal/scheduleModal.tsx";
 /*import {jwtDecode} from "jwt-decode";
 import {useNavigate} from "react-router-dom"
 import { useEffect, useState } from "react";
@@ -138,19 +141,27 @@ const daysSpanish: string[] = [
   "sabado",
 ];
 const openingTime = "08:00"
-const closingTime = "16:00"
+const closingTime = "21:00"
+
 
 export function ScheduleProfessional(){
 
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
+
   return (
     <div className="schedule-professional-container">
-      <div className="upper-container">
-          <NavZone title="Horarios de nombre profesional"/>
-          <div className="filter-selector">Filtros</div> {/*agregar flechita hacia abajo para indicar abertura*/}
+      <div className="schedule-subcontainer">
+        <div className="upper-container">
+            <NavZone title="Horarios de nombre profesional"/>
+            <GridFilter/>
+        </div>
+        <div className="schedule-container">
+          <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule}/>
+        </div>
       </div>
-      <div className="schedule-container">
-        <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime}/>
-      </div>
+      <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} />
+
     </div>
   );
 };

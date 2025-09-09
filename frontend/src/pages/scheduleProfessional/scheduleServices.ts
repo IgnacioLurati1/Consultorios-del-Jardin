@@ -20,6 +20,18 @@ export function findAllActiveSchedules(): Promise<Schedule[]>{
     });
 }
 
+export function findProfessionalSchedules(professionalEmail: string): Promise<Schedule[]>{
+    if(!professionalEmail) return Promise.resolve([])
+
+    return api.get(`/by-email/${professionalEmail}`)
+    .then(response => response.data.data)
+    .catch(err => {
+        toast.error(`Error al obtener horarios del profesional: ${err.message}`);
+        return [];
+});
+
+
+
 export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, Room:String, Person:string, allowedType: string}): Promise<Schedule | undefined>{
     if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.Room || !newSchedule.Person || !newSchedule.allowedType.trim()) {
         toast.error('Se necesitan los campos necesarios para crear un horario')
