@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FaTimes, FaTrash, FaChevronRight } from "react-icons/fa";
 
-export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces}: {visible: boolean; onClose: () => void; office: any | null; onDelete: () => void; onEdit: (id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string, active: boolean) => void; action: string; onCreate: ( newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
+export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces}: {visible: boolean; onClose: () => void; office: any | null; onDelete: (id: string) => void; onEdit: (id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string, active: boolean) => void; action: string; onCreate: ( newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
   if (!visible) return null;
 
   if (action === "edit" && office && office.active) {
@@ -9,7 +9,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
     const [newClosingTime, setNewClosingTime] = useState(office.closingTime);
     const [newDescription, setNewDescription] = useState(office.description);
     const [newCityId, setNewCityId] = useState(office.city.idCity);
-    const [newProvinceId, setNewProvinceId] = useState(office.city.province.idProvince);
+    const [newProvinceId, setNewProvinceId] = useState(office.city.province.nameProvince);
 
     const filteredCities = newProvinceId 
       ? cities.filter(city => city.province.idProvince == newProvinceId)
@@ -24,7 +24,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       <div className="crud-modal" onClick={onClose}>
         <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles de la Oficina <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
           <p>ID: {office.idOffice}</p>
@@ -53,7 +53,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             </select>
           </p>
           <div className="buttons">
-            <button className="delete-button" onClick={onDelete}>Eliminar Oficina <FaTrash /></button>
+            <button className="delete-button" onClick={() => office && onDelete(office.idOffice)}>Eliminar Consultorio <FaTrash /></button>
             <button className="edit-button" onClick={() => onEdit(office.idOffice, newDescription , newOpeningTime, newClosingTime, newCityId, office.active)}>Modificar</button>
           </div>
         </div>
@@ -86,11 +86,11 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       }}>
         <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="crud-modal-title">Crear Nueva Oficina <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Crear Nuevo Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
 
-          <p>Descripción: <input type="text" className="input-crud" placeholder="Descripción de la oficina" value={newDescription} onChange={e => setNewDescription(e.target.value)} /></p>
+          <p>Descripción: <input type="text" className="input-crud" placeholder="Descripción del Consultorio" value={newDescription} onChange={e => setNewDescription(e.target.value)} /></p>
           <p>Horario de Apertura: <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} /></p>
           <p>Horario de Cierre: <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} /></p>       
           <p>Provincia:
@@ -114,7 +114,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             </select>
           </p>
           <div className="buttons">
-            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Oficina</button> {}
+            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Consultorio</button>
           </div>
         </div>
       </div>
@@ -130,7 +130,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
       }}>
         <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
           <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles de la Oficina <FaChevronRight /></h2>
+            <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
           <p>ID: {office.idOffice}</p>
@@ -140,12 +140,10 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
           <p>Provincia: {office.city.province.nameProvince}</p>
           <p>Ciudad: {office.city.nameCity}</p>
           <div className="buttons">
-            <button className="edit-button" onClick={() => onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, true)}>Activar</button>
+            <button className="edit-button" onClick={() => onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, false)}>Activar</button>
           </div>
         </div>
       </div>
     );
   }
 }
-
-/*good*/

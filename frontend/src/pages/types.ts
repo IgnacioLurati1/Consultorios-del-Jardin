@@ -12,6 +12,7 @@ export interface City {
 }
 
 export interface Office {
+
     idOffice: string;
     description: string;
     openingTime: string;
