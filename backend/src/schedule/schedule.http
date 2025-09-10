@@ -17,13 +17,13 @@ Content-Type: application/json
 
 {
   "day": "miercoles",
-  "initialHour": "22:00",
-  "finalHour": "23:00",
+  "initialHour": "16:25",
+  "finalHour": "17:45",
   "person": "profesional@mail.com",
   "room": 3,
   "active": true,
-  "allowedType": "normal",
-  "durations": []
+  "allowedType": "simple",
+  "duration": 60
 }
 
 ### PUT - actualizar un horario existente

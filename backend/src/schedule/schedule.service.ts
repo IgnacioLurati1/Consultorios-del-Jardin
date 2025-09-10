@@ -1,6 +1,7 @@
 import { orm } from "../shared/db/orm.js";
 import { Schedule } from "./schedules.entity.js";
 import { RequiredEntityData } from "@mikro-orm/core";
+import { Person } from "../people/people.entity.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -32,10 +33,16 @@ export class ScheduleService {
     return validTypes.includes(normalizedType); // Retorna false si el tipo no es válido
   }
 
-  /*isOverlappingSchedule(day: string, initialHour: string, finalHour: string, personMail: string, roomId: number): boolean {
-    const existingSchedulesByDayPersonRoom = em.find(Schedule, { day, person: personMail, room: roomId });
+  async isOverlappingSchedule(day: string, initialHour: string, finalHour: string, person: Person): Promise<boolean> {
+    const existingSchedules = await this.findScheduleByEmailAndDay(person, day);
 
-  }*/
+    for (const schedule of existingSchedules) {
+      if ((initialHour < schedule.finalHour) && (finalHour > schedule.initialHour)) {
+        return true; // Hay solapamiento
+      }
+    }
+    return false;
+  }
 
   //CRUD basico
 
@@ -51,13 +58,25 @@ export class ScheduleService {
     return await em.find(Schedule, { person: { email } });
   }
 
+  async findScheduleByEmailAndDay(person: Person, day: string) : Promise<Schedule[]> {
+    return await em.find(Schedule, { person, day });
+  }
+
   async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
+
+    //Validaciones fuertes
+    const overlapping = await this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person);
+
+    if (overlapping) {
+      throw new Error("Horario solapado");
+    }
 
     //Validaciones debiles
     const isValid = this.isValidDay(data.day) && 
                     this.isValidHourFormat(data.initialHour) && 
                     this.isValidHourFormat(data.finalHour) && 
-                    this.isValidHourRange(data.initialHour, data.finalHour);
+                    this.isValidHourRange(data.initialHour, data.finalHour) &&
+                    this.isValidAllowedTypes(data.allowedType);
 
     if (!isValid) {
       throw new Error("Invalid schedule data");

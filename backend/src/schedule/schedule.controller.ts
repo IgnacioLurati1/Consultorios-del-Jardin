@@ -14,7 +14,7 @@ function sanitizeScheduleInput(req: Request, res: Response, next: NextFunction) 
     finalHour: req.body.finalHour,
     active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
     allowedType: req.body.allowedType,
-    durations: req.body.durations
+    duration: req.body.duration
 }
   Object.keys(req.body.sanitizedInput).forEach((key) => {
     if (req.body.sanitizedInput[key] === undefined) {
@@ -61,7 +61,7 @@ async function findByProfesionalLogged(req: RequestWithUser, res: Response) {
   }
 }
 
-async function findByEmail(req: RequestWithUser, res: Response) { // Este endpoint es solo para PRUEBAS 
+async function findByEmail(req: Request, res: Response) { // Este endpoint es solo para PRUEBAS 
   try {
     const email = req.params.email 
     const schedule = await scheduleService.findScheduleByEmail(email)
@@ -106,4 +106,4 @@ async function toggleScheduleState(req: Request, res: Response) {
   }
 }
 
-export { sanitizeScheduleInput, findAll, findOne, add, update, toggleScheduleState , findByEmail, findByProfesionalLogged }
+export { sanitizeScheduleInput, findAll, findOne, add, update, toggleScheduleState , findByEmail, findByProfesionalLogged}

@@ -4,14 +4,10 @@ import {
     PrimaryKey,
     ManyToOne,
     Rel,
-    ManyToMany,
-    Cascade,
-    Collection,
     Unique
 } from '@mikro-orm/core'
 import { Person } from '../people/people.entity.js'
 import { Room } from '../rooms/rooms.entity.js'
-import { Duration} from '../durations/durations.entity.js'
 @Entity()
 @Unique({ properties: ['day', 'initialHour', 'person', 'room'] })
 export class Schedule {
@@ -36,7 +32,6 @@ export class Schedule {
     @Property({nullable: false})
     allowedType!: string
 
-    @ManyToMany(() => Duration, undefined, { cascade: [Cascade.ALL] })
-    durations = new Collection<Duration>(this);
-
+    @Property({nullable: false})
+    duration!: number
 }
