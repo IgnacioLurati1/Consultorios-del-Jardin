@@ -57,6 +57,7 @@ export class OfficeService {
 
     em.assign(office, data);
     await em.flush();
+    await em.populate(office, ['city', 'city.province']);
     return office;
   }
 
