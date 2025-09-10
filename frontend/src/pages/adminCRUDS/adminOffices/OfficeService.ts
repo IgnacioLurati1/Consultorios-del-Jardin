@@ -66,7 +66,7 @@ export function updateOffice(id: string, newDescription: string, newOpeningTime:
     if(active){
         return api.put(`/offices/${id}`,{
             description: newDescription,
-            cityId: cityId,
+            city: cityId,
             openingTime: newOpeningTime,
             closingTime: newClosingTime,
         })
