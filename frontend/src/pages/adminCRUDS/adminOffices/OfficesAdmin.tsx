@@ -98,9 +98,9 @@ export function OfficesAdmin() {
 
 //async functions------------------
 
-  async function addOffice(description: string, openingTime: string, closingTime:string, cityId:string) {
+  async function addOffice(description: string, openingTime: string, closingTime:string, city:string) {
 
-    const createdOffice = await createOffice( description, openingTime, closingTime, cityId)
+    const createdOffice = await createOffice( description, openingTime, closingTime, city)
     if(createdOffice){
       setOffices([createdOffice, ...offices]);
       setModalVisible(false);
