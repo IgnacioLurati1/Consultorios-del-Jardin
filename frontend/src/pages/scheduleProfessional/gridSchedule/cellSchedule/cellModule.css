@@ -8,7 +8,9 @@
     font-size: 1em;
     background: #C0C3C1;
     width: 95%;
+    position: relative;
 }
+
 .hourly-module.empty::after {
     content: ""; /* nada por defecto */
     font-size: 1.5em;
@@ -47,7 +49,19 @@
 
 @media (max-width: 768px) {
   /* ocultamos los vacíos normales */
+  
+  .hourly-module.empty::after {
+    content: "+"; /* 👈 así sí aparece */
+    display: flex;
+    font-size: 2em;
+    font-weight: bold;
+    color: #666;
+    align-items: center;
+    justify-content: center;
+  }
+
   .hourly-module.empty:not(.last-empty) {
     display: none;
   }
+
 }
