@@ -1,12 +1,14 @@
 import { Router } from 'express'
-import {sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState} from './offices.controller.js'
+import {sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState, findAllActive} from './offices.controller.js'
+import { verifyAdmin } from "../config/middlewares.js";
 
 export const officeRouter = Router()
 
-officeRouter.get('/', findAll)
+officeRouter.get('/',verifyAdmin, findAll)
+officeRouter.get('/active', findAllActive)
 officeRouter.get('/:idOffice', findOne)
-officeRouter.post('/', sanitizeOfficeInput, add)
-officeRouter.put('/:idOffice', sanitizeOfficeInput, update)
-officeRouter.patch('/:idOffice', sanitizeOfficeInput , update)
-officeRouter.patch('/:idOffice/toggle', toggleOfficeState)
+officeRouter.post('/',verifyAdmin, sanitizeOfficeInput, add)
+officeRouter.put('/:idOffice',verifyAdmin, sanitizeOfficeInput, update)
+officeRouter.patch('/:idOffice',verifyAdmin, sanitizeOfficeInput , update)
+officeRouter.patch('/:idOffice/toggle',verifyAdmin, toggleOfficeState)
 
