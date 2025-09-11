@@ -7,9 +7,9 @@ import "./RoomLabelStyle.css";
 import { NavZone } from "../../../components/navZone/NavZone";
 import { FaPlus } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
-import type {City,Office,Room} from "../../types.ts" //Puede que province sea necesario
+import type {City,Office,Room} from "../../types.ts"
 import { findAllActiveCities} from "../adminCities/CityService.ts"
-//import { findAllActiveOffices} from "../adminOffices/OfficeService.ts" //--------FALTA LO DE ALAN -
+import { findAllActiveOffices} from "../adminOffices/OfficeService.ts"
 import SearchBar from "../../../components/searchBar/searchBar.tsx";
 import { findAllRooms, createRoom, updateRoom, removeRoom} from "./RoomService.ts";
 
@@ -47,23 +47,15 @@ export function RoomsAdmin() {
             }
         };
 
-    useEffect(() => { //Se cambia fetch por findAllActiveOffices cuando Alan lo tenga listo
-    fetch("/api/offices")
-        .then(res => res.json())
+    useEffect(() => {
+        findAllActiveOffices()
         .then(data => {
-            setOffices(data.data.filter((office: Office) => office.active));
+            setOffices(data);
             setLoading(false); })
         .catch(err => {
             setLoading(false);
-            toast.error("Error cargando oficinas:" + err)});
+            toast.error("Error cargando consultorios:" + err)});
     }, []);
-
-    /*useEffect(() => {
-        findAllActiveOffices()
-        .then(data => {
-        setOffices(data);
-        setLoading(false); })
-    }, []);  --------- FALTA LO DE ALAN - luego se implementa este codigo y se borra el de arriba*/
 
     useEffect(() => {
         findAllActiveCities()
