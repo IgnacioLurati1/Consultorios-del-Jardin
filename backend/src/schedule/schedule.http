@@ -1,0 +1,51 @@
+### GET ALL - obtener todos los horarios
+GET http://localhost:3000/api/schedules
+
+### GET ALL - obtener horarios del profesional logueado
+GET http://localhost:3000/api/schedules/Profesional
+
+### GET ONE - obtener un horario por día y hora
+GET http://localhost:3000/api/schedules/by-day-hour/miercoles/21:00
+
+### GET ONE - obtener un horario por email
+GET http://localhost:3000/api/schedules/by-email/profesional@mail.com
+
+### POST - crear un nuevo horario
+# @name createSchedule
+POST http://localhost:3000/api/schedules
+Content-Type: application/json
+
+{
+  "day": "miercoles",
+  "initialHour": "16:25",
+  "finalHour": "17:45",
+  "person": "profesional@mail.com",
+  "room": 3,
+  "active": true,
+  "allowedType": "simple",
+  "duration": 60
+}
+
+### PUT - actualizar un horario existente
+PUT http://localhost:3000/api/schedules
+Content-Type: application/json
+
+{
+  "finalHour": "11:00"
+}
+
+### PATCH - actualizar parcialmente un horario existente
+PATCH http://localhost:3000/api/schedules
+Content-Type: application/json
+
+{
+  "finalHour": "11:00",
+  "active": false
+}
+
+### PATCH - alternar el estado de un horario
+PATCH http://localhost:3000/api/schedules/toggle
+Content-Type: application/json
+
+{
+}

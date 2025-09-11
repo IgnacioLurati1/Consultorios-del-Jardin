@@ -16,7 +16,7 @@ Content-Type: application/json
     "closingTime": "18:00",
     "openingTime": "08:00",
     "description": "Consultorio Zona Norte",
-    "city": "1"
+    "city": "5"
 }
 
 ### Create a new office with invalid time

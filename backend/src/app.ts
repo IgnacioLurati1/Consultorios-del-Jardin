@@ -9,6 +9,7 @@ import { orm, syncSchema } from "./shared/db/orm.js";
 import { RequestContext } from "@mikro-orm/core";
 import { verifyToken } from "./config/middlewares.js";
 import { Request, Response } from "express";
+import { scheduleRouter } from './schedule/schedule.routes.js'
 import refreshToken from "./config/refreshToken.js";
 import cookieParser from "cookie-parser";
 
@@ -25,6 +26,7 @@ app.use("/api/cities", verifyToken, cityRouter);
 app.use("/api/people", personRouter);
 app.use("/api/offices", verifyToken, officeRouter);
 app.use("/api/rooms", verifyToken, roomRouter);
+app.use('/api/schedules', scheduleRouter)
 app.use("/api/tokenStatus", verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: "Token válido" });
 });

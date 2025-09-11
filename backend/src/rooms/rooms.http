@@ -12,7 +12,7 @@ Content-Type: application/json
 
 {
     "description": "Sala violeta",
-    "office": "4"
+    "office": "2"
 }
 
 ### Modify a room
