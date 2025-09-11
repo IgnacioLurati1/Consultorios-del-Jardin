@@ -162,12 +162,9 @@ export function RegisterProf() {
                 </div>
                 <div className='register-body-right'>
                     <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
-                    <ToastContainer className="feedBack-box"
-                        autoClose={false}
-                        hideProgressBar={true}
+                    <ToastContainer 
                         closeOnClick={false}
                         draggable={false}
-                        toastClassName="feedBack-box"
                     />
                     <button type="button" className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
                     <button type="submit" className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>

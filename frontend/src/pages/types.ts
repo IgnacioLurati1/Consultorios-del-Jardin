@@ -12,6 +12,7 @@ export interface City {
 }
 
 export interface Office {
+
     idOffice: string;
     description: string;
     openingTime: string;
@@ -53,5 +54,6 @@ export interface Schedule {
     finalHour: string;
     active: boolean;
     allowedType: "simple" | "taller";
-    durations: Duration[]
+    durations: number
 }
+

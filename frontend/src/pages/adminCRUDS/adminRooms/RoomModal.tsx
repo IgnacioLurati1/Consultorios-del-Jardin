@@ -270,3 +270,4 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         </div>
     )
 }
+

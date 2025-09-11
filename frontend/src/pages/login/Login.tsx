@@ -108,12 +108,10 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
                 </div>
 
                 <div className="toast-container">
-                <ToastContainer className="feedBack-box"
-                    autoClose={false}
-                    hideProgressBar={true}
+                <ToastContainer
+                    position="bottom-right"
                     closeOnClick={false}
                     draggable={false}
-                    toastClassName="feedBack-box"
                     />
                 </div>
 
