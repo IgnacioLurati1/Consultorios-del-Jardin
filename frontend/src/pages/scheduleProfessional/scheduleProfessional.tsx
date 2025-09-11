@@ -1,19 +1,12 @@
 import "./scheduleProfessional.css";
 import {NavZone} from "../../components/navZone/NavZone";
 import { GridModule } from "./gridSchedule/gridModule.tsx";
-import type{ Person, Schedule, Duration } from "../types.ts"
+import type{ Person, Schedule} from "../types.ts"
 import { GridFilter } from "./gridFilter/gridFilter.tsx";
 import { useEffect, useState } from "react";
 import { ScheduleModal } from "./scheduceModal/scheduleModal.tsx";
 import {findAllProfessionals, findProfessionalSchedules} from "./scheduleServices.ts"
 import { toast } from "react-toastify/unstyled";
-
-const durations: Duration[] = [
-  { idDuration: "1", duration: "15" },
-  { idDuration: "2", duration: "30" },
-  { idDuration: "3", duration: "45" },
-  { idDuration: "4", duration: "60" },
-];
 
 const daysSpanish: string[] = [
   "lunes",

@@ -35,7 +35,7 @@ export function findAllProfessionals(): Promise<Person[]>{
 export function findProfessionalSchedules(professionalEmail: string): Promise<Schedule[]>{
     if(!professionalEmail) return Promise.resolve([])
 
-    return api.get(`/by-email/${professionalEmail}`)
+    return api.get(`/schedules/by-email/${professionalEmail}`)
     .then(response => response.data.data)
     .catch(err => {
         toast.error(`Error al obtener horarios del profesional: ${err.message}`);
