@@ -9,15 +9,16 @@ POST http://localhost:3000/api/people
 Content-Type: application/json
 
 {
-    "email": "admin@gmail.com",
+    "email": "ignaciolurati2@gmail.com",
     "docType": "dni",
     "docNumber": "222222",
-    "name": "Hola",
-    "surname": "Mundo",
+    "name": "Ignacio",
+    "surname": "Lurati",
     "phoneNumber": "123",
     "password": "1234",
-    "type": "admin",
-    "speciality": "TESTING"
+    "type": "professional",
+    "speciality": "TESTING",
+    "active": true
 }
 
 ### loguear una persona
@@ -25,19 +26,27 @@ POST http://localhost:3000/api/people/login
 Content-Type: application/json
 
 {
-    "email": "mateoprueba@gmail.com",
-    "password": "mateo"
-
+    "email": "profesional@gmail.com",
+    "password": "1234"
 }
 
 ### modificar una persona (PUT - recurso completo e idempotente)
-PUT http://localhost:3000/api/people/genaro20038@gmail.com
+PUT http://localhost:3000/api/people/profesional@gmail.com
 Content-Type: application/json
 
 {
     "docType": "pasaporte",
-    "phoneNumber": "3413493887"
+    "phoneNumber": "3413493887",
+    "password": "1234",
+    "active": false,
+    "type": "professional"
 }
+
+###
+PATCH http://localhost:3000/api/people/profesional1@gmail.com/accept
+
+### Eliminar request de profesional
+DELETE http://localhost:3000/api/people/profesional@gmail.com
 
 ### modificar una persona (PATCH - recurso parcial)
 PATCH http://localhost:3000/api/people/olivieri03@gmail.com
@@ -46,3 +55,8 @@ Content-Type: application/json
 {
     "active": false
 }
+
+### Enviar mail al usuario
+PUT http://localhost:3000/api/people/sexo/a
+Content-Type: application/json
+Authorization: Bearer token

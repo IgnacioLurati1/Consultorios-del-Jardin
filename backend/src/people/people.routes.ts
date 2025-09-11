@@ -1,11 +1,31 @@
-import { Router } from 'express'
-import { sanitizePersonInput, findAll, findOne, add, update, loginWithEmailAndPassword } from './people.controller.js'
+import { Router } from "express";
+import {
+  sanitizePersonInput,
+  findAll,
+  findOne,
+  add,
+  update,
+  loginWithEmailAndPassword,
+  logOut,
+  remove,
+  accept,
+  changePassword,
+  sendPasswordMail,
+  findAllPerType,
+} from "./people.controller.js";
+import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 
-export const personRouter = Router()
+export const personRouter = Router();
 
-personRouter.get('/', findAll)
-personRouter.get('/:email', findOne)
-personRouter.post('/', sanitizePersonInput, add)
-personRouter.post('/login', loginWithEmailAndPassword)
-personRouter.put('/:email', sanitizePersonInput, update)
-personRouter.patch('/:email', sanitizePersonInput, update)
+personRouter.get("/", verifyToken, verifyAdmin, findAll);
+personRouter.get("/:peopleType", verifyToken, verifyAdmin, findAllPerType);
+personRouter.get("/:email", verifyToken, findOne);
+personRouter.post("/", sanitizePersonInput, add);
+personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
+personRouter.post("/logout", logOut);
+personRouter.patch("/changePassword", sanitizePersonInput, changePassword);
+personRouter.put("/:email", verifyToken, sanitizePersonInput, update);
+personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
+personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, remove);
+personRouter.patch("/:email/accept", verifyToken, verifyAdmin, sanitizePersonInput, accept);
+personRouter.post("/:email/passwordMail", sendPasswordMail);
