@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 
 app.use("/api/provinces", verifyToken, provinceRouter);
 app.use("/api/cities", verifyToken, cityRouter);
-app.use("/api/people", verifyToken, personRouter);
+app.use("/api/people", personRouter);
 app.use("/api/offices", verifyToken, officeRouter);
 app.use("/api/rooms", verifyToken, roomRouter);
 app.use('/api/schedules', verifyToken, scheduleRouter)
