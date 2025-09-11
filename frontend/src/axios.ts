@@ -22,16 +22,30 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response.status === 401 && !originalRequest.retry) {
-      originalRequest.retry = true;
+    if (error.response?.status === 401) {
 
-      const { data } = await axios.get("/api/refreshToken", {
+      if(!originalRequest._retry){
+        originalRequest._retry = true;
+      }
+      
+      try{
+        const { data } = await axios.get("/api/refreshToken", {
         withCredentials: true,
       });
 
       localStorage.setItem("token", data.token);
-
+      
       return api(originalRequest);
+      } catch (refreshError) {
+          try {
+          await axios.post("/api/logout", {}, { withCredentials: true });
+        } catch (logoutError) {
+          console.error("Error cerrando sesión:", logoutError);
+        } finally {
+          localStorage.removeItem("token");
+          window.location.href = "/login"; // redirigir al login
+        }
+      }
     }
     return Promise.reject(error);
   }
