@@ -28,7 +28,8 @@ export class OfficeService {
   }
 
   async findAllActiveOffices(): Promise<Office[]> {
-    return await em.find(Office, { active: true }, { populate: ['city', 'city.province'] });
+    let offices = await em.find(Office, { active: true, city: {active: true} }, { populate: ['city', 'city.province'] });
+    return offices
   }
 
   async findOficeById(idOffice: number): Promise<Office> {
