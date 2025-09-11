@@ -19,7 +19,7 @@ Content-Type: application/json
   "day": "miercoles",
   "initialHour": "16:25",
   "finalHour": "17:45",
-  "person": "profesional@mail.com",
+  "person": "ignaciolurati2@gmail.com",
   "room": 3,
   "active": true,
   "allowedType": "simple",
