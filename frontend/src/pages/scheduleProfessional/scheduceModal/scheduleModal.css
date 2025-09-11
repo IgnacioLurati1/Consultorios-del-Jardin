@@ -1,0 +1,52 @@
+.schedule-modal-overlay{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.schedule-modal{
+    background-color: white;
+    position: absolute;
+    top:20vh;
+    color: black;
+    z-index: 1001;
+    width: 50%;
+    height: 60vh;
+    border-radius: 10px;
+}
+
+.schedule-modal-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1em;
+    padding-bottom:0.5em;
+    padding-top:0.5em;
+    border-bottom: 1px solid #ccc;
+    color: #3B7658;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.schedule-modal-header-title{
+    margin: 0;
+}
+
+.schedule-modal-header-close{
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+}
+
+.schedule-modal-content{
+    padding: 1em;
+}
+

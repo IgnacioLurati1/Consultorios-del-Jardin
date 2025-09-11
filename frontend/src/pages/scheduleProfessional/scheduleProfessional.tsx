@@ -1,126 +1,12 @@
 import "./scheduleProfessional.css";
 import {NavZone} from "../../components/navZone/NavZone";
-import type{ Person, Schedule } from "../types.ts"
-/*import {jwtDecode} from "jwt-decode";
-import {useNavigate} from "react-router-dom"
+import { GridModule } from "./gridSchedule/gridModule.tsx";
+import type{ Person, Schedule} from "../types.ts"
+import { GridFilter } from "./gridFilter/gridFilter.tsx";
 import { useEffect, useState } from "react";
-import { toast, ToastContainer } from "react-toastify";
-import { findOne } from "../professionalCRUD/ProfessionalService.ts" FALTA SERVICIOS DE PROFESIONALES
-
-
-interface TokenPayload {
-    email:string;
-    type:string;
-    exp:number;
-}
-
-const [professional, setProfessional] = useState<People>([]);
-const [schedules, setSchedules] = useState<Schedule>([]);
-
-const navigate  = useNavigate()
-
-const token = localStorage.getItem("token")
-if(token){
-  const decoded: TokenPayload = jwtDecode(token);
-}else{
-  console.log("Invalid token retrieved")
-  navigate('/');
-}
-
-useEffect(() => {
-        findOne(decoded.mail)
-        .then(data => {
-            setProfessional(data);})
-        .catch(err => {
-            toast.error("Error cargando el profesional:" + err)});
-    }, []);
-//------------------------------------------------------------FETCH DE PROFESIONAL X MAIL  ----------------- 
-
-
-useEffect(() => {
-        findAllActiveSchedules()
-        .then(data => {
-            setSchedules(data);})
-        .catch(err => {
-            toast.error("Error cargando horarios:" + err)});
-    }, []);
-//------------------------------------------------------------FETCH DE LOS HORARIOS  ----------------- 
-*/
-
-const schedules: Schedule[] = [ //carga manual de horarios 
-  {
-    day: "monday",
-    initialHour: "08:00",
-    finalHour: "10:00",
-    Person: "maria.lopez@example.com",
-    Room: "1",
-    state: true,
-    allowedType: "simple",
-  },
-  {
-    day: "monday",
-    initialHour: "10:30",
-    finalHour: "12:00",
-    Person: "juan.perez@example.com",
-    Room: "2",
-    state: false,
-    allowedType: "simple",
-  },
-  {
-    day: "tuesday",
-    initialHour: "09:00",
-    finalHour: "11:00",
-    Person: "sofia.gomez@example.com",
-    Room: "3",
-    state: true,
-    allowedType: "simple",
-  },
-  {
-    day: "wednesday",
-    initialHour: "13:00",
-    finalHour: "15:00",
-    Person: "carlos.ramos@example.com",
-    Room: "4",
-    state: false,
-    allowedType: "simple",
-  },
-  {
-    day: "thursday",
-    initialHour: "14:00",
-    finalHour: "16:00",
-    Person: "ana.torres@example.com",
-    Room: "5",
-    state: true,
-    allowedType: "workshop",
-  },
-  {
-    day: "friday",
-    initialHour: "09:00",
-    finalHour: "11:30",
-    Person: "diego.martinez@example.com",
-    Room: "1",
-    state: false,
-    allowedType: "simple",
-  },
-  {
-    day: "friday",
-    initialHour: "12:00",
-    finalHour: "14:00",
-    Person: "laura.fernandez@example.com",
-    Room: "2",
-    state: true,
-    allowedType: "simple",
-  },
-  {
-    day: "saturday",
-    initialHour: "08:00",
-    finalHour: "15:00",
-    Person: "laura.fernandez@example.com",
-    Room: "2",
-    state: true,
-    allowedType: "workshop",
-  },
-];
+import { ScheduleModal } from "./scheduceModal/scheduleModal.tsx";
+import {findAllProfessionals, findProfessionalSchedules} from "./scheduleServices.ts"
+import { toast } from "react-toastify/unstyled";
 
 const daysSpanish: string[] = [
   "lunes",
@@ -130,94 +16,66 @@ const daysSpanish: string[] = [
   "viernes",
   "sabado",
 ];
-const daysEnglish: string[] = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-];
+const openingTime = "08:00"
+const closingTime = "21:00"
 
-function diffHours(open: string, close: string): number {
-  const [h1, m1] = open.split(":").map(Number);
-  const [h2, m2] = close.split(":").map(Number);
-
-  const date1 = new Date(0, 0, 0, h1, m1);
-  const date2 = new Date(0, 0, 0, h2, m2);
-
-  const diffMs = date2.getTime() - date1.getTime();
-  return diffMs / (1000 * 60 * 60); // diferencia en horas
-}
-const openedHours = diffHours("10:00","18:00") //  aca irian los openingtime and closingtime del office
 
 export function ScheduleProfessional(){
 
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
+  const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
+  const [professional, setProfesional] = useState<Person | undefined>(undefined);
+  const [schedules, setSchedules] = useState<Schedule[] | []>([]);
 
-  return (
-    <div className="schedule-professional-container">
+  useEffect(() => {
+    findAllProfessionals()
+    .then(data => {
+        setProfessionalsList(data);
+    })
+    .catch(err => {
+        toast.error("Error cargando profesionales:", err);
+    });
+  }, []);
+
+  useEffect(() => {
+    if(professional){
+      findProfessionalSchedules(professional.email)
+      .then(data => {
+          console.log("Horarios cargados:", data);
+          setSchedules(data);
+      })
+      .catch(err => {
+          toast.error("Error cargando horarios:", err);
+      });
+    }
+  }, [professional]);
+
+  if(!professional){
+    return (
+      <div className="schedule-professional-container">
         <div className="upper-container">
-            <NavZone title="Horarios de nombre profesional"/>
-            <div className="filter-selector">Filtros</div> {/*agregar flechita hacia abajo para indicar abertura*/}
+          <NavZone title="Seleccionar Profesional en los filtros"/>
+          <GridFilter setProfessional={setProfesional} professionals={professionalsList}/>
         </div>
-        <div className="schedule-container">
-
-          <div className="schedule">
-  {daysEnglish.map((day, idx) => (
-    <div className="day-column" key={idx}>
-      <div className="day-title">
-        {day.charAt(0).toUpperCase() + day.slice(1)}
-      </div>
-
-      {Array.from({ length: openedHours }).map((_, hourIdx) => {
-        const startHour = 8; // ACA IRIA el openingTime del office
-        const currentHour = startHour + hourIdx;
-        const currentHourStr = String(currentHour).padStart(2, "0") + ":00";
-
-        // Busco si hay un schedule para este día y esta hora
-        const schedule = schedules.find(
-          (s) =>
-            s.day.toLowerCase() === day.toLowerCase() &&
-            s.initialHour === currentHourStr
-        );
-
-        return (
-          <div
-            key={hourIdx}
-            className={`hourly-module ${
-              schedule ? schedule.allowedType : ""
-            }`}
-          >
-            {schedule ? (
-              <div className="hourly-module-text">
-                <div>{schedule.initialHour} - {schedule.finalHour}</div>
-                <div>{schedule.allowedType.charAt(0).toUpperCase()+schedule.allowedType.slice(1)}</div>
-              </div>
-            ) : (
-              <div></div> // módulo vacío con la hora
-            )}
-          </div>
-        );
-      })}
-    </div>
-  ))}
-</div>
-
-            
-            
-            {/*{schedules.map((schedule, i) => (
-                    <div
-                        key={i}
-                        className={`hourly-module ${schedule.allowedType?schedule.allowedType:""}`}
-                    >
-                      <span className="time">{schedule.initialHour}</span>
-                        <span className="type">{schedule.allowedType}</span>
-                        <span className="edit">✏️</span>
-                    </div>
-
-                    ))}*/}
-          </div>
       </div>
     );
+  } else {
+      return (
+        <div className="schedule-professional-container">
+          <div className="schedule-subcontainer">
+            <div className="upper-container">
+                <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
+                <GridFilter setProfessional={setProfesional} professionals={professionalsList}/>
+            </div>
+            <div className="schedule-container">
+              <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule}/>
+            </div>
+          </div>
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} />
+
+        </div>
+      );
+  }
 };
 

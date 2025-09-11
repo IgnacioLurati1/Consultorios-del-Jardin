@@ -28,7 +28,8 @@ export function createRoom(newRoom: { description: string; office: string }): Pr
 
     return api.post('/Rooms', {
         description: newRoom.description,
-        office: newRoom.office,
+        active: true,
+        office: newRoom.office
     })
     .then(created => {
         toast.success('Sala creada con éxito');
