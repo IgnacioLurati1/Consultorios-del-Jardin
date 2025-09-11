@@ -1,7 +1,8 @@
-/*import {toast} from "react-toastify";
-import api from "../../../axios";
-import type {Schedule} from "../types.ts"
+import {toast} from "react-toastify";
+import api from "../../axios";
+import type {Schedule, Person} from "../types.ts"
 
+/*
 export function findAllSchedules(): Promise<Schedule[]>{
     return api.get('/schedules')
     .then(response => response.data.data)
@@ -20,6 +21,17 @@ export function findAllActiveSchedules(): Promise<Schedule[]>{
     });
 }
 
+*/
+
+export function findAllProfessionals(): Promise<Person[]>{
+    return api.get('/people/professional')
+    .then(response => response.data.data)
+    .catch(err => {
+        toast.error(`Error al obtener profesionales: ${err.message}`);
+        return [];
+    });
+}
+
 export function findProfessionalSchedules(professionalEmail: string): Promise<Schedule[]>{
     if(!professionalEmail) return Promise.resolve([])
 
@@ -29,9 +41,10 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
         toast.error(`Error al obtener horarios del profesional: ${err.message}`);
         return [];
 });
+}
 
 
-
+/*
 export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, Room:String, Person:string, allowedType: string}): Promise<Schedule | undefined>{
     if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.Room || !newSchedule.Person || !newSchedule.allowedType.trim()) {
         toast.error('Se necesitan los campos necesarios para crear un horario')
@@ -107,5 +120,3 @@ export function updateSchedule(updatedSchedule: { day: string; initialHour: stri
     };
 }
 */
-
-

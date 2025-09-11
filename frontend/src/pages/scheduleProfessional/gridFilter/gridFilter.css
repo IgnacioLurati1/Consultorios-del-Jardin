@@ -1,6 +1,7 @@
 .filter-container{
   width: 20vw;
   position: relative;
+  z-index: 1000;
 }
 
 .filter-selector {
