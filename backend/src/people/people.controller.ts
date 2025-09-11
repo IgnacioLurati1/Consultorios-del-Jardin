@@ -46,6 +46,16 @@ async function findAll(req: Request, res: Response) {
   }
 }
 
+async function findAllPerType(req: Request, res: Response) {
+  try {
+    const people = await peopleService.findAllPerType(req.params.peopleType);
+    const safeData = people.map((person) => ({ ...person, password: undefined }));
+    res.status(200).json({ message: `Personas encontradas del tipo ${req.params.peopleType}`, data: safeData });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function findOne(req: Request, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email);
@@ -186,4 +196,5 @@ export {
   accept,
   changePassword,
   sendPasswordMail,
+  findAllPerType,
 };

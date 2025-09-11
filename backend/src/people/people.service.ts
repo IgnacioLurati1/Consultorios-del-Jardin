@@ -15,6 +15,10 @@ export class PeopleService {
     return await em.find(Person, {});
   }
 
+  async findAllPerType(peopleType: string): Promise<Person[]> {
+    return await em.find(Person, { type: peopleType });
+  }
+
   async findPersonByEmail(email: string): Promise<Person> {
     return em.findOneOrFail(Person, { email });
   }

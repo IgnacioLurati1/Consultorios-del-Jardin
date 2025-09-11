@@ -11,12 +11,14 @@ import {
   accept,
   changePassword,
   sendPasswordMail,
+  findAllPerType,
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 
 export const personRouter = Router();
 
 personRouter.get("/", verifyToken, verifyAdmin, findAll);
+personRouter.get("/:peopleType", verifyToken, verifyAdmin, findAllPerType);
 personRouter.get("/:email", verifyToken, findOne);
 personRouter.post("/", sanitizePersonInput, add);
 personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
