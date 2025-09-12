@@ -18,8 +18,8 @@ import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 export const personRouter = Router();
 
 personRouter.get("/", verifyToken, verifyAdmin, findAll);
-personRouter.get("/:peopleType", verifyToken, verifyAdmin, findAllPerType);
 personRouter.get("/:email", verifyToken, findOne);
+personRouter.get("/:peopleType", verifyToken, verifyAdmin, findAllPerType);
 personRouter.post("/", sanitizePersonInput, add);
 personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
 personRouter.post("/logout", logOut);

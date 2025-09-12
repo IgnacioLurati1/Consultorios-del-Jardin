@@ -40,7 +40,7 @@ export class PeopleService {
     });
 
     const refreshToken = jwt.sign({ email: personEmail, type: personType }, process.env.REFRESH_SECRET as jwt.Secret, {
-      expiresIn: "7d",
+      expiresIn: "30d",
     });
 
     return { token, refreshToken };

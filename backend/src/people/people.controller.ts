@@ -140,7 +140,7 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: false,
-      sameSite: "none",
+      sameSite: "lax",
     });
 
     res.status(200).json({ message: "Login exitoso", token });
@@ -153,7 +153,7 @@ async function logOut(req: Request, res: Response) {
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: false, // cambiar en produccion
-    sameSite: "none", // no funciona al reves el proxy jeje
+    sameSite: "lax", // no funciona al reves el proxy jeje
   });
 }
 
