@@ -2,6 +2,7 @@ import { Home } from "./pages/mainHome/Home.tsx";
 import { Register } from "./pages/register/Register";
 import { RegisterProf } from "./pages/registerProfessional/RegisterProf.tsx";
 import { Login } from "./pages/login/Login.tsx";
+import { EditProfile } from "./pages/editProfie/EditProfile.tsx"
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Layout } from "./components/defaultLayout/Layout.tsx";
 import { NotFoundPage } from "./pages/notFoundPage/NotFoundPage.tsx";
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: "/Register", element: <Register /> },
       { path: "/RegisterProf", element: <RegisterProf /> },
       { path: "/Login", element: <Login /> },
+      { path: "/EditProfile", element: <EditProfile/>},
 
       // Private Routes
       {

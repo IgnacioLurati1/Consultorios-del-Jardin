@@ -5,7 +5,8 @@ type dataInputProps ={
     type: string,
     options?: string[]
     value?: string,
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    disabled?: boolean,
 }
 
 export function DataInput(props: dataInputProps) {
@@ -15,6 +16,7 @@ export function DataInput(props: dataInputProps) {
                     className="data-input-input"
                     value={props.value}
                     onChange={props.onChange}
+                    disabled={props.disabled}
                 />;
                 
     return (
