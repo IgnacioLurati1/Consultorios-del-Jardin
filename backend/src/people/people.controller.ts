@@ -77,7 +77,7 @@ async function add(req: Request, res: Response) {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "strict",
+      sameSite: "lax",
     });
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
@@ -90,9 +90,8 @@ async function add(req: Request, res: Response) {
 
 async function update(req: RequestWithUser, res: Response) {
   try {
-    if (!(req.user.email == req.params.email)) return res.status(401).json({ message: "Credenciales inválidas" });
-
-    delete req.body.sanitizedInput.email; // no se permite cambiar emails
+    // if (!(req.user.email == req.params.email)) return res.status(401).json({ message: "Credenciales inválidas" });
+    delete req.body.sanitizedInput.email, req.body.sanitizedInput.password; // no se permite cambiar emails ni contraseñas
 
     const person = await peopleService.updatePerson(req.body.sanitizedInput, req.params.email);
 

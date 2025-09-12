@@ -48,19 +48,9 @@ export class PeopleService {
 
   async updatePerson(data: Partial<Person>, email: string) {
     const person = await em.findOneOrFail(Person, { email });
-
-    if (data.password) {
-      let isValid = await bcrypt.compare(data.password, person.password);
-
-      if (isValid) {
-        let hashedPassword = await bcrypt.hash(data.password, 10);
-        em.assign(person, { ...data, password: hashedPassword });
-        await em.flush();
-        return person;
-      }
-    }
-
-    return null;
+    em.assign(person, { ...data });
+    await em.flush();
+    return person;
   }
 
   async changePassword(token: any, newPassword: string) {
