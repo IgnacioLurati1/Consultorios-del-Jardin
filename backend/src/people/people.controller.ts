@@ -92,6 +92,8 @@ async function update(req: RequestWithUser, res: Response) {
   try {
     if (!(req.user.email == req.params.email)) return res.status(401).json({ message: "Credenciales inválidas" });
 
+    delete req.body.sanitizedInput.email; // no se permite cambiar emails
+
     const person = await peopleService.updatePerson(req.body.sanitizedInput, req.params.email);
 
     if (!person) {
@@ -137,8 +139,8 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: "strict",
+      secure: false,
+      sameSite: "none",
     });
 
     res.status(200).json({ message: "Login exitoso", token });
@@ -150,8 +152,8 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
 async function logOut(req: Request, res: Response) {
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: true,
-    sameSite: "strict",
+    secure: false, // cambiar en produccion
+    sameSite: "none", // no funciona al reves el proxy jeje
   });
 }
 
