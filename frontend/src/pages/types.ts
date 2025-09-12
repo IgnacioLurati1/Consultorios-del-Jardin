@@ -57,3 +57,8 @@ export interface Schedule {
     durations: number
 }
 
+export interface TokenPayload {
+    email:string;
+    type:string;
+    exp:number;
+}

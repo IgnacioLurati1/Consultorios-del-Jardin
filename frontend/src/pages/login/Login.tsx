@@ -9,14 +9,9 @@ import { DataInputPassword } from '../../components/inputs/passwordInput/DataInp
 import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import api from '../../axios';
+import Axios from '../../axios';
 import { useAuth } from "../../context/AuthContext";
-
-interface TokenPayload {
-    email:string;
-    type:string;
-    exp:number;
-}
+import type {TokenPayload} from "../types.ts"
 
 export function Login() {
 
@@ -47,7 +42,7 @@ const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         return;
     }
 
-    api.post('/people/login', {
+    Axios.post('/people/login', {
         email: formData.email,
         password: formData.contraseña
     }).then(response => {

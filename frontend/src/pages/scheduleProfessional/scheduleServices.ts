@@ -24,7 +24,7 @@ export function findAllActiveSchedules(): Promise<Schedule[]>{
 */
 
 export function findAllProfessionals(): Promise<Person[]>{
-    return api.get('/people/professional')
+    return api.get('/people/pertype/professional')
     .then(response => response.data.data)
     .catch(err => {
         toast.error(`Error al obtener profesionales: ${err.message}`);
