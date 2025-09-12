@@ -11,7 +11,7 @@ export function LoginRegister() {
   const handleLogout = () => {
     logout();
     navigate("/login");
-    axios.post("/people/logout", {}, { withCredentials: true });
+    axios.post("api/people/logout", {}, { withCredentials: true });
     setSureLogOut(false);
   };
   const [sureLogOut, setSureLogOut] = useState(false);

@@ -43,10 +43,16 @@ export function Login() {
     }
 
     axios
-      .post("api/people/login", {
-        email: formData.email,
-        password: formData.contraseña,
-      })
+      .post(
+        "api/people/login",
+        {
+          email: formData.email,
+          password: formData.contraseña,
+        },
+        {
+          withCredentials: true, // sin esto, no se envía ni se recibe la cookie
+        }
+      )
       .then((response) => {
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);

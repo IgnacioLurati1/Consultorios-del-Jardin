@@ -58,16 +58,22 @@ export function Register() {
     }
 
     axios
-      .post("api/people", {
-        name: formData.nombre,
-        surname: formData.apellido,
-        email: formData.email,
-        docType: formData.tipoDocumento,
-        docNumber: formData.nroDocumento,
-        phoneNumber: formData.telefono,
-        password: formData.contraseña,
-        type: "cliente",
-      })
+      .post(
+        "api/people",
+        {
+          name: formData.nombre,
+          surname: formData.apellido,
+          email: formData.email,
+          docType: formData.tipoDocumento,
+          docNumber: formData.nroDocumento,
+          phoneNumber: formData.telefono,
+          password: formData.contraseña,
+          type: "cliente",
+        },
+        {
+          withCredentials: true, // sin esto, no se envía ni se recibe la cookie
+        }
+      )
       .then((response) => {
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);

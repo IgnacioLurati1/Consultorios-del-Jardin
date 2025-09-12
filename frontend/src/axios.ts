@@ -9,7 +9,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  console.log(config)
+  console.log(config);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -17,37 +17,33 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; // marca este request como retry
 
-      if(!originalRequest._retry){
-        originalRequest._retry = true;
-      }
-      
-      try{
+      try {
         const { data } = await axios.get("/api/refreshToken", {
-        withCredentials: true,
-      });
+          withCredentials: true,
+        });
 
-      localStorage.setItem("token", data.token);
-      
-      return api(originalRequest);
+        localStorage.setItem("token", data.token);
+        // Reintenta **solo una vez**
+        return api(originalRequest);
       } catch (refreshError) {
-          try {
+        try {
           await axios.post("/api/logout", {}, { withCredentials: true });
         } catch (logoutError) {
           console.error("Error cerrando sesión:", logoutError);
         } finally {
           localStorage.removeItem("token");
-          window.location.href = "/login"; // redirigir al login
+          window.location.href = "/login";
         }
       }
     }
+
     return Promise.reject(error);
   }
 );
