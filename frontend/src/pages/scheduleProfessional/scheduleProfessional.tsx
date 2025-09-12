@@ -42,7 +42,6 @@ export function ScheduleProfessional(){
     if(professional){
       findProfessionalSchedules(professional.email)
       .then(data => {
-          console.log("Horarios cargados:", data);
           setSchedules(data);
       })
       .catch(err => {
@@ -72,7 +71,7 @@ export function ScheduleProfessional(){
               <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule}/>
             </div>
           </div>
-          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} />
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} daysSpanish={daysSpanish}/>
 
         </div>
       );

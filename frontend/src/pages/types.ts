@@ -49,11 +49,11 @@ export interface Duration{
 export interface Schedule {
     day: "lunes"|"martes"|"miercoles"|"jueves"|"viernes"|"sabado";
     initialHour: string;
-    Person: string;
-    Room: string;
+    person: Person;
+    room: Room;
     finalHour: string;
     active: boolean;
     allowedType: "simple" | "taller";
-    durations: number
+    duration: number
 }
 

@@ -17,9 +17,11 @@
     top:20vh;
     color: black;
     z-index: 1001;
-    width: 50%;
-    height: 60vh;
     border-radius: 10px;
+    font-size: 1.2em;
+    font-size: 20px;
+    max-width: 500px;
+    width: 90%;
 }
 
 .schedule-modal-header{
@@ -48,5 +50,55 @@
 
 .schedule-modal-content{
     padding: 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    color: #FEFAE0;
+}
+
+.create-button {
+    background-color: #3B7658;
+}
+.delete-button {
+    background-color: #CD6965;
+}
+
+.modal-input-container{
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.time-input-container input{
+    width: 100%;
+}
+.modal-input-container label {
+    text-align: right;
+}
+.time-input-container{
+    display: flex;
+    flex-direction: row;
+}
+
+.input-modal {
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 2%;
+    margin-left: 1%;
+    font-size: 20px;
+}
+
+.input-error{
+    border: 1px solid rgb(197, 69, 69);
+}
+
+.input-valid{
+    border: 1px solid rgb(0, 0, 0)
 }
 
