@@ -27,7 +27,6 @@ export function EditProfile(){
         docType: '',
         docNumber: ''
     });
-    const [activo, setPage] = useState(false);
 
     const changePage = () => {
         setPage(!activo);
@@ -75,28 +74,26 @@ export function EditProfile(){
     useEffect(()=>{
 
         const storedToken=localStorage.getItem("token")
-        if(storedToken){
-            const decoded = jwtDecode<TokenPayload>(storedToken);
-            setToken(storedToken)
-            api.get(`/people/${decoded.email}`)
-            .then(res => { console.log(res.data.data)
-                const personaEncontrada = {
-                    name: res.data.data.name,
-                    surname: res.data.data.surname,
-                    email: res.data.data.email,
-                    docType: res.data.data.docType,
-                    docNumber: res.data.data.docNumber,
-                    phoneNumber: res.data.data.phoneNumber,
-                }
+        if(!storedToken) return;
 
-                setFormData(personaEncontrada);
-            }       
-            )
+        const decoded = jwtDecode<TokenPayload>(storedToken);
+        setToken(storedToken)
 
-        }
-        else{
-            navigate('/login')
-        }
+        api.get(`/people/${decoded.email}`)
+        .then(res => { console.log(res.data.data)
+            const personaEncontrada = {
+                name: res.data.data.name,
+                surname: res.data.data.surname,
+                email: res.data.data.email,
+                docType: res.data.data.docType,
+                docNumber: res.data.data.docNumber,
+                phoneNumber: res.data.data.phoneNumber,
+            }
+
+            setFormData(personaEncontrada);
+        }       
+        )
+
     },[]);
 
     if(!token){
@@ -117,16 +114,11 @@ export function EditProfile(){
                     <div className='register-body'>
                             <div className='register-body-left'>
         
-                                <div className={activo? "shown":"not-shown"}>
                                 <DataInput label="Nombre" type="text" value={formData.name} onChange={(e) => handleChange('name', e.target.value)}/>
                                 <DataInput label="Apellido" type="text" value={formData.surname} onChange={(e) => handleChange('surname', e.target.value)}/>
-                                </div>
         
-                                <div className={activo? "not-shown":"shown"}>
-                                    <DataInput label="Email" type="email" value={formData.email} disabled={true}/>
-                                </div>
+                                <DataInput label="Email" type="email" value={formData.email} disabled={true}/>
                                 
-                                <div className={activo? "shown":"not-shown"}>
                                     <DataInput label="Teléfono" type="text" value={formData.phoneNumber} onChange={(e) => handleChange('phoneNumber', e.target.value)}/>
                                     <div className='document-dataInput'>
                                         <div className='tipoDoc'>
@@ -137,7 +129,6 @@ export function EditProfile(){
                                             <DataInput label="Nro. documento" type="text" value={formData.docNumber} onChange={(e) => handleChange('docNumber', e.target.value)}/> 
                                         </div>
                                     </div>
-                                </div>
                             </div>
         
                             <div className='register-body-right'>
@@ -150,9 +141,7 @@ export function EditProfile(){
                                 draggable={false}/>
                                 </div>
         
-                                <button  className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
-                                <button type="submit" className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Modificar</button>
-                                <button type="button" className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
+                                <button type="submit" className='register-button registerBut shown'>Modificar</button>
                             </div>
                     </div>
                 </form>
