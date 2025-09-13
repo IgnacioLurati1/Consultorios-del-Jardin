@@ -28,10 +28,6 @@ export function EditProfile(){
         docNumber: ''
     });
 
-    const changePage = () => {
-        setPage(!activo);
-    }
-
     const handleChange = (field: string, value: string) => {
         setFormData(prev => ({
             ...prev,

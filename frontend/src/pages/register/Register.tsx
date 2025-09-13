@@ -167,7 +167,7 @@ export function Register() {
               <ToastContainer position="top-right" closeOnClick={false} draggable={false} />
             </div>
 
-            <button className={activo ? "register-button next shown" : "register-button next not-shown"} onClick={changePage}>
+            <button type="button" className={activo ? "register-button next shown" : "register-button next not-shown"} onClick={changePage}>
               Volver
             </button>
             <button type="submit" className={activo ? "register-button registerBut shown" : "register-button registerBut not-shown"}>
