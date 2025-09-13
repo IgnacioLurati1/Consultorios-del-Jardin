@@ -29,13 +29,16 @@ const router = createBrowserRouter([
       { path: "/Register", element: <Register /> },
       { path: "/RegisterProf", element: <RegisterProf /> },
       { path: "/Login", element: <Login /> },
-      { path: "/EditProfile", element: <EditProfile /> },
+      { path: "/EditProfile", element: (<PrivateRoutes allowedTypes={["admin","professional","client"]}>
+            <Outlet />
+            <EditProfile />
+          </PrivateRoutes>) },
 
       // Private Routes
       {
         path: "/AdminHome",
         element: (
-          <PrivateRoutes allowedType="admin">
+          <PrivateRoutes allowedTypes={["admin"]}>
             <Outlet />
             <CrudNav />
           </PrivateRoutes>
@@ -53,16 +56,16 @@ const router = createBrowserRouter([
       {
         path: "/ProfessionalHome",
         element: (
-          <PrivateRoutes allowedType="professional">
+          <PrivateRoutes allowedTypes={["professional","admin"]}>
             <Outlet />
             <ProfessionalHome />
           </PrivateRoutes>
-        ), // cambiar allowed type a professional Y ADMIN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ), 
       },
       {
         path: "scheduleProfessional",
         element: (
-          <PrivateRoutes allowedType="admin">
+          <PrivateRoutes allowedTypes={["admin"]}>
             <Outlet />
             <ScheduleProfessional />
           </PrivateRoutes>
