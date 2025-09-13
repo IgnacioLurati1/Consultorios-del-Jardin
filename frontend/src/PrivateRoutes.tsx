@@ -1,4 +1,3 @@
-import { use } from 'react';
 import {Navigate} from 'react-router-dom';
 
 interface PrivateRouteProps {
