@@ -1,11 +1,11 @@
 import {Navigate} from 'react-router-dom';
 
 interface PrivateRouteProps {
-    allowedType: string;
+    allowedTypes: string[];
     children: React.ReactNode;
 }
 
-export function PrivateRoutes({ allowedType, children }: PrivateRouteProps) {
+export function PrivateRoutes({ allowedTypes, children }: PrivateRouteProps) {
     const token = localStorage.getItem("token");
     let userType : string | null = null;
 
@@ -19,7 +19,7 @@ export function PrivateRoutes({ allowedType, children }: PrivateRouteProps) {
         }
     }
 
-    if (userType !== allowedType) {
+    if (!userType || !allowedTypes.includes(userType)) {
         return <Navigate to="/login" />;
     }
 
