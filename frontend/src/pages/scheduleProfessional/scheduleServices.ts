@@ -24,7 +24,7 @@ export function findAllActiveSchedules(): Promise<Schedule[]>{
 */
 
 export function findAllProfessionals(): Promise<Person[]>{
-    return api.get('/people/professional')
+    return api.get('/people/type/professional')
     .then(response => response.data.data)
     .catch(err => {
         toast.error(`Error al obtener profesionales: ${err.message}`);
@@ -43,21 +43,22 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
 });
 }
 
-
-/*
-export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, Room:String, Person:string, allowedType: string}): Promise<Schedule | undefined>{
-    if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.Room || !newSchedule.Person || !newSchedule.allowedType.trim()) {
+export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, room:String, personEmail:string, allowedType: string, duration: number}): Promise<Schedule | undefined>{
+    console.log(newSchedule)
+    
+    if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.room || !newSchedule.personEmail || !newSchedule.allowedType.trim() || !newSchedule.duration) {
         toast.error('Se necesitan los campos necesarios para crear un horario')
         return Promise.resolve(undefined);
     }
 
-    return api.post('/Schedules', {
+    return api.post('/schedules', {
         day: newSchedule.day,
         initialHour: newSchedule.initialHour,
         finalHour: newSchedule.finalHour,
-        Room: newSchedule.Room,
-        Person: newSchedule.Person,
+        room: newSchedule.room,
+        person: newSchedule.personEmail,
         allowedType: newSchedule.allowedType,
+        duration: newSchedule.duration,
         active:true
     })
     .then(created => {
@@ -70,10 +71,10 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
     });
 }
 
-export function removeSchedule(id: string): Promise<boolean>{
-    if(!id) return Promise.resolve(false)
+export function removeSchedule(professionalEmail: string, day: string, initialHour:string): Promise<boolean>{
+    if(!professionalEmail) return Promise.resolve(false)
     
-    return api.patch(`/schedules/${id}/toggle-state`)
+    return api.patch(`/schedules/toggle/${professionalEmail}/${day}/${initialHour}`)
         .then( ()=>{
             toast.success(`Horario eliminada con éxito`);
             return true;
@@ -83,6 +84,8 @@ export function removeSchedule(id: string): Promise<boolean>{
             return false;
         });
 }
+
+/*
 
 export function updateSchedule(updatedSchedule: { day: string; initialHour: string; finalHour: string, Room:String, Person:string, allowedType: string} , active: boolean):Promise<Schedule | undefined | void>{
     if(!updatedSchedule.day.trim() || !updatedSchedule.initialHour.trim() || !updatedSchedule.finalHour.trim() || !updatedSchedule.Room || !updatedSchedule.Person || !updatedSchedule.allowedType.trim()){

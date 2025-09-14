@@ -14,13 +14,12 @@
 .schedule-modal{
     background-color: white;
     position: absolute;
-    top:20vh;
     color: black;
     z-index: 1001;
     border-radius: 10px;
     font-size: 1.2em;
     font-size: 20px;
-    max-width: 500px;
+    max-width: 700px;
     width: 90%;
 }
 
@@ -70,20 +69,23 @@
 
 .modal-input-container{
     display: grid;
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 125px 1fr;
     gap: 8px;
     align-items: center;
-    margin-bottom: 10px;
 }
+
+.time-input-container{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-right: 0.5em;
+}
+
 .time-input-container input{
     width: 100%;
 }
+
 .modal-input-container label {
     text-align: right;
-}
-.time-input-container{
-    display: flex;
-    flex-direction: row;
 }
 
 .input-modal {
@@ -100,5 +102,21 @@
 
 .input-valid{
     border: 1px solid rgb(0, 0, 0)
+}
+.error-container {
+    grid-column: 2 / 3; /* lo coloca debajo del input */
+    margin-top: 4px;
+    height: 10px;
+}
+
+.error-text {
+    color: red;
+    font-size: 0.8em;
+    margin: 0;
+}
+
+.error-icon{
+    color: red;
+    margin-right: 5px;
 }
 
