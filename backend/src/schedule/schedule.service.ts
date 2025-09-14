@@ -55,7 +55,7 @@ export class ScheduleService {
   }
 
   async findScheduleByEmail(email: string) : Promise<Schedule[]> {
-    return await em.find(Schedule, { person: { email } });
+    return await em.find(Schedule, { person: { email } }, { populate: ['room','person'] });
   }
 
   async findScheduleByEmailAndDay(person: Person, day: string) : Promise<Schedule[]> {
@@ -85,7 +85,7 @@ export class ScheduleService {
     //Creacion
     const schedule = em.create(Schedule, data);
     await em.flush();
-    return schedule;
+    return await em.findOneOrFail(Schedule, { person: schedule.person, day: schedule.day, initialHour: schedule.initialHour }, { populate: ['room','person'] });
     
   }
 
