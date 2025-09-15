@@ -5,7 +5,6 @@ import { toast, ToastContainer } from "react-toastify";
 import { DataInputSelector } from "../../components/inputs/selectorInput/DataInputSelector";
 import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../../axios";
 import type { TokenPayload } from '../types';
 import { jwtDecode } from 'jwt-decode';
@@ -17,7 +16,6 @@ import "../register/Register.css"
 export function EditProfile(){
 
 
-    const navigate=useNavigate()
     const [token, setToken] = useState<string|null>(null)
     const [formData, setFormData] = useState({
         name: '',
