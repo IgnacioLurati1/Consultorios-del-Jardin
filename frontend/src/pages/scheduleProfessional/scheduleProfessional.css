@@ -10,13 +10,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  width: 90vw;
+  width: 100%;
 }
 .upper-container .navZone{
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 0;
-  width: 45vw;
+  width: 40%;
   height: 8vh;
 }
 
@@ -25,6 +25,10 @@
   flex-direction: column;
   justify-content: center;
   width: 100%;
+}
+
+.schedule-subcontainer{
+  width: 90%;
 }
 
 .toast-container {
@@ -39,7 +43,7 @@
 @media (max-width: 768px) {
   .schedule-professional-container {
     position: relative;
-    width: 90vw;
+    width: 100vw;
     padding: 10px;
     margin-right: 5vw;
   }
