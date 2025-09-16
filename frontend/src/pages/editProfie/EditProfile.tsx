@@ -84,6 +84,7 @@ export function EditProfile(){
             setFormData(personaEncontrada);
         }       
         )
+        .catch(err => toast.error(`Error al cargar la persona: ${err.message}`));
 
     },[]);
 
