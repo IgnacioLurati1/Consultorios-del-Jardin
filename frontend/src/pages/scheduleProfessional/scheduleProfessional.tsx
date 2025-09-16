@@ -1,21 +1,24 @@
 import "./scheduleProfessional.css";
 import {NavZone} from "../../components/navZone/NavZone";
 import { GridModule } from "./gridSchedule/gridModule.tsx";
-import type{ Person, Schedule, Room, Office, City} from "../types.ts"
+
+import type{ Person, Schedule, Room, Office, City, TokenPayload} from "../types.ts"
 import { GridFilter } from "./gridFilter/gridFilter.tsx";
 import { useEffect, useState } from "react";
 import { ScheduleModal } from "./scheduceModal/scheduleModal.tsx";
 import {findAllProfessionals, findProfessionalSchedules} from "./scheduleServices.ts"
 import { ToastContainer, toast } from "react-toastify";
+import { jwtDecode } from "jwt-decode";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
 import { findAllActiveCities } from "../adminCRUDS/adminCities/CityService.ts";
 import { findAllActiveOffices } from "../adminCRUDS/adminOffices/OfficeService.ts";
 import { createSchedule, removeSchedule } from "./scheduleServices.ts";
 import { daysSpanish } from "./scheduleTypes.ts";
+import { findPerson } from "../commonServices.ts";
+
 
 const openingTime = "08:00"
 const closingTime = "21:00"
-
 
 export function ScheduleProfessional(){
 
@@ -23,13 +26,35 @@ export function ScheduleProfessional(){
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
   const [selectedKey, setSelectedKey] = useState<string | undefined>();
   const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
-  const [professional, setProfesional] = useState<Person | undefined>(undefined);
+  const [professional, setProfessional] = useState<Person | undefined>(undefined);
   const [schedules, setSchedules] = useState<Schedule[] | []>([]);
+  const [isProfessional, setIsProfessional] = useState(false)
   const [rooms, setRooms] = useState<Room[] | []>([]);
   const [offices, setOffices] = useState<Office[] | []>([]);
   const [cities, setCities] = useState<City[] | []>([]);
+  const [isProfessional, setIsProfessional] = useState(false)
 
   useEffect(() => {
+
+    const storedToken=localStorage.getItem("token")
+    if (!storedToken) return;
+    const decoded = jwtDecode<TokenPayload>(storedToken);
+    console.log(decoded)
+    if(decoded.type === "professional"){
+      setIsProfessional(true)
+      const email = decoded.email
+      findPerson(email)
+      .then(data => {
+        if (!data) {
+        toast.error("No se encontró el profesional");
+        return;
+        }
+        setProfessional(data);
+      })
+      .catch(err => toast.error(`Error al cargar al profesional: ${err.message}`));
+    }
+    else
+      {
     findAllProfessionals()
     .then(data => {
         setProfessionalsList(data);
@@ -37,6 +62,7 @@ export function ScheduleProfessional(){
     .catch(err => {
         toast.error("Error cargando profesionales:", err);
     });
+    }
   }, []);
 
   useEffect(() => {
@@ -46,7 +72,7 @@ export function ScheduleProfessional(){
           setSchedules(data);
       })
       .catch(err => {
-          toast.error("Error cargando horarios:", err);
+          toast.error(`Error cargando horarios:" ${err.message}`);
       });
     }
   }, [professional]);
@@ -96,8 +122,24 @@ export function ScheduleProfessional(){
           }
       }
   console.log(schedules)    
-
-
+ 
+  if(professional && isProfessional){
+    console.log(professional)
+    return (
+        <div className="schedule-professional-container">
+          <div className="schedule-subcontainer">
+            <div className="upper-container">
+                <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
+                <GridFilter setProfessional={setProfessional}/>
+            </div>
+            <div className="schedule-container">
+              <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule}/>
+            </div>
+          </div>
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} />
+        </div>
+      );
+  }
   if(!professional){
     return (
       <div className="schedule-professional-container">

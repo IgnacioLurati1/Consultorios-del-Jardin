@@ -65,7 +65,7 @@ const router = createBrowserRouter([
       {
         path: "scheduleProfessional",
         element: (
-          <PrivateRoutes allowedTypes={["admin"]}>
+          <PrivateRoutes allowedTypes={["admin", "professional"]}>
             <Outlet />
             <ScheduleProfessional />
           </PrivateRoutes>
