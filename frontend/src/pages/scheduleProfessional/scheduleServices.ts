@@ -2,27 +2,6 @@ import {toast} from "react-toastify";
 import api from "../../axios";
 import type {Schedule, Person} from "../types.ts"
 
-/*
-export function findAllSchedules(): Promise<Schedule[]>{
-    return api.get('/schedules')
-    .then(response => response.data.data)
-    .catch(err => {
-        toast.error(`Error al obtener horarios: ${err.message}`);
-        return [];
-    });
-}
-
-export function findAllActiveSchedules(): Promise<Schedule[]>{
-    return api.get('/schedules/active')
-    .then(response => response.data.data)
-    .catch(err => {
-        toast.error(`Error al obtener horarios: ${err.message}`);
-        return [];
-    });
-}
-
-*/
-
 export function findAllProfessionals(): Promise<Person[]>{
     return api.get('/people/type/professional')
     .then(response => response.data.data)
