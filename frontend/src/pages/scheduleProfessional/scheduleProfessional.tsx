@@ -16,7 +16,6 @@ import { createSchedule, removeSchedule } from "./scheduleServices.ts";
 import { daysSpanish } from "./scheduleTypes.ts";
 import { findPerson } from "../commonServices.ts";
 
-
 const openingTime = "08:00"
 const closingTime = "21:00"
 
@@ -27,23 +26,24 @@ export function ScheduleProfessional(){
   const [selectedKey, setSelectedKey] = useState<string | undefined>();
   const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
   const [professional, setProfessional] = useState<Person | undefined>(undefined);
-  const [schedules, setSchedules] = useState<Schedule[] | []>([]);
-  const [isProfessional, setIsProfessional] = useState(false)
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+  const [isProfessional, setIsProfessional] = useState(false)  //Para diferenciar en componentes si el usuario es admin o professional
   const [rooms, setRooms] = useState<Room[] | []>([]);
   const [offices, setOffices] = useState<Office[] | []>([]);
   const [cities, setCities] = useState<City[] | []>([]);
-  const [isProfessional, setIsProfessional] = useState(false)
+  const [officeToFilter, setOfficeToFilter] = useState<Office|undefined>(undefined);
+  const [roomToFilter, setRoomToFilter] = useState<Room|undefined>(undefined)
 
   useEffect(() => {
 
-    const storedToken=localStorage.getItem("token")
+    const storedToken=localStorage.getItem("token")       //Obtengo datos del usuario logeado
     if (!storedToken) return;
     const decoded = jwtDecode<TokenPayload>(storedToken);
-    console.log(decoded)
     if(decoded.type === "professional"){
-      setIsProfessional(true)
+      setIsProfessional(true) 
       const email = decoded.email
-      findPerson(email)
+      findPerson(email)               //Si el ususario logeado es un profesional, obtengo sus datos y no cargo toda la lista de profesionales
       .then(data => {
         if (!data) {
         toast.error("No se encontró el profesional");
@@ -70,6 +70,7 @@ export function ScheduleProfessional(){
       findProfessionalSchedules(professional.email)
       .then(data => {
           setSchedules(data);
+          setFilteredSchedules(data)
       })
       .catch(err => {
           toast.error(`Error cargando horarios:" ${err.message}`);
@@ -107,8 +108,29 @@ export function ScheduleProfessional(){
       });
   }, []);
 
-  async function addSchedule(newSchedule: { day: string, initialHour: string, finalHour: string, room: string, personEmail: string, allowedType: string, duration: number }){
-    console.log(newSchedule)      
+  useEffect(() =>{
+     if(officeToFilter){
+      const filtered = schedules.filter(sch => String(sch.room.office) === String(officeToFilter.idOffice));
+      setFilteredSchedules(filtered);
+    } else {
+      setFilteredSchedules(schedules);
+    }
+  },[officeToFilter, schedules])
+
+
+  useEffect(()=>{ //Filtro por sala cuando se setea en el filter
+    if(roomToFilter){
+      const filtered = schedules.filter(sch => sch.room.idRoom === roomToFilter.idRoom);
+      console.log(filtered)
+      setFilteredSchedules(filtered);
+    } else {
+      setFilteredSchedules(schedules);
+    }
+  },[roomToFilter, schedules])
+
+
+
+  async function addSchedule(newSchedule: { day: string, initialHour: string, finalHour: string, room: string, personEmail: string, allowedType: string, duration: number }){     
     const createdSchedule = await createSchedule(newSchedule)
     if(createdSchedule){
         setSchedules([createdSchedule, ...schedules]);
@@ -121,33 +143,33 @@ export function ScheduleProfessional(){
           setScheduleModalOpen(false);
           }
       }
-  console.log(schedules)    
  
   if(professional && isProfessional){
-    console.log(professional)
     return (
         <div className="schedule-professional-container">
           <div className="schedule-subcontainer">
             <div className="upper-container">
                 <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
-                <GridFilter setProfessional={setProfessional}/>
+                <GridFilter setProfessional={setProfessional} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>
             <div className="schedule-container">
-              <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule}/>
+              <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
-          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} />
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
+          <ToastContainer className = {`toast-container`} draggable={false} />
         </div>
       );
-  }
-  if(!professional){
+  } else if(!professional){
     return (
       <div className="schedule-professional-container">
-        <div className="upper-container">
-          <NavZone title="Seleccionar Profesional en los filtros"/>
-          <ToastContainer className = {`toast-container`} draggable={false} />
-          <GridFilter setProfessional={setProfesional} professionals={professionalsList}/>
+        <div className="schedule-subcontainer">
+          <div className="upper-container">
+            <NavZone title="Seleccionar Profesional en los filtros"/>
+            <GridFilter setProfessional={setProfessional} professionals={professionalsList} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
+          </div>
         </div>
+      <ToastContainer className = {`toast-container`} draggable={false} />
       </div>
     );
   } else {
@@ -157,14 +179,14 @@ export function ScheduleProfessional(){
             <div className="upper-container">
                 <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
                 <ToastContainer className = {`toast-container`} draggable={false} />
-                <GridFilter setProfessional={setProfesional} professionals={professionalsList}/>
+                <GridFilter setProfessional={setProfessional} professionals={professionalsList} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>
             <div className="schedule-container">
-              <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
+              <GridModule schedules={filteredSchedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
           <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
-
+          <ToastContainer className = {`toast-container`} draggable={false} />
         </div>
       );
   }

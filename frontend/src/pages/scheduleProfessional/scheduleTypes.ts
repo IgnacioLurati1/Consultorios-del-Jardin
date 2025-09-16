@@ -43,3 +43,12 @@ export interface scheduleModalProps {
     onCreate: (newSchedule: { day: string; initialHour: string; finalHour: string, room: string, personEmail:string, allowedType: string, duration: number}) => void;
     onDelete: (professionalEmail: string, day: string, initialHour:string) => void;
 }
+
+export interface GridFilterProps{
+  setProfessional: (profesionals: Person | undefined) => void;
+  professionals?: Person[];
+  schedules?: Schedule[];
+  offices?: Office[];
+  setOfficeToFilter: (office: Office) => void;
+  setRoomToFilter: (room: Room)=> void;
+}
