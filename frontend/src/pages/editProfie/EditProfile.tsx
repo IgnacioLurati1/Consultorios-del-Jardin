@@ -5,10 +5,11 @@ import { toast, ToastContainer } from "react-toastify";
 import { DataInputSelector } from "../../components/inputs/selectorInput/DataInputSelector";
 import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { useState, useEffect } from "react";
-import api from "../../axios";
 import type { TokenPayload } from '../types';
 import { jwtDecode } from 'jwt-decode';
 import "../register/Register.css"
+import { updatePerson } from './editProfileServices';
+import { findPerson } from '../commonServices';
 
 
 //Exactamente la misma página del registro pero con otra funcionalidad
@@ -43,24 +44,16 @@ export function EditProfile(){
                 return;
         }
 
-        api.put(`/people/${formData.email}`, {
+        updatePerson({
+            email: formData.email,
             name: formData.name,
             surname: formData.surname,
+            phoneNumber: formData.phoneNumber,
             docType: formData.docType,
-            docNumber: formData.docNumber,
-            phoneNumber : formData.phoneNumber,
+            docNumber: formData.docNumber
         })
-        .then(response => {
-            if(response.data.token){
-                localStorage.setItem("token", response.data.token);
-                toast.success("Usuario registrado con éxito");
-            }
-
-        })
-        .catch(error => {
-            console.error("Error:", error);
-            toast.error("Error al modificar usuario")
-        });
+        .then(() => toast.success("Usuario modificado con éxito"))
+        .catch(() => toast.error("Error al modificar usuario"));
     };
 
 
@@ -73,15 +66,19 @@ export function EditProfile(){
         const decoded = jwtDecode<TokenPayload>(storedToken);
         setToken(storedToken)
 
-        api.get(`/people/${decoded.email}`)
-        .then(res => { console.log(res.data.data)
+        findPerson(decoded.email)
+        .then(data => {
+            if (!data) {
+            toast.error("No se encontró la persona");
+            return;
+            }
             const personaEncontrada = {
-                name: res.data.data.name,
-                surname: res.data.data.surname,
-                email: res.data.data.email,
-                docType: res.data.data.docType,
-                docNumber: res.data.data.docNumber,
-                phoneNumber: res.data.data.phoneNumber,
+                name: data.name,
+                surname: data.surname,
+                email: data.email,
+                docType: data.docType,
+                docNumber: data.docNumber,
+                phoneNumber: data.phoneNumber,
             }
 
             setFormData(personaEncontrada);
