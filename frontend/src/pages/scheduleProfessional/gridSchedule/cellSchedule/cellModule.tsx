@@ -1,19 +1,12 @@
-import type{ Schedule } from "../../../types.ts"
+import type{ cellModuleProps } from "../../scheduleTypes.ts"
 import "./cellModule.css"
 
-interface cellModuleProps{
-    schedule?: Schedule;
-    height: number;
-    setScheduleModalOpen: (isOpen: boolean) => void; // Función para abrir el modal
-    setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
-    className?: string;
-}
-
-export function CellModule({schedule,height,setScheduleModalOpen,setSelectedSchedule}:cellModuleProps){
+export function CellModule({cellKey,schedule,height,setScheduleModalOpen,setSelectedSchedule, setSelectedKey}:cellModuleProps){
 
     const handleClick = () => {
         setScheduleModalOpen(true);
         setSelectedSchedule(schedule);
+        setSelectedKey(cellKey)
     }
     return(
         <div
@@ -25,7 +18,7 @@ export function CellModule({schedule,height,setScheduleModalOpen,setSelectedSche
             {schedule ? (
                 <div className="hourly-module-text">
                 <div>{schedule.initialHour} - {schedule.finalHour}</div>
-                <div>{schedule.allowedType.charAt(0).toUpperCase()+schedule.allowedType.slice(1)}</div>
+                <div>{schedule.room.description}</div>
         </div>
             ) : (
                 <div></div> // módulo vacío

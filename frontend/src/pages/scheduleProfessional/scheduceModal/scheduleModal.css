@@ -14,12 +14,13 @@
 .schedule-modal{
     background-color: white;
     position: absolute;
-    top:20vh;
     color: black;
     z-index: 1001;
-    width: 50%;
-    height: 60vh;
     border-radius: 10px;
+    font-size: 1.2em;
+    font-size: 20px;
+    max-width: 700px;
+    width: 90%;
 }
 
 .schedule-modal-header{
@@ -48,5 +49,74 @@
 
 .schedule-modal-content{
     padding: 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    color: #FEFAE0;
+}
+
+.create-button {
+    background-color: #3B7658;
+}
+.delete-button {
+    background-color: #CD6965;
+}
+
+.modal-input-container{
+    display: grid;
+    grid-template-columns: 125px 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.time-input-container{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-right: 0.5em;
+}
+
+.time-input-container input{
+    width: 100%;
+}
+
+.modal-input-container label {
+    text-align: right;
+}
+
+.input-modal {
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 2%;
+    margin-left: 1%;
+    font-size: 20px;
+}
+
+.input-error{
+    border: 1px solid rgb(197, 69, 69);
+}
+
+.input-valid{
+    border: 1px solid rgb(0, 0, 0)
+}
+.error-container {
+    grid-column: 2 / 3; /* lo coloca debajo del input */
+    margin-top: 4px;
+    height: 10px;
+}
+
+.error-text {
+    color: red;
+    font-size: 0.8em;
+    margin: 0;
+}
+
+.error-icon{
+    color: red;
+    margin-right: 5px;
 }
 
