@@ -68,7 +68,7 @@ export function Register() {
           docNumber: formData.nroDocumento,
           phoneNumber: formData.telefono,
           password: formData.contraseña,
-          type: "cliente",
+          type: "client",
         },
         {
           withCredentials: true, // sin esto, no se envía ni se recibe la cookie
