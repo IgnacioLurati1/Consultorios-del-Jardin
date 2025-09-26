@@ -1,12 +1,10 @@
-import {toast} from "react-toastify";
 import api from "../../axios";
 import type {Schedule, Person} from "../types.ts"
 
 export function findAllProfessionals(): Promise<Person[]>{
     return api.get('/people/type/professional')
     .then(response => response.data.data)
-    .catch(err => {
-        toast.error(`Error al obtener profesionales: ${err.message}`);
+    .catch(()=> {
         return [];
     });
 }
@@ -16,8 +14,7 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
 
     return api.get(`/schedules/by-email/${professionalEmail}`)
     .then(response => response.data.data)
-    .catch(err => {
-        toast.error(`Error al obtener horarios del profesional: ${err.message}`);
+    .catch(() => {
         return [];
 });
 }
@@ -26,8 +23,7 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
     console.log(newSchedule)
     
     if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.room || !newSchedule.personEmail || !newSchedule.allowedType.trim() || !newSchedule.duration) {
-        toast.error('Se necesitan los campos necesarios para crear un horario')
-        return Promise.resolve(undefined);
+        throw new Error('Se necesitan los campos necesarios para crear un horario');
     }
 
     return api.post('/schedules', {
@@ -41,13 +37,12 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
         active:true
     })
     .then(created => {
-        toast.success('Horario creada con éxito');
         return created.data.data
     })
-    .catch(err => {
+    .catch(err =>{
         const backendMsg = err.response?.data?.message || err.message;
-        toast.error(`Error al crear Horario: ${backendMsg}`);
-    });
+        throw new Error(backendMsg);
+    })
 }
 
 export function removeSchedule(professionalEmail: string, day: string, initialHour:string): Promise<boolean>{
@@ -55,13 +50,12 @@ export function removeSchedule(professionalEmail: string, day: string, initialHo
     
     return api.patch(`/schedules/toggle/${professionalEmail}/${day}/${initialHour}`)
         .then( ()=>{
-            toast.success(`Horario eliminada con éxito`);
             return true;
         })
-        .catch(err => {
-            toast.error(`Error al eliminar horario: ${err.message}`)
-            return false;
-        });
+        .catch(err =>{
+            const backendMsg = err.response?.data?.message || err.message;
+            throw new Error(backendMsg);
+        })
 }
 
 /*

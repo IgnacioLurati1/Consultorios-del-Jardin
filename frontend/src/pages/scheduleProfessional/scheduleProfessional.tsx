@@ -73,7 +73,7 @@ export function ScheduleProfessional(){
           setFilteredSchedules(data)
       })
       .catch(err => {
-          toast.error(`Error cargando horarios:" ${err.message}`);
+          toast.error(`Error al obtener horarios del profesional: ${err.message}`);
       });
     }
   }, [professional]);
@@ -131,18 +131,28 @@ export function ScheduleProfessional(){
 
 
   async function addSchedule(newSchedule: { day: string, initialHour: string, finalHour: string, room: string, personEmail: string, allowedType: string, duration: number }){     
-    const createdSchedule = await createSchedule(newSchedule)
-    if(createdSchedule){
+    try{
+      const createdSchedule = await createSchedule(newSchedule)
+      if (createdSchedule){
         setSchedules([createdSchedule, ...schedules]);
+        toast.success('Horario creada con éxito');
         setScheduleModalOpen(false);
+      }
+    }catch (error:any){
+      toast.error(`Error al crear el horario: ${error.message}`);
     }
   }
   async function deleteSchedule(professionalEmail: string, day: string, initialHour:string) {
-      if (await removeSchedule(professionalEmail, day, initialHour)){
+    try{  
+    if (await removeSchedule(professionalEmail, day, initialHour)){
           setSchedules(schedules.filter(schedule => (schedule.person.email !== professionalEmail && schedule.day !== day && schedule.initialHour !== initialHour))); //A CHEQUEAR SI FUNCIONA BIEN
+          toast.success(`Horario eliminada con éxito`);
           setScheduleModalOpen(false);
-          }
       }
+    }catch (error:any){
+      toast.error(`Error al eliminar el horario: ${error.message}`);
+    }
+  }
  
   if(professional && isProfessional){
     return (
