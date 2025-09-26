@@ -1,4 +1,5 @@
-import { Home } from "./pages/mainHome/Home.tsx";
+import { Home } from "./pages/homePages/mainHome/Home.tsx";
+import {AdminHome} from "./pages/homePages/adminHome/AdminHome.tsx"
 import { Register } from "./pages/register/Register";
 import { RegisterProf } from "./pages/registerProfessional/RegisterProf.tsx";
 import { Login } from "./pages/login/Login.tsx";
@@ -15,8 +16,7 @@ import { NewPassword } from "./pages/newPassword/NewPassword.tsx";
 import { PrivateRoutes } from "./PrivateRoutes.tsx";
 import { Outlet } from "react-router-dom";
 import CrudNav from "./components/crudNav/CrudNav.tsx";
-import { DurationsAdmin } from "./pages/adminCRUDS/adminDurations/DurationsAdmin.tsx";
-import { ProfessionalHome } from "./pages/professionalHome/professionalHome.tsx";
+import { ProfessionalHome } from "./pages/homePages/professionalHome/professionalHome.tsx";
 import { ScheduleProfessional } from "./pages/scheduleProfessional/scheduleProfessional.tsx";
 
 const router = createBrowserRouter([
@@ -44,11 +44,11 @@ const router = createBrowserRouter([
           </PrivateRoutes>
         ),
         children: [
+          { path: "", element: <AdminHome/>},
           { path: "ProvincesAdmin", element: <ProvincesAdmin /> },
           { path: "CitiesAdmin", element: <CitiesAdmin /> },
           { path: "OfficesAdmin", element: <OfficesAdmin /> },
           { path: "RoomsAdmin", element: <RoomsAdmin /> },
-          { path: "DurationsAdmin", element: <DurationsAdmin /> },
         ],
       },
 
@@ -68,6 +68,7 @@ const router = createBrowserRouter([
           <PrivateRoutes allowedTypes={["admin", "professional"]}>
             <Outlet />
             <ScheduleProfessional />
+            <CrudNav />
           </PrivateRoutes>
         ),
       }, //CHEQUEAR SI ASI ESTA BIEN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

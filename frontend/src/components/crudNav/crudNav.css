@@ -12,7 +12,7 @@
 }
 
 .crud-nav:hover {
-    max-height: 100px;
+    max-height: 120px;
     transition: max-height 0.3s ease-in-out;
 }
 
@@ -26,14 +26,16 @@
 }
 
 .crud-nav-items {
-    display: grid;
-    grid-template-columns: auto auto auto auto;
-    justify-content: space-evenly;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 15px;
     padding: 15px;
     background-color: #3B5576;
     color: #FEFAE0;
     border-radius: 8px 8px 0 0;
 }
+
 
 .crud-nav-link {
     text-decoration: none;
