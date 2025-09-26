@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { RoomLabel  } from "./RoomLabel";   
 import {RoomModal} from "./RoomModal";
-import "../../adminHome/AdminHome.css";
+import "../../homePages/adminHome/AdminHome.css"
 import "../adminCRUDS.css";
 import "./RoomLabelStyle.css";
 import { NavZone } from "../../../components/navZone/NavZone";

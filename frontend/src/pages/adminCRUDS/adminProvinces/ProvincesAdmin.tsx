@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import "../../adminHome/AdminHome.css";
+import "../../homePages/adminHome/AdminHome.css"
 import { ProvinceLabel } from "./ProvinceLabel.tsx";
 import { ProvinceModal } from "./ProvinceModal.tsx";
 import "../adminCRUDS.css";

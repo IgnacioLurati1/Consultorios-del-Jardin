@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CityLabel  } from "./CityLabel";   
 import {CityModal} from "./CityModal";
-import "../../adminHome/AdminHome.css";
+import "../../homePages/adminHome/AdminHome.css"
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone";
 import { FaPlus } from "react-icons/fa";
