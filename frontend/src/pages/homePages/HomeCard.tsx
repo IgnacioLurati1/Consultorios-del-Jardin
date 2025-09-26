@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaArrowUp } from "react-icons/fa";
-import "./proffesionalCard.css";
+import "./homeCardCss.css";
 
 interface CardMenuProps {
     icon: React.ComponentType<{ size?: number }> | React.ReactNode;
@@ -8,7 +8,7 @@ interface CardMenuProps {
     link: string;
 }
 
-export default function ProfessionalCard({ icon: Icon, title, link }: CardMenuProps) {
+export default function HomeCard({ icon: Icon, title, link }: CardMenuProps) {
     return (
         <Link to={link} className="card-link">
 
@@ -17,7 +17,7 @@ export default function ProfessionalCard({ icon: Icon, title, link }: CardMenuPr
                 <div className="card-title">{title}</div>
 
                 <div className="card-icon">
-                    {typeof Icon === "function" ? <Icon size={150} /> : Icon}
+                    {typeof Icon === "function" ? <Icon/> : Icon}
                 </div>
                 
                 <div className="card-arrow">

@@ -1,6 +1,6 @@
 import { FaCalendarAlt, FaUser, FaClipboardList } from "react-icons/fa";
-import ProfessionalCard from "./professionalCard";
-import {NavZone} from "../../components/navZone/NavZone";
+import HomeCard from "../HomeCard";
+import {NavZone} from "../../../components/navZone/NavZone";
 import "./professionalHome.css";
 
 export function ProfessionalHome() {
@@ -14,10 +14,10 @@ export function ProfessionalHome() {
         
         <div>
           <div className="professional-cards-container">
-            <ProfessionalCard icon={FaCalendarAlt} title="Horarios" link="/scheduleProfessional" /> {/*CHEQUEAR SI ESTO ES SEGURO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
-            <ProfessionalCard icon={FaClipboardList} title="Turnos" link="/turnos" />
-            <ProfessionalCard icon={FaUser} title="Pacientes" link="/pacientes" />
-            <ProfessionalCard icon={FaUser} title="Pacientes" link="/professionalHome" />
+            <HomeCard icon={FaCalendarAlt} title="Horarios" link="/scheduleProfessional" /> {/*CHEQUEAR SI ESTO ES SEGURO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
+            <HomeCard icon={FaClipboardList} title="Turnos" link="/turnos" />
+            <HomeCard icon={FaUser} title="Pacientes" link="/pacientes" />
+            <HomeCard icon={FaUser} title="Pacientes" link="/professionalHome" />
           </div>
         </div>
         

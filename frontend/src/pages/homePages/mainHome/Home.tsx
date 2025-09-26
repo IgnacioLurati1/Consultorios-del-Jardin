@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { LeftArrow, RightArrow, PresentationCard } from "./HomeComponents";
 
 
-import carousel1 from "../../assets/carouselPhotos/carousel1.jpg";
-import carousel2 from "../../assets/carouselPhotos/carousel2.jpg";
-import carousel3 from "../../assets/carouselPhotos/carousel3.jpg";
-import carousel4 from "../../assets/carouselPhotos/carousel4.jpg";
-import carousel5 from "../../assets/carouselPhotos/carousel5.jpg";
+import carousel1 from "../../../assets/carouselPhotos/carousel1.jpg";
+import carousel2 from "../../../assets/carouselPhotos/carousel2.jpg";
+import carousel3 from "../../../assets/carouselPhotos/carousel3.jpg";
+import carousel4 from "../../../assets/carouselPhotos/carousel4.jpg";
+import carousel5 from "../../../assets/carouselPhotos/carousel5.jpg";
 
-import presentationPhoto1 from "../../assets/presentationPhotos/presentationPhoto1.jpg";
-import presentationPhoto2 from "../../assets/presentationPhotos/presentationPhoto2.jpg";
-import presentationPhoto3 from "../../assets/presentationPhotos/presentationPhoto3.jpg";
+import presentationPhoto1 from "../../../assets/presentationPhotos/presentationPhoto1.jpg";
+import presentationPhoto2 from "../../../assets/presentationPhotos/presentationPhoto2.jpg";
+import presentationPhoto3 from "../../../assets/presentationPhotos/presentationPhoto3.jpg";
 
 import "./Home.css";
 
