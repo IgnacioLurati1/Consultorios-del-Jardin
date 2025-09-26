@@ -12,13 +12,11 @@ export function ProfessionalHome() {
           <NavZone title="Bienvenido -Nombre del profesional-" /> {/* capaz se consigue el nombre decodificando el token?? !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
         </div>
         
-        <div>
-          <div className="professional-cards-container">
-            <HomeCard icon={FaCalendarAlt} title="Horarios" link="/scheduleProfessional" /> {/*CHEQUEAR SI ESTO ES SEGURO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/}
-            <HomeCard icon={FaClipboardList} title="Turnos" link="/turnos" />
-            <HomeCard icon={FaUser} title="Pacientes" link="/pacientes" />
-            <HomeCard icon={FaUser} title="Pacientes" link="/professionalHome" />
-          </div>
+        <div className="professional-cards-container">
+          <div className="professional-card"><HomeCard icon={FaCalendarAlt} title="Horarios" link="/scheduleProfessional" /></div>
+          <div className="professional-card"><HomeCard icon={FaClipboardList} title="Turnos" link="/turnos" /></div>
+          <div className="professional-card"><HomeCard icon={FaUser} title="Pacientes" link="/pacientes" /></div>
+          <div className="professional-card"><HomeCard icon={FaUser} title="Pacientes" link="/professionalHome" /></div>
         </div>
         
       </div>
