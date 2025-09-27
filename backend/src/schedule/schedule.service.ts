@@ -100,6 +100,13 @@ export class ScheduleService {
     return schedule;
   }
 
+  async removeSchedule(day: string, initialHour: string, person: string) : Promise<void> {
+
+    const deleted = await em.nativeDelete(Schedule, { day, initialHour, person: { email: person } });
+
+    if (deleted === 0) throw new Error("Schedule not found");
+  }
+
   async toggleScheduleState(day: string, initialHour: string) {
 
     const schedule = await em.findOneOrFail(Schedule, { day, initialHour });

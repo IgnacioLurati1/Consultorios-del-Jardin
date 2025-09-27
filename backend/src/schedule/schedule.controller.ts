@@ -94,6 +94,19 @@ async function update(req: Request, res: Response) {
   }
 }
 
+async function remove(req: Request, res: Response) {
+  try {
+    const day = req.params.day
+    const initialHour = req.params.initialHour
+    const person = req.params.person
+    await scheduleService.removeSchedule(day, initialHour, person)
+    res.status(200).json({ message: 'Horario eliminado' })
+
+  } catch (error : any) {
+    res.status(500).json({ message : error.message })
+  }
+}
+
 async function toggleScheduleState(req: Request, res: Response) {
   try {
     const day = req.body.sanitizedInput.day
@@ -106,4 +119,4 @@ async function toggleScheduleState(req: Request, res: Response) {
   }
 }
 
-export { sanitizeScheduleInput, findAll, findOne, add, update, toggleScheduleState , findByEmail, findByProfesionalLogged}
+export { sanitizeScheduleInput, findAll, findOne, add, update, remove, toggleScheduleState , findByEmail, findByProfesionalLogged}

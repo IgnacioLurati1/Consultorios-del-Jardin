@@ -49,3 +49,6 @@ Content-Type: application/json
 
 {
 }
+
+### DELETE - eliminar un horario por día, hora y profesional
+DELETE http://localhost:3000/api/schedules/by-day-hour/miercoles/18:00/profesional@mail.com

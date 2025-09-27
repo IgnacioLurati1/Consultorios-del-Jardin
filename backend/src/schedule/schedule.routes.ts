@@ -5,6 +5,7 @@ import {
   findOne,
   add,
   update,
+  remove,
   toggleScheduleState,
   findByEmail,
   findByProfesionalLogged
@@ -22,3 +23,4 @@ scheduleRouter.post('/', sanitizeScheduleInput, add);
 scheduleRouter.put('/', sanitizeScheduleInput, update);
 scheduleRouter.patch('/', sanitizeScheduleInput, update);
 scheduleRouter.patch('/toggle', toggleScheduleState);
+scheduleRouter.delete('/by-day-hour/:day/:initialHour/:person', remove); //ruta para eliminar un horario especifico de un profesional

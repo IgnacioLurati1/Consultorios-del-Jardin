@@ -9,7 +9,7 @@ import {
 import { Person } from '../people/people.entity.js'
 import { Room } from '../rooms/rooms.entity.js'
 @Entity()
-@Unique({ properties: ['day', 'initialHour', 'person', 'room'] })
+/*@Unique({ properties: ['day', 'initialHour', 'person', 'room'] })*/
 export class Schedule {
     @PrimaryKey()
     day!: string
@@ -17,7 +17,7 @@ export class Schedule {
     @PrimaryKey()
     initialHour!: string
 
-    @ManyToOne(() => Person, { nullable: false })
+    @ManyToOne(() => Person, {primary: true, nullable: false })
     person!: Rel<Person>
     
     @ManyToOne(() => Room, { nullable: false })
