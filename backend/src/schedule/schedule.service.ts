@@ -2,6 +2,7 @@ import { orm } from "../shared/db/orm.js";
 import { Schedule } from "./schedules.entity.js";
 import { RequiredEntityData } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
+import { Room } from "../rooms/rooms.entity.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -50,8 +51,8 @@ export class ScheduleService {
     return await em.find(Schedule, {});
   }
 
-  async findScheduleByPK(day: string, initialHour: string): Promise<Schedule> {
-    return await em.findOneOrFail(Schedule, { day, initialHour });
+  async findScheduleByPK(day: string, initialHour: string, person: string): Promise<Schedule> {
+    return await em.findOneOrFail(Schedule, { day, initialHour, person: { email: person } });
   }
 
   async findScheduleByEmail(email: string) : Promise<Schedule[]> {
@@ -62,6 +63,10 @@ export class ScheduleService {
     return await em.find(Schedule, { person, day });
   }
 
+  async findScheduleByRoomAndDay(day: string, initialHour: string, room: Room) : Promise<Schedule[]> {
+    return await em.find(Schedule, {day, initialHour, room});
+  } // Metodo para validar solapamientos en una misma sala
+
   async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
 
     //Validaciones fuertes
@@ -69,6 +74,12 @@ export class ScheduleService {
 
     if (overlapping) {
       throw new Error("Horario solapado");
+    }
+
+    const existingInRoom = await this.findScheduleByRoomAndDay(data.day, data.initialHour, data.room as Room);
+
+    if (existingInRoom.length > 0) {
+      throw new Error("La sala ya está ocupada en ese horario");
     }
 
     //Validaciones debiles
@@ -89,9 +100,9 @@ export class ScheduleService {
     
   }
 
-  async updateSchedule(day: string, initialHour: string, data: Partial<Schedule>) : Promise<Schedule> {
+  async updateSchedule(data: Partial<Schedule>) : Promise<Schedule> {
 
-    const schedule = await em.findOneOrFail(Schedule, { day, initialHour });
+    const schedule = await em.findOneOrFail(Schedule, { day : data.day, initialHour: data.initialHour, person: data.person as Person });
 
     if (!schedule) throw new Error("Schedule not found");
 
@@ -107,6 +118,8 @@ export class ScheduleService {
     if (deleted === 0) throw new Error("Schedule not found");
   }
 
+
+  //esto se podria eliminar
   async toggleScheduleState(day: string, initialHour: string) {
 
     const schedule = await em.findOneOrFail(Schedule, { day, initialHour });

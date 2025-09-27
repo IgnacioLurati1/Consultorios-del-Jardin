@@ -42,7 +42,8 @@ async function findOne(req: Request, res: Response) {
   try {
     const day = req.params.day // req.body.sanitizedInput.day para futuro
     const initialHour = req.params.initialHour // req.body.sanitizedInput.initialHour para futuro
-    const schedule = await scheduleService.findScheduleByPK(day, initialHour)
+    const person = req.params.person // req.body.sanitizedInput.person para futuro
+    const schedule = await scheduleService.findScheduleByPK(day, initialHour, person)
     res.status(200).json({ message: 'Horario encontrado', data: schedule })
 
   } catch (error : any) {
@@ -83,10 +84,9 @@ async function add(req: Request, res: Response) {
 
 async function update(req: Request, res: Response) {
   try {
-    const day = req.body.sanitizedInput.day
-    const initialHour = req.body.sanitizedInput.initialHour
+    
     delete req.body.sanitizedInput.active // no se puede cambiar el estado con este endpoint
-    const schedule = await scheduleService.updateSchedule(day, initialHour, req.body.sanitizedInput)
+    const schedule = await scheduleService.updateSchedule(req.body.sanitizedInput)
     res.status(200).json({ message: 'Horario actualizado', data: schedule })
 
   } catch (error : any) {
