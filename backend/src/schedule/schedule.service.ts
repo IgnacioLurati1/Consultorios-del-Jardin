@@ -45,6 +45,17 @@ export class ScheduleService {
     return false;
   }
 
+  async isOverlappingInRoom(day: string, initialHour: string, finalHour: string, room: Room): Promise<boolean> {
+    const existingSchedules = await this.findScheduleByRoomAndDay(day, room);
+
+    for (const schedule of existingSchedules) {
+      if ((initialHour < schedule.finalHour) && (finalHour > schedule.initialHour)) {
+        return true; // Hay solapamiento
+      }
+    }
+    return false;
+  }
+
   //CRUD basico
 
   async findAllSchedules() : Promise<Schedule[]> {
@@ -63,9 +74,9 @@ export class ScheduleService {
     return await em.find(Schedule, { person, day });
   }
 
-  async findScheduleByRoomAndDay(day: string, initialHour: string, room: Room) : Promise<Schedule[]> {
-    return await em.find(Schedule, {day, initialHour, room});
-  } // Metodo para validar solapamientos en una misma sala
+  async findScheduleByRoomAndDay(day: string, room: Room) : Promise<Schedule[]> {
+    return await em.find(Schedule, {day, room});
+  } // Metodo para buscar horarios por sala y día
 
   async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
 
@@ -76,9 +87,9 @@ export class ScheduleService {
       throw new Error("Horario solapado");
     }
 
-    const existingInRoom = await this.findScheduleByRoomAndDay(data.day, data.initialHour, data.room as Room);
+    const existingInRoom = await this.isOverlappingInRoom(data.day, data.initialHour, data.finalHour, data.room as Room);
 
-    if (existingInRoom.length > 0) {
+    if (existingInRoom) {
       throw new Error("La sala ya está ocupada en ese horario");
     }
 
