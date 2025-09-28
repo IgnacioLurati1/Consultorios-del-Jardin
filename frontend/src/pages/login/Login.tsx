@@ -65,7 +65,7 @@ export function Login() {
           login(response.data.token);
 
           if (decoded.type === "admin") {
-            navigate("/adminHome/ProvincesAdmin");
+            navigate("/adminHome");
           } else if (decoded.type === "professional") {
             navigate("/professionalHome");
           }
