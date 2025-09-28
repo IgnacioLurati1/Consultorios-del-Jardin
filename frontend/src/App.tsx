@@ -18,11 +18,13 @@ import { Outlet } from "react-router-dom";
 import CrudNav from "./components/crudNav/CrudNav.tsx";
 import { ProfessionalHome } from "./pages/homePages/professionalHome/professionalHome.tsx";
 import { ScheduleProfessional } from "./pages/scheduleProfessional/scheduleProfessional.tsx";
+import { AuthWatcher } from "./context/AuthWatcher.tsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Layout />,
+    element: (
+    <Layout />),
     children: [
       // Public Routes
       { index: true, element: <Home /> },
@@ -39,8 +41,10 @@ const router = createBrowserRouter([
         path: "/AdminHome",
         element: (
           <PrivateRoutes allowedTypes={["admin"]}>
-            <Outlet />
-            <CrudNav />
+            <AuthWatcher>
+              <Outlet />
+              <CrudNav />
+            </AuthWatcher>
           </PrivateRoutes>
         ),
         children: [
@@ -57,8 +61,9 @@ const router = createBrowserRouter([
         path: "/ProfessionalHome",
         element: (
           <PrivateRoutes allowedTypes={["professional","admin"]}>
-            <Outlet />
-            <ProfessionalHome />
+            <AuthWatcher>
+              <ProfessionalHome />
+            </AuthWatcher>
           </PrivateRoutes>
         ), 
       },
@@ -66,9 +71,11 @@ const router = createBrowserRouter([
         path: "scheduleProfessional",
         element: (
           <PrivateRoutes allowedTypes={["admin", "professional"]}>
-            <Outlet />
-            <ScheduleProfessional />
-            <CrudNav />
+            <AuthWatcher>
+              <Outlet />
+              <ScheduleProfessional />
+              <CrudNav />
+            </AuthWatcher>
           </PrivateRoutes>
         ),
       }, //CHEQUEAR SI ASI ESTA BIEN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

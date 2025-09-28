@@ -6,11 +6,9 @@ import { useState } from "react";
 
 export function LoginRegister() {
   const { token, logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
     axios.post("api/people/logout", {}, { withCredentials: true });
     setSureLogOut(false);
   };
