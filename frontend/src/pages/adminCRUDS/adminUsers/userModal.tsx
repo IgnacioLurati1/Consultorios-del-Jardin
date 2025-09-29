@@ -13,19 +13,20 @@ interface UserModalProps {
         phoneNumber:string;
         type: string;
         active: boolean;
-    }|null;
+        speciality:string;
+    }|undefined;
     onClose: () => void;
-    onDelete: () => void;
+    onToggleState: (email:string) => void;
 }
 
-export function UserModal({visible, user, onClose, onDelete}:UserModalProps){
+export function UserModal({visible, user, onClose, onToggleState}:UserModalProps){
 
-    const [userData, setUserData] = useState({email:"", name:"", surname:"", docType:"", docNumber:"", phoneNumber:"", type:"", active:true})
+    const [userData, setUserData] = useState({email:"", name:"", surname:"", docType:"", docNumber:"", phoneNumber:"", type:"", active:true, speciality:""})
     const activateButtonRef = useRef<HTMLButtonElement| null>(null);
 
     useEffect(() => {
             if (visible && user) {
-                setUserData({email:user.email, name:user.name, surname:user.surname, docType:user.docType, docNumber:user.docNumber, phoneNumber:user.phoneNumber, type:user.type, active:user.active});
+                setUserData({email:user.email, name:user.name, surname:user.surname, docType:user.docType, docNumber:user.docNumber, phoneNumber:user.phoneNumber, type:user.type, active:user.active, speciality: user.speciality? user.speciality : ""});
             }
         }, [visible, user]);
 
@@ -57,14 +58,17 @@ export function UserModal({visible, user, onClose, onDelete}:UserModalProps){
                     <p className="input-crud">Nro Doc: {userData.docNumber}</p>
                     <p className="input-crud">Teléfono:{userData.phoneNumber}</p>
                     <p className="input-crud">Tipo: {userData.type}</p>
+                    {userData.speciality != "" ?( 
+                         <p className="input-crud">Especialidad: {userData.speciality}</p>
+                    ): null}
                 
-                    <div className="buttons">
+                    <div className="buttons user-button">
                         {user?.active === false ? (
                             <>
-                               <button autoFocus ref={activateButtonRef} className="create-button">Activar</button>
+                               <button autoFocus ref={activateButtonRef} className="create-button" onClick={()=> {onToggleState(userData.email); onClose()}} >Activar</button>
                             </>):(
                             <>
-                                <button autoFocus ref={activateButtonRef} type="button" className="delete-button">Eliminar<FaTrash /></button>
+                                <button autoFocus ref={activateButtonRef} type="button" className="delete-button" onClick={()=> {onToggleState(userData.email); onClose()}}>Eliminar<FaTrash /></button>
                             </>)}
                     </div>
                 </div>

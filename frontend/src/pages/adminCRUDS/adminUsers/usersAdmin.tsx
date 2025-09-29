@@ -4,10 +4,11 @@ import { ToastContainer, toast } from "react-toastify";
 import { NavZone } from "../../../components/navZone/NavZone";
 import SearchBar from "../../../components/searchBar/searchBar";
 import { UserLabel } from "./userLabel";
-import { getAllUsers } from "./usersService";
+import { getAllUsers, toggleState } from "./usersService";
 import { useEffect, useState } from "react";
 import type { Person } from "../../types";
 import { UserModal } from "./userModal";
+import { useNavigate } from "react-router-dom";
 
 
 export function UsersAdmin(){
@@ -16,8 +17,9 @@ export function UsersAdmin(){
     const[loading, setLoading] = useState(true)
     const [filteredUsers, setFilteredUsers] = useState<Person[]>([])
     const [searchTerm, setSearchTerm] = useState('');
-    const [modalData, setModalData]=useState<Person|null>(null)
+    const [modalData, setModalData]=useState<Person>()
     const [modalVisible, setModalVisible] = useState(false)
+    const navigate = useNavigate()
 
     useEffect(()=>{
         getAllUsers()
@@ -49,6 +51,17 @@ export function UsersAdmin(){
         );
     }, [searchTerm, users]);
 
+    function toggleStateUser(email:string){
+        toggleState(email)
+            .then(()=>{
+                toast.success('Estado de usuario cambiado con éxito');
+                setUsers((prev)=> prev.map((user) => user.email !== email? user : {...user, active: !user.active}));
+            })
+            .catch(err => {
+                toast.error(`Error al cambiar estado de usuario. ${err.message}`)
+            })
+    }
+
     return (
             <div className="admin-home">
     
@@ -72,9 +85,9 @@ export function UsersAdmin(){
                     </ul>
                 </div>
                 <div>
-                    <button className="crud-add-button" onClick={()=>{}}><strong>Registrar profesional</strong><FaPlus /></button>
+                    <button className="crud-add-button" onClick={()=>{navigate("/AdminHome/RegisterProfAdmin")}}><strong>Registrar profesional</strong><FaPlus /></button>
                 </div>
-                <UserModal visible= {modalVisible} user={modalData} onClose={()=>setModalVisible(false)} onDelete={()=>{}}></UserModal>
+                <UserModal visible= {modalVisible} user={modalData} onClose={()=>setModalVisible(false)} onToggleState={toggleStateUser}></UserModal>
             </div>
         );
 }
