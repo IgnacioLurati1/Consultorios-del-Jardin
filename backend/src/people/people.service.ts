@@ -19,6 +19,10 @@ export class PeopleService {
     return await em.find(Person, { type: peopleType });
   }
 
+  async findAllNoAdmin(): Promise<Person[]>{
+    return await em.find(Person, {type: {$ne: 'admin'}})
+  }
+
   async findPersonByEmail(email: string): Promise<Person> {
     return em.findOneOrFail(Person, { email });
   }
