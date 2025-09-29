@@ -1,7 +1,7 @@
 import { Home } from "./pages/homePages/mainHome/Home.tsx";
 import {AdminHome} from "./pages/homePages/adminHome/AdminHome.tsx"
 import { Register } from "./pages/register/Register";
-import { RegisterProf } from "./pages/registerProfessional/RegisterProf.tsx";
+import { RegisterProf } from "./pages/adminCRUDS/adminUsers/RegisterProf.tsx";
 import { Login } from "./pages/login/Login.tsx";
 import { EditProfile } from "./pages/editProfie/EditProfile.tsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -19,6 +19,7 @@ import CrudNav from "./components/crudNav/CrudNav.tsx";
 import { ProfessionalHome } from "./pages/homePages/professionalHome/professionalHome.tsx";
 import { ScheduleProfessional } from "./pages/scheduleProfessional/scheduleProfessional.tsx";
 import { AuthWatcher } from "./context/AuthWatcher.tsx";
+import { UsersAdmin } from "./pages/adminCRUDS/adminUsers/usersAdmin.tsx";
 
 const router = createBrowserRouter([
   {
@@ -29,11 +30,12 @@ const router = createBrowserRouter([
       // Public Routes
       { index: true, element: <Home /> },
       { path: "/Register", element: <Register /> },
-      { path: "/RegisterProf", element: <RegisterProf /> },
       { path: "/Login", element: <Login /> },
       { path: "/EditProfile", element: (<PrivateRoutes allowedTypes={["admin","professional","client"]}>
-            <Outlet />
-            <EditProfile />
+            <AuthWatcher>
+              <Outlet />
+              <EditProfile />
+            </AuthWatcher>
           </PrivateRoutes>) },
 
       // Private Routes
@@ -53,6 +55,8 @@ const router = createBrowserRouter([
           { path: "CitiesAdmin", element: <CitiesAdmin /> },
           { path: "OfficesAdmin", element: <OfficesAdmin /> },
           { path: "RoomsAdmin", element: <RoomsAdmin /> },
+          { path: "UsersAdmin", element: <UsersAdmin/>},
+          { path: "RegisterProfAdmin", element: <RegisterProf/>},
         ],
       },
 

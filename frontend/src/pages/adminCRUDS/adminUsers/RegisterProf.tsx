@@ -1,14 +1,14 @@
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
-import '../register/Register.css';
-import Logo from '../../assets/Logo.png';
+import '../../register/Register.css'
+import Logo from '../../../assets/Logo.png';
 import { useState } from "react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { DataInput } from '../../components/inputs/standardTextInput/DataInput';
-import { DataInputPassword } from '../../components/inputs/passwordInput/DataInputPassword';
-import { DataInputSelector } from '../../components/inputs/selectorInput/DataInputSelector';
-import api from '../../axios';
+import { DataInput } from '../../../components/inputs/standardTextInput/DataInput';
+import { DataInputPassword } from '../../../components/inputs/passwordInput/DataInputPassword';
+import { DataInputSelector } from '../../../components/inputs/selectorInput/DataInputSelector';
+import api from '../../../axios';
 
 export function RegisterProf() {
 
@@ -82,43 +82,7 @@ export function RegisterProf() {
         });
 };
 
-/*
-            fetch('/api/people', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    name: formData.nombre, 
-                    surname: formData.apellido, 
-                    email: formData.email, 
-                    docType: formData.tipoDocumento, 
-                    docNumber: formData.nroDocumento, 
-                    phoneNumber : formData.telefono, 
-                    password: formData.contraseña, 
-                    speciality: formData.speciality,
-                    type: "profesional"
-            })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    toast.error("Error al registrar usuario", {
-                        className: "feedBack-box error"
-                    });
-                }
-            })
-            .then(data => {
-                localStorage.setItem("token", data.token);
-                toast.success("Usuario registrado con éxito", {
-                    className: "feedBack-box success"
-                });
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                toast.error("Error al registrar usuario", {
-                    className: "feedBack-box error"
-                })});
-*/                
+               
     return (
     <div className="user-register-container">
 
