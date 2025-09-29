@@ -56,6 +56,16 @@ async function findAllPerType(req: Request, res: Response) {
   }
 }
 
+async function findAllNoAdmin(req: Request, res:Response){
+  try {
+    const people = await peopleService.findAllNoAdmin();
+    const safeData = people.map((person) => ({ ...person, password: undefined }));
+    res.status(200).json({ message: `Personas no administrador encontradas`, data: safeData });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function findOne(req: Request, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email);
@@ -198,4 +208,5 @@ export {
   changePassword,
   sendPasswordMail,
   findAllPerType,
+  findAllNoAdmin,
 };
