@@ -106,8 +106,7 @@ export class PeopleService {
 
   async toggleState(email: string) {
     const person = await em.findOneOrFail(Person, { email });
-    if (person.type != "professional") throw new Error("Usuario no es profesional");
-    em.assign(person, { ...person, active: true });
+    em.assign(person, { ...person, active: !person.active });
     await em.flush();
     return true;
   }

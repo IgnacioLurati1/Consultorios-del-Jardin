@@ -8,7 +8,7 @@ import {
   loginWithEmailAndPassword,
   logOut,
   remove,
-  accept,
+  toggleState,
   changePassword,
   sendPasswordMail,
   findAllPerType,
@@ -29,5 +29,5 @@ personRouter.patch("/changePassword", sanitizePersonInput, changePassword);
 personRouter.put("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, remove);
-personRouter.patch("/:email/accept", verifyToken, verifyAdmin, sanitizePersonInput, accept);
+personRouter.patch("/:email/toggleState", verifyToken, verifyAdmin, sanitizePersonInput, toggleState);
 personRouter.post("/:email/passwordMail", sendPasswordMail);

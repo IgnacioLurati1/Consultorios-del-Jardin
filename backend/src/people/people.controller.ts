@@ -166,10 +166,10 @@ async function logOut(req: Request, res: Response) {
   });
 }
 
-async function accept(req: Request, res: Response) {
+async function toggleState(req: Request, res: Response) {
   try {
     await peopleService.toggleState(req.params.email);
-    res.status(200).json({ message: "Persona activada con éxito!" });
+    res.status(200).json({ message: "Estado de la persona cambiado con éxito" });
   } catch (error: any) {
     res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
   }
@@ -204,7 +204,7 @@ export {
   remove,
   loginWithEmailAndPassword,
   logOut,
-  accept,
+  toggleState,
   changePassword,
   sendPasswordMail,
   findAllPerType,
