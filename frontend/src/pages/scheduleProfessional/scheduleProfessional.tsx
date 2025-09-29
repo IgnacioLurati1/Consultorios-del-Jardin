@@ -121,7 +121,6 @@ export function ScheduleProfessional(){
   useEffect(()=>{ //Filtro por sala cuando se setea en el filter
     if(roomToFilter){
       const filtered = schedules.filter(sch => sch.room.idRoom === roomToFilter.idRoom);
-      console.log(filtered)
       setFilteredSchedules(filtered);
     } else {
       setFilteredSchedules(schedules);
@@ -133,11 +132,11 @@ export function ScheduleProfessional(){
   async function addSchedule(newSchedule: { day: string, initialHour: string, finalHour: string, room: string, personEmail: string, allowedType: string, duration: number }){     
     try{
       const createdSchedule = await createSchedule(newSchedule)
-      if (createdSchedule){
-        setSchedules([createdSchedule, ...schedules]);
-        toast.success('Horario creada con éxito');
-        setScheduleModalOpen(false);
-      }
+      if (createdSchedule ){
+          setSchedules([createdSchedule, ...schedules]);
+          toast.success(`Horario creado con éxito`);
+          setScheduleModalOpen(false);
+        }
     }catch (error:any){
       toast.error(`Error al crear el horario: ${error.message}`);
     }
@@ -145,8 +144,10 @@ export function ScheduleProfessional(){
   async function deleteSchedule(professionalEmail: string, day: string, initialHour:string) {
     try{  
     if (await removeSchedule(professionalEmail, day, initialHour)){
-          setSchedules(schedules.filter(schedule => (schedule.person.email !== professionalEmail && schedule.day !== day && schedule.initialHour !== initialHour))); //A CHEQUEAR SI FUNCIONA BIEN
-          toast.success(`Horario eliminada con éxito`);
+          setSchedules(prev =>
+                        prev.filter(s => !(s.person.email === professionalEmail && s.day === day && s.initialHour === initialHour))
+                      );
+          toast.success(`Horario eliminado con éxito`);
           setScheduleModalOpen(false);
       }
     }catch (error:any){
@@ -160,6 +161,7 @@ export function ScheduleProfessional(){
           <div className="schedule-subcontainer">
             <div className="upper-container">
                 <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
+                <ToastContainer className = {`toast-container`} draggable={false}/>
                 <GridFilter setProfessional={setProfessional} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>
             <div className="schedule-container">
@@ -167,7 +169,6 @@ export function ScheduleProfessional(){
             </div>
           </div>
           <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
-          <ToastContainer className = {`toast-container`} draggable={false} />
         </div>
       );
   } else if(!professional){
@@ -176,10 +177,10 @@ export function ScheduleProfessional(){
         <div className="schedule-subcontainer">
           <div className="upper-container">
             <NavZone title="Seleccionar Profesional en los filtros"/>
+            <ToastContainer className = {`toast-container`} draggable={false}/>
             <GridFilter setProfessional={setProfessional} professionals={professionalsList} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
           </div>
         </div>
-      <ToastContainer className = {`toast-container`} draggable={false} />
       </div>
     );
   } else {
@@ -188,7 +189,7 @@ export function ScheduleProfessional(){
           <div className="schedule-subcontainer">
             <div className="upper-container">
                 <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
-                <ToastContainer className = {`toast-container`} draggable={false} />
+                <ToastContainer className = {`toast-container`} draggable={false}/>
                 <GridFilter setProfessional={setProfessional} professionals={professionalsList} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>
             <div className="schedule-container">
@@ -196,7 +197,6 @@ export function ScheduleProfessional(){
             </div>
           </div>
           <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
-          <ToastContainer className = {`toast-container`} draggable={false} />
         </div>
       );
   }

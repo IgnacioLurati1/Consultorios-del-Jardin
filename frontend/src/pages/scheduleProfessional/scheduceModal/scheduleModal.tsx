@@ -97,6 +97,7 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
 
         if(!schedule){
             onCreate({ day: newScheduleData.day, initialHour: newScheduleData.initialHour, finalHour: newScheduleData.finalHour, room: newScheduleData.room, personEmail: professional.email, allowedType: newScheduleData.allowedType, duration: newScheduleData.duration });
+            
         }
     }
 
@@ -120,7 +121,7 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                         <div>Tipo de turno: {schedule.allowedType.charAt(0).toUpperCase() + schedule.allowedType.slice(1)}</div>
                         <div>Duracion Permitida: {schedule.duration} min</div>
                         <div className="button-container">
-                            <button className="delete-button">Eliminar</button> 
+                            <button className="delete-button" onClick={()=> onDelete(schedule.person.email, schedule.day, schedule.initialHour)}>Eliminar</button> 
                         </div>
                     </div>
                 </div>

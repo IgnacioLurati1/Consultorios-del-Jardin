@@ -20,8 +20,6 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
 }
 
 export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, room:String, personEmail:string, allowedType: string, duration: number}): Promise<Schedule | undefined>{
-    console.log(newSchedule)
-    
     if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.room || !newSchedule.personEmail || !newSchedule.allowedType.trim() || !newSchedule.duration) {
         throw new Error('Se necesitan los campos necesarios para crear un horario');
     }
@@ -37,7 +35,7 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
         active:true
     })
     .then(created => {
-        return created.data.data
+        return created.data.data       
     })
     .catch(err =>{
         const backendMsg = err.response?.data?.message || err.message;
@@ -48,7 +46,7 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
 export function removeSchedule(professionalEmail: string, day: string, initialHour:string): Promise<boolean>{
     if(!professionalEmail) return Promise.resolve(false)
     
-    return api.patch(`/schedules/toggle/${professionalEmail}/${day}/${initialHour}`)
+    return api.delete(`/schedules/by-day-hour/${day}/${initialHour}/${professionalEmail}`)
         .then( ()=>{
             return true;
         })
