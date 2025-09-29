@@ -46,6 +46,11 @@
   transition: background-color 0.1s ease;
 }
 
+.crud-email {
+    margin: 10px;
+    margin-left: 1%;
+}
+
 .crud-name {
     text-overflow: ellipsis;
     overflow: hidden;
@@ -67,5 +72,10 @@
 
     .city-label, .crud-name, .crud-id{
       font-size: 5vw;
+    }
+
+    .crud-email {
+    text-overflow: ellipsis;
+    overflow: hidden;
     }
 }
