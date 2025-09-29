@@ -68,6 +68,8 @@ export function Login() {
             navigate("/adminHome");
           } else if (decoded.type === "professional") {
             navigate("/professionalHome");
+          } else if (decoded.type === "client") {
+            navigate("/");
           }
         } else {
           navigate("/");
