@@ -1,16 +1,13 @@
 import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
 import { useState } from "react";
 
 export function LoginRegister() {
   const { token, logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
     axios.post("api/people/logout", {}, { withCredentials: true });
     setSureLogOut(false);
   };
