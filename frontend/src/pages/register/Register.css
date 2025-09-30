@@ -222,7 +222,7 @@
 }
 
 .registerBut{
-    display: none;
+    display: block;
 }
 
 .next{
@@ -244,6 +244,11 @@
     justify-content: space-around ;
 }
 
+.professional-buttons{
+    flex-direction: row;
+    margin-bottom: 10vh;
+    justify-content: space-evenly;
+}
 /* Professional Register */
 
 .register-namesurname{

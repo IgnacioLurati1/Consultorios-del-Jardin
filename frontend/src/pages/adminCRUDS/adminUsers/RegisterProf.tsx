@@ -116,24 +116,21 @@ export function RegisterProf() {
                             </div>
                         </div>
                         <div className='speciality'>
-                            <DataInputSelector label="Especialidad" type="selector"
-                            options={["Especialidad1", "Especialidad2", "Especialidad3", "Especialidad4", "Especialidad5", "Otro"]}
-                            value={formData.speciality} onChange={(e) => handleChange('speciality', e.target.value)}
+                            <DataInput label="Especialidad" type="text" value={formData.speciality} onChange={(e) => handleChange('speciality', e.target.value)}
                             />
                         </div>
                     </div>
                 </div>
-                <div className='register-body-right'>
+                <div className='register-body-right professional-buttons'>
                     <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
-                    <ToastContainer 
-                        closeOnClick={false}
-                        draggable={false}
-                    />
                     <button type="button" className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
                     <button type="submit" className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>
                     <button type="button" className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
                 </div>
-
+                    <ToastContainer 
+                        closeOnClick={false}
+                        draggable={false}
+                    />
             </div>
         </form>
     </div>
