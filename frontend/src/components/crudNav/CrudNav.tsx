@@ -3,8 +3,7 @@ import "./CrudNav.css";
 import { FaArrowUp } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import type { TokenPayload } from "../../pages/types";
+import { getDecodedToken } from "../../pages/commonServices";
 
 function Translate(text: string){
   const Translation: { [key: string]: string } = {
@@ -31,9 +30,8 @@ export default function CrudNav() {
     setChilds(initialChilds.filter((child) => child !== location));
   }, [location]);
 
-  const token = localStorage.getItem('token')
-  if(token){
-    const decoded: TokenPayload = jwtDecode(token);
+  const decoded = getDecodedToken();
+  if(decoded){
     if (decoded.type ==="admin" && !isRoot){
       return (
         <section className="crud-nav">
