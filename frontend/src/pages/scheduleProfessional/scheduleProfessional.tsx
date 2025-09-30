@@ -4,7 +4,7 @@ import { GridModule } from "./gridSchedule/gridModule.tsx";
 import type{ Person, Schedule, Room, Office, City} from "../types.ts"
 import { GridFilter } from "./gridFilter/gridFilter.tsx";
 import { useEffect, useState } from "react";
-import { ScheduleModal } from "./scheduceModal/scheduleModal.tsx";
+import { ScheduleModal } from "./scheduleModal/scheduleModal.tsx";
 import {findAllProfessionals, findProfessionalSchedules} from "./scheduleServices.ts"
 import { ToastContainer, toast } from "react-toastify";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
@@ -165,7 +165,7 @@ export function ScheduleProfessional(){
               <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
-          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={null} onDelete={null} isProfessional={isProfessional}/>
         </div>
       );
   } else if(!professional){
@@ -193,7 +193,7 @@ export function ScheduleProfessional(){
               <GridModule schedules={filteredSchedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
-          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule} isProfessional={isProfessional}/>
         </div>
       );
   }

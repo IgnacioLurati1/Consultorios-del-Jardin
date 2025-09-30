@@ -23,7 +23,7 @@ function stringHourToNumber(hour: string): number {
     return hoursNumber;
 }
 
-export function GridModule({ schedules, daysSpanish, openingTime, closingTime, setScheduleModalOpen, setSelectedSchedule, setSelectedKey }: columnModuleProps) {
+export function GridModule({ schedules, daysSpanish, openingTime, closingTime, setScheduleModalOpen, setSelectedSchedule, setSelectedKey}: columnModuleProps) {
     const openedHours = diffHours(openingTime, closingTime)
     const startHour = stringHourToNumber(openingTime);   // hora de apertura del office
     const [showDay, setShowDay] = useState<boolean[]>([false,false,false,false,false,false]); // estado para mostrar mas info del dia

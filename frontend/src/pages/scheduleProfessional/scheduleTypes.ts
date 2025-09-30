@@ -40,8 +40,9 @@ export interface scheduleModalProps {
     rooms: Room[];
     offices: Office[];
     cities: City[];
-    onCreate: (newSchedule: { day: string; initialHour: string; finalHour: string, room: string, personEmail:string, allowedType: string, duration: number}) => void;
-    onDelete: (professionalEmail: string, day: string, initialHour:string) => void;
+    onCreate: ((newSchedule: { day: string; initialHour: string; finalHour: string, room: string, personEmail:string, allowedType: string, duration: number}) => void) | null;
+    onDelete: ((professionalEmail: string, day: string, initialHour:string) => void )| null;
+    isProfessional: boolean;
 }
 
 export interface GridFilterProps{
