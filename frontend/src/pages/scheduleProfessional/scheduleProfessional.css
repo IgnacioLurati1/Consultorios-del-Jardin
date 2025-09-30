@@ -62,4 +62,13 @@
     width: 100%;
     padding: 0;
   }
+
+  .toast-container {
+    margin-top:0vh;
+    width: 100%;
+    font-size: 4vw;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+
 }

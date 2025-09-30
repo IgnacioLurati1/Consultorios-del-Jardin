@@ -105,7 +105,7 @@ export function CitiesAdmin() {
                             setModalVisible(true); 
                             setModalType("edit")
                             }}>
-                            <CityLabel key={city.idCity} city={city} active={city.active}></CityLabel>
+                            <CityLabel key={city.idCity} city={city}></CityLabel>
                         </li>
                     ))}
                 </ul>

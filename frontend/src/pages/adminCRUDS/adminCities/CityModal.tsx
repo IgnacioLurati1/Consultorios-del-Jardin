@@ -129,28 +129,6 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
         );
     }
 
-    if (type == "edit" && city && city.province.active=== false) {
-        return (
-            <div className="crud-modal" onClick={onClose}>
-                <div className ="crud-modal-content" onClick={e => e.stopPropagation()}>
-                    <div className="titleAndClose">
-                        <h2 className="crud-modal-title">
-                        "Detalles de la Localidad":<FaChevronRight />
-                        </h2>
-                        <FaTimes className="close-icon" onClick={onClose} />
-                    </div>
-                    <p><strong> ID: {city.idCity}</strong></p>
-                    <div>
-                        <p>Nombre: {cityData.nameCity}</p>
-                        <p>Provincia: {provinceName}    <strong>(Inhabilitada)</strong></p>
-                        No es posible modificar la Localidad porque la provincia a la que pertenece se encuentra inhabilitada. Reactivela si desea continuar.
-                    </div>
-                </div>
-            </div>
-            );
-    }
-
-
     return (
         <div className="crud-modal" onClick={onClose}>
             <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
