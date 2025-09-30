@@ -67,6 +67,10 @@
     background-color: #CD6965;
 }
 
+.delete-button.isProf{
+    display: none;
+}
+
 .modal-input-container{
     display: grid;
     grid-template-columns: 125px 1fr;

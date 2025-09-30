@@ -21,7 +21,7 @@ function validateOfficeTimes(initialHour:string, finalHour:string): boolean {
   return false; // faltan datos
 }
 
-export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, professional, rooms, offices, cities, onCreate, onDelete}: scheduleModalProps) {
+export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, professional, rooms, offices, cities, onCreate, onDelete, isProfessional}: scheduleModalProps) {
 
     const [newScheduleData, setNewScheduleData] = useState({ day: "", initialHour: "", finalHour: "", person: professional.email, room:"", allowedType: "", duration: 0   });
     const [room, setRoom] = useState<Room>();
@@ -95,9 +95,15 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
             toast.dismiss();
         return;}
 
-        if(!schedule){
+        if(!schedule && onCreate){
             onCreate({ day: newScheduleData.day, initialHour: newScheduleData.initialHour, finalHour: newScheduleData.finalHour, room: newScheduleData.room, personEmail: professional.email, allowedType: newScheduleData.allowedType, duration: newScheduleData.duration });
             
+        }
+    }
+
+    function handleDelete(email:string, day:string, initialHour:string){
+        if(schedule && onDelete){
+            onDelete(email, day, initialHour);
         }
     }
 
@@ -121,13 +127,13 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                         <div>Tipo de turno: {schedule.allowedType.charAt(0).toUpperCase() + schedule.allowedType.slice(1)}</div>
                         <div>Duracion Permitida: {schedule.duration} min</div>
                         <div className="button-container">
-                            <button className="delete-button" onClick={()=> onDelete(schedule.person.email, schedule.day, schedule.initialHour)}>Eliminar</button> 
+                            <button className={`delete-button ${isProfessional ? "isProf" : ""}`} onClick={()=> handleDelete(schedule.person.email, schedule.day, schedule.initialHour)}>Eliminar</button> 
                         </div>
                     </div>
                 </div>
             </div>
         );
-    } else { //crear horario
+    } else if(!schedule && !isProfessional){ //crear horario
     return (
         <div className="schedule-modal-overlay" onClick={onClose}>
             <div className="schedule-modal" onClick={(e) => e.stopPropagation()}  onKeyDown={handleKeyDown}>
@@ -326,6 +332,22 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                 </div>
             </div>
         </div>
+    
         
-    );}
+    );}else if(!schedule && isProfessional){ //un profesional no puede crear ni eliminar horarios
+        return (
+            <div className="schedule-modal-overlay" onClick={onClose}>
+                <div className="schedule-modal" onClick={(e) => e.stopPropagation()} /* Evita que el clic en el modal cierre el modal */ >
+                    <div className="schedule-modal-header">
+                        <h2 className="schedule-modal-header-title">Crear un Horario</h2> 
+                        <button className="schedule-modal-header-close" onClick={onClose}> <FaXmark/> </button>
+                    </div>
+                    <div className="schedule-modal-content">
+                        <div> Consultar con el administrador del consultorio para poder agregar un horario a su grilla.</div>
+                        <div> Desde ya, disculpe las molestias.</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 }

@@ -16,9 +16,11 @@ export function Header(){
     };
 
         const menuItems = [
-    { faviconName: "home", title: "Home", path: "/" },
-    { faviconName: "user", title: "Login", path: "/login" },
-    { faviconName: "phone", title: "Contacto", path: "/contacto" },
+    { faviconName: "home", title: "Home", path: "/", userType: "guest"},
+    { faviconName: "user", title: "Login", path: "/login", userType: "guest"},
+    { faviconName: "phone", title: "Contacto", path: "/contacto" , userType: "guest"},
+    { faviconName: "database", title: "Menú Admin", path: "/adminHome" , userType: "admin"},
+    { faviconName: "professional", title: "Menú Profesional", path: "/professionalHome" , userType: "professional"},
   ];
 
     return(

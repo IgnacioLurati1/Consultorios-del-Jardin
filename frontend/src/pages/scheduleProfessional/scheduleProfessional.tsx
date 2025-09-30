@@ -1,20 +1,18 @@
 import "./scheduleProfessional.css";
 import {NavZone} from "../../components/navZone/NavZone";
 import { GridModule } from "./gridSchedule/gridModule.tsx";
-
-import type{ Person, Schedule, Room, Office, City, TokenPayload} from "../types.ts"
+import type{ Person, Schedule, Room, Office, City} from "../types.ts"
 import { GridFilter } from "./gridFilter/gridFilter.tsx";
 import { useEffect, useState } from "react";
-import { ScheduleModal } from "./scheduceModal/scheduleModal.tsx";
+import { ScheduleModal } from "./scheduleModal/scheduleModal.tsx";
 import {findAllProfessionals, findProfessionalSchedules} from "./scheduleServices.ts"
 import { ToastContainer, toast } from "react-toastify";
-import { jwtDecode } from "jwt-decode";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
 import { findAllActiveCities } from "../adminCRUDS/adminCities/CityService.ts";
 import { findAllActiveOffices } from "../adminCRUDS/adminOffices/OfficeService.ts";
 import { createSchedule, removeSchedule } from "./scheduleServices.ts";
 import { daysSpanish } from "./scheduleTypes.ts";
-import { findPerson } from "../commonServices.ts";
+import { findPerson, getDecodedToken } from "../commonServices.ts";
 
 const openingTime = "08:00"
 const closingTime = "21:00"
@@ -37,9 +35,8 @@ export function ScheduleProfessional(){
 
   useEffect(() => {
 
-    const storedToken=localStorage.getItem("token")       //Obtengo datos del usuario logeado
-    if (!storedToken) return;
-    const decoded = jwtDecode<TokenPayload>(storedToken);
+    const decoded = getDecodedToken();
+    if (!decoded) return;
     if(decoded.type === "professional"){
       setIsProfessional(true) 
       const email = decoded.email
@@ -168,7 +165,7 @@ export function ScheduleProfessional(){
               <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
-          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={null} onDelete={null} isProfessional={isProfessional}/>
         </div>
       );
   } else if(!professional){
@@ -196,7 +193,7 @@ export function ScheduleProfessional(){
               <GridModule schedules={filteredSchedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
-          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule}/>
+          <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={addSchedule} onDelete={deleteSchedule} isProfessional={isProfessional}/>
         </div>
       );
   }

@@ -5,11 +5,10 @@ import { toast, ToastContainer } from "react-toastify";
 import { DataInputSelector } from "../../components/inputs/selectorInput/DataInputSelector";
 import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { useState, useEffect } from "react";
-import type { TokenPayload } from '../types';
-import { jwtDecode } from 'jwt-decode';
 import "../register/Register.css"
 import { updatePerson } from './editProfileServices';
-import { findPerson } from '../commonServices';
+import { findPerson, getDecodedToken } from '../commonServices';
+import type { TokenPayload } from '../types';
 
 
 //Exactamente la misma página del registro pero con otra funcionalidad
@@ -17,7 +16,7 @@ import { findPerson } from '../commonServices';
 export function EditProfile(){
 
 
-    const [token, setToken] = useState<string|null>(null)
+    const [decodedToken, setDecodedToken] = useState<TokenPayload|null>(null)
     const [formData, setFormData] = useState({
         name: '',
         surname: '',
@@ -60,11 +59,9 @@ export function EditProfile(){
 
     useEffect(()=>{
 
-        const storedToken=localStorage.getItem("token")
-        if(!storedToken) return;
-
-        const decoded = jwtDecode<TokenPayload>(storedToken);
-        setToken(storedToken)
+        const decoded = getDecodedToken();
+        if(!decoded) return;
+        setDecodedToken(decoded)
 
         findPerson(decoded.email)
         .then(data => {
@@ -88,7 +85,7 @@ export function EditProfile(){
 
     },[]);
 
-    if(!token){
+    if(!decodedToken){
         return(
             <div>Loading...</div>
         );
