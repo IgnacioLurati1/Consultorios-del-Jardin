@@ -1,4 +1,5 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
+import { Entity, ManyToMany, PrimaryKey, Property } from "@mikro-orm/core";
+import { Appointment } from "../appointments/appointments.entity.js";
 
 @Entity()
 export class Person {
@@ -31,4 +32,7 @@ export class Person {
 
   @Property({ nullable: false })
   active!: boolean;
+
+  @ManyToMany(() => Appointment, (appointment) => appointment.pacients)
+  appointments!: Appointment[];
 }
