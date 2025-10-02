@@ -1,8 +1,10 @@
-import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique, ManyToMany } from "@mikro-orm/core";
+import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique, ManyToMany, OneToMany, Collection } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
-import { Schedule } from "../schedule/schedules.entity.js";
+import { Room } from "../rooms/rooms.entity.js";
+import { Diagnostic } from "./diagnostics.entity.js";
 
 @Entity()
+@Unique({ properties: ["date", "initialHour", "room", "professional"] })
 export class Appointment {
   @PrimaryKey()
   numAppointment?: number;
@@ -22,9 +24,12 @@ export class Appointment {
   @Property({ nullable: false })
   type!: string;
 
-  @ManyToMany(() => Person, (person) => person.appointments, { owner: true })
-  pacients!: Rel<Person[]>;
+  @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment)
+  diagnostics = new Collection<Diagnostic>(this);
 
-  @ManyToOne(() => Schedule, { nullable: true })
-  schedule!: Rel<Schedule>;
+  @ManyToOne(() => Person, { nullable: false })
+  professional!: Rel<Person>;
+
+  @ManyToOne(() => Room, { nullable: false })
+  room!: Rel<Room>;
 }

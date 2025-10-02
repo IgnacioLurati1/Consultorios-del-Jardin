@@ -32,7 +32,4 @@ export class Person {
 
   @Property({ nullable: false })
   active!: boolean;
-
-  @ManyToMany(() => Appointment, (appointment) => appointment.pacients)
-  appointments!: Appointment[];
 }
