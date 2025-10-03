@@ -15,10 +15,10 @@ export class Appointment {
   @Property({ nullable: false, type: "time" })
   initialHour!: string;
 
-  @Property({ nullable: false })
-  duration!: number;
+  @Property({ nullable: false, type: "time" })
+  finalHour!: string;
 
-  @Property({ nullable: false })
+  @Property({ nullable: true })
   value!: number;
 
   @Property({ nullable: false })
@@ -27,8 +27,8 @@ export class Appointment {
   @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment)
   diagnostics = new Collection<Diagnostic>(this);
 
-  @Property({ default: "NO" })
-  cancelDate: string = "NO";
+  @Property({ default: "Pending" })
+  cancelDate: string = "Pending";
 
   @ManyToOne(() => Person, { nullable: false })
   professional!: Rel<Person>;
