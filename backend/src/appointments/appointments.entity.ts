@@ -4,7 +4,7 @@ import { Room } from "../rooms/rooms.entity.js";
 import { Diagnostic } from "./diagnostics.entity.js";
 
 @Entity()
-@Unique({ properties: ["date", "initialHour", "room", "professional"] })
+@Unique({ properties: ["date", "initialHour", "professional", "cancelDate"] })
 export class Appointment {
   @PrimaryKey()
   numAppointment?: number;
@@ -12,7 +12,7 @@ export class Appointment {
   @Property({ nullable: false })
   date!: Date;
 
-  @Property({ nullable: false })
+  @Property({ nullable: false, type: "time" })
   initialHour!: string;
 
   @Property({ nullable: false })
@@ -22,10 +22,13 @@ export class Appointment {
   value!: number;
 
   @Property({ nullable: false })
-  type!: string;
+  type!: "single" | "group";
 
   @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment)
   diagnostics = new Collection<Diagnostic>(this);
+
+  @Property({ default: "NO" })
+  cancelDate: string = "NO";
 
   @ManyToOne(() => Person, { nullable: false })
   professional!: Rel<Person>;
