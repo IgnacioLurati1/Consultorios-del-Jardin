@@ -33,15 +33,20 @@ export class AppointmentService {
   async findPendingProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
     return await em.find(
       Appointment,
-      { professional: { email: professionalEmail }, cancelDate: "Pending" },
+      { professional: { email: professionalEmail }, cancelDate: "pending" },
       { populate: ["room", "room.office"] }
     );
+  }
+
+  checkHoursOverlapAndFormat(initialHour: string, finalHour: string): boolean {
+    if (!this.scheduleService.isValidHourFormat(initialHour) || !this.scheduleService.isValidHourFormat(finalHour)) return false;
+    return initialHour < finalHour;
   }
 
   async deleteAppointment(num: number, professionalEmail: string) {
     const appointment = await em.findOneOrFail(Appointment, {
       numAppointment: num,
-      cancelDate: "Pending",
+      cancelDate: "pending",
       professional: { email: professionalEmail },
     });
     em.remove(appointment);
@@ -61,6 +66,10 @@ export class AppointmentService {
     );
 
     if (!data.initialHour || !data.finalHour) throw new Error("Debe proporcionar initialHour y finalHour");
+    // Lo puse aca porque sino typescript me tiraba flor de error
+
+    if (!this.checkHoursOverlapAndFormat(data.initialHour, data.finalHour))
+      throw new Error("El formato de las horas es inválido o la hora inicial es mayor o igual a la final");
 
     for (const diagnostic of appointment.diagnostics.getItems()) {
       if (await this.checkPatientAppointmentOverlap(data.initialHour, data.finalHour, diagnostic.patient.email))
@@ -68,11 +77,19 @@ export class AppointmentService {
     }
 
     if (await this.checkProfessionalAppointmentOverlap(data.initialHour, data.finalHour, professionalEmail, appointment.date))
-      throw new Error("El profesional ya tiene una cita en este horario");
+      throw new Error("Usted ya tiene un turno en este horario!");
 
     em.assign(appointment, data);
     await em.flush();
     return appointment;
+  }
+
+  isValidDate(date: Date): boolean {
+    const inputDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    inputDate.setHours(0, 0, 0, 0);
+    return !isNaN(inputDate.getTime()) && inputDate >= today;
   }
 
   async getAppointmentDiagnostics(num: number): Promise<Diagnostic[]> {
@@ -127,6 +144,11 @@ export class AppointmentService {
     professionalEmail: string,
     officeId: number
   ): Promise<Partial<Appointment>> {
+    const isValid =
+      this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date) && this.scheduleService.isValidAllowedTypes(type);
+
+    if (!isValid) throw new Error("Información de turno inválida");
+
     const professional = await this.peopleService.findPersonByEmail(professionalEmail);
 
     if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");

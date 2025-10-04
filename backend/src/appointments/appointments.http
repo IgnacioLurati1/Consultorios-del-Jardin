@@ -4,12 +4,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTU0Mjk0NywiZXhwIjoxNzU5NTQzODQ3fQ.bbEYX6a60KWFj6AlqzTYHbVLK6DF3K6z7rOHogytzV8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTU1MTcxNCwiZXhwIjoxNzU5NTUyNjE0fQ.qq6YPC6zp0NhTukDTbt4ryU9tPCmMPVr2tXeb2d7cAs
 
 
 {
   "date": "2025-12-19",
-  "initialHour": "05:00",
+  "initialHour": "12:00",
   "type": "simple",
   "professionalEmail": "prof@gmail.com",
   "idOffice": 1
