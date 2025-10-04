@@ -189,7 +189,7 @@ export class AppointmentService {
     return appointment;
   }
 
-  async cancelAppointment(num: number, email: string, type: "professional" | "patient") {
+  async cancelAppointment(num: number, email: string, type: "professional" | "client") {
     const appointment = await em.findOneOrFail(Appointment, {
       numAppointment: num,
       $or: [{ professional: { email } }, { diagnostics: { patient: { email } } }],
@@ -197,7 +197,7 @@ export class AppointmentService {
 
     if (appointment.type === "taller" && type === "professional") {
       appointment.cancelDate = new Date().toISOString();
-    } else if (appointment.type === "taller" && type === "patient") {
+    } else if (appointment.type === "taller" && type === "client") {
       let diagnostic = await this.getDiagnostic(email, num);
       if (diagnostic.state === "assisted") throw new Error("No puede cancelar un turno asistido");
       diagnostic.state = "canceled";
