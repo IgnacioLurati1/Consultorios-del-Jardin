@@ -1,0 +1,25 @@
+GET http://localhost:3000/api/appointments/patient
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTUzOTMzMCwiZXhwIjoxNzU5NTQwMjMwfQ.JdDhZyzCOpPn3xE0_koHB8q6K7Svj9PRFA31nmLgwDo
+
+### POST - crear un nuevo turno
+POST http://localhost:3000/api/appointments
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTU0Mjk0NywiZXhwIjoxNzU5NTQzODQ3fQ.bbEYX6a60KWFj6AlqzTYHbVLK6DF3K6z7rOHogytzV8
+
+
+{
+  "date": "2025-12-19",
+  "initialHour": "05:00",
+  "type": "simple",
+  "professionalEmail": "prof@gmail.com",
+  "idOffice": 1
+}
+
+### LOGIN
+POST http://localhost:3000/api/people/login
+Content-Type: application/json
+
+{
+    "email": "patient@gmail.com",
+    "password": "1234"
+}

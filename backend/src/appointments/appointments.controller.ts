@@ -93,14 +93,14 @@ async function getPendingAppointments(req: RequestWithUser, res: Response) {
 
 async function createPatientAppointment(req: RequestWithUser, res: Response) {
   try {
-    const { date, initialHour, type, professionalEmail, officeId } = req.body.sanitizedInput;
+    const { date, initialHour, type, professionalEmail, idOffice } = req.body.sanitizedInput;
     const appointment = await appointmentService.createPatientAppointment(
       req.user.email,
       date,
       initialHour,
       type,
       professionalEmail,
-      officeId
+      idOffice
     );
     res.status(201).json({ message: "Appointment created successfully", data: appointment });
   } catch (error: any) {

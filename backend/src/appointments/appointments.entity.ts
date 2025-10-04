@@ -9,7 +9,7 @@ export class Appointment {
   @PrimaryKey()
   numAppointment?: number;
 
-  @Property({ nullable: false })
+  @Property({ nullable: false, type: "date" })
   date!: Date;
 
   @Property({ nullable: false, type: "time" })
@@ -22,13 +22,13 @@ export class Appointment {
   value!: number;
 
   @Property({ nullable: false })
-  type!: "single" | "group";
+  type!: "simple" | "taller";
 
   @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment)
   diagnostics = new Collection<Diagnostic>(this);
 
-  @Property({ default: "Pending" })
-  cancelDate: string = "Pending";
+  @Property({ default: "pending" })
+  cancelDate: string = "pending";
 
   @ManyToOne(() => Person, { nullable: false })
   professional!: Rel<Person>;

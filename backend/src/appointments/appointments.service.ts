@@ -123,10 +123,10 @@ export class AppointmentService {
     patientEmail: string,
     date: Date,
     initialHour: string,
-    type: "single" | "group",
+    type: "simple" | "taller",
     professionalEmail: string,
     officeId: number
-  ): Promise<Appointment> {
+  ): Promise<Partial<Appointment>> {
     const professional = await this.peopleService.findPersonByEmail(professionalEmail);
 
     if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");
@@ -170,19 +170,26 @@ export class AppointmentService {
       professional,
       room,
       value: 0,
-      cancelDate: "Pending",
+      cancelDate: "pending",
     });
 
     appointment.diagnostics.add(
       em.create(Diagnostic, {
         patient: await this.peopleService.findPersonByEmail(patientEmail),
         appointment,
-        state: "Pending",
+        state: "pending",
         observations: null,
       })
     );
 
     await em.flush();
-    return appointment;
+    return {
+      numAppointment: appointment.numAppointment,
+      date: appointment.date,
+      initialHour: appointment.initialHour,
+      finalHour: appointment.finalHour,
+      type: appointment.type,
+      cancelDate: appointment.cancelDate,
+    };
   }
 }

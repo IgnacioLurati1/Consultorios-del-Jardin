@@ -75,13 +75,17 @@ export class ScheduleService {
   }
 
   async findScheduleByHourRange(initialHour: string, day: string, person: Person, office: Office): Promise<Schedule> {
-    return await em.findOneOrFail(Schedule, {
-      initialHour: { $lte: initialHour },
-      finalHour: { $gt: initialHour },
-      day,
-      person,
-      room: { office },
-    });
+    return await em.findOneOrFail(
+      Schedule,
+      {
+        initialHour: { $lte: initialHour },
+        finalHour: { $gt: initialHour },
+        day,
+        person,
+        room: { office },
+      },
+      { populate: ["room"] }
+    );
   }
 
   async findScheduleByRoomAndDay(day: string, room: Room): Promise<Schedule[]> {
