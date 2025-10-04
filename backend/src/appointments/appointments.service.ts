@@ -231,11 +231,9 @@ export class AppointmentService {
       const professional = await this.peopleService.findPersonByEmail(professionalEmail, em);
 
       if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");
-
       const office = await this.officeService.findOficeById(officeId, em);
 
       if (!office.active) throw new Error("El consultorio seleccionado no está activo");
-
       const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
       const dayName = days[new Date(date).getDay()];
 
@@ -252,9 +250,6 @@ export class AppointmentService {
       if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail, em))
         throw new Error("El paciente ya tiene una cita en este horario");
 
-      if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, em))
-        throw new Error("El profesional ya tiene una cita en este horario");
-
       if (await this.checkAppointmentDurationFormat(initialHour, schedule.initialHour, schedule.duration))
         throw new Error("La hora inicial no es válida!");
 
@@ -262,17 +257,26 @@ export class AppointmentService {
 
       if (!room.active) throw new Error("La sala asignada al horario no está activa");
 
-      const appointment = em.create(Appointment, {
-        date,
-        initialHour,
-        finalHour,
-        type,
-        professional,
-        room,
-        value: 0,
-        cancelDate: "pending",
-      });
+      let appointment;
 
+      if (type === "taller") {
+        appointment = await em.findOne(Appointment, {
+          date,
+          initialHour,
+          professional: { email: professionalEmail },
+          type: "taller",
+          cancelDate: { $in: ["pending", "accepted"] },
+        });
+        if (!appointment) {
+          if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, em))
+            throw new Error("El profesional ya tiene una cita en este horario");
+          appointment = em.create(Appointment, { date, initialHour, finalHour, type, professional, room, value: 0, cancelDate: "pending" });
+        }
+      } else {
+        if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, em))
+          throw new Error("El profesional ya tiene una cita en este horario");
+        appointment = em.create(Appointment, { date, initialHour, finalHour, type, professional, room, value: 0, cancelDate: "pending" });
+      }
       appointment.diagnostics.add(
         em.create(Diagnostic, {
           patient: await this.peopleService.findPersonByEmail(patientEmail, em),
@@ -281,7 +285,6 @@ export class AppointmentService {
           observations: null,
         })
       );
-
       await em.flush();
       return {
         numAppointment: appointment.numAppointment,
