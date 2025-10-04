@@ -63,7 +63,7 @@ export class AppointmentService {
         cancelDate: "accepted",
         professional: { email: professionalEmail },
       },
-      { populate: ["diagnostics", "diagnostics.patient"] }
+      { populate: ["diagnostics", "diagnostics.patient"] } // HABRIA QUE FILTRAR QUE DEVUELVE
     );
 
     if (!data.initialHour || !data.finalHour) throw new Error("Debe proporcionar initialHour y finalHour");

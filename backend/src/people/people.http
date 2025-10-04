@@ -9,7 +9,7 @@ POST http://localhost:3000/api/people
 Content-Type: application/json
 
 {
-    "email": "patient@gmail.com",
+    "email": "patient2@gmail.com",
     "docType": "dni",
     "docNumber": "222222",
     "name": "Ignacio",
