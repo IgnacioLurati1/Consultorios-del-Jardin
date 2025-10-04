@@ -4,6 +4,7 @@ import { RequiredEntityData } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
 import { Office } from "../offices/offices.entity.js";
+import { EntityManager } from "@mikro-orm/mysql";
 
 const em = orm.em;
 export class ScheduleService {
@@ -74,8 +75,8 @@ export class ScheduleService {
     return await em.find(Schedule, { person, day });
   }
 
-  async findScheduleByHourRange(initialHour: string, day: string, person: Person, office: Office): Promise<Schedule> {
-    return await em.findOneOrFail(
+  async findScheduleByHourRange(initialHour: string, day: string, person: Person, office: Office, emT?: EntityManager): Promise<Schedule> {
+    return await (em || emT).findOneOrFail(
       Schedule,
       {
         initialHour: { $lte: initialHour },

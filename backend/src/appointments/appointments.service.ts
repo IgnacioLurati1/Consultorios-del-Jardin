@@ -4,6 +4,7 @@ import { Diagnostic } from "./diagnostics.entity.js";
 import { PeopleService } from "../people/people.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { OfficeService } from "../offices/offices.service.js";
+import { EntityManager } from "@mikro-orm/mysql";
 
 const em = orm.em;
 
@@ -96,8 +97,13 @@ export class AppointmentService {
     return await em.find(Diagnostic, { appointment: { numAppointment: num } });
   }
 
-  async checkPatientAppointmentOverlap(initialHour: string, finalHour: string, patientEmail: string): Promise<Appointment | null> {
-    const appointment = await em.findOne(Appointment, {
+  async checkPatientAppointmentOverlap(
+    initialHour: string,
+    finalHour: string,
+    patientEmail: string,
+    emT?: EntityManager
+  ): Promise<Appointment | null> {
+    const appointment = await (em || emT).findOne(Appointment, {
       $and: [
         { initialHour: { $lt: finalHour } },
         { finalHour: { $gt: initialHour } },
@@ -111,9 +117,10 @@ export class AppointmentService {
     initialHour: string,
     finalHour: string,
     professionalEmail: string,
-    date: Date
+    date: Date,
+    emT?: EntityManager
   ): Promise<Appointment | null> {
-    const appointment = await em.findOne(Appointment, {
+    const appointment = await (em || emT).findOne(Appointment, {
       $and: [
         { initialHour: { $lt: finalHour } },
         { finalHour: { $gt: initialHour } },
@@ -144,74 +151,74 @@ export class AppointmentService {
     professionalEmail: string,
     officeId: number
   ): Promise<Partial<Appointment>> {
-    const isValid =
-      this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date) && this.scheduleService.isValidAllowedTypes(type);
+    return await em.transactional(async (em) => {
+      const isValid =
+        this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date) && this.scheduleService.isValidAllowedTypes(type);
 
-    if (!isValid) throw new Error("Información de turno inválida");
+      if (!isValid) throw new Error("Información de turno inválida");
+      const professional = await this.peopleService.findPersonByEmail(professionalEmail, em);
 
-    const professional = await this.peopleService.findPersonByEmail(professionalEmail);
+      if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");
 
-    if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");
+      const office = await this.officeService.findOficeById(officeId, em);
 
-    const office = await this.officeService.findOficeById(officeId);
+      if (!office.active) throw new Error("El consultorio seleccionado no está activo");
 
-    if (!office.active) throw new Error("El consultorio seleccionado no está activo");
+      const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+      const dayName = days[new Date(date).getDay()];
 
-    const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-    const dayName = days[new Date(date).getDay()];
+      const schedule = await this.scheduleService.findScheduleByHourRange(initialHour, dayName, professional, office, em);
 
-    const schedule = await this.scheduleService.findScheduleByHourRange(initialHour, dayName, professional, office);
+      if (schedule.allowedType !== type) throw new Error("El tipo de turno no coincide con el tipo de horario");
 
-    if (schedule.allowedType !== type) throw new Error("El tipo de turno no coincide con el tipo de horario");
+      const [hours, minutes] = initialHour.split(":").map(Number);
+      const startDateTime = new Date();
+      startDateTime.setHours(hours, minutes, 0, 0);
+      startDateTime.setMinutes(startDateTime.getMinutes() + schedule.duration);
+      const finalHour = startDateTime.toTimeString().slice(0, 5);
 
-    const [hours, minutes] = initialHour.split(":").map(Number);
-    const startDateTime = new Date();
-    startDateTime.setHours(hours, minutes, 0, 0);
-    startDateTime.setMinutes(startDateTime.getMinutes() + schedule.duration);
-    const finalHour = startDateTime.toTimeString().slice(0, 5);
+      if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail, em))
+        throw new Error("El paciente ya tiene una cita en este horario");
 
-    if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail))
-      throw new Error("El paciente ya tiene una cita en este horario");
+      if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, em))
+        throw new Error("El profesional ya tiene una cita en este horario");
 
-    if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date))
-      throw new Error("El profesional ya tiene una cita en este horario");
+      if (await this.checkAppointmentDurationFormat(initialHour, schedule.initialHour, schedule.duration))
+        throw new Error("La hora inicial no es válida!");
 
-    if (await this.checkAppointmentDurationFormat(initialHour, schedule.initialHour, schedule.duration))
-      throw new Error("La hora inicial no es válida!");
+      const room = schedule.room;
 
-    const room = schedule.room;
+      if (!room.active) throw new Error("La sala asignada al horario no está activa");
 
-    if (!room.active) throw new Error("La sala asignada al horario no está activa");
+      const appointment = em.create(Appointment, {
+        date,
+        initialHour,
+        finalHour,
+        type,
+        professional,
+        room,
+        value: 0,
+        cancelDate: "pending",
+      });
 
-    // Creating appointment
-    const appointment = em.create(Appointment, {
-      date,
-      initialHour,
-      finalHour,
-      type,
-      professional,
-      room,
-      value: 0,
-      cancelDate: "pending",
+      appointment.diagnostics.add(
+        em.create(Diagnostic, {
+          patient: await this.peopleService.findPersonByEmail(patientEmail, em),
+          appointment,
+          state: "pending",
+          observations: null,
+        })
+      );
+
+      await em.flush();
+      return {
+        numAppointment: appointment.numAppointment,
+        date: appointment.date,
+        initialHour: appointment.initialHour,
+        finalHour: appointment.finalHour,
+        type: appointment.type,
+        cancelDate: appointment.cancelDate,
+      };
     });
-
-    appointment.diagnostics.add(
-      em.create(Diagnostic, {
-        patient: await this.peopleService.findPersonByEmail(patientEmail),
-        appointment,
-        state: "pending",
-        observations: null,
-      })
-    );
-
-    await em.flush();
-    return {
-      numAppointment: appointment.numAppointment,
-      date: appointment.date,
-      initialHour: appointment.initialHour,
-      finalHour: appointment.finalHour,
-      type: appointment.type,
-      cancelDate: appointment.cancelDate,
-    };
   }
 }

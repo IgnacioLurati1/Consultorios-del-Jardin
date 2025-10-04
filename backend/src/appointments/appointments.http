@@ -4,7 +4,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTU1MTcxNCwiZXhwIjoxNzU5NTUyNjE0fQ.qq6YPC6zp0NhTukDTbt4ryU9tPCmMPVr2tXeb2d7cAs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTU1MjcwNiwiZXhwIjoxNzU5NTUzNjA2fQ.Ci_FdRYMuHsErGEXjDNSif_fEGqNPEm2G80tmhBpDvs
 
 
 {
