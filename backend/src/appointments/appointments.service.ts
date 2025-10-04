@@ -60,7 +60,7 @@ export class AppointmentService {
       Appointment,
       {
         numAppointment: num,
-        cancelDate: "Accepted",
+        cancelDate: "accepted",
         professional: { email: professionalEmail },
       },
       { populate: ["diagnostics", "diagnostics.patient"] }
@@ -79,6 +79,8 @@ export class AppointmentService {
 
     if (await this.checkProfessionalAppointmentOverlap(data.initialHour, data.finalHour, professionalEmail, appointment.date))
       throw new Error("Usted ya tiene un turno en este horario!");
+
+    if (data.value !== undefined && data.value < 0) throw new Error("El valor del turno no puede ser negativo");
 
     em.assign(appointment, data);
     await em.flush();
@@ -131,6 +133,27 @@ export class AppointmentService {
     return appointment;
   }
 
+  async checkDiagnosticStateFormat(state: string): Promise<boolean> {
+    const validStates = ["pending", "assisted", "canceled"];
+    return validStates.includes(state);
+  }
+
+  async updateDiagnostic(num: number, patientEmail: string, professionalEmail: string, data: Partial<Diagnostic>) {
+    const diagnostic = await em.findOneOrFail(Diagnostic, {
+      appointment: { numAppointment: num, professional: { email: professionalEmail } },
+      patient: { email: patientEmail },
+    });
+    if (data.state !== undefined) {
+      if (!(await this.checkDiagnosticStateFormat(data.state))) throw new Error("Estado del diagnóstico inválido");
+      diagnostic.state = data.state;
+    }
+    if (data.observations !== undefined) {
+      diagnostic.observations = data.observations;
+    }
+    await em.flush();
+    return diagnostic;
+  }
+
   async checkAppointmentDurationFormat(initialHour: string, scheduleInitialHour: string, duration: number): Promise<boolean> {
     let [hours, minutes] = initialHour.split(":").map(Number);
     const initialMinutes = hours * 60 + minutes;
@@ -141,6 +164,55 @@ export class AppointmentService {
     const k = (initialMinutes - scheduleInitialMinutes) / duration;
 
     return !(k >= 0 && Number.isInteger(k));
+  }
+
+  async addObservation(num: number, professionalEmail: string, observations: string, patientEmail: string) {
+    const diagnostic = await em.findOneOrFail(Diagnostic, {
+      appointment: { numAppointment: num, professional: { email: professionalEmail } },
+      patient: { email: patientEmail },
+    });
+
+    diagnostic.observations = observations;
+    await em.flush();
+    return diagnostic;
+  }
+
+  async acceptAppointment(num: number, professionalEmail: string) {
+    const appointment = await em.findOneOrFail(Appointment, {
+      numAppointment: num,
+      cancelDate: "pending",
+      professional: { email: professionalEmail },
+    });
+
+    appointment.cancelDate = "accepted";
+    await em.flush();
+    return appointment;
+  }
+
+  async cancelAppointment(num: number, email: string, type: "professional" | "patient") {
+    const appointment = await em.findOneOrFail(Appointment, {
+      numAppointment: num,
+      $or: [{ professional: { email } }, { diagnostics: { patient: { email } } }],
+    });
+
+    if (appointment.type === "taller" && type === "professional") {
+      appointment.cancelDate = new Date().toISOString();
+    } else if (appointment.type === "taller" && type === "patient") {
+      let diagnostic = await this.getDiagnostic(email, num);
+      if (diagnostic.state === "assisted") throw new Error("No puede cancelar un turno asistido");
+      diagnostic.state = "canceled";
+      await em.flush();
+      return appointment;
+    } else if (appointment.type === "simple" && appointment.cancelDate === "accepted") {
+      appointment.cancelDate = new Date().toISOString();
+    } else if (appointment.type === "simple" && appointment.cancelDate === "pending") {
+      await this.deleteAppointment(num, appointment.professional.email);
+    } else {
+      throw new Error("El turno ya fue cancelado");
+    }
+
+    await em.flush();
+    return appointment;
   }
 
   async createPatientAppointment(

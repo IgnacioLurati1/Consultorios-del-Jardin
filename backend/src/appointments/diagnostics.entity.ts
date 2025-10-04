@@ -10,7 +10,7 @@ export class Diagnostic {
   @ManyToOne(() => Person, { primary: true, fieldName: "patient_email" })
   patient!: Rel<Person>;
 
-  @Property()
+  @Property({ default: "pending" })
   state!: string;
 
   @Property({ nullable: true })
