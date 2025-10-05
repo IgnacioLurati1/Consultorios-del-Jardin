@@ -5,6 +5,7 @@ import { PeopleService } from "../people/people.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { OfficeService } from "../offices/offices.service.js";
 import { EntityManager } from "@mikro-orm/mysql";
+import { RoomService } from "../rooms/rooms.services.js";
 
 const em = orm.em;
 
@@ -12,11 +13,13 @@ export class AppointmentService {
   private peopleService: PeopleService;
   private scheduleService: ScheduleService;
   private officeService: OfficeService;
+  private roomService: RoomService;
 
   constructor() {
     this.peopleService = new PeopleService();
     this.scheduleService = new ScheduleService();
     this.officeService = new OfficeService();
+    this.roomService = new RoomService();
   }
 
   async findPatientAppointmentsByEmail(patientEmail: string): Promise<Appointment[]> {
@@ -25,6 +28,10 @@ export class AppointmentService {
 
   async getDiagnostic(patientEmail: string, num: number) {
     return await em.findOneOrFail(Diagnostic, { patient: { email: patientEmail }, appointment: { numAppointment: num } });
+  }
+
+  async findUniqueProfessionalAppointment(professionalEmail: string, numAppointment: number) {
+    return await em.findOneOrFail(Appointment, { professional: { email: professionalEmail }, numAppointment: numAppointment });
   }
 
   async findProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
@@ -97,8 +104,8 @@ export class AppointmentService {
     return !isNaN(inputDate.getTime()) && inputDate >= today;
   }
 
-  async getAppointmentDiagnostics(num: number): Promise<Diagnostic[]> {
-    return await em.find(Diagnostic, { appointment: { numAppointment: num } });
+  async getAppointmentDiagnostics(num: number, professionalEmail: string): Promise<Diagnostic[]> {
+    return await em.find(Diagnostic, { appointment: { numAppointment: num, professional: { email: professionalEmail } } });
   }
 
   async checkPatientAppointmentOverlap(
@@ -240,6 +247,7 @@ export class AppointmentService {
       const dayName = days[new Date(date).getDay()];
 
       const schedule = await this.scheduleService.findScheduleByHourRange(initialHour, dayName, professional, office, em);
+      // We ask for the office eventhough it's not strictly necessary, to ensure in case of schedule overlaps that the office is the correct one
 
       if (schedule.allowedType !== type) throw new Error("El tipo de turno no coincide con el tipo de horario");
 
@@ -248,6 +256,8 @@ export class AppointmentService {
       startDateTime.setHours(hours, minutes, 0, 0);
       startDateTime.setMinutes(startDateTime.getMinutes() + schedule.duration);
       const finalHour = startDateTime.toTimeString().slice(0, 5);
+
+      if (finalHour > schedule.finalHour) throw new Error("El turno excede la hora final del consultorio");
 
       if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail, date, em))
         throw new Error("El paciente ya tiene una cita en este horario");
@@ -297,5 +307,84 @@ export class AppointmentService {
         cancelDate: appointment.cancelDate,
       };
     });
+  }
+
+  async createProfessionalAppointment(
+    date: Date,
+    initialHour: string,
+    finalHour: string,
+    idRoom: number,
+    value: number,
+    type: "simple" | "taller",
+    professionalEmail: string,
+    patientEmail?: string
+  ) {
+    return await em.transactional(async (em) => {
+      const isValid =
+        this.scheduleService.isValidHourFormat(initialHour) &&
+        this.isValidDate(date) &&
+        this.scheduleService.isValidAllowedTypes(type) &&
+        value >= 0;
+
+      if (!isValid) throw new Error("Información de turno inválida");
+
+      if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, em))
+        throw new Error("El profesional ya tiene una cita en este horario");
+
+      const room = await this.roomService.findRoomById(idRoom, em);
+
+      if (!room.active) throw new Error("La sala seleccionada no está activa");
+
+      const appointment = em.create(Appointment, {
+        date,
+        initialHour,
+        finalHour,
+        type,
+        professional: await this.peopleService.findPersonByEmail(professionalEmail, em),
+        room,
+        value,
+        cancelDate: "accepted",
+      });
+      if (type === "simple" && patientEmail) {
+        appointment.diagnostics.add(
+          em.create(Diagnostic, {
+            patient: await this.peopleService.findPersonByEmail(patientEmail, em),
+            appointment,
+            state: "pending",
+            observations: null,
+          })
+        );
+      }
+      await em.flush();
+      return {
+        numAppointment: appointment.numAppointment,
+        date: appointment.date,
+        initialHour: appointment.initialHour,
+        finalHour: appointment.finalHour,
+        type: appointment.type,
+        cancelDate: appointment.cancelDate,
+      };
+    });
+  }
+
+  async addPatientToAppointment(numAppointment: number, patientEmail: string, professionalEmail: string) {
+    const diagnostics = await this.getAppointmentDiagnostics(numAppointment, professionalEmail);
+    const appointment = await this.findUniqueProfessionalAppointment(professionalEmail, numAppointment);
+
+    if (await this.checkPatientAppointmentOverlap(appointment.initialHour, appointment.finalHour, patientEmail, appointment.date))
+      throw new Error("El paciente ya tiene una cita en este horario");
+
+    if (!(appointment.type == "simple" && diagnostics.length == 0)) {
+      throw new Error("El turno ya tiene un paciente!");
+    }
+
+    appointment.diagnostics.add(
+      em.create(Diagnostic, {
+        patient: await this.peopleService.findPersonByEmail(patientEmail, em),
+        appointment,
+        state: "pending",
+        observations: null,
+      })
+    );
   }
 }

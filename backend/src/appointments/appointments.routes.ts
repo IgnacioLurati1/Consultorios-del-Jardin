@@ -13,6 +13,8 @@ import {
   acceptAppointment,
   updateDiagnostic,
   cancelAppointment,
+  createProfessionalAppointment,
+  addPatientToAppointment,
 } from "./appointments.controller.js";
 
 export const appointmentRouter = Router();
@@ -25,6 +27,8 @@ appointmentRouter.get("/:numAppointment/diagnostics", getAppointmentDiagnostics)
 appointmentRouter.patch("/:numAppointment/observations", sanitizeAppointmentInput, addObservation);
 appointmentRouter.patch("/:numAppointment/accept", sanitizeAppointmentInput, acceptAppointment);
 appointmentRouter.patch("/:numAppointment/cancel", cancelAppointment);
+appointmentRouter.post("/professional", sanitizeAppointmentInput, createProfessionalAppointment);
+appointmentRouter.post("/:numAppointment/", sanitizeAppointmentInput, addPatientToAppointment);
 appointmentRouter.post("/", sanitizeAppointmentInput, createPatientAppointment);
 appointmentRouter.put("/:numAppointment/diagnostic", sanitizeAppointmentInput, updateDiagnostic);
 appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput, updateDiagnostic);

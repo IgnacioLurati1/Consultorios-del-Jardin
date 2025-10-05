@@ -73,7 +73,7 @@ async function getAppointmentDiagnostics(req: RequestWithUser, res: Response) {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    const diagnostic = await appointmentService.getAppointmentDiagnostics(numAppointment);
+    const diagnostic = await appointmentService.getAppointmentDiagnostics(numAppointment, req.user.email);
     res.status(200).json({ data: diagnostic });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -191,7 +191,43 @@ async function cancelAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
     await appointmentService.cancelAppointment(numAppointment, req.user.email, req.user.type);
-    res.status(200).json({ message: "Appointment canceled successfully" });
+    res.status(200).json({ message: "Turno cancelado con éxito" });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function createProfessionalAppointment(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
+
+    const { date, initialHour, finalHour, room, value, type, patientEmail } = req.body.sanitizedInput;
+    const professionalEmail = req.user.email;
+    const appointment = await appointmentService.createProfessionalAppointment(
+      date,
+      initialHour,
+      finalHour,
+      type,
+      room,
+      value,
+      professionalEmail,
+      patientEmail
+    );
+    res.status(201).json({ message: "Turno creado con éxito", data: appointment });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function addPatientToAppointment(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
+
+    const numAppointment = Number.parseInt(req.params.numAppointment);
+    const patientEmail = req.body.sanitizedInput.patientEmail;
+
+    const diagnostic = await appointmentService.addPatientToAppointment(numAppointment, patientEmail, req.user.email);
+    res.status(201).json({ message: "Paciente añadido con éxito!", data: diagnostic });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -211,4 +247,6 @@ export {
   acceptAppointment,
   updateDiagnostic,
   cancelAppointment,
+  createProfessionalAppointment,
+  addPatientToAppointment,
 };
