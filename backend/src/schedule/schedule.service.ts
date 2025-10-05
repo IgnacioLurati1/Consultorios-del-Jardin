@@ -93,6 +93,10 @@ export class ScheduleService {
     return await em.find(Schedule, { day, room });
   } // Metodo para buscar horarios por sala y día
 
+  async findSchedulesByProfessionalAndOffice(professional: Person, office: Office, emT?: EntityManager): Promise<Schedule[]> {
+    return await (em || emT).find(Schedule, { person: professional, room: { office } }, { populate: ["room"] });
+  }
+
   async createSchedule(data: RequiredEntityData<Schedule>): Promise<Schedule> {
     //Validaciones fuertes
     const overlapping = await this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person);

@@ -94,7 +94,14 @@ export class AppointmentEngine {
 
     if (!office.active) throw new Error("El consultorio seleccionado no está activo");
     const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-    const dayName = days[new Date(date).getDay()];
+    const parsed = typeof date === "string" ? new Date(date + "T00:00:00") : date;
+
+    // Asegura que sea interpretado como hora local
+    const year = parsed.getFullYear();
+    const month = parsed.getMonth();
+    const day = parsed.getDate();
+    const localDate = new Date(year, month, day); // esto ya es local
+    const dayName = days[localDate.getDay()];
 
     const schedule = await this.scheduleService.findScheduleByHourRange(initialHour, dayName, professional, office, this.em);
     // We ask for the office eventhough it's not strictly necessary, to ensure in case of schedule overlaps that the office is the correct one
@@ -174,5 +181,97 @@ export class AppointmentEngine {
       type: appointment.type,
       cancelDate: appointment.cancelDate,
     };
+  }
+
+  async getAvailableAppointmentsForPatient(
+    patientEmail: string,
+    professionalEmail: string,
+    officeId: number
+  ): Promise<Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }>> {
+    const professional = await this.peopleService.findPersonByEmail(professionalEmail, this.em);
+    if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");
+
+    const office = await this.officeService.findOficeById(officeId, this.em);
+    if (!office.active) throw new Error("El consultorio seleccionado no está activo");
+
+    const schedules = await this.scheduleService.findSchedulesByProfessionalAndOffice(professional, office, this.em);
+
+    const availableSlots: Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }> = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+    let businessDaysCount = 0;
+    let currentDate = new Date(today);
+
+    while (businessDaysCount < 12) {
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek !== 0) {
+        const dayName = days[dayOfWeek];
+        const daySchedules = schedules.filter((s) => s.day === dayName);
+
+        for (const schedule of daySchedules) {
+          const [scheduleHours, scheduleMinutes] = schedule.initialHour.split(":").map(Number);
+          const [finalHours, finalMinutes] = schedule.finalHour.split(":").map(Number);
+          const scheduleInitialMinutes = scheduleHours * 60 + scheduleMinutes;
+          const scheduleFinalMinutes = finalHours * 60 + finalMinutes;
+
+          let currentMinutes = scheduleInitialMinutes;
+
+          while (currentMinutes + schedule.duration <= scheduleFinalMinutes) {
+            const slotHours = Math.floor(currentMinutes / 60);
+            const slotMinutes = currentMinutes % 60;
+            const initialHour = `${slotHours.toString().padStart(2, "0")}:${slotMinutes.toString().padStart(2, "0")}`;
+
+            const finalMinutes = currentMinutes + schedule.duration;
+            const finalSlotHours = Math.floor(finalMinutes / 60);
+            const finalSlotMinutes = finalMinutes % 60;
+            const finalHour = `${finalSlotHours.toString().padStart(2, "0")}:${finalSlotMinutes.toString().padStart(2, "0")}`;
+
+            const patientHasConflict = await this.appointmentService.checkPatientAppointmentOverlap(
+              initialHour,
+              finalHour,
+              patientEmail,
+              new Date(currentDate),
+              this.em
+            );
+
+            if (!patientHasConflict) {
+              const professionalConflict = await this.em.findOne(
+                Appointment,
+                {
+                  date: new Date(currentDate),
+                  initialHour: { $lt: finalHour },
+                  finalHour: { $gt: initialHour },
+                  cancelDate: { $in: ["pending", "accepted"] },
+                  professional: { email: professionalEmail },
+                },
+                { populate: ["diagnostics", "diagnostics.patient"] }
+              );
+
+              if (!professionalConflict) {
+                if (schedule.allowedType !== "simple" && schedule.allowedType !== "taller") {
+                  throw new Error(`Tipo de horario inválido: ${schedule.allowedType}`);
+                }
+                availableSlots.push({ date: new Date(currentDate), initialHour, finalHour, type: schedule.allowedType });
+              } else if (professionalConflict.type === "taller") {
+                const patientAlreadyInWorkshop = professionalConflict.diagnostics.getItems().some((d) => d.patient.email === patientEmail);
+                if (!patientAlreadyInWorkshop) {
+                  availableSlots.push({ date: new Date(currentDate), initialHour, finalHour, type: "taller" });
+                }
+              }
+            }
+
+            currentMinutes += schedule.duration;
+          }
+        }
+
+        businessDaysCount++;
+      }
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return availableSlots;
   }
 }

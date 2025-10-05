@@ -209,8 +209,10 @@ export class AppointmentService {
       appointment.cancelDate = new Date().toISOString();
     } else if (appointment.type === "taller" && type === "client") {
       let diagnostic = await this.getDiagnostic(email, num);
+
       if (diagnostic.state === "assisted") throw new Error("No puede cancelar un turno asistido");
       diagnostic.state = "canceled";
+
       await em.flush();
       return appointment;
     } else if (appointment.type === "simple" && appointment.cancelDate === "accepted") {
@@ -292,14 +294,23 @@ export class AppointmentService {
     if (!(appointment.type == "simple" && diagnostics.length == 0)) {
       throw new Error("El turno ya tiene un paciente!");
     }
-
+    let diagnostic;
     appointment.diagnostics.add(
-      em.create(Diagnostic, {
+      (diagnostic = em.create(Diagnostic, {
         patient: await this.peopleService.findPersonByEmail(patientEmail, em),
         appointment,
         state: "pending",
         observations: null,
-      })
+      }))
     );
+
+    await em.flush();
+    return diagnostic;
+  }
+
+  async getAvailableAppointmensForPatient(idOffice: number, professionalEmail: string, patientEmail: string) {
+    const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
+    const appointments = engine.getAvailableAppointmentsForPatient(patientEmail, professionalEmail, idOffice);
+    return appointments;
   }
 }

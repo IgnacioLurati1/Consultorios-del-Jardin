@@ -1,16 +1,25 @@
 GET http://localhost:3000/api/appointments/professional
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTYxOTM1MSwiZXhwIjoxNzU5NjIwMjUxfQ.YgwZOb8jZWZZX6i04TnqLFUwSzLXvwxvMJbqDLRUNik
 
+### POST - Turnos posibles
+POST http://localhost:3000/api/appointments/getAppointments
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTcwMTQ5MSwiZXhwIjoxNzU5NzAyMzkxfQ.2a1xwOBFoKHPIJECxcZeEHFUib7q1sZR1sNDhSE1O3I
+
+{
+  "professionalEmail": "prof@gmail.com",
+  "idOffice": 1
+}
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnQyQGdtYWlsLmNvbSIsInR5cGUiOiJjbGllbnQiLCJpYXQiOjE3NTk2MTk1OTEsImV4cCI6MTc1OTYyMDQ5MX0.oWe6JQ0cVkCcudpiybfR2NY4-PaBYmsHO2raTzeXf2A
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTcwMTQ5MSwiZXhwIjoxNzU5NzAyMzkxfQ.2a1xwOBFoKHPIJECxcZeEHFUib7q1sZR1sNDhSE1O3I
 
 
 {
-  "date": "2025-12-18",
+  "date": "2025-12-16",
   "initialHour": "16:00",
-  "type": "taller",
+  "type": "simple",
   "professionalEmail": "prof@gmail.com",
   "idOffice": 1
 }
@@ -20,7 +29,7 @@ POST http://localhost:3000/api/people/login
 Content-Type: application/json
 
 {
-    "email": "patient2@gmail.com",
+    "email": "patient@gmail.com",
     "password": "1234"
 }
 ### LOGIN profesional

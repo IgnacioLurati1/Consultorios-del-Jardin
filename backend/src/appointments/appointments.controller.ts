@@ -233,6 +233,16 @@ async function addPatientToAppointment(req: RequestWithUser, res: Response) {
   }
 }
 
+async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Response) {
+  try {
+    const { idOffice, professionalEmail } = req.body.sanitizedInput;
+    const appointments = await appointmentService.getAvailableAppointmensForPatient(idOffice, professionalEmail, req.user.email);
+    res.status(200).json({ message: "Turnos posibles", data: appointments });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 export {
   getPatientAppointments,
   getDiagnostic,
@@ -249,4 +259,5 @@ export {
   cancelAppointment,
   createProfessionalAppointment,
   addPatientToAppointment,
+  getAvailableAppointmentsForPatient,
 };
