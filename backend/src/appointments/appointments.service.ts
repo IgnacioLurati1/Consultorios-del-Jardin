@@ -73,11 +73,13 @@ export class AppointmentService {
       throw new Error("El formato de las horas es inválido o la hora inicial es mayor o igual a la final");
 
     for (const diagnostic of appointment.diagnostics.getItems()) {
-      if (await this.checkPatientAppointmentOverlap(data.initialHour, data.finalHour, diagnostic.patient.email))
+      if (
+        await this.checkPatientAppointmentOverlap(data.initialHour, data.finalHour, diagnostic.patient.email, data.date || appointment.date)
+      )
         throw new Error("Un paciente ya tiene una cita en este horario"); // We don't specify which one for security reasons
     }
 
-    if (await this.checkProfessionalAppointmentOverlap(data.initialHour, data.finalHour, professionalEmail, appointment.date))
+    if (await this.checkProfessionalAppointmentOverlap(data.initialHour, data.finalHour, professionalEmail, data.date || appointment.date))
       throw new Error("Usted ya tiene un turno en este horario!");
 
     if (data.value !== undefined && data.value < 0) throw new Error("El valor del turno no puede ser negativo");
@@ -103,14 +105,15 @@ export class AppointmentService {
     initialHour: string,
     finalHour: string,
     patientEmail: string,
+    date: Date,
     emT?: EntityManager
   ): Promise<Appointment | null> {
     const appointment = await (em || emT).findOne(Appointment, {
-      $and: [
-        { initialHour: { $lt: finalHour } },
-        { finalHour: { $gt: initialHour } },
-        { diagnostics: { patient: { email: patientEmail } } },
-      ],
+      date,
+      initialHour: { $lt: finalHour },
+      finalHour: { $gt: initialHour },
+      cancelDate: { $in: ["pending", "accepted"] },
+      diagnostics: { patient: { email: patientEmail } },
     });
     return appointment;
   }
@@ -123,12 +126,11 @@ export class AppointmentService {
     emT?: EntityManager
   ): Promise<Appointment | null> {
     const appointment = await (em || emT).findOne(Appointment, {
-      $and: [
-        { initialHour: { $lt: finalHour } },
-        { finalHour: { $gt: initialHour } },
-        { professional: { email: professionalEmail } },
-        { date },
-      ],
+      date,
+      initialHour: { $lt: finalHour },
+      finalHour: { $gt: initialHour },
+      cancelDate: { $in: ["pending", "accepted"] },
+      professional: { email: professionalEmail },
     });
     return appointment;
   }
@@ -247,7 +249,7 @@ export class AppointmentService {
       startDateTime.setMinutes(startDateTime.getMinutes() + schedule.duration);
       const finalHour = startDateTime.toTimeString().slice(0, 5);
 
-      if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail, em))
+      if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail, date, em))
         throw new Error("El paciente ya tiene una cita en este horario");
 
       if (await this.checkAppointmentDurationFormat(initialHour, schedule.initialHour, schedule.duration))
