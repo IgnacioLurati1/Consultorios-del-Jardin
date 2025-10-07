@@ -264,6 +264,7 @@ export class AppointmentService {
         this.scheduleService.isValidHourFormat(initialHour) &&
         this.isValidDate(date) &&
         this.scheduleService.isValidAllowedTypes(type) &&
+        initialHour < finalHour &&
         value >= 0;
 
       if (!isValid) throw new Error("Información de turno inválida");

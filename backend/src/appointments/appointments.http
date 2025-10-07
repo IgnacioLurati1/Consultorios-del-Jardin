@@ -33,11 +33,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 
 {
   "date": "2025-10-09",
-  "initialHour": "10:00",
+  "initialHour": "10:30",
   "finalHour": "10:10",
   "type": "simple",
   "room": 1,
-  "value": 0
+  "value": 0,
+  "patientEmail": "hola@gmail.com"
 }
 
 ### LOGIN paciente
