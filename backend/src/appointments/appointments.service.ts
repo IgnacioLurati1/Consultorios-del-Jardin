@@ -253,9 +253,9 @@ export class AppointmentService {
     date: Date,
     initialHour: string,
     finalHour: string,
+    type: "simple" | "taller",
     idRoom: number,
     value: number,
-    type: "simple" | "taller",
     professionalEmail: string,
     patientEmail?: string
   ) {
