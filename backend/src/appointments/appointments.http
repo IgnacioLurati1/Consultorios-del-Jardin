@@ -13,12 +13,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllb
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMDgyMSwiZXhwIjoxNzU5ODAxNzIxfQ.HLnELs-wd8DdasNIq6DQ_AoEzvxKcPsVJGmjvzy04Vs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMjEzNiwiZXhwIjoxNzU5ODAzMDM2fQ.xh9XK5vPdGn1B05YSzVT3m-X3wK3DG7lM-ek8cr3_gY
 
 
 {
-  "date": "2025-10-09",
-  "initialHour": "10:00",
+  "date": "2025-10-08",
+  "initialHour": "13:00",
   "type": "simple",
   "professionalEmail": "prof@gmail.com",
   "idOffice": 1
@@ -28,18 +28,56 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllb
 ### POST - Crear del profesional!
 POST http://localhost:3000/api/appointments/professional
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMTI1OSwiZXhwIjoxNzU5ODAyMTU5fQ.jhWgS-G7w07-pNclKZsOAvcShkASdIT3iPkbHl1asmg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjcyNCwiZXhwIjoxNzU5ODAzNjI0fQ.G5k5LoYlCKBLDDBMoY_BYpap1ksbKoWKHL0j_9PeUSo
 
 
 {
-  "date": "2025-10-09",
-  "initialHour": "10:30",
-  "finalHour": "10:10",
+  "date": "2025-10-08",
+  "initialHour": "13:00",
+  "finalHour": "14:00",
   "type": "simple",
   "room": 1,
   "value": 0,
   "patientEmail": "hola@gmail.com"
 }
+
+###
+
+PUT http://localhost:3000/api/appointments/1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjExNCwiZXhwIjoxNzU5ODAzMDE0fQ.ZxvyVJ8ua5V_q5ytGAlzUgv16P9uPQk_ML_Z8e80M7k
+
+
+{
+  "date": "2025-10-09",
+  "initialHour": "13:00",
+  "finalHour": "14:00",
+  "type": "simple",
+  "room": 1,
+  "value": 0,
+  "patientEmail": "hola@gmail.com"
+}
+
+
+###
+PATCH http://localhost:3000/api/appointments/1/accept
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjExNCwiZXhwIjoxNzU5ODAzMDE0fQ.ZxvyVJ8ua5V_q5ytGAlzUgv16P9uPQk_ML_Z8e80M7k
+
+
+{
+}
+
+###
+PATCH http://localhost:3000/api/appointments/1/cancel
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjExNCwiZXhwIjoxNzU5ODAzMDE0fQ.ZxvyVJ8ua5V_q5ytGAlzUgv16P9uPQk_ML_Z8e80M7k
+
+
+{
+}
+
+
 
 ### LOGIN paciente
 POST http://localhost:3000/api/people/login

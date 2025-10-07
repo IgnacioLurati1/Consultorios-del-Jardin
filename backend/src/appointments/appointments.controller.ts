@@ -128,7 +128,7 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
       finalHour,
     });
 
-    res.status(200).json({ message: "Appointment updated successfully", data: appointment });
+    res.status(200).json({ message: "Appointment updated successfully" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
