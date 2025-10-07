@@ -15,11 +15,12 @@ function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunctio
     finalHour: req.body.finalHour,
     value: req.body.value,
     type: req.body.type,
-    idOffice: req.body.idOffice,
+    office: req.body.office,
     professionalEmail: req.body.professionalEmail,
     room: req.body.room,
-    observation: req.body.observation,
+    observations: req.body.observations,
     patientEmail: req.body.patientEmail,
+    state: req.body.state,
   };
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -95,14 +96,14 @@ async function getPendingAppointments(req: RequestWithUser, res: Response) {
 
 async function createPatientAppointment(req: RequestWithUser, res: Response) {
   try {
-    const { date, initialHour, type, professionalEmail, idOffice } = req.body.sanitizedInput;
+    const { date, initialHour, type, professionalEmail, office } = req.body.sanitizedInput;
     const appointment = await appointmentService.createPatientAppointment(
       req.user.email,
       date,
       initialHour,
       type,
       professionalEmail,
-      idOffice
+      office
     );
     res.status(201).json({ message: "Appointment created successfully", data: appointment });
   } catch (error: any) {
@@ -127,7 +128,7 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
       value,
       finalHour,
     });
-
+    //Devolver algo?
     res.status(200).json({ message: "Appointment updated successfully" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -154,7 +155,7 @@ async function addObservation(req: RequestWithUser, res: Response) {
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const patientEmail = req.body.sanitizedInput.patientEmail;
-    const observations = req.body.sanitizedInput.observation;
+    const observations = req.body.sanitizedInput.observations;
     const diagnostic = await appointmentService.addObservation(numAppointment, req.user.email, observations, patientEmail);
     res.status(200).json({ message: "Observación añadida con éxito", data: diagnostic });
   } catch (error: any) {
@@ -235,8 +236,8 @@ async function addPatientToAppointment(req: RequestWithUser, res: Response) {
 
 async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Response) {
   try {
-    const { idOffice, professionalEmail } = req.body.sanitizedInput;
-    const appointments = await appointmentService.getAvailableAppointmensForPatient(idOffice, professionalEmail, req.user.email);
+    const { office, professionalEmail } = req.body.sanitizedInput;
+    const appointments = await appointmentService.getAvailableAppointmensForPatient(office, professionalEmail, req.user.email);
     res.status(200).json({ message: "Turnos posibles", data: appointments });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

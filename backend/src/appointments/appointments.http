@@ -4,24 +4,36 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 ### POST - Turnos posibles
 POST http://localhost:3000/api/appointments/getAppointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTcwMTQ5MSwiZXhwIjoxNzU5NzAyMzkxfQ.2a1xwOBFoKHPIJECxcZeEHFUib7q1sZR1sNDhSE1O3I
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMjEzNiwiZXhwIjoxNzU5ODAzMDM2fQ.xh9XK5vPdGn1B05YSzVT3m-X3wK3DG7lM-ek8cr3_gY
 
 {
   "professionalEmail": "prof@gmail.com",
-  "idOffice": 1
+  "office": 1
 }
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMjEzNiwiZXhwIjoxNzU5ODAzMDM2fQ.xh9XK5vPdGn1B05YSzVT3m-X3wK3DG7lM-ek8cr3_gY
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMzI2NCwiZXhwIjoxNzU5ODA0MTY0fQ.zbS-TwKkSafPGU27fmJ99vc4vxtFn9AztejatojIC1g
 
 
 {
   "date": "2025-10-08",
-  "initialHour": "13:00",
-  "type": "simple",
+  "initialHour": "16:00",
+  "type": "taller",
   "professionalEmail": "prof@gmail.com",
-  "idOffice": 1
+  "office": 1
+}
+
+
+###
+PATCH http://localhost:3000/api/appointments/1/diagnostic
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMzgyNSwiZXhwIjoxNzU5ODA0NzI1fQ.a-zM_rmGnQz3aNRtPzjE5DsFyraHY4ZAuFZPPU61-UU
+
+{
+  "observations": "Un vago como ningun otro",
+  "state": "assisted",
+  "patientEmail": "patient@gmail.com"
 }
 
 
@@ -35,7 +47,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
   "date": "2025-10-08",
   "initialHour": "13:00",
   "finalHour": "14:00",
-  "type": "simple",
+  "type": "taller",
   "room": 1,
   "value": 0,
   "patientEmail": "hola@gmail.com"
