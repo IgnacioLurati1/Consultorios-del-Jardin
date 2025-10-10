@@ -1,0 +1,148 @@
+.section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  background-color: #EDEDF2;
+  padding: 60px 0;
+  width: 100%;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.section-image,
+.section-content {
+  transition: transform 2.2s cubic-bezier(.22,.8,.3,1);
+}
+
+.section:not(.reverse) .section-image {
+  transform: translateX(-80px);
+}
+
+.section:not(.reverse) .section-content {
+  transform: translateX(-80px);
+}
+
+.section.reverse .section-image {
+  transform: translateX(80px);
+}
+
+.section.reverse .section-content {
+  transform: translateX(80px);
+}
+
+.section.visible {
+  opacity: 1;
+}
+
+.section.visible .section-image,
+.section.visible .section-content {
+  transform: translateX(0);
+}
+
+.section.reverse {
+  flex-direction: row-reverse;
+}
+
+.section-image {
+  flex: 1;
+  height: 100%;
+}
+
+.section-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+}
+
+.section-image img:hover {
+  transform: scale(1.03);
+}
+
+.section:not(.reverse) .section-image img {
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.section.reverse .section-image img {
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.section-content {
+  flex: 1;
+  max-width: 700px;
+  padding: 0 80px;
+  box-sizing: border-box;
+}
+
+.section-content h2 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #000000;
+}
+
+.section-content p {
+  font-size: 1.2rem;
+  color: #000000;
+  margin-bottom: 25px;
+  line-height: 1.75;
+}
+
+.section-content button {
+  background-color: transparent;
+  border: 3px solid #3b7658;
+  color: #767676;
+  padding: 15px 75px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: all 0.5s ease;
+}
+
+.section-content button:hover {
+  background-color: #75ac8f;
+  color: #FEFAE0;
+}
+
+@media (max-width: 900px) {
+  .section {
+    flex-direction: column;
+    text-align: center;
+    padding: 40px 0;
+  }
+
+  .section.reverse {
+    flex-direction: column;
+  }
+
+  .section-content {
+    padding: 20px;
+  }
+
+  .section-image img {
+    border-radius: 0;
+    height: auto;
+  }
+
+  .section-content h2 {
+    font-size: 2.2rem;
+  }
+
+  .section-content button {
+    padding: 12px 40px;
+    font-size: 1rem;
+  }
+}

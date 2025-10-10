@@ -1,0 +1,45 @@
+.why-us {
+  text-align: center;
+  padding: 20px 20px 90px;
+  background-color: #f4f4f6;
+  color: #000;
+}
+
+.why-us h2 {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 40px;
+  color: #000;
+}
+
+.cards {
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+  flex-wrap: wrap;
+}
+
+.card {
+  border-radius: 12px;
+  padding: 15px;
+  width: 375px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-align: center;
+}
+
+.card img {
+  width: 200px;
+}
+
+.card h3 {
+  font-size: 2.1rem;
+  margin-bottom: 15px;
+  color: #1a1a1a;
+}
+
+.card p {
+  font-size: 1.2rem;
+  color: #000000;
+  line-height: 1.5;
+}
