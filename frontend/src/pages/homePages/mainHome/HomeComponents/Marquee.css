@@ -2,7 +2,7 @@
   width: 100%;
   overflow: hidden;
   background-color: #d9d9db;
-  padding: 20px 0;
+  padding: 35px 0px 35px;
   position: relative;
 }
 
@@ -44,6 +44,6 @@
     transform: translateX(0);
   }
   to {
-    transform: translateX(-15%);
+    transform: translateX(-0.5%);
   }
 }
