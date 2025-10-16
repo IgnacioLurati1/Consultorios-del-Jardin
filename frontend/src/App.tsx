@@ -20,6 +20,7 @@ import { ProfessionalHome } from "./pages/homePages/professionalHome/professiona
 import { ScheduleProfessional } from "./pages/scheduleProfessional/scheduleProfessional.tsx";
 import { AuthWatcher } from "./context/AuthWatcher.tsx";
 import { UsersAdmin } from "./pages/adminCRUDS/adminUsers/usersAdmin.tsx";
+import { AppointmentInput } from "./pages/appointments/appointmentInput.tsx";
 
 const router = createBrowserRouter([
   {
@@ -82,7 +83,17 @@ const router = createBrowserRouter([
             </AuthWatcher>
           </PrivateRoutes>
         ),
-      }, //CHEQUEAR SI ASI ESTA BIEN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      },
+      {
+        path: "/Appointment",
+        element: (
+          <PrivateRoutes allowedTypes={["professional","admin","client"]}>
+            <AuthWatcher>
+              <AppointmentInput />
+            </AuthWatcher>
+          </PrivateRoutes>
+        ), 
+      },
 
       // Password Recovery Routes
       { path: "/forgot-password", element: <RecoverPassword /> },
