@@ -1,0 +1,174 @@
+html {
+  scrollbar-gutter: stable; /* reserva el espacio siempre */
+}
+
+:root{
+    --background-text: #EEF1F3;
+    --button-color: #3B7658;
+}
+
+.appointments-input-container {
+    background-image: url("../../assets/FondoHojasDif.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 75vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20vh;
+    transition: min-height 1s ease;
+}
+
+.appointments-input-container.reduced{
+    min-height: 30vh;
+} 
+
+.appointment-content {
+    max-width: 1000px;
+    width: 100%;
+    text-align: center;
+    margin-left: 20px;
+    margin-right: 20px;
+    transition: transform 1s ease;
+    transform: translateY(0);
+}
+
+.appointment-content.reduced{
+    transform: translateY(-15vh);
+}
+
+.appointment-title {
+    color: var(--background-text);
+    font-size: 58px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.appointment-card {
+    background-color: var(--background-text);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-field {
+    text-align: left;
+}
+
+.form-label {
+    display: block;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-select {
+    padding: 12px;
+    font-size: 20px;
+    min-width: 450px;
+    color: #333;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    border-bottom-color: var(--button-color);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.form-hint {
+    color: #757575;
+    font-size: 18px;
+}
+
+.search-button {
+    background-color: var(--button-color);
+    color: var(--background-text);
+    padding: 14px 40px;
+    font-size: 22px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 4px 8px rgba(45, 122, 95, 0.3);
+    float: right;
+}
+
+.search-button:hover {
+    background-color: #33654b;
+}
+
+.search-button:active {
+    transform: translateY(1px);
+}
+
+.results-container {
+    background-color: var(--background-text);
+    min-height: 60vh;
+    padding: 40px 20px;
+    opacity: 1;
+    max-height: 100%;
+    overflow: hidden;
+    transition: opacity 1s ease, max-height 1s ease;
+    display: flex;
+    justify-content: center;
+}
+
+.results-container.hidden {
+    opacity: 0;
+    max-height: 0;
+}
+
+.professionals-results-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.error-container {
+    margin-top: 4px;
+    height: 10px;
+}
+
+.error-text {
+    color: red;
+    font-size: 0.8em;
+    margin: 0;
+}
+
+.error-icon{
+    color: red;
+    margin-right: 5px;
+}
+
+@media (max-width: 768px) {
+    .appointment-title {
+        font-size: 32px;
+    }
+
+    .appointment-card {
+        padding: 30px 20px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
