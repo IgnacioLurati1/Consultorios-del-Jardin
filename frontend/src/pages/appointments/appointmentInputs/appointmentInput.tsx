@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-import { findAllActiveOffices } from "../adminCRUDS/adminOffices/OfficeService.ts";
+import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
 import { ToastContainer, toast } from "react-toastify";
-import type{Office, Person} from "../types.ts"
-import './AppointmentInput.css';
-import { findAllProfessionals } from '../scheduleProfessional/scheduleServices.ts';
+import type{Office, Person} from "../../types.ts"
+import './appointmentInput.css';
+import { findAllProfessionals } from '../../scheduleProfessional/scheduleServices.ts';
 import { FaExclamationTriangle } from "react-icons/fa";
 import { ProfessionalCard } from './professionalCard.tsx';
 
 export function AppointmentInput() {
 const [officesList, setOfficesList] = useState<Office[] | []>([]);
 const [office, setOffice] = useState<Office>();
-const [professional, setProfessional] = useState<Person>();
 const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
 const [specialty, setSpecialty] = useState<string>();
 const [showAppointments, setShowAppointments] = useState(false);
@@ -175,8 +174,8 @@ return (
         </div>
         <div className={showAppointments ? 'results-container' : 'results-container hidden'}>
                 <div className="professionals-results-content"> 
-                    {professionalsList.map((professional) => 
-                        <ProfessionalCard key={professional.email} professional={professional}></ProfessionalCard>
+                    {showAppointments && professionalsList.map((professional) => 
+                        <ProfessionalCard key={professional.email} professional={professional} office={office} display={showAppointments}></ProfessionalCard>
                     )}
             </div>
         </div>

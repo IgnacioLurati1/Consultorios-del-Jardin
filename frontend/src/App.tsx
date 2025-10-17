@@ -20,7 +20,8 @@ import { ProfessionalHome } from "./pages/homePages/professionalHome/professiona
 import { ScheduleProfessional } from "./pages/scheduleProfessional/scheduleProfessional.tsx";
 import { AuthWatcher } from "./context/AuthWatcher.tsx";
 import { UsersAdmin } from "./pages/adminCRUDS/adminUsers/usersAdmin.tsx";
-import { AppointmentInput } from "./pages/appointments/appointmentInput.tsx";
+import { AppointmentInput } from "./pages/appointments/appointmentInputs/appointmentInput.tsx";
+import { AppointmentDetails } from "./pages/appointments/appointmentDetails/appointmentDetails.tsx";
 
 const router = createBrowserRouter([
   {
@@ -78,7 +79,7 @@ const router = createBrowserRouter([
           <PrivateRoutes allowedTypes={["admin", "professional"]}>
             <AuthWatcher>
               <Outlet />
-              <ScheduleProfessional />
+                <ScheduleProfessional />
               <CrudNav />
             </AuthWatcher>
           </PrivateRoutes>
@@ -92,9 +93,18 @@ const router = createBrowserRouter([
               <AppointmentInput />
             </AuthWatcher>
           </PrivateRoutes>
-        ), 
+        ),
       },
-
+      {
+       path: "/AppointmentDetails", 
+       element: (
+            <PrivateRoutes allowedTypes={["professional","admin","client"]}>
+              <AuthWatcher>
+                <AppointmentDetails />
+              </AuthWatcher>
+            </PrivateRoutes>
+          )
+      },
       // Password Recovery Routes
       { path: "/forgot-password", element: <RecoverPassword /> },
       { path: "/reset-password", element: <NewPassword /> },

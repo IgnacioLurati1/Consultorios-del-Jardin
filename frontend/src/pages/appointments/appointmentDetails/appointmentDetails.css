@@ -1,0 +1,212 @@
+html {
+    scrollbar-gutter: stable; /* reserva el espacio siempre */
+}
+
+:root{
+    --background-text: #EEF1F3;
+    --button-color: #3B7658;
+}
+.appointment-details-container{
+    background-image: url("../../../assets/FondoHojasDif.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 55vh;
+    color: black;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4vh;
+    transition: min-height 1s ease;
+}
+
+.appointment-details-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 2vw 0 2vw;
+}
+
+.appointment-details-header {
+    background-color: var(--button-color);
+    border-radius: 0px 20px 0 0;
+    padding: 1rem 1.5rem;
+    width: 30%;
+    display: flex;
+    align-items: center;
+}
+
+.appointment-details-back-btn {
+    background: none;
+    border: none;
+    color: var(--background-text);
+    margin-right: 1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: opacity 0.3s ease, transform 0.1s ease;
+}
+
+.appointment-details-back-btn:hover {
+    opacity: 0.8;
+    transform: translateX(-5px);
+}
+
+.appointment-details-title {
+    color: var(--background-text);
+    font-size: 1.8em;
+    font-weight: 600;
+    margin: 0;
+}
+
+.appointment-details-content {
+    background-color: var(--background-text);
+    border-radius: 0 20px 0px 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 1.8em rgba(0, 0, 0, 0.2);
+}
+
+.appointment-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.patient-section,
+.professional-section {
+    padding: 0.5rem;
+    border-radius: 12px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #848484;
+}
+
+.section-title {
+    font-size: 1.8em;
+    font-weight: 600;
+    margin: 0;
+}
+
+.section-chevron {
+    margin-left: 0.5rem;
+    transform: rotate(180deg);
+}
+
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.info-label {
+    font-weight: 600;
+    font-size: 1.8em;
+}
+
+.info-value {
+    color: #333;
+    font-size: 1.8em;
+}
+
+.professional-details-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.professional-details-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.professional-details-avatar {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.avatar-details-icon {
+    width: 70px;
+    height: 70px;
+}
+
+.professional-details {
+    flex: 1;
+}
+
+.professional-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.professional-name {
+    font-size: 1.8em;
+    font-weight: 600;
+}
+.professional-phone {
+    height: 24px;
+    width: 24px;
+}
+
+.professional-specialty {
+    font-size: 22px;
+    margin: 0;
+    color: #333;
+}
+
+.reserve-btn {
+    margin-top: 1.5rem;
+    width: 100%;
+    background-color: var(--button-color);
+    color: var(--background-text);
+    padding: 14px 40px;
+    font-size: 1.8em;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    box-shadow: 0 4px 8px rgba(45, 122, 95, 0.3);
+}
+
+.reserve-btn:hover {
+    background-color: #33654b;
+}
+
+.reserve-btn:active {
+    transform: translateY(1px);
+}
+
+.appointment-details-table-container{
+    background-color: var(--background-text);
+    min-height: 60vh;
+    padding: 40px 20px;
+    opacity: 1;
+    max-height: 100%;
+    overflow: hidden;
+    transition: opacity 1s ease, max-height 1s ease;
+    display: flex;
+    justify-content: center;
+    color: black;
+}
+
+@media (max-width: 768px) {
+    .appointment-details-header {
+        width: 80%;
+        font-size: small;
+    }
+    .appointment-details-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}

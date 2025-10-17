@@ -8,11 +8,11 @@ html {
 }
 
 .appointments-input-container {
-    background-image: url("../../assets/FondoHojasDif.png");
+    background-image: url("../../../assets/FondoHojasDif.png");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    min-height: 75vh;
+    min-height: 70vh;
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -135,6 +135,8 @@ html {
 .results-container.hidden {
     opacity: 0;
     max-height: 0;
+    min-height: 0;
+    padding: 0;
 }
 
 .professionals-results-content {

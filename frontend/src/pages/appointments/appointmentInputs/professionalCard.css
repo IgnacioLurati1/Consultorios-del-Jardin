@@ -10,8 +10,13 @@
     padding: 30px 20px;
     border-top: 1px solid #848484;
     border-bottom: 1px solid #848484;
-    height: 50px;
+    height: 100%;
     width: 70vw;
+}
+
+.professional-card .hidden{
+    height: 0;
+    opacity: 0;
 }
 
 .professional-info {

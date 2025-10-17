@@ -1,14 +1,25 @@
-import type{Person} from "../types.ts"
+import type{Person,Office} from "../../types.ts"
 import { FaUserTie, FaPhone } from "react-icons/fa";
 import './professionalCard.css';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfessionalCardProps {
     professional: Person;
+    office: Office|undefined;
+    display: boolean;
     }
-export function ProfessionalCard({ professional }:ProfessionalCardProps){
+export function ProfessionalCard({ professional, office,display }:ProfessionalCardProps){
+    const navigate = useNavigate();
+
+    function handleAppointment(){
+        navigate("/AppointmentDetails", {
+            state: { office, professional },
+            replace: true,
+        });
+    }
     return (
         <>
-            <div className="professional-card">
+            <div className={display? "professional-card":"professional-card hidden"}>
                 <div className="professional-info">
                     <div className="professional-avatar">
                         <FaUserTie className="avatar-icon" />
@@ -24,7 +35,7 @@ export function ProfessionalCard({ professional }:ProfessionalCardProps){
                     </div>
                 </div>
 
-                <button className="action-button">Sacar turno</button>
+                <button className="action-button" onClick={handleAppointment}>Sacar turno</button>
             </div>
         </>
     );
