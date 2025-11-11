@@ -3,7 +3,7 @@
     --button-color: #3B7658;
 }
 
-.professional-card {
+.professional-box {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -14,7 +14,7 @@
     width: 70vw;
 }
 
-.professional-card .hidden{
+.professional-box .hidden{
     height: 0;
     opacity: 0;
 }
@@ -93,7 +93,7 @@
 }
 
 @media (max-width: 768px) {
-    .professional-card {
+    .professional-box {
         flex-direction: column;
         gap: 20px;
         align-items: flex-start;

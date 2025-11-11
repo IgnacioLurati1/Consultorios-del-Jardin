@@ -11,6 +11,14 @@ export function getAllUsers(): Promise<Person[]>{
     )
 }
 
+export function findAllProfessionals(): Promise<Person[]>{
+    return api.get('/people/type/professional')
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
 export function toggleState(email:string){
     return api.patch(`/people/${email}/toggleState`)
     .then(res => res.data)
