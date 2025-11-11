@@ -3,6 +3,7 @@ import "./gridFilter.css"
 import {useEffect, useState } from "react";
 import type{ Person, Office, Room } from "../../types.ts"
 import type {GridFilterProps} from "../scheduleTypes.ts"
+import { FaXmark } from "react-icons/fa6";
 
 export function GridFilter({ setProfessional, professionals, schedules, offices, setRoomToFilter, setOfficeToFilter }: GridFilterProps){
 
@@ -65,10 +66,20 @@ export function GridFilter({ setProfessional, professionals, schedules, offices,
       setFilteredScheduleRooms(filtered)
     }
 
+function cancelFilters(){
+      setChoicedOffice(undefined)
+      setRoomToFilter(undefined)
+      setOfficeToFilter(undefined)
+      if(professionals){
+        setProfessional(undefined)
+      }
+    }
+
     return(
     <div className="filter-container">
             <div className="filter-selector" onClick={() => setToggleOptions(!toggleOptions)}>Filtros<FaAngleDown className={toggleOptions ? "icon rotated" : "icon"} /></div>
             <div className={"filter-options" + (toggleOptions ? " active" : " disabled")}>
+              <div className="delete-filters" onClick={() => cancelFilters()}><FaXmark/>Borrar filtros</div>
               <div className="filter-option">
                 {professionals?(<>
                 <div className="filter-input-container" onClick={() => setList1(!list1)}>
@@ -77,7 +88,7 @@ export function GridFilter({ setProfessional, professionals, schedules, offices,
                 </div>
                 <ul className={"filter-list" + (list1 ? " active" : " disabled")}>
                   {filteredProfessionalsList.map((profesional) => (
-                    <li className="filter-list-item" key={profesional.email} onClick={() => {setProfessional(profesional)}}>{profesional.name}, {profesional.surname}</li>
+                    <li className="filter-list-item" key={profesional.email} onClick={() => {setProfessional(profesional);setOfficeToFilter(undefined); setChoicedOffice(undefined);setRoomToFilter(undefined)}}>{profesional.name}, {profesional.surname}</li>
                   ))}
                 </ul></>):(<>
                 </>)}
@@ -90,7 +101,7 @@ export function GridFilter({ setProfessional, professionals, schedules, offices,
                 <ul className={"filter-list" + (list2 ? " active" : " disabled")}>
                   { filteredScheduleOffices.length? ( // Si no hay profesional, no hay lista de schedules, muestra que lo elija
                   filteredScheduleOffices.map((of) => (
-                    <li className="filter-list-item" key={of.idOffice} onClick={()=>{setChoicedOffice(of);setOfficeToFilter(of)}}>{of.description} - {of.city.nameCity} - {of.city.province.nameProvince}</li>
+                    <li className="filter-list-item" key={of.idOffice} onClick={()=>{setChoicedOffice(of);setOfficeToFilter(of);setRoomToFilter(undefined)}}>{of.description} - {of.city.nameCity} - {of.city.province.nameProvince}</li>
                   ))):
                   (<li className="filter-list-item">Seleccione un profesional</li>)}
                 </ul>

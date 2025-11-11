@@ -65,14 +65,14 @@ export interface TokenPayload {
 
 export interface Diagnostic {
     appointment: number;
-    patient: Person;
+    patient: string;
     state: string;
     observations: string;
 }
 
 export interface Appointment {
     numAppointment: number;
-    date: Date;
+    date: string;
     initialHour: string;
     finalHour: string;
     value: number;

@@ -78,7 +78,7 @@ export function AppointmentsList(){
 
   useEffect(() =>{
      if(officeToFilter){
-      const filtered = appointments.filter(app => String(app.room.office) === String(officeToFilter.idOffice));
+      const filtered = appointments.filter(app => app.room.office.idOffice === officeToFilter.idOffice);
       setFilteredAppointments(filtered);
     } else {
       setFilteredAppointments(appointments);
@@ -95,7 +95,7 @@ export function AppointmentsList(){
                 <AppointmentsGridFilter appointments={appointments} offices={offices} setOfficeToFilter={setOfficeToFilter}/>
             </div>
             <div className="appointment-container">
-              <AppointmentsGrid appointments={filteredAppointments} personType={person.type}/>
+              <AppointmentsGrid appointments={filteredAppointments} person={person}/>
             </div>
           </div>
           <DiagnosticModal isOpen={diagnosticModalOpen} onClose={() => setDiagnosticModalOpen(false)} appointment={selectedAppointment} />

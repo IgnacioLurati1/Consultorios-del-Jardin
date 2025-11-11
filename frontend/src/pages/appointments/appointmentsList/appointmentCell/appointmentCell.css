@@ -45,9 +45,144 @@
 }
 
 .simple-appointment{
-    background-color: rgb(74, 167, 74);
+    background-color: #9CC2A3;
 }
 
 .taller-appointment{
-    background-color: rgb(77, 101, 236);
+    background-color: #93C0E4;
 }
+
+.appointment-cell-buttons{
+    display: flex;
+    flex-direction: row;
+    gap: 0.5vw;
+    min-width: 25vw;
+    justify-content: space-between;
+}
+.appointment-cell-button{
+    font-size: 0.9vw;
+    font-weight: bold;
+    color:aliceblue;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    padding: 10px 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3vw;
+}
+
+.appointment-cell-button:hover{
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.appointment-cell-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.diagnostic-button{
+    background-color: #105C81;
+}
+
+.cancel-button{
+    background-color: #CD6965;
+}
+
+.pending-button{
+    background-color: #93C0E4;
+}
+
+.hover-text{
+    display: none;
+}
+
+.pending-button:hover{
+    background-color:rgb(37, 170, 126);
+}
+
+.pending-button:hover .default-text {
+    display: none;
+}
+
+.pending-button:hover .hover-text {
+    display: inline;
+}
+
+.canceled-button{
+    background-color: rgb(150, 150, 150);
+    cursor: default;
+}
+
+.mark-button{
+    background-color: rgb(218, 165, 74);
+}
+
+.attended-button{
+    background-color:rgb(37, 170, 126);
+}
+
+.appointment-cell-confirm-cancel{
+    position: absolute;
+}
+
+.confirm-cancel-container{
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.37);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.confirm-cancel-box{
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: min(480px, 90vw);  
+    max-width: 90vw; 
+    max-height: 80vh;
+    overflow: auto;
+    position: relative;
+    font-size: 1vw
+}
+
+.confirm-cancel-header{
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-weight: 700;
+  font-size: 1.3vw;
+}
+
+.close-cancel{
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.confirm-cancel-button{
+  padding: 20px 30px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1vw;
+  color:aliceblue;
+  background-color: #CD6965;
+}
+

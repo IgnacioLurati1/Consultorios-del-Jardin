@@ -108,6 +108,18 @@
   transform: scale(1.02);
 }
 
+.delete-filters{
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 1.3em;
+  color: #6C788E;
+  padding: 1vw;
+  border-bottom: 1px solid #ccc;
+  list-style-type: none;
+  transition: transform 0.2s ease
+}
+
 @media (max-width: 768px) {
   .filter-container{
     width: 100%;

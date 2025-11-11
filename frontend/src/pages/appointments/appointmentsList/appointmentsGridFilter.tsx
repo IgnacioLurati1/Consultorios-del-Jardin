@@ -2,11 +2,12 @@ import { FaAngleDown } from "react-icons/fa";
 import "../../scheduleProfessional/gridFilter/gridFilter.css"
 import {useEffect, useState } from "react";
 import type { Appointment, Office } from "../../types.ts";
+import { FaXmark } from "react-icons/fa6";
 
 interface AppointmentsGridFilterProps {
     appointments: Appointment[];
     offices: Office[];
-    setOfficeToFilter: (office: Office) => void;
+    setOfficeToFilter: (office: Office|undefined) => void;
 }
 
 export function AppointmentsGridFilter({ appointments, offices, setOfficeToFilter }: AppointmentsGridFilterProps) {
@@ -41,10 +42,15 @@ export function AppointmentsGridFilter({ appointments, offices, setOfficeToFilte
       setFilteredAppointmentOffices(filtered)
     }
 
+    function cancelFilters(){
+      setOfficeToFilter(undefined)
+    }
+
     return(
     <div className="filter-container">
             <div className="filter-selector" onClick={() => setToggleOptions(!toggleOptions)}>Filtros<FaAngleDown className={toggleOptions ? "icon rotated" : "icon"} /></div>
             <div className={"filter-options" + (toggleOptions ? " active" : " disabled")}>
+              <div className="delete-filters" onClick={() => cancelFilters()}><FaXmark/>Borrar filtros</div>
               <div className="filter-option">
                 <div className="filter-input-container" onClick={() => setList(!list)}>
                   <input className="filter-input" placeholder="Consultorios" type="text" onChange={(e) => FilterOffices(e.target.value)} onClick={(event)=> event.stopPropagation()}/>
