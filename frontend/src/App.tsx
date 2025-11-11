@@ -22,6 +22,7 @@ import { AuthWatcher } from "./context/AuthWatcher.tsx";
 import { UsersAdmin } from "./pages/adminCRUDS/adminUsers/usersAdmin.tsx";
 import { AppointmentInput } from "./pages/appointments/appointmentInputs/appointmentInput.tsx";
 import { AppointmentDetails } from "./pages/appointments/appointmentDetails/appointmentDetails.tsx";
+import { AppointmentsList } from "./pages/appointments/appointmentsList/appointmentList.tsx";
 
 const router = createBrowserRouter([
   {
@@ -105,6 +106,14 @@ const router = createBrowserRouter([
             </PrivateRoutes>
           )
       },
+      {path: "/AppointmentsList",
+       element: (
+        <PrivateRoutes allowedTypes={["professional","client"]}>
+          <AuthWatcher>
+            <AppointmentsList/>
+          </AuthWatcher>
+        </PrivateRoutes>
+      )},
       // Password Recovery Routes
       { path: "/forgot-password", element: <RecoverPassword /> },
       { path: "/reset-password", element: <NewPassword /> },

@@ -62,3 +62,23 @@ export interface TokenPayload {
     type:string;
     exp:number;
 }
+
+export interface Diagnostic {
+    appointment: number;
+    patient: Person;
+    state: string;
+    observations: string;
+}
+
+export interface Appointment {
+    numAppointment: number;
+    date: Date;
+    initialHour: string;
+    finalHour: string;
+    value: number;
+    type: "simple" | "taller";
+    cancelDate: string;
+    professional: string;
+    room: Room;
+    diagnostics: Diagnostic[];
+}

@@ -1,0 +1,53 @@
+
+.appointment-cell {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-color: rgb(90, 90, 90);
+    color: rgb(0, 0, 0)
+}
+
+.appointment-cell-data{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2vw;
+}
+
+.appointment-cell-details{
+    font-size: 1.5vw;
+    
+}
+
+.appointment-cell-datetime{
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7vw;
+    text-align: center;
+    align-items: center;
+    color: rgb(39, 39, 39)
+}
+
+.appointment-cell-month-day{
+    font-size: 0.9vw;
+    font-weight: bold;
+    border-radius: 5px;
+    width: 3vw;
+    color: rgb(0, 0, 0)
+}
+
+.simple-appointment{
+    background-color: rgb(74, 167, 74);
+}
+
+.taller-appointment{
+    background-color: rgb(77, 101, 236);
+}

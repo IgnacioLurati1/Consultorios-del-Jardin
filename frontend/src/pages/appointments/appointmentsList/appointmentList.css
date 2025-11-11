@@ -1,0 +1,81 @@
+.appointment-person-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.upper-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  width: 100%;
+}
+.upper-container .navZone{
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+  width: 40%;
+  height: 8vh;
+}
+
+.schedule-container{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+}
+
+.appointment-subcontainer{
+  width: 90%;
+}
+
+.toast-container {
+    position: fixed !important;
+    margin-top:2vh;
+    width: auto;
+    font-size: 1.5vw;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.appointment-container{
+  flex-direction: column;
+  align-items: center;
+  background-color:aliceblue;
+  height: 70vh;
+  border-radius: 10px;
+}
+@media (max-width: 768px) {
+  .appointment-person-container  {
+    position: relative;
+    width: 100vw;
+  }
+
+  .upper-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 90vw;
+  }
+
+  .upper-container .navZone{
+    width: 100%;
+    height: auto;
+  }
+
+  .appointment-container{
+    width: 100%;
+    padding: 0;
+  }
+
+  .toast-container {
+    margin-top:0vh;
+    width: 100%;
+    font-size: 4vw;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+
+}
