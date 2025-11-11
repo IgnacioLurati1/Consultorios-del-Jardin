@@ -21,7 +21,7 @@ export const personRouter = Router();
 personRouter.get("/", verifyToken, verifyAdmin, findAll);
 personRouter.get("/NoAdmin", verifyToken, verifyAdmin, findAllNoAdmin)
 personRouter.get("/:email", verifyToken, findOne);
-personRouter.get("/type/:peopleType", verifyToken, verifyAdmin, findAllPerType);
+personRouter.get("/type/:peopleType", verifyToken, findAllPerType);
 personRouter.post("/", sanitizePersonInput, add);
 personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
 personRouter.post("/logout", logOut);
