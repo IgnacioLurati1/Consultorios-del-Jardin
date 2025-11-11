@@ -3,6 +3,7 @@ import { Schedule } from "./schedules.entity.js";
 import { RequiredEntityData } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
+import { Office } from "../offices/offices.entity.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -56,6 +57,24 @@ export class ScheduleService {
     return false;
   }
 
+  async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): Promise<boolean> {
+
+    const officeHourRange = await em.createQueryBuilder(Office, 'o')
+      .select(['o.openingTime', 'o.closingTime'])
+      .join('o.rooms', 'r')
+      .where({'r.idRoom': room.idRoom})
+      .getSingleResult();
+
+    if (!officeHourRange) {
+      throw new Error("Office not found for the given room");
+    }
+
+    if (initialHour < officeHourRange.openingTime || finalHour > officeHourRange.closingTime) {
+      return true; // Fuera del horario laboral
+    }
+    return false; // Dentro del horario laboral
+  }
+
   //CRUD basico
 
   async findAllSchedules() : Promise<Schedule[]> {
@@ -79,21 +98,10 @@ export class ScheduleService {
   } // Metodo para buscar horarios por sala y día
 
   async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
+    
+    data.day = this.removeAccents(data.day.trim().toLowerCase());
+    data.allowedType = this.removeAccents(data.allowedType.trim().toLowerCase());
 
-    //Validaciones fuertes
-    const overlapping = await this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person);
-
-    if (overlapping) {
-      throw new Error("Horario solapado");
-    }
-
-    const existingInRoom = await this.isOverlappingInRoom(data.day, data.initialHour, data.finalHour, data.room as Room);
-
-    if (existingInRoom) {
-      throw new Error("La sala ya está ocupada en ese horario");
-    }
-
-    //Validaciones debiles
     const isValid = this.isValidDay(data.day) && 
                     this.isValidHourFormat(data.initialHour) && 
                     this.isValidHourFormat(data.finalHour) && 
@@ -103,12 +111,29 @@ export class ScheduleService {
     if (!isValid) {
       throw new Error("Invalid schedule data");
     }
+    //Validaciones de solapamiento y horario laboral en paralelo
+    const [overlapping, existingInRoom, outOfHours] = await Promise.all([
+      this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person),
+      this.isOverlappingInRoom(data.day, data.initialHour, data.finalHour, data.room as Room),
+      this.isOutOfWorkingHours(data.room as Room, data.initialHour, data.finalHour)
+    ]);
+
+    if (overlapping) {
+      throw new Error("Horario solapado");
+    }
+
+    if (existingInRoom) {
+      throw new Error("La sala ya está ocupada en ese horario");
+    }
+
+    if (outOfHours) {
+      throw new Error("Fuera del horario laboral del consultorio");
+    }
     
-    //Creacion
     const schedule = em.create(Schedule, data);
+    await em.populate(schedule, ['room', 'person']); 
     await em.flush();
-    return await em.findOneOrFail(Schedule, { person: schedule.person, day: schedule.day, initialHour: schedule.initialHour }, { populate: ['room','person'] });
-    
+    return schedule; 
   }
 
   async updateSchedule(data: Partial<Schedule>) : Promise<Schedule> {
