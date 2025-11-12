@@ -54,7 +54,8 @@ export function RoomsAdmin() {
             setLoading(false); })
         .catch(err => {
             setLoading(false);
-            toast.error("Error cargando consultorios:" + err)});
+            toast.error(`Error cargando consultorios: ${err.message}`);    
+        });
     }, []);
 
     useEffect(() => {
@@ -64,7 +65,7 @@ export function RoomsAdmin() {
             setLoading(false); })
         .catch(err => {
             setLoading(false);
-            toast.error("Error cargando ciudades:" + err)});
+            toast.error(`Error cargando ciudades: ${err.message}` )});
     }, []);
 
     useEffect(() => {
@@ -84,7 +85,10 @@ export function RoomsAdmin() {
                 })
                 );
             setLoading(false);
-        });
+        })
+        .catch(err => {   
+            toast.error(`Error cargando salas: ${err.message}`)});
+            setLoading(false);
     }, []);
 
     useEffect(() => {
@@ -95,33 +99,49 @@ export function RoomsAdmin() {
     }, [searchTerm, rooms]);
 
     async function addRoom(newRoom: { description: string; office: string }) {
+        try{
         const createdRoom = await createRoom(newRoom)
         if(createdRoom){
             setRooms([createdRoom, ...rooms]);
+            toast.success(`Sala creada con éxito`);
             setModalVisible(false);
         }
+    } catch (error:any){
+        toast.error(`Error al crear la Sala: ${error.message}`);
     }
+}
 
     async function deleteRoom(id: string) {
+        try{
     if (await removeRoom(id)){
         setRooms(rooms.map(room => room.idRoom !== id ? room : { ...room, active: false }));
+        toast.success(`Sala eliminada con éxito`);
         setModalVisible(false);
         }
+    } catch (error:any){
+        toast.error(`Error al eliminar la Sala: ${error.message}`);
     }
+}
 
     async function EditRoom(updatedRoom: { idRoom: string; description: string; office: string} , active: boolean) {
-
+        try{
         const updatedRoomFromBackend = await updateRoom(updatedRoom, active);
         if(active && updatedRoomFromBackend){
             setRooms(rooms.map(room => room.idRoom === updatedRoomFromBackend.idRoom ? updatedRoomFromBackend : room));
+            toast.success(`Sala modificada con éxito`);
             setModalVisible(false);
             setEditData(null);
         }else if(!active){
             setRooms(rooms.map(room => room.idRoom !== updatedRoom.idRoom ? room : { ...room, active: true }));
+            toast.success(`Sala reactivada con éxito`);
             setModalVisible(false);
             setEditData(null);
         }
-    }    
+    } catch (error:any){
+        toast.error(`Error al modificar la Sala: ${error.message}`);
+    }
+}
+
     return (
         <div className="admin-home">
 

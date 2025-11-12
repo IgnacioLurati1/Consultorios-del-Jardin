@@ -1,12 +1,10 @@
-import {toast} from "react-toastify"
 import api from "../../../axios";
 import type { Province } from "../../types.ts";
 
 export function findAllProvinces(): Promise<Province[]> {
     return api.get('/provinces')
         .then(response => response.data.data)
-        .catch(err => {
-            toast.error(`Error al obtener provincias: ${err.message}`);
+        .catch(() => {
             return [];
         });
 }
@@ -14,8 +12,7 @@ export function findAllProvinces(): Promise<Province[]> {
 export function findAllActiveProvinces(): Promise<Province[]>{
   return api.get('provinces/active')
     .then(response => response.data.data)
-    .catch(err => {
-      toast.error(`Error al obtener provincias activas: ${err.message}`);
+    .catch(() => {
       return [];
     });
 }
@@ -29,13 +26,11 @@ export function createProvince(nameProvince: string) : Promise<Province | undefi
           active: true
       })
       .then(created => {
-        // añadimos la provincia nueva al array
-        toast.success(`Provincia creada!`);
         return created.data.data;
       })
       .catch(err => {
-        toast.error(`Error al crear provincia: ${err.message}`);
-        throw new Error();
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
         });
       }
 
@@ -44,12 +39,11 @@ export function removeProvince(id: string) : Promise<boolean> {
 
     return api.patch(`/provinces/${id}/toggle-state`)
       .then(() => {
-        toast.success(`Provincia eliminada!`);
         return true;
       })
       .catch(err => {
-        toast.error(`Error al eliminar provincia: ${err.message}`);
-        return false;
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
       });
   }
 
@@ -61,21 +55,22 @@ export function updateProvince(id: string, newName: string, active: boolean) : P
         nameProvince: newName
       })
       .then(updated => {
-        toast.success(`Provincia modificada!`);
         return updated.data.data;
       })
       .catch(err => {
-        toast.error(`Error al modificar provincia: ${err.message}`);
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
         });
 
       } else {
 
       return api.patch(`/provinces/${id}/toggle-state`)
       .then(() => {
-        toast.success(`Provincia activada!`);
+        return;
       })
       .catch(err => {
-        toast.error(`Error al modificar provincia: ${err.message}`);
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
       });
     }; 
   }

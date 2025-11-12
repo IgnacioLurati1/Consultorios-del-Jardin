@@ -2,7 +2,7 @@ import "./Home.css";
 import { Hero } from "./HomeComponents/Hero";
 import { Marquee } from "./HomeComponents/Marquee";
 import { Section } from "./HomeComponents/Section";
-import { Cards } from "./HomeComponents/Cards";
+import { Cards } from "./HomeComponents/cards";
 import { Footer } from "./HomeComponents/Footer";
 import { useFadeIn } from ".//useFadeIn";
 
