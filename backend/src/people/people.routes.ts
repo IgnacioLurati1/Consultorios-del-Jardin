@@ -12,7 +12,8 @@ import {
   changePassword,
   sendPasswordMail,
   findAllPerType,
-  findAllNoAdmin
+  findAllNoAdmin,
+  findProfesionalByOffice
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 
@@ -21,7 +22,8 @@ export const personRouter = Router();
 personRouter.get("/", verifyToken, verifyAdmin, findAll);
 personRouter.get("/NoAdmin", verifyToken, verifyAdmin, findAllNoAdmin)
 personRouter.get("/:email", verifyToken, findOne);
-personRouter.get("/type/:peopleType", verifyToken, findAllPerType);
+personRouter.get("/type/:peopleType", verifyToken, verifyAdmin, findAllPerType);
+personRouter.get("/professionals/office/:officeId/:speciality?", verifyToken, findProfesionalByOffice); // nueva ruta para obtener profesionales por consultorio y especialidad
 personRouter.post("/", sanitizePersonInput, add);
 personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
 personRouter.post("/logout", logOut);

@@ -66,6 +66,17 @@ async function findAllNoAdmin(req: Request, res:Response){
   }
 }
 
+async function findProfesionalByOffice(req: Request, res: Response) {
+  try {
+    const officeId = Number.parseInt(req.params.officeId);
+    const people = await peopleService.findProfesionalByOffice(officeId, req.params.speciality);
+    const safeData = people.map((person) => ({ ...person, password: undefined }));
+    res.status(200).json({ message: "Personas profesionales encontradas en el consultorio" , data: safeData });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function findOne(req: Request, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email);
@@ -209,4 +220,5 @@ export {
   sendPasswordMail,
   findAllPerType,
   findAllNoAdmin,
+  findProfesionalByOffice,
 };
