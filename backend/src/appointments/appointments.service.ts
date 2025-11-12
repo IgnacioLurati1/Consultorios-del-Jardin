@@ -24,7 +24,7 @@ export class AppointmentService {
   }
 
   async findPatientAppointmentsByEmail(patientEmail: string): Promise<Appointment[]> {
-    return await em.find(Appointment, { diagnostics: { patient: { email: patientEmail } } }, { populate: ["room", "diagnostics"] });
+    return await em.find(Appointment, { diagnostics: { patient: { email: patientEmail } } }, { populate: ["room.office", "diagnostics"] });
   }
 
   async getDiagnostic(patientEmail: string, num: number) {
@@ -35,19 +35,19 @@ export class AppointmentService {
     return await em.findOneOrFail(
       Appointment,
       { professional: { email: professionalEmail }, numAppointment: numAppointment },
-      { populate: ["room", "diagnostics"] }
+      { populate: ["room.office", "diagnostics"] }
     );
   }
 
   async findProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
-    return await em.find(Appointment, { professional: { email: professionalEmail } }, { populate: ["room", "diagnostics"] });
+    return await em.find(Appointment, { professional: { email: professionalEmail } }, { populate: ["room.office", "diagnostics"] });
   }
 
   async findPendingProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
     return await em.find(
       Appointment,
       { professional: { email: professionalEmail }, state: "pending" },
-      { populate: ["room", "diagnostics"] }
+      { populate: ["room.office", "diagnostics"] }
     );
   }
 
