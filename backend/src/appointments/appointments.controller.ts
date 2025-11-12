@@ -53,6 +53,26 @@ async function getDiagnostic(req: RequestWithUser, res: Response) {
   }
 }
 
+async function getPersonalMedicalHistory(req: RequestWithUser, res: Response) {
+  try {
+    const medicalHistory = await appointmentService.getPersonalMedicalHistory(req.user.email);
+    res.status(200).json({ data: medicalHistory });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function getPatientMedicalHistory(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
+
+    const medicalHistory = await appointmentService.getPatientMedicalHistory(req.user.email, req.body.patientEmail);
+    res.status(200).json({ data: medicalHistory });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function getProfessionalAppointments(req: RequestWithUser, res: Response) {
   // Email is obtained from the authenticated user token
   // Additionally, it populates the room and diagnostics data for each appointment

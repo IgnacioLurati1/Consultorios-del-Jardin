@@ -27,6 +27,14 @@ export class AppointmentService {
     return await em.find(Appointment, { diagnostics: { patient: { email: patientEmail } } }, { populate: ["room", "diagnostics"] });
   }
 
+  async getPersonalMedicalHistory(patientEmail: string) {
+    return await em.find(Diagnostic, { patient: { email: patientEmail } });
+  }
+
+  async getPatientMedicalHistory(professionalEmail: string, patientEmail: string) {
+    return await em.find(Diagnostic, { patient: { email: patientEmail }, appointment: { professional: { email: professionalEmail } } });
+  }
+
   async getDiagnostic(patientEmail: string, num: number) {
     return await em.findOneOrFail(Diagnostic, { patient: { email: patientEmail }, appointment: { numAppointment: num } });
   }
