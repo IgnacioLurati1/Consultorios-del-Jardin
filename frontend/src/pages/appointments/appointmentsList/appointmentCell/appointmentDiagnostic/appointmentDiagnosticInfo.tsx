@@ -71,7 +71,7 @@ export function AppointmentDiagnosticInfo({ appointment, diagnostic, onClose, ty
                                 {localState === "assisted" ? (
                                     <button className="appointment-diagnostic-button assisted-marked-button" disabled>Asistido</button>
                                 ) : (
-                                    <button className="appointment-diagnostic-button assited-button" onClick={()=>setAttendance("assisted")}>Marcar como asistido</button>
+                                    <button className="appointment-diagnostic-button assisted-button" onClick={()=>setAttendance("assisted")}>Marcar como asistido</button>
                                 )}
                                 <button className="appointment-diagnostic-button save-button" onClick={saveDiagnostic}>Guardar</button>
                             </div>

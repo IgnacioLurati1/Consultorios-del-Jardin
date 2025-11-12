@@ -28,7 +28,7 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                             setPatient(data);
                         }
                     })
-                    .catch(error => toast.error("Error al obtener el paciente"));
+                    .catch(error => toast.error("Error al obtener el paciente", error));
             }
     }, [appointment.type, diagnostics]);
     

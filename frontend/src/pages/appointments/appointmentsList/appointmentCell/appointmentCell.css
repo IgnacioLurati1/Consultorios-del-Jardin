@@ -59,6 +59,11 @@
     min-width: 25vw;
     justify-content: space-between;
 }
+
+.appointment-cell-buttons > *:only-child {
+  margin-left: auto;
+}
+
 .appointment-cell-button{
     font-size: 0.9vw;
     font-weight: bold;
@@ -70,7 +75,9 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.3vw;
+    min-width: 10vw;
 }
 
 .appointment-cell-button:hover{

@@ -52,7 +52,7 @@
 }
 
 .filter-option{
-  padding: 1vw;
+  padding: 0.5vw;
   padding-bottom: 0;
 }
 
@@ -62,20 +62,20 @@
   align-items: center;
   gap: 1vw;
   border-bottom: 1px solid #ccc;
-  padding-bottom: 1vh;
 }
 
 .filter-input-container:last-of-type{
   border-bottom: none;
-  padding-bottom: 1vw;
+  padding-bottom: 0.5vw;
 }
 
 .filter-input{
   width: 100%;
-  border: none;
   background: transparent;
   font-size: 1.2em;
   color: #3B7658;
+  border: 1px solid #6c788e57;
+  border-radius: 5px;
 }
 
 .filter-input:focus{
@@ -93,7 +93,7 @@
 }
 
 .filter-list-item{
-  padding: 1vw;
+  padding: 0.5vw;
   border-bottom: 1px solid #ccc;
   list-style-type: none;
   transition: transform 0.2s ease
@@ -108,16 +108,56 @@
   transform: scale(1.02);
 }
 
-.delete-filters{
+.single-filter{
   cursor: pointer;
   display: flex;
   align-items: center;
-  font-size: 1.3em;
+  font-size: 1.2em;
   color: #6C788E;
-  padding: 1vw;
   border-bottom: 1px solid #ccc;
   list-style-type: none;
   transition: transform 0.2s ease
+}
+
+.checkbox-filter{
+  font-size: 1em;
+  display: flex;
+  align-items: center;
+}
+
+.custom-checkbox{
+  appearance: none;
+  -webkit-appearance: none; /* Prefijo para Safari/Chrome */
+  -moz-appearance: none;    /* Prefijo para Firefox */
+  width: 1.1em; 
+  height: 1.1em;
+  border: 2px solid #6C788E; 
+  border-radius: 5px;
+  background-color: transparent; 
+  display: inline-block; 
+  position: relative; 
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 70%;
+  transition: all 0.2s ease-in-out;
+  vertical-align: middle;
+}
+
+.custom-checkbox:checked {
+  border-color: #4CAF50;
+  /* SVG (gráfico vectorial) insertado directamente en el CSS.Es la forma más nítida de añadir un ícono sin archivos externos.*/
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%234CAF50' stroke-width='3' d='M3 8l3 3 7-7'/%3E%3C/svg%3E");
+}
+
+.checkbox-filter-label{
+  cursor:pointer;
+  width: 100%;
+  padding: 0.5vw;
+}
+
+.delete-filters{
+  padding: 0.5vw;
 }
 
 @media (max-width: 768px) {

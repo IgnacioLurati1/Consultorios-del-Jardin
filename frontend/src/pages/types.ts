@@ -77,7 +77,7 @@ export interface Appointment {
     finalHour: string;
     value: number;
     type: "simple" | "taller";
-    cancelDate: string;
+    state: string;
     professional: string;
     room: Room;
     diagnostics: Diagnostic[];
