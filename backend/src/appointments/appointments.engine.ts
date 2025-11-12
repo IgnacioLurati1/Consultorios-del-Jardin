@@ -55,7 +55,7 @@ export class AppointmentEngine {
       professional: await this.peopleService.findPersonByEmail(professionalEmail, this.em),
       room,
       value,
-      cancelDate: "accepted",
+      state: "accepted",
     });
 
     if (type === "simple" && patientEmail) {
@@ -75,7 +75,7 @@ export class AppointmentEngine {
       initialHour: appointment.initialHour,
       finalHour: appointment.finalHour,
       type: appointment.type,
-      cancelDate: appointment.cancelDate,
+      state: appointment.state,
     };
   }
 
@@ -134,7 +134,7 @@ export class AppointmentEngine {
         initialHour,
         professional: { email: professionalEmail },
         type: "taller",
-        cancelDate: { $in: ["pending", "accepted"] },
+        state: { $in: ["pending", "accepted"] },
       });
       if (!appointment) {
         if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
@@ -147,7 +147,7 @@ export class AppointmentEngine {
           professional,
           room,
           value: 0,
-          cancelDate: "pending",
+          state: "pending",
         });
       }
     } else {
@@ -161,7 +161,7 @@ export class AppointmentEngine {
         professional,
         room,
         value: 0,
-        cancelDate: "pending",
+        state: "pending",
       });
     }
     appointment.diagnostics.add(
@@ -179,7 +179,7 @@ export class AppointmentEngine {
       initialHour: appointment.initialHour,
       finalHour: appointment.finalHour,
       type: appointment.type,
-      cancelDate: appointment.cancelDate,
+      state: appointment.state,
     };
   }
 
@@ -243,7 +243,7 @@ export class AppointmentEngine {
                   date: new Date(currentDate),
                   initialHour: { $lt: finalHour },
                   finalHour: { $gt: initialHour },
-                  cancelDate: { $in: ["pending", "accepted"] },
+                  state: { $in: ["pending", "accepted"] },
                   professional: { email: professionalEmail },
                 },
                 { populate: ["diagnostics", "diagnostics.patient"] }
