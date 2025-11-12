@@ -16,15 +16,19 @@ import {
   createProfessionalAppointment,
   addPatientToAppointment,
   getAvailableAppointmentsForPatient,
+  getPatientMedicalHistory,
+  getPersonalMedicalHistory,
 } from "./appointments.controller.js";
 
 export const appointmentRouter = Router();
 
-appointmentRouter.get("/patient", getPatientAppointments);
-appointmentRouter.get("/professional", getProfessionalAppointments);
+appointmentRouter.get("/patient/:page", getPatientAppointments);
+appointmentRouter.get("/professional/:page", getProfessionalAppointments);
 appointmentRouter.get("/pending", getPendingAppointments);
 appointmentRouter.get("/:numAppointment/diagnostic", getDiagnostic);
 appointmentRouter.get("/:numAppointment/diagnostics", getAppointmentDiagnostics);
+appointmentRouter.get("/medical-history", getPersonalMedicalHistory);
+appointmentRouter.get("/medical-history/:patientEmail", getPatientMedicalHistory);
 
 appointmentRouter.patch("/:numAppointment/observations", sanitizeAppointmentInput, addObservation);
 appointmentRouter.patch("/:numAppointment/accept", sanitizeAppointmentInput, acceptAppointment);

@@ -21,6 +21,7 @@ function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunctio
     observations: req.body.observations,
     patientEmail: req.body.patientEmail,
     state: req.body.state,
+    page: req.body.page,
   };
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -36,7 +37,8 @@ function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunctio
 async function getPatientAppointments(req: RequestWithUser, res: Response) {
   // Email is obtained from the authenticated user token
   try {
-    const appointments = await appointmentService.findPatientAppointmentsByEmail(req.user.email);
+    const page = Number.parseInt((req.params.page as string) || "0");
+    const appointments = await appointmentService.findPatientAppointmentsByEmail(req.user.email, page);
     res.status(200).json({ data: appointments });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -66,7 +68,7 @@ async function getPatientMedicalHistory(req: RequestWithUser, res: Response) {
   try {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
-    const medicalHistory = await appointmentService.getPatientMedicalHistory(req.user.email, req.body.patientEmail);
+    const medicalHistory = await appointmentService.getPatientMedicalHistory(req.user.email, req.params.patientEmail);
     res.status(200).json({ data: medicalHistory });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -78,7 +80,8 @@ async function getProfessionalAppointments(req: RequestWithUser, res: Response) 
   // Additionally, it populates the room and diagnostics data for each appointment
   try {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
-    const appointments = await appointmentService.findProfessionalAppointmentsByEmail(req.user.email);
+    const page = Number.parseInt((req.params.page as string) || "0");
+    const appointments = await appointmentService.findProfessionalAppointmentsByEmail(req.user.email, page);
     res.status(200).json({ data: appointments });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -279,4 +282,6 @@ export {
   createProfessionalAppointment,
   addPatientToAppointment,
   getAvailableAppointmentsForPatient,
+  getPersonalMedicalHistory,
+  getPatientMedicalHistory,
 };

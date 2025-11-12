@@ -23,8 +23,14 @@ export class AppointmentService {
     this.roomService = new RoomService();
   }
 
-  async findPatientAppointmentsByEmail(patientEmail: string): Promise<Appointment[]> {
-    return await em.find(Appointment, { diagnostics: { patient: { email: patientEmail } } }, { populate: ["room.office", "diagnostics"] });
+  async findPatientAppointmentsByEmail(patientEmail: string, page = 0): Promise<Appointment[]> {
+    const limit = 15;
+    const offset = page * limit;
+    return await em.find(
+      Appointment,
+      { diagnostics: { patient: { email: patientEmail } } },
+      { populate: ["room.office", "diagnostics"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
+    );
   }
 
   async getPersonalMedicalHistory(patientEmail: string) {
@@ -40,15 +46,17 @@ export class AppointmentService {
   }
 
   async findUniqueProfessionalAppointment(professionalEmail: string, numAppointment: number) {
-    return await em.findOneOrFail(
-      Appointment,
-      { professional: { email: professionalEmail }, numAppointment: numAppointment },
-      { populate: ["room.office", "diagnostics"] }
-    );
+    return await em.findOneOrFail(Appointment, { professional: { email: professionalEmail }, numAppointment: numAppointment });
   }
 
-  async findProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
-    return await em.find(Appointment, { professional: { email: professionalEmail } }, { populate: ["room.office", "diagnostics"] });
+  async findProfessionalAppointmentsByEmail(professionalEmail: string, page = 0): Promise<Appointment[]> {
+    const limit = 15;
+    const offset = page * limit;
+    return await em.find(
+      Appointment,
+      { professional: { email: professionalEmail } },
+      { populate: ["room.office", "diagnostics"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
+    );
   }
 
   async findPendingProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
