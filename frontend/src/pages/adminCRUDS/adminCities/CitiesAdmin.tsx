@@ -5,7 +5,7 @@ import "../../homePages/adminHome/AdminHome.css"
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone";
 import { FaPlus } from "react-icons/fa";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { findAllCities, createCity, removeCity, updateCity} from "./CityService.ts";
 import { findAllActiveProvinces} from "../adminProvinces/ProvinceService.ts"
 import type {Province, City} from "../../types.ts";
@@ -27,7 +27,12 @@ export function CitiesAdmin() {
         findAllActiveProvinces()
         .then(data => {
         setProvinces(data.filter((province: Province) => province.active));
-        setLoading(false); });
+        setLoading(false); 
+        })
+        .catch(err => {
+            toast.error(`Error cargando provincias: ${err.message}`);
+            setLoading(false);
+        });
     }, []);
 
     useEffect(() => {
@@ -47,7 +52,11 @@ export function CitiesAdmin() {
             })
             );
         setLoading(false);
-      });
+        })
+        .catch(err => {
+            toast.error(`Error cargando localidades: ${err.message}`);
+            setLoading(false);
+        });
     }, []);
   
     useEffect(() => {
@@ -58,34 +67,49 @@ export function CitiesAdmin() {
     }, [searchTerm, cities]);
 
     async function addCity(newCity: { nameCity: string; province: string }) {
+        try{
         const createdCity = await createCity(newCity)
         if(createdCity){
             setCities([createdCity, ...cities]);
+            toast.success(`Localidad creada con éxito`);
             setModalVisible(false);
         }
+    } catch (error:any){
+        toast.error(`Error al crear la Localidad: ${error.message}`);
     }
+}
 
     async function deleteCity(id: string) {
+        try{
     if (await removeCity(id)){
         setCities(cities.map(city => city.idCity !== id ? city : { ...city, active: false }));
+        toast.success(`Localidad eliminada con éxito`);
         setModalVisible(false);
     }
+  } catch (error:any){
+    toast.error(`Error al eliminar la Localidad: ${error.message}`);
   }
+}
 
     async function EditCity(updatedCity: { idCity: string; nameCity: string; province: string} , active: boolean) {
-        
+        try{
         const updatedCityFromBackend = await updateCity(updatedCity, active);
         if(active && updatedCityFromBackend){
             setCities(cities.map(city => city.idCity === updatedCityFromBackend.idCity ? updatedCityFromBackend : city));
+            toast.success(`Localidad modificada con éxito`);
             setModalVisible(false);
             setEditData(null);
         }
         else if(!active){
             setCities(cities.map(city => city.idCity !== updatedCity.idCity ? city : { ...city, active: true }));
+            toast.success(`Localidad reactivada con éxito`);
             setModalVisible(false);
             setEditData(null);
         }
+    } catch (error:any){
+        toast.error(`Error al modificar la Localidad: ${error.message}`);
     }
+}
 
     return (
         <div className="admin-home">
@@ -116,5 +140,4 @@ export function CitiesAdmin() {
             <CityModal visible={modalVisible} city={editData} provinces={provinces} onClose={()=> setModalVisible(false)} onEdit={EditCity} onDelete={deleteCity} onCreate={addCity} type = {modalType}/>
         </div>
     );
-
 }

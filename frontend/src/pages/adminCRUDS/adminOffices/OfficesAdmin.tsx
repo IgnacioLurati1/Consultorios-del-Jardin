@@ -4,7 +4,7 @@ import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
 import { OfficeLabel } from "./OfficeLabel.tsx";
 import { OfficeModal } from "./OfficeModal.tsx";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import type {Office, Province, City} from "../../types.ts";
 import SearchBar from "../../../components/searchBar/searchBar.tsx";
 import { findAllOffices, createOffice, updateOffice, removeOffice} from "./OfficeService.ts";
@@ -57,6 +57,9 @@ export function OfficesAdmin() {
                     return weight(a) - weight(b);
                 })
                 );
+              })
+        .catch(err => {
+            toast.error(`Error al cargar consultorios: ${err.message}`);
             setLoading(false);
         });
     }, []);
@@ -84,9 +87,9 @@ export function OfficesAdmin() {
 
   useEffect(() => {
     findAllActiveCities()
-    .then(data => {
-      setCities(data);
-      setLoading(false); })
+      .then((data) => setCities(data))
+      .catch((err) => toast.error(`Error al cargar las ciudades: ${err.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -94,37 +97,49 @@ export function OfficesAdmin() {
     .then(data => {
       setProvinces(data);
       setLoading(false); })
+      .catch(err => toast.error(`Error al cargar las provincias: ${err.message}`))
+      setLoading(false);
   }, []);
-
-//async functions------------------
 
   async function addOffice(description: string, openingTime: string, closingTime:string, city:string) {
 
     const createdOffice = await createOffice( description, openingTime, closingTime, city)
     if(createdOffice){
       setOffices([createdOffice, ...offices]);
+      toast.success(`Consultorio creado con éxito`);
       setModalVisible(false);
     }
   }
 
   async function deleteOffice(id: string){
+    try{
     if(await removeOffice(id)){
       setOffices(offices.map(office => office.idOffice !== id? office: {...office, active:false}));
+      toast.success(`Consultorio eliminado con éxito`);
       setModalVisible(false);
     }
+  } catch (error:any){
+    toast.error(`Error al eliminar el consultorio: ${error.message}`);
   }
+}
 
   async function editOffice(id: string, description: string, openingTime: string, closingTime: string, cityId: string, active: boolean){
+    try{
     const updatedOffice = await updateOffice(id, description, openingTime, closingTime, cityId, active);
     if(active && updatedOffice){
+      toast.success(`Consultorio modificado con éxito`);
       setModalVisible(false);
       setOffices(offices.map(office => office. idOffice !== id? office: updatedOffice));
     } 
       else if(!active){
       setOffices(offices.map(office => office.idOffice !== id? office: {...office, active: true}));
+      toast.success(`Consultorio reactivado con éxito`);
       setModalVisible(false);
     }
+  } catch (error:any){
+    toast.error(`Error al modificar el consultorio: ${error.message}`);
   }
+}
     
   return (
         <div className="admin-home">

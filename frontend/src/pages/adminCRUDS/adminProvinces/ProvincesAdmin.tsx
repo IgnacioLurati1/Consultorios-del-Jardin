@@ -5,7 +5,7 @@ import { ProvinceModal } from "./ProvinceModal.tsx";
 import "../adminCRUDS.css";
 import { NavZone } from "../../../components/navZone/NavZone.tsx";
 import { FaPlus } from "react-icons/fa";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { createProvince, removeProvince, updateProvince, findAllProvinces } from "./ProvinceService.ts";  
 import type { Province } from "../../types.ts";
 import SearchBar from "../../../components/searchBar/searchBar.tsx";
@@ -26,6 +26,10 @@ export function ProvincesAdmin() {
             setLoading(false);
             setProvinces(data);
             setFilteredProvinces(data.sort((a: Province, b: Province) => Number(b.active) - Number(a.active)));
+        })
+        .catch(err => {
+          toast.error(`Error cargando provincias: ${err.message}`);
+          setLoading(false);
         });
     }, []);
 
@@ -39,31 +43,46 @@ export function ProvincesAdmin() {
 // Handlers
 
   async function addProvince(newName: string) {
-
+    try{
     const createdProvince = await createProvince(newName);
     if (createdProvince) {
-        setModalVisible(false);
         setProvinces([createdProvince, ...provinces]);
+        toast.success('Provincia creada con éxito');
+        setModalVisible(false);
       }
+  } catch (err: any) {
+    toast.error(`Error al crear provincia: ${err.message}`);
   }
+}
 
   async function deleteProvince(id: string) {
+    try{
     if(await removeProvince(id)) {
-      setModalVisible(false);
       setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: false }));
+      toast.success('Provincia eliminada con éxito');
+      setModalVisible(false);
     }
+  } catch (err: any) {
+    toast.error(`Error al eliminar provincia: ${err.message}`);
   }
+}
 
   async function editProvince(id: string, newName: string, active: boolean) {
+    try{
     const updatedProvince = await updateProvince(id, newName, active);
     if (active && updatedProvince) {
-      setModalVisible(false);
       setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : updatedProvince));
+      toast.success('Provincia modificada con éxito');
+      setModalVisible(false);
     } else if(!active) {
       setProvinces(provinces.map(prov => prov.idProvince !== id ? prov : { ...prov, active: true }));
+      toast.success('Provincia reactivada con éxito');
       setModalVisible(false);
     }
+  } catch (err: any) {
+    toast.error(`Error al modificar provincia: ${err.message}`);
   }
+}
 
   // Jsx 
     return (

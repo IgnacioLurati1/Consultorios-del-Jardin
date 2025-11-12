@@ -1,12 +1,10 @@
-import {toast} from "react-toastify";
 import api from "../../../axios";
 import type {Room} from "../../types.ts"
 
 export function findAllRooms(): Promise<Room[]>{
     return api.get('/rooms')
     .then(response => response.data.data)
-    .catch(err => {
-        toast.error(`Error al obtener salas: ${err.message}`);
+    .catch(() => {
         return [];
     });
 }
@@ -14,16 +12,14 @@ export function findAllRooms(): Promise<Room[]>{
 export function findAllActiveRooms(): Promise<Room[]>{
     return api.get('/rooms/active')
     .then(response => response.data.data)
-    .catch(err => {
-        toast.error(`Error al obtener salas: ${err.message}`);
+    .catch(() => {
         return [];
     });
 }
 
 export function createRoom(newRoom: { description: string; office: string }): Promise<Room | undefined>{
     if (!newRoom.description.trim() || !newRoom.office) {
-        toast.error('Se necesitan los campos necesarios para crear una sala')
-        return Promise.resolve(undefined);
+        throw new Error('Se necesitan los campos necesarios para crear una sala');
     }
 
     return api.post('/Rooms', {
@@ -32,12 +28,11 @@ export function createRoom(newRoom: { description: string; office: string }): Pr
         office: newRoom.office
     })
     .then(created => {
-        toast.success('Sala creada con éxito');
         return created.data.data
     })
     .catch(err => {
         const backendMsg = err.response?.data?.message || err.message;
-        toast.error(`Error al crear Sala: ${backendMsg}`);
+        throw new Error(backendMsg);
     });
 }
 
@@ -46,19 +41,17 @@ export function removeRoom(id: string): Promise<boolean>{
     
     return api.patch(`/rooms/${id}/toggle-state`)
         .then( ()=>{
-            toast.success(`Sala eliminada con éxito`);
             return true;
         })
         .catch(err => {
-            toast.error(`Error al eliminar sala: ${err.message}`)
-            return false;
+            const backendMsg = err.response?.data?.message || err.message;
+            throw new Error(backendMsg);
         });
 }
 
 export function updateRoom(updatedRoom: { idRoom: string; description: string; office: string} , active: boolean):Promise<Room | undefined | void>{
     if(!updatedRoom.description.trim() || !updatedRoom.office){
-        toast.error('No se pueden enviar parámetros vacíos')
-        return Promise.resolve(undefined)
+        throw new Error('Se necesitan los campos necesarios para modificar una sala');
     }
 
     if(active){
@@ -67,25 +60,22 @@ export function updateRoom(updatedRoom: { idRoom: string; description: string; o
             office: updatedRoom.office
         })
         .then(updated => {
-            toast.success(`Sala modificada con éxito`);
             return updated.data.data
         })
         .catch(err =>{
             const backendMsg = err.response?.data?.message || err.message;
-            toast.error(`Error al crear sala: ${backendMsg}`);
+            throw new Error(backendMsg);
         });
     }
     else{
 
         return api.patch(`/rooms/${updatedRoom.idRoom}/toggle-state`)
         .then(()=>{
-            toast.success(`Sala reactivada con éxito`);
+            return;
         })
         .catch(err => {
-            toast.error(`Error al modificar sala: ${err.message}`);
+            const backendMsg = err.response?.data?.message || err.message;
+            throw new Error(backendMsg);
         });
     };
 }
-
-
-
