@@ -31,6 +31,20 @@ export class PeopleService {
     return em.findOne(Person, { email });
   }
 
+  async findProfesionalByOffice(officeId: number, speciality?: string): Promise<Person[]> {
+    const query = em.createQueryBuilder(Person, "p")
+      .select(['p.*'])
+      .join('p.schedules', 's')
+      .join('s.room', 'r')
+      .where({ 'r.office': officeId, 'p.type': 'professional', 'p.active': true });
+
+    if (speciality) {
+      query.andWhere({ 'p.speciality': speciality });
+    }
+
+    return await query.getResultList();
+  }
+
   async createPerson(data: RequiredEntityData<Person>) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const person = em.create(Person, { ...data, password: hashedPassword });
