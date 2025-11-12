@@ -1,23 +1,31 @@
 import { useEffect, useState } from "react";
-import type { Office, Person } from "../../types.ts"
+import type { Office, Person, Appointment, Schedule } from "../../types.ts"
 import './appointmentDetails.css';
+import './appointmentDetailsTable.css';
 import { FaChevronLeft, FaPhone, FaUserTie } from 'react-icons/fa';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation} from 'react-router-dom';
 import { toast } from "react-toastify";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
-import { BiColor } from "react-icons/bi";
-
-
-interface AppointmentDetailsProps {
-    office: Office;
-    professional: Person;
-}
+import { daysSpanish } from "../appointmentTypes.ts";
+import type { appointmentDetailsProps } from "../appointmentTypes.ts";
+import { AppointmentGridModule } from "./gridAppointment/appointmentGridModule.tsx";
+import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 
 export function AppointmentDetails() {
 
     const [patient, setPatient] = useState<Person | undefined>(undefined);
+    const [showSimple, setShowSimple] = useState(true);
+    const [showTaller, setShowTaller] = useState(true);
+    const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+    const [Schedules, setSchedules] = useState<Schedule[]>([]);
+    const openingTime = "08:00";
+    const closingTime = "20:00";
+    const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
+    const [selectedKey, setSelectedKey] = useState<string | undefined>();
+    const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
+
     const location = useLocation();
-    const state = location.state as AppointmentDetailsProps | null;
+    const state = location.state as appointmentDetailsProps | null;
 
     useEffect(() => {
         const decoded = getDecodedToken();
@@ -34,13 +42,25 @@ export function AppointmentDetails() {
             .catch(err => toast.error(`Error al cargar el paciente: ${err.message}`));
     }, []);
 
-    if (!state || patient === undefined) {
-        return <div>No se proporcionaron detalles del turno.</div>;
+    const office = state?.office;
+    const professional = state?.professional;
+
+    useEffect(() => {
+    if (state && professional) {
+        findProfessionalSchedules(professional.email)
+        .then(data => {
+            setSchedules(data);
+            setFilteredSchedules(data);
+        })
+        .catch(err => {
+            toast.error(`Error al obtener horarios del profesional: ${err.message}`);
+        });
     }
-
-    const office = state.office;
-    const person = state.professional;
-
+    }, [professional]);
+    
+    if (!office || !professional || !patient) {
+        return <div>Faltan datos del paciente o profesional u oficina.</div>;
+    }else {
     return (
         <>
             <div className="appointment-details-container">
@@ -55,73 +75,103 @@ export function AppointmentDetails() {
                     <div className="appointment-details-content">
                         <div className="appointment-details-grid">
                             {/* Paciente Section */}
-                            <div className="patient-section">
-                                <div className="section-header">
-                                    <h2 className="section-title">Paciente</h2>
-                                    <FaChevronLeft className="section-chevron" size={20} />
+                            <div className="appointment-patient-section">
+                                <div className="appointment-section-header">
+                                    <h2 className="appointment-section-title">Paciente</h2>
+                                    <FaChevronLeft className="appointment-section-chevron" size={20} />
                                 </div>
 
-                                <div className="info-list">
+                                <div className="appointment-info-list">
                                     <div>
-                                        <span className="info-label">Nombre</span>
-                                        <span className="info-value"> - {patient.name}</span>
+                                        <span className="appointment-info-label">Nombre</span>
+                                        <span className="appointment-info-value"> - {patient.name}</span>
                                     </div>
                                     <div>
-                                        <span className="info-label">Apellido</span>
-                                        <span className="info-value"> - {patient.surname}</span>
+                                        <span className="appointment-info-label">Apellido</span>
+                                        <span className="appointment-info-value"> - {patient.surname}</span>
                                     </div>
                                     <div>
-                                        <span className="info-label">Email</span>
-                                        <span className="info-value"> - {patient.email}</span>
+                                        <span className="appointment-info-label">Email</span>
+                                        <span className="appointment-info-value"> - {patient.email}</span>
                                     </div>
                                     <div>
-                                        <span className="info-label">Telefono</span>
-                                        <span className="info-value"> - {patient.phoneNumber}</span>
+                                        <span className="appointment-info-label">Telefono</span>
+                                        <span className="appointment-info-value"> - {patient.phoneNumber}</span>
                                     </div>
                                     <div>
-                                        <span className="info-label">DNI</span>
-                                        <span className="info-value"> - {patient.docNumber}</span>
+                                        <span className="appointment-info-label">DNI</span>
+                                        <span className="appointment-info-value"> - {patient.docNumber}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Profesional Section */}
-                            <div className="professional-section">
-                                <div className="section-header">
-                                <h2 className="section-title">Profesional</h2>
-                                <FaChevronLeft className="section-chevron" size={20} />
+                            <div className="appointment-professional-section">
+                                <div className="appointment-section-header">
+                                <h2 className="appointment-section-title">Profesional</h2>
+                                <FaChevronLeft className="appointment-section-chevron" size={20} />
                                 </div>
 
-                                <div className="professional-details-info">
-                                    <div className="professional-details-card">
-                                        <div className="professional-details-avatar">
-                                            <FaUserTie className="avatar-details-icon" />
+                                <div className="appointment-professional-details-info">
+                                    <div className="appointment-professional-details-card">
+                                        <div className="appointment-professional-details-avatar">
+                                            <FaUserTie className="appointment-avatar-details-icon" />
                                         </div>
 
-                                        <div className="professional-details">
-                                            <div className="professional-name-wrapper">
-                                                <span className="professional-name">{person.name + ", " +person.surname}</span>
-                                                <FaPhone size={16} className="professional-phone" />
+                                        <div className="appointment-professional-details">
+                                            <div className="appointment-professional-name-wrapper">
+                                                <span className="appointment-professional-name">{professional.name + ", " +professional.surname}</span>
+                                                <FaPhone size={16} className="appointment-professional-phone" />
                                             </div>
-                                            <p className="professional-specialty">{person.speciality}</p>
+                                            <p className="appointment-professional-specialty">{professional.speciality}</p>
                                         </div>
                                     </div>
 
-                                    <div className="location-info">
-                                        <span className="info-label">Lugar</span>
-                                        <span className="info-value"> - {office.description + ", " + office.city.nameCity}</span>
+                                    <div className="appointment-location-info">
+                                        <span className="appointment-info-label">Lugar</span>
+                                        <span className="appointment-info-value"> - {office.description + ", " + office.city.nameCity}</span>
                                     </div>
                                 </div>
 
-                            <button className="reserve-btn">Reservar turno</button>
+                            <button className="appointment-reserve-btn">Reservar turno</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div className="appointment-details-table-container">
-                <div>Aca va la tabla de turnos</div>
+                <div className="appointment-header-table-container">
+                    <div>
+                        <div className="appointment-instruction">Seleccione un horario para su turno:</div>
+                    </div>
+                    <div className="appointment-filter-container">
+                        <div className="appointment-checkbox-simple">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={showSimple}
+                                    onChange={() => setShowSimple(!showSimple)}
+                                />
+                                <span>Turno simple</span>
+                            </label>
+                        </div>
+                        <div className="appointment-checkbox-taller">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={showTaller}
+                                    onChange={() => setShowTaller(!showTaller)}
+                                />
+                                <div>Turno taller</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="appointment-table-container">
+                    <AppointmentGridModule schedules={filteredSchedules} showSimple={showSimple} showTaller={showTaller} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
+                </div>
             </div>
         </>
     );
-}
+}}

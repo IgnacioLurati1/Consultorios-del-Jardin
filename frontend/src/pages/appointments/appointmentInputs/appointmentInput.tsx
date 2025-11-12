@@ -3,7 +3,7 @@ import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeServic
 import { ToastContainer, toast } from "react-toastify";
 import type{Office, Person} from "../../types.ts"
 import './appointmentInput.css';
-import { findAllProfessionals } from '../../scheduleProfessional/scheduleServices.ts';
+import { findAllProfessionals } from "../../adminCRUDS/adminUsers/usersService.ts";
 import { FaExclamationTriangle } from "react-icons/fa";
 import { ProfessionalCard } from './professionalCard.tsx';
 

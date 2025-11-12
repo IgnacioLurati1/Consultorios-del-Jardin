@@ -41,20 +41,27 @@ export interface Person{
     active: boolean;
 }
 
-export interface Duration{
-    idDuration: string;
-    duration: string;
-}
-
 export interface Schedule {
     day: "lunes"|"martes"|"miercoles"|"jueves"|"viernes"|"sabado";
-    initialHour: string;
+    initialHour: string; //"HH:MM"
     person: Person;
     room: Room;
     finalHour: string;
     active: boolean;
     allowedType: "simple" | "taller";
     duration: number
+}
+
+export interface Appointment {
+    numAppointment: number;
+    date: string;
+    initialHour: string;
+    finalHour: string;
+    value: number;
+    room: Room;
+    professional: string; //email del profesional
+    type: "simple" | "taller";
+    cancelDate: string //pending - accepted - Date
 }
 
 export interface TokenPayload {
