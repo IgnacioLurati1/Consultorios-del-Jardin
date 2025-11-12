@@ -9,9 +9,10 @@ import { orm, syncSchema } from "./shared/db/orm.js";
 import { RequestContext } from "@mikro-orm/core";
 import { verifyToken } from "./config/middlewares.js";
 import { Request, Response } from "express";
-import { scheduleRouter } from './schedule/schedule.routes.js'
+import { scheduleRouter } from "./schedule/schedule.routes.js";
 import refreshToken from "./config/refreshToken.js";
 import cookieParser from "cookie-parser";
+import { appointmentRouter } from "./appointments/appointments.routes.js";
 
 const app = express();
 app.use(express.json());
@@ -26,11 +27,12 @@ app.use("/api/cities", verifyToken, cityRouter);
 app.use("/api/people", personRouter);
 app.use("/api/offices", verifyToken, officeRouter);
 app.use("/api/rooms", verifyToken, roomRouter);
-app.use('/api/schedules', verifyToken, scheduleRouter)
+app.use("/api/schedules", verifyToken, scheduleRouter);
 app.use("/api/tokenStatus", verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: "Token válido" });
 });
 app.use("/api/refreshToken", refreshToken);
+app.use("/api/appointments", verifyToken, appointmentRouter);
 
 app.use((_, res) => {
   return res.status(404).send({ message: "Resource not found" });
