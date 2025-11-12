@@ -34,7 +34,6 @@ function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunctio
 // GETS
 
 async function getPatientAppointments(req: RequestWithUser, res: Response) {
-  // This method does not retrieve diagnostics, only appointments
   // Email is obtained from the authenticated user token
   try {
     const appointments = await appointmentService.findPatientAppointmentsByEmail(req.user.email);
@@ -55,9 +54,8 @@ async function getDiagnostic(req: RequestWithUser, res: Response) {
 }
 
 async function getProfessionalAppointments(req: RequestWithUser, res: Response) {
-  // This method does not retrieve diagnostics, only appointments
   // Email is obtained from the authenticated user token
-  // Additionally, it populates the room and office data for each appointment
+  // Additionally, it populates the room and diagnostics data for each appointment
   try {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
     const appointments = await appointmentService.findProfessionalAppointmentsByEmail(req.user.email);
