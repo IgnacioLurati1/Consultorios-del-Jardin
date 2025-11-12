@@ -105,7 +105,7 @@ async function createPatientAppointment(req: RequestWithUser, res: Response) {
       professionalEmail,
       office
     );
-    res.status(201).json({ message: "Appointment created successfully", data: appointment });
+    res.status(201).json({ message: "Turno creado con éxito", data: appointment });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -129,7 +129,7 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
       finalHour,
     });
     //Devolver algo?
-    res.status(200).json({ message: "Appointment updated successfully" });
+    res.status(200).json({ message: "Turno actualizado con éxito" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -143,7 +143,7 @@ async function deleteAppointment(req: RequestWithUser, res: Response) {
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     await appointmentService.deleteAppointment(numAppointment, req.user.email);
-    res.status(200).json({ message: "Appointment deleted successfully" });
+    res.status(200).json({ message: "Turno eliminado con éxito" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

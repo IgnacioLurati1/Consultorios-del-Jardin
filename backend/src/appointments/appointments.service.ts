@@ -42,7 +42,7 @@ export class AppointmentService {
   async findPendingProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
     return await em.find(
       Appointment,
-      { professional: { email: professionalEmail }, cancelDate: "pending" },
+      { professional: { email: professionalEmail }, state: "pending" },
       { populate: ["room", "room.office"] }
     );
   }
@@ -55,7 +55,7 @@ export class AppointmentService {
   async deleteAppointment(num: number, professionalEmail: string) {
     const appointment = await em.findOneOrFail(Appointment, {
       numAppointment: num,
-      cancelDate: "pending",
+      state: "pending",
       professional: { email: professionalEmail },
     });
     em.remove(appointment);
@@ -68,7 +68,7 @@ export class AppointmentService {
       Appointment,
       {
         numAppointment: num,
-        cancelDate: "accepted",
+        state: "accepted",
         professional: { email: professionalEmail },
       },
       { populate: ["diagnostics", "diagnostics.patient"] } // HABRIA QUE FILTRAR QUE DEVUELVE
@@ -120,7 +120,7 @@ export class AppointmentService {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
-      cancelDate: { $in: ["pending", "accepted"] },
+      state: { $in: ["pending", "accepted"] },
       diagnostics: { patient: { email: patientEmail } },
     });
     return appointment;
@@ -137,7 +137,7 @@ export class AppointmentService {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
-      cancelDate: { $in: ["pending", "accepted"] },
+      state: { $in: ["pending", "accepted"] },
       professional: { email: professionalEmail },
     });
     return appointment;
@@ -190,11 +190,11 @@ export class AppointmentService {
   async acceptAppointment(num: number, professionalEmail: string) {
     const appointment = await em.findOneOrFail(Appointment, {
       numAppointment: num,
-      cancelDate: "pending",
+      state: "pending",
       professional: { email: professionalEmail },
     });
 
-    appointment.cancelDate = "accepted";
+    appointment.state = "accepted";
     await em.flush();
     return appointment;
   }
@@ -206,7 +206,7 @@ export class AppointmentService {
     });
 
     if (appointment.type === "taller" && type === "professional") {
-      appointment.cancelDate = new Date().toISOString();
+      appointment.state = new Date().toISOString();
     } else if (appointment.type === "taller" && type === "client") {
       let diagnostic = await this.getDiagnostic(email, num);
 
@@ -215,9 +215,9 @@ export class AppointmentService {
 
       await em.flush();
       return appointment;
-    } else if (appointment.type === "simple" && appointment.cancelDate === "accepted") {
-      appointment.cancelDate = new Date().toISOString();
-    } else if (appointment.type === "simple" && appointment.cancelDate === "pending") {
+    } else if (appointment.type === "simple" && appointment.state === "accepted") {
+      appointment.state = new Date().toISOString();
+    } else if (appointment.type === "simple" && appointment.state === "pending") {
       await this.deleteAppointment(num, appointment.professional.email);
     } else {
       throw new Error("El turno ya fue cancelado");

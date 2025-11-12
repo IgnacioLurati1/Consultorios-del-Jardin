@@ -1,10 +1,10 @@
-import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique, ManyToMany, OneToMany, Collection } from "@mikro-orm/core";
+import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique, ManyToMany, OneToMany, Collection, Cascade } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
 import { Diagnostic } from "./diagnostics.entity.js";
 
 @Entity()
-@Unique({ properties: ["date", "initialHour", "professional", "cancelDate"] })
+@Unique({ properties: ["date", "initialHour", "professional", "state"] })
 export class Appointment {
   @PrimaryKey()
   numAppointment?: number;
@@ -24,11 +24,11 @@ export class Appointment {
   @Property({ nullable: false })
   type!: "simple" | "taller";
 
-  @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment)
+  @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment, { orphanRemoval: true, cascade: [Cascade.REMOVE] })
   diagnostics = new Collection<Diagnostic>(this);
 
   @Property({ default: "pending" })
-  cancelDate: string = "pending";
+  state: string = "pending";
 
   @ManyToOne(() => Person, { nullable: false })
   professional!: Rel<Person>;
