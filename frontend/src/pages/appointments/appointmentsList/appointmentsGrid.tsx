@@ -18,7 +18,7 @@ export function AppointmentsGrid({
 }: AppointmentsGridProps) {
   
   return (
-    <div>
+    <div className="appointment-grid">
       {appointments.map(appointment => (
         <div key={appointment.numAppointment}>
           {/* 5. Pasar TODOS los props a la celda hija */}

@@ -1,16 +1,16 @@
 import api from "../../axios"
 import type { Appointment, Diagnostic } from "../types.ts";
 
-export function findPatientAppointments(): Promise<Appointment[]> {
-    return api.get(`/appointments/patient`)
+export function findPatientAppointments(page: number): Promise<Appointment[]> {
+    return api.get(`/appointments/patient/${page}`)
     .then(response => response.data.data)
     .catch(() => {
         return [];
     });
 }
 
-export function findProfessionalAppointments(): Promise<Appointment[]> {
-    return api.get(`/appointments/professional`)
+export function findProfessionalAppointments(page: number): Promise<Appointment[]> {
+    return api.get(`/appointments/professional/${page}`)
     .then(response => response.data.data)
     .catch(() => {
         return [];
@@ -45,4 +45,12 @@ export function updateDiagnostic(numAppointment: number, patientEmail: string, o
     })
     .then(() => true)
     .catch(() => false);
+}
+
+export function getPatienMedicalHistory(emailPatient: string): Promise <Diagnostic[]>{
+    return api.get(`api/appointments/medical-history/${emailPatient}`)
+    .then(response => response.data.data)
+    .catch(() => {
+        return [];
+    });
 }

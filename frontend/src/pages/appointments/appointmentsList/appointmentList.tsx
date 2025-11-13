@@ -30,7 +30,9 @@ export function AppointmentsList(){
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[] | []>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [peopleMap, setPeopleMap] = useState<Map<string,string>>(new Map());
-  const [personToFilter, setPersonToFilter] = useState<string | undefined>(undefined)
+  const [personToFilter, setPersonToFilter] = useState<string | undefined>(undefined);
+  const [pagesAppointment, setPagesAppointment] = useState<number>(0);
+  const [showButtonMore, setShowButtonMore] = useState(false);
 
   useEffect(() => {
 
@@ -50,18 +52,25 @@ export function AppointmentsList(){
 
 useEffect(() => {
     if (!person) return;
+    let ignore = false;
 
     setIsLoading(true);
     let promise;
 
     if (person.type === "professional") {
-      promise = findProfessionalAppointments();
+      promise = findProfessionalAppointments(pagesAppointment);
     } else {
-      promise = findPatientAppointments();
+      promise = findPatientAppointments(pagesAppointment);
     }
 
     promise.then(async (enrichedAppointments) => {
-      
+      if (ignore) return; //eliminar en produccion (se pone esto por el stricted mode que ejecuta las peticiones dos veces) 
+
+      if (enrichedAppointments.length == 15){
+        setShowButtonMore(true);
+      }else{
+        setShowButtonMore(false);
+      }
       // Extraer todos los emails únicos de la lista
       const uniqueEmails = new Set<string>();
       enrichedAppointments.forEach(app => {
@@ -85,16 +94,25 @@ useEffect(() => {
       });
       
       setPeopleMap(newPeopleMap);
-      setAppointments(enrichedAppointments); 
+      setAppointments(currentAppointments => [
+      ...currentAppointments, 
+      ...enrichedAppointments
+]);
     })
     .catch(err => {
+      if (ignore) return; //eliminar en produccion
       toast.error(`Error al obtener turnos: ${err.message}`);
     })
     .finally(() => {
+      if (ignore) return; //eliminar en produccion
       setIsLoading(false);
     });
 
-  }, [person]);
+    return () => {
+      ignore = true; //eliminar en produccion
+    };
+
+  }, [person, pagesAppointment]);
 
 
   // Callback para que la CELDA notifique al PADRE de cambios en DIAGNÓSTICOS
@@ -188,8 +206,8 @@ useEffect(() => {
   if(person){
     return (
         <div className="appointment-person-container">
-          <div className="appointment-subcontainer">
-            <div className="upper-container">
+          <div className="appointment-container">
+            <div className="upper-appointment-container">
                 <NavZone title={`Turnos de ${person.name}, ${person.surname}`}/>
                 <ToastContainer className = {`toast-container`} draggable={false}/>
                 <AppointmentsGridFilter appointments={appointments} 
@@ -208,7 +226,7 @@ useEffect(() => {
                 userType={person.type}
                 />
             </div>
-            <div className="appointment-container">
+            <div className="appointment-subcontainer">
               <AppointmentsGrid
               appointments={filteredAppointments}
               user={person}
@@ -216,7 +234,11 @@ useEffect(() => {
               onAppointmentStateUpdate={handleAppointmentStateUpdate}
             />
             </div>
-          </div>
+            {showButtonMore ? 
+              <button className="nextPageButton" onClick={()=>setPagesAppointment(pagesAppointment+1)}>Cargar mas turnos</button>
+            : <></>}
+            
+          </div>    
         </div>
       );
   } 
