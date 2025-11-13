@@ -4,10 +4,10 @@ import { RequiredEntityData } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
 import { Office } from "../offices/offices.entity.js";
+import { EntityManager } from "@mikro-orm/mysql";
 
 const em = orm.em;
 export class ScheduleService {
-
   //Validaciones
 
   removeAccents(str: string): string {
@@ -39,7 +39,7 @@ export class ScheduleService {
     const existingSchedules = await this.findScheduleByEmailAndDay(person, day);
 
     for (const schedule of existingSchedules) {
-      if ((initialHour < schedule.finalHour) && (finalHour > schedule.initialHour)) {
+      if (initialHour < schedule.finalHour && finalHour > schedule.initialHour) {
         return true; // Hay solapamiento
       }
     }
@@ -50,7 +50,7 @@ export class ScheduleService {
     const existingSchedules = await this.findScheduleByRoomAndDay(day, room);
 
     for (const schedule of existingSchedules) {
-      if ((initialHour < schedule.finalHour) && (finalHour > schedule.initialHour)) {
+      if (initialHour < schedule.finalHour && finalHour > schedule.initialHour) {
         return true; // Hay solapamiento
       }
     }
@@ -69,7 +69,7 @@ async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): P
 
   //CRUD basico
 
-  async findAllSchedules() : Promise<Schedule[]> {
+  async findAllSchedules(): Promise<Schedule[]> {
     return await em.find(Schedule, {});
   }
 
@@ -77,18 +77,36 @@ async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): P
     return await em.findOneOrFail(Schedule, { day, initialHour, person: { email: person } });
   }
 
-  async findScheduleByEmail(email: string) : Promise<Schedule[]> {
-    return await em.find(Schedule, { person: { email } }, { populate: ['room','person'] });
+  async findScheduleByEmail(email: string): Promise<Schedule[]> {
+    return await em.find(Schedule, { person: { email } }, { populate: ["room", "person"] });
   }
 
-  async findScheduleByEmailAndDay(person: Person, day: string) : Promise<Schedule[]> {
+  async findScheduleByEmailAndDay(person: Person, day: string): Promise<Schedule[]> {
     return await em.find(Schedule, { person, day });
   }
 
-  async findScheduleByRoomAndDay(day: string, room: Room) : Promise<Schedule[]> {
-    return await em.find(Schedule, {day, room});
+  async findScheduleByHourRange(initialHour: string, day: string, person: Person, office: Office, emT?: EntityManager): Promise<Schedule> {
+    return await (em || emT).findOneOrFail(
+      Schedule,
+      {
+        initialHour: { $lte: initialHour },
+        finalHour: { $gt: initialHour },
+        day,
+        person,
+        room: { office },
+      },
+      { populate: ["room"] }
+    );
+  }
+
+  async findScheduleByRoomAndDay(day: string, room: Room): Promise<Schedule[]> {
+    return await em.find(Schedule, { day, room });
   } // Metodo para buscar horarios por sala y día
 
+  async findSchedulesByProfessionalAndOffice(professional: Person, office: Office, emT?: EntityManager): Promise<Schedule[]> {
+    return await (em || emT).find(Schedule, { person: professional, room: { office } }, { populate: ["room"] });
+  }
+  
   async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
     
     data.day = this.removeAccents(data.day.trim().toLowerCase());
@@ -128,9 +146,8 @@ async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): P
     return schedule; 
   }
 
-  async updateSchedule(data: Partial<Schedule>) : Promise<Schedule> {
-
-    const schedule = await em.findOneOrFail(Schedule, { day : data.day, initialHour: data.initialHour, person: data.person as Person });
+  async updateSchedule(data: Partial<Schedule>): Promise<Schedule> {
+    const schedule = await em.findOneOrFail(Schedule, { day: data.day, initialHour: data.initialHour, person: data.person as Person });
 
     if (!schedule) throw new Error("Schedule not found");
 
@@ -139,26 +156,22 @@ async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): P
     return schedule;
   }
 
-  async removeSchedule(day: string, initialHour: string, person: string) : Promise<void> {
-
+  async removeSchedule(day: string, initialHour: string, person: string): Promise<void> {
     const deleted = await em.nativeDelete(Schedule, { day, initialHour, person: { email: person } });
 
     if (deleted === 0) throw new Error("Schedule not found");
   }
 
-
   //esto se podria eliminar
+  /*
   async toggleScheduleState(day: string, initialHour: string) {
-
     const schedule = await em.findOneOrFail(Schedule, { day, initialHour });
 
     if (!schedule) throw new Error("Schedule not found");
 
     schedule.active = !schedule.active;
-    
+
     await em.flush();
     return schedule;
-  }
+  } */
 }
-
-

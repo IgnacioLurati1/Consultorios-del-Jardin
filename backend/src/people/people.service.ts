@@ -1,6 +1,6 @@
 import { orm } from "../shared/db/orm.js";
 import { Person } from "./people.entity.js";
-import { RequiredEntityData } from "@mikro-orm/core";
+import { EntityManager, RequiredEntityData } from "@mikro-orm/core";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
@@ -27,8 +27,8 @@ export class PeopleService {
     return await em.find(Person, {type: {$ne: 'admin'}})
   }
 
-  async findPersonByEmail(email: string): Promise<Person> {
-    return em.findOneOrFail(Person, { email });
+  async findPersonByEmail(email: string, emT?: EntityManager): Promise<Person> {
+    return (emT || em).findOneOrFail(Person, { email });
   }
 
   async findPersonOrNull(email: string): Promise<Person | null> {
