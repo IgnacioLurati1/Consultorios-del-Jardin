@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import type { Office, Person, Appointment, Schedule } from "../../types.ts"
+import type {Person,Schedule } from "../../types.ts"
 import './appointmentDetails.css';
 import './appointmentDetailsTable.css';
 import { FaChevronLeft, FaPhone, FaUserTie } from 'react-icons/fa';
 import { useLocation} from 'react-router-dom';
 import { toast } from "react-toastify";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
-import { daysSpanish } from "../appointmentTypes.ts";
 import type { appointmentDetailsProps } from "../appointmentTypes.ts";
 import { AppointmentGridModule } from "./gridAppointment/appointmentGridModule.tsx";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
+import { AppointmentCreationModal } from "./appointmentModal/appointmentCreationModal.tsx";
 
 export function AppointmentDetails() {
 
@@ -17,11 +17,8 @@ export function AppointmentDetails() {
     const [showSimple, setShowSimple] = useState(true);
     const [showTaller, setShowTaller] = useState(true);
     const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
-    const [Schedules, setSchedules] = useState<Schedule[]>([]);
-    const openingTime = "08:00";
-    const closingTime = "20:00";
     const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
-    const [selectedKey, setSelectedKey] = useState<string | undefined>();
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
 
     const location = useLocation();
@@ -49,7 +46,6 @@ export function AppointmentDetails() {
     if (state && professional) {
         findProfessionalSchedules(professional.email)
         .then(data => {
-            setSchedules(data);
             setFilteredSchedules(data);
         })
         .catch(err => {
@@ -132,8 +128,6 @@ export function AppointmentDetails() {
                                         <span className="appointment-info-value"> - {office.description + ", " + office.city.nameCity}</span>
                                     </div>
                                 </div>
-
-                            <button className="appointment-reserve-btn">Reservar turno</button>
                             </div>
                         </div>
                     </div>
@@ -169,8 +163,12 @@ export function AppointmentDetails() {
                 </div>
 
                 <div className="appointment-table-container">
-                    <AppointmentGridModule schedules={filteredSchedules} showSimple={showSimple} showTaller={showTaller} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
+                    <AppointmentGridModule schedules={filteredSchedules} showSimple={showSimple} showTaller={showTaller} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedDate={setSelectedDate}/>
                 </div>
+                
+            </div>
+            <div>
+                <AppointmentCreationModal isOpen={appointmentModalOpen} onClose={() => setAppointmentModalOpen(false)} schedule={selectedSchedule} selectedDate={selectedDate} professional={professional} office={office}/>
             </div>
         </>
     );

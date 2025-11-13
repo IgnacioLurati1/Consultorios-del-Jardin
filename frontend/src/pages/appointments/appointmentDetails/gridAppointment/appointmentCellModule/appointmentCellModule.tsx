@@ -1,13 +1,14 @@
 import type{ cellModuleProps } from "../../../appointmentTypes.ts"
 import "./appointmentCellModule.css"
 
-export function AppointmentCellModule({cellKey,time,schedule,height, setAppointmentModalOpen, setSelectedSchedule, setSelectedKey}:cellModuleProps){
+export function AppointmentCellModule({date,time,schedule,height, setAppointmentModalOpen, setSelectedSchedule, setSelectedDate}:cellModuleProps){
 
     const handleClick = () => {
-        setAppointmentModalOpen(true);
-        setSelectedSchedule(schedule);
-        setSelectedKey(cellKey)
-        console.log("Clicked cell:", cellKey);
+        if (setAppointmentModalOpen){
+            setAppointmentModalOpen(true);
+            setSelectedSchedule(schedule);
+            setSelectedDate(date)
+        }
     }
     return(
         <div
