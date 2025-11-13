@@ -52,20 +52,28 @@ export interface Schedule {
     duration: number
 }
 
+export interface TokenPayload {
+    email:string;
+    type:string;
+    exp:number;
+}
+
+export interface Diagnostic {
+    appointment: number;
+    patient: string;
+    state: string;
+    observations: string;
+}
+
 export interface Appointment {
     numAppointment: number;
     date: string;
     initialHour: string;
     finalHour: string;
     value: number;
-    room: Room;
-    professional: string; //email del profesional
     type: "simple" | "taller";
-    cancelDate: string //pending - accepted - Date
-}
-
-export interface TokenPayload {
-    email:string;
-    type:string;
-    exp:number;
+    state: string;
+    professional: string;
+    room: Room;
+    diagnostics: Diagnostic[];
 }

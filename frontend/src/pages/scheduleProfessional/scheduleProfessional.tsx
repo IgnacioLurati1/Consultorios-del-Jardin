@@ -5,8 +5,8 @@ import type{ Person, Schedule, Room, Office, City} from "../types.ts"
 import { GridFilter } from "./gridFilter/gridFilter.tsx";
 import { useEffect, useState } from "react";
 import { ScheduleModal } from "./scheduleModal/scheduleModal.tsx";
-import {findProfessionalSchedules} from "./scheduleServices.ts"
-import {findAllProfessionals} from "../adminCRUDS/adminUsers/usersService.ts"
+import { findProfessionalSchedules } from "./scheduleServices.ts"
+import { finAllActiveProfessionals } from "../adminCRUDS/adminUsers/usersService.ts"
 import { ToastContainer, toast } from "react-toastify";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
 import { findAllActiveCities } from "../adminCRUDS/adminCities/CityService.ts";
@@ -53,7 +53,7 @@ export function ScheduleProfessional(){
     }
     else
       {
-    findAllProfessionals()
+    finAllActiveProfessionals()
     .then(data => {
         setProfessionalsList(data);
     })

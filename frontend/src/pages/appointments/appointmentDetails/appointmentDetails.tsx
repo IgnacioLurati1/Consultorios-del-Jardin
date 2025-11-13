@@ -10,6 +10,7 @@ import type { appointmentDetailsProps } from "../appointmentTypes.ts";
 import { AppointmentGridModule } from "./gridAppointment/appointmentGridModule.tsx";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 import { AppointmentCreationModal } from "./appointmentModal/appointmentCreationModal.tsx";
+import {createProfessionalAppointment, getAvailableAppointmentsForPatient} from "../appointmentsService.ts"
 
 export function AppointmentDetails() {
 

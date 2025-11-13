@@ -1,5 +1,5 @@
 import api from "../../../axios"
-import type { Person } from "../../types";
+import type { Person, Office } from "../../types";
 
 export function getAllUsers(): Promise<Person[]>{
     return api.get('/people/NoAdmin')
@@ -13,6 +13,22 @@ export function getAllUsers(): Promise<Person[]>{
 
 export function findAllProfessionals(): Promise<Person[]>{
     return api.get('/people/type/professional')
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
+export function finAllActiveProfessionals(): Promise<Person[]>{
+    return api.get('/people/active/type/professional')
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
+export function findProfessionalsOfficeSpecialty(officeId:Office,speciality?:string): Promise<Person[]>{
+    return api.get(`/professionals/office/${officeId}/${speciality ? speciality : ''}`)
     .then(response => response.data.data)
     .catch(()=> {
         return [];
