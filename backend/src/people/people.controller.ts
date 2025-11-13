@@ -56,7 +56,7 @@ async function findAllPerType(req: Request, res: Response) {
   }
 }
 
-async function finAllPerTypeActive(req: Request, res: Response) {
+async function findAllPerTypeActive(req: Request, res: Response) {
   try {
     const people = await peopleService.findAllPerTypeActive(req.params.peopleType);
     const safeData = people.map((person) => ({ ...person, password: undefined }));
@@ -231,5 +231,5 @@ export {
   findAllPerType,
   findAllNoAdmin,
   findProfesionalByOffice,
-  finAllPerTypeActive,
+  findAllPerTypeActive,
 };

@@ -57,14 +57,15 @@ export class ScheduleService {
     return false;
   }
 
-async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): Promise<boolean> {
-  const selecterRoom = await em.findOne(Room, { idRoom: room.idRoom }, { populate: ['office'] });
+async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string): Promise<boolean> {
+  
+  const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ['office'] });
 
-  if (!room || !room.office) {
+  if (!selectedRoom || !selectedRoom.office) {
     throw new Error("Office not found for the given room");
   }
 
-  return initialHour < room.office.openingTime || finalHour > room.office.closingTime;
+  return initialHour < selectedRoom.office.openingTime || finalHour > selectedRoom.office.closingTime;
 }
 
   //CRUD basico
@@ -125,7 +126,7 @@ async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): P
     const [overlapping, existingInRoom, outOfHours] = await Promise.all([
       this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person),
       this.isOverlappingInRoom(data.day, data.initialHour, data.finalHour, data.room as Room),
-      this.isOutOfWorkingHours(data.room as Room, data.initialHour, data.finalHour)
+      this.isOutOfWorkingHours(data.room as any as number, data.initialHour, data.finalHour)
     ]);
 
     if (overlapping) {
