@@ -57,23 +57,15 @@ export class ScheduleService {
     return false;
   }
 
-  async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): Promise<boolean> {
+async isOutOfWorkingHours(room: Room, initialHour: string, finalHour: string): Promise<boolean> {
+  const selecterRoom = await em.findOne(Room, { idRoom: room.idRoom }, { populate: ['office'] });
 
-    const officeHourRange = await em.createQueryBuilder(Office, 'o')
-      .select(['o.openingTime', 'o.closingTime'])
-      .join('o.rooms', 'r')
-      .where({'r.idRoom': room.idRoom})
-      .getSingleResult();
-
-    if (!officeHourRange) {
-      throw new Error("Office not found for the given room");
-    }
-
-    if (initialHour < officeHourRange.openingTime || finalHour > officeHourRange.closingTime) {
-      return true; // Fuera del horario laboral
-    }
-    return false; // Dentro del horario laboral
+  if (!room || !room.office) {
+    throw new Error("Office not found for the given room");
   }
+
+  return initialHour < room.office.openingTime || finalHour > room.office.closingTime;
+}
 
   //CRUD basico
 

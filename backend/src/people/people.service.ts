@@ -19,6 +19,10 @@ export class PeopleService {
     return await em.find(Person, { type: peopleType });
   }
 
+  async findAllPerTypeActive(peopleType: string): Promise<Person[]> {
+    return await em.find(Person, { type: peopleType, active: true });
+  }
+
   async findAllNoAdmin(): Promise<Person[]>{
     return await em.find(Person, {type: {$ne: 'admin'}})
   }

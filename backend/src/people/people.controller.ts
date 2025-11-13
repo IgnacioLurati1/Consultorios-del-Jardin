@@ -56,6 +56,16 @@ async function findAllPerType(req: Request, res: Response) {
   }
 }
 
+async function finAllPerTypeActive(req: Request, res: Response) {
+  try {
+    const people = await peopleService.findAllPerTypeActive(req.params.peopleType);
+    const safeData = people.map((person) => ({ ...person, password: undefined }));
+    res.status(200).json({ message: `Personas activas encontradas del tipo ${req.params.peopleType}`, data: safeData });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function findAllNoAdmin(req: Request, res:Response){
   try {
     const people = await peopleService.findAllNoAdmin();
@@ -221,4 +231,5 @@ export {
   findAllPerType,
   findAllNoAdmin,
   findProfesionalByOffice,
+  finAllPerTypeActive,
 };
