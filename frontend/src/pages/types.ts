@@ -70,6 +70,13 @@ export interface Diagnostic {
     observations: string;
 }
 
+export interface DiagnosticPopulatedAppointment {
+    appointment: Appointment;
+    patient: string;
+    state: string;
+    observations: string;
+}
+
 export interface Appointment {
     numAppointment: number;
     date: string;

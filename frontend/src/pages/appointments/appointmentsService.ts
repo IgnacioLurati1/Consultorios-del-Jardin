@@ -1,5 +1,5 @@
 import api from "../../axios"
-import type { Appointment, Diagnostic } from "../types.ts";
+import type { Appointment, Diagnostic, DiagnosticPopulatedAppointment } from "../types.ts";
 
 export function findPatientAppointments(page: number): Promise<Appointment[]> {
     return api.get(`/appointments/patient/${page}`)
@@ -47,8 +47,8 @@ export function updateDiagnostic(numAppointment: number, patientEmail: string, o
     .catch(() => false);
 }
 
-export function getPatienMedicalHistory(emailPatient: string): Promise <Diagnostic[]>{
-    return api.get(`api/appointments/medical-history/${emailPatient}`)
+export function getPatienMedicalHistory(emailPatient: string): Promise <DiagnosticPopulatedAppointment[]>{
+    return api.get(`/appointments/medical-history/${emailPatient}`)
     .then(response => response.data.data)
     .catch(() => {
         return [];

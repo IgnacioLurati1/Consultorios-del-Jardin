@@ -48,9 +48,12 @@
 
 .appointment-diagnostic-content{
     display: flex;
+    flex-direction: column;
+    gap: 1vw;
     width: 100%;
     align-items: center;
     justify-content: center;
+    height: 40vh;
 }
 
 .appointment-diagnostic-textarea {
@@ -65,10 +68,6 @@
   background-color: #f9f9f9;
   box-sizing: border-box;
   outline: none;
-}
-
-.appointment-diagnostic-select-button{
-
 }
 
 .appointment-diagnostic-footer{
@@ -106,6 +105,11 @@
 }
 
 .assisted-marked-button{
+    background-color: #2e5a42c2;
+    cursor: default;
+}
+
+.medical-history-button{
     background-color: #316148;
 }
 

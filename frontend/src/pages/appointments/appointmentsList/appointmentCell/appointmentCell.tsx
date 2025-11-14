@@ -170,7 +170,11 @@ export function AppointmentCell({
         {isCanceled ? (
           <button className="appointment-cell-button canceled-button" disabled>Cancelado</button>
         ) : (
-          <button className="appointment-cell-button cancel-button" onClick={() => setShowCancel(true)}><FaXmark />Cancelar</button>
+          <>
+            <button className="appointment-cell-button diagnostic-button" onClick={() => setShowDiagnostic(true)}><FaClipboard /> Diagnóstico</button>
+            <button className="appointment-cell-button cancel-button" onClick={() => setShowCancel(true)}><FaXmark />Cancelar</button>
+          </>
+          
         )}
       </div>
       <div className="appointment-cell-confirm-cancel">
