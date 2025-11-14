@@ -1,3 +1,6 @@
+### Obtener profesionales por oficina y especialidad
+GET http://localhost:3000/api/people/professionals/office/1
+
 ### obtener todos los personas
 GET http://localhost:3000/api/people
 

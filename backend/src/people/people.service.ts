@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import sgMail from "@sendgrid/mail";
+import { Schedule } from "../schedule/schedules.entity.js";
 
 dotenv.config();
 
@@ -36,17 +37,19 @@ export class PeopleService {
   }
 
   async findProfesionalByOffice(officeId: number, speciality?: string): Promise<Person[]> {
-    const query = em.createQueryBuilder(Person, "p")
-      .select(['p.*'])
-      .join('p.schedules', 's')
+    const query = em.createQueryBuilder(Schedule , 's')
+      .select('p.*')
+      .distinct()
+      .join('s.person', 'p')
       .join('s.room', 'r')
-      .where({ 'r.office': officeId, 'p.type': 'professional', 'p.active': true });
+      .join('r.office', 'o')
+      .where({ 'o.idOffice': officeId, 'p.type': 'professional', 'p.active': true });
 
     if (speciality) {
       query.andWhere({ 'p.speciality': speciality });
     }
 
-    return await query.getResultList();
+    return await query.execute();
   }
 
   async createPerson(data: RequiredEntityData<Person>) {
