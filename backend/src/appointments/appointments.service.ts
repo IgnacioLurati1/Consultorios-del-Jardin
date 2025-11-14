@@ -38,8 +38,18 @@ export class AppointmentService {
   }
 
   async getPatientMedicalHistory(professionalEmail: string, patientEmail: string) {
-    return await em.find(Diagnostic, { patient: { email: patientEmail }, appointment: { professional: { email: professionalEmail } } });
-  }
+  const filter = {
+    patient: { email: patientEmail },
+    appointment: {
+      professional: { email: professionalEmail }
+    }
+  };
+
+  return await em.find(Diagnostic, filter, {
+    populate: ['appointment'],
+    fields: ['*', 'appointment.date'] 
+  });
+}
 
   async getDiagnostic(patientEmail: string, num: number) {
     return await em.findOneOrFail(Diagnostic, { patient: { email: patientEmail }, appointment: { numAppointment: num } });
