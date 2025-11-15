@@ -19,16 +19,16 @@ export function findAllProfessionals(): Promise<Person[]>{
     });
 }
 
-export function finAllActiveProfessionals(): Promise<Person[]>{
-    return api.get('/people/active/type/professional')
+export function findAllActiveProfessionals(): Promise<Person[]>{
+    return api.get('/people/type/active/professional')
     .then(response => response.data.data)
     .catch(()=> {
         return [];
     });
 }
 
-export function findProfessionalsOfficeSpecialty(officeId:Office,speciality?:string): Promise<Person[]>{
-    return api.get(`/professionals/office/${officeId}/${speciality ? speciality : ''}`)
+export function findProfessionalsOfficeSpecialty(officeId:string,speciality?:string): Promise<Person[]>{
+    return api.get(`/people/professionals/office/${officeId}${speciality ? "/" + speciality : ""}`)
     .then(response => response.data.data)
     .catch(()=> {
         return [];

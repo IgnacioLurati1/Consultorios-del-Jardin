@@ -160,6 +160,10 @@ html {
     color: red;
     margin-right: 5px;
 }
+.no-results-title{
+    color: #757575;
+    font-size: 18px;
+}
 
 @media (max-width: 768px) {
     .appointment-title {

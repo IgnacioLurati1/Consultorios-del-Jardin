@@ -11,6 +11,7 @@
     border-top: 1px solid #848484;
     border-bottom: 1px solid #848484;
     height: 100%;
+    max-height: 50px;
     width: 70vw;
 }
 

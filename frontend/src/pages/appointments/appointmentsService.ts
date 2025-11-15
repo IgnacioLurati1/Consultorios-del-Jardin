@@ -59,17 +59,17 @@ export function getAvailableAppointmentsForPatient(patientEmail:string,professio
     });
 }
 
-export function createProfessionalAppointment(date: Date,initialHour: string,finalHour: string,idRoom: number,value: number,type: "simple" | "taller",professionalEmail: string,patientEmail?: string): 
+export function createProfessionalAppointment(newAppointment:{date: Date,initialHour: string,finalHour: string,idRoom: string,value: number,type: "simple" | "taller",professionalEmail: string,patientEmail?: string}): 
 Promise<Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }>>{
     return api.post(`/professional`,{
-        date: date,
-        initialHour: initialHour,
-        finalHour: finalHour,
-        idRoom: idRoom,
-        value: value,
-        type: type,
-        patientEmail: patientEmail,
-        professionalEmail: professionalEmail,
+        date: newAppointment.date,
+        initialHour: newAppointment.initialHour,
+        finalHour: newAppointment.finalHour,
+        idRoom: newAppointment.idRoom,
+        value: newAppointment.value,
+        type: newAppointment.type,
+        patientEmail: newAppointment.patientEmail,
+        professionalEmail: newAppointment.professionalEmail,
         
     })
     .then(response => response.data.data)
