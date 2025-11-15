@@ -7,6 +7,7 @@ import { OfficeService } from "../offices/offices.service.js";
 import { EntityManager } from "@mikro-orm/mysql";
 import { RoomService } from "../rooms/rooms.services.js";
 import { AppointmentEngine } from "./appointments.engine.js";
+import MailService from "../config/sendGrid.js";
 
 const em = orm.em;
 
@@ -15,12 +16,14 @@ export class AppointmentService {
   private scheduleService: ScheduleService;
   private officeService: OfficeService;
   private roomService: RoomService;
+  private mailService: MailService;
 
   constructor() {
     this.peopleService = new PeopleService();
     this.scheduleService = new ScheduleService();
     this.officeService = new OfficeService();
     this.roomService = new RoomService();
+    this.mailService = new MailService();
   }
 
   async findPatientAppointmentsByEmail(patientEmail: string, page = 0): Promise<Appointment[]> {
@@ -38,18 +41,18 @@ export class AppointmentService {
   }
 
   async getPatientMedicalHistory(professionalEmail: string, patientEmail: string) {
-  const filter = {
-    patient: { email: patientEmail },
-    appointment: {
-      professional: { email: professionalEmail }
-    }
-  };
+    const filter = {
+      patient: { email: patientEmail },
+      appointment: {
+        professional: { email: professionalEmail },
+      },
+    };
 
-  return await em.find(Diagnostic, filter, {
-    populate: ['appointment'],
-    fields: ['*', 'appointment.date'] 
-  });
-}
+    return await em.find(Diagnostic, filter, {
+      populate: ["appointment"],
+      fields: ["*", "appointment.date"],
+    });
+  }
 
   async getDiagnostic(patientEmail: string, num: number) {
     return await em.findOneOrFail(Diagnostic, { patient: { email: patientEmail }, appointment: { numAppointment: num } });
@@ -83,13 +86,18 @@ export class AppointmentService {
   }
 
   async deleteAppointment(num: number, professionalEmail: string) {
-    const appointment = await em.findOneOrFail(Appointment, {
-      numAppointment: num,
-      state: "pending",
-      professional: { email: professionalEmail },
-    });
+    const appointment = await em.findOneOrFail(
+      Appointment,
+      {
+        numAppointment: num,
+        state: "pending",
+        professional: { email: professionalEmail },
+      },
+      { populate: ["diagnostics", "diagnostics.patient"] }
+    );
     em.remove(appointment);
     await em.flush();
+    await this.sendAppointmentRejectedEmails(appointment);
     return appointment;
   }
 
@@ -124,6 +132,7 @@ export class AppointmentService {
 
     em.assign(appointment, data);
     await em.flush();
+    await this.sendAppointmentUpdatedEmails(appointment);
     return appointment;
   }
 
@@ -218,22 +227,31 @@ export class AppointmentService {
   }
 
   async acceptAppointment(num: number, professionalEmail: string) {
-    const appointment = await em.findOneOrFail(Appointment, {
-      numAppointment: num,
-      state: "pending",
-      professional: { email: professionalEmail },
-    });
+    const appointment = await em.findOneOrFail(
+      Appointment,
+      {
+        numAppointment: num,
+        state: "pending",
+        professional: { email: professionalEmail },
+      },
+      { populate: ["diagnostics", "diagnostics.patient"] }
+    );
 
     appointment.state = "accepted";
     await em.flush();
+    await this.sendAppointmentAcceptedEmails(appointment);
     return appointment;
   }
 
   async cancelAppointment(num: number, email: string, type: "professional" | "client") {
-    const appointment = await em.findOneOrFail(Appointment, {
-      numAppointment: num,
-      $or: [{ professional: { email } }, { diagnostics: { patient: { email } } }],
-    });
+    const appointment = await em.findOneOrFail(
+      Appointment,
+      {
+        numAppointment: num,
+        $or: [{ professional: { email } }, { diagnostics: { patient: { email } } }],
+      },
+      { populate: ["diagnostics", "diagnostics.patient"] }
+    );
 
     if (appointment.type === "taller" && type === "professional") {
       appointment.state = new Date().toISOString();
@@ -244,16 +262,19 @@ export class AppointmentService {
       diagnostic.state = "canceled";
 
       await em.flush();
+      await this.sendAppointmentCanceledEmails(appointment);
       return appointment;
     } else if (appointment.type === "simple" && appointment.state === "accepted") {
       appointment.state = new Date().toISOString();
     } else if (appointment.type === "simple" && appointment.state === "pending") {
       await this.deleteAppointment(num, appointment.professional.email);
+      return appointment;
     } else {
       throw new Error("El turno ya fue cancelado");
     }
 
     await em.flush();
+    await this.sendAppointmentCanceledEmails(appointment);
     return appointment;
   }
 
@@ -272,10 +293,16 @@ export class AppointmentService {
       if (!isValid) throw new Error("Información de turno inválida");
 
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
-      const appointment = engine.validateAndCreateAppointment(patientEmail, date, initialHour, type, professionalEmail, officeId);
+      const appointment = engine.validateAndCreateAppointment(patientEmail, date, initialHour, type, professionalEmail, officeId) as any;
 
       await em.flush();
-      return appointment;
+      const refreshed = await em.findOneOrFail(
+        Appointment,
+        { numAppointment: appointment.numAppointment },
+        { populate: ["diagnostics", "diagnostics.patient", "professional"] }
+      );
+      await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour, type);
+      return refreshed;
     });
   }
 
@@ -336,6 +363,7 @@ export class AppointmentService {
     );
 
     await em.flush();
+    await this.sendPatientAddedEmail(patientEmail, numAppointment);
     return diagnostic;
   }
 
@@ -343,5 +371,115 @@ export class AppointmentService {
     const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
     const appointments = engine.getAvailableAppointmentsForPatient(patientEmail, professionalEmail, idOffice);
     return appointments;
+  }
+
+  private async sendAppointmentCreatedEmail(patientEmail: string, appointment: Appointment, initialHour: string, type: string) {
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Tu solicitud de turno ha sido registrada correctamente.</p>
+      <p><strong>Detalles del turno:</strong></p>
+      <ul>
+        <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+        <li><strong>Hora inicial:</strong> ${initialHour}</li>
+        <li><strong>Tipo:</strong> ${type}</li>
+      </ul>
+      <p>Tu turno está pendiente de que el profesional lo acepte. Te notificaremos cuando sea confirmado.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(patientEmail, "Solicitud de Turno Registrada", htmlContent);
+    await this.mailService.sendMail(message);
+  }
+
+  private async sendAppointmentUpdatedEmails(appointment: Appointment) {
+    const diagnosticsItems = appointment.diagnostics.getItems();
+    for (const diagnostic of diagnosticsItems) {
+      const htmlContent = `
+        <p>Hola,</p>
+        <p>Te notificamos que tu turno ha sido modificado.</p>
+        <p><strong>Nuevos detalles del turno:</strong></p>
+        <ul>
+          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+          <li><strong>Hora final:</strong> ${appointment.finalHour}</li>
+        </ul>
+        <p>Por favor, revisa tu calendario y confirma la disponibilidad.</p>
+        <p>¡Gracias!</p>
+      `;
+      const message = await this.mailService.createMessage(diagnostic.patient.email, "Tu Turno Ha Sido Modificado", htmlContent);
+      await this.mailService.sendMail(message);
+    }
+  }
+
+  private async sendAppointmentRejectedEmails(appointment: Appointment) {
+    const diagnosticsItems = appointment.diagnostics.getItems();
+    for (const diagnostic of diagnosticsItems) {
+      const htmlContent = `
+        <p>Hola,</p>
+        <p>Te informamos que tu solicitud de turno ha sido rechazada.</p>
+        <p><strong>Detalles del turno rechazado:</strong></p>
+        <ul>
+          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+        </ul>
+        <p>Si tienes alguna pregunta, por favor contáctanos.</p>
+        <p>¡Gracias!</p>
+      `;
+      const message = await this.mailService.createMessage(diagnostic.patient.email, "Solicitud de Turno Rechazada", htmlContent);
+      await this.mailService.sendMail(message);
+    }
+  }
+
+  private async sendAppointmentCanceledEmails(appointment: Appointment) {
+    const diagnosticsItems = appointment.diagnostics.getItems();
+    for (const diagnostic of diagnosticsItems) {
+      const htmlContent = `
+        <p>Hola,</p>
+        <p>Te notificamos que se ha cancelado el turno.</p>
+        <p><strong>Detalles del turno:</strong></p>
+        <ul>
+          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+        </ul>
+        <p>Sugerimos la posibilidad de realizar un nuevo turno.</p>
+        <p>¡Gracias!</p>
+      `;
+      const message = await this.mailService.createMessage(diagnostic.patient.email, "Cambio en tu Turno", htmlContent);
+      await this.mailService.sendMail(message);
+    }
+  }
+
+  private async sendAppointmentAcceptedEmails(appointment: Appointment) {
+    const diagnosticsItems = appointment.diagnostics.getItems();
+    for (const diagnostic of diagnosticsItems) {
+      const htmlContent = `
+        <p>Hola,</p>
+        <p>Te informamos que tu turno ha sido aceptado por el profesional.</p>
+        <p><strong>Detalles del turno:</strong></p>
+        <ul>
+          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+        </ul>
+        <p>Por favor, revisa tu calendario. Si tienes alguna duda, contáctanos.</p>
+        <p>¡Gracias!</p>
+      `;
+      const message = await this.mailService.createMessage(diagnostic.patient.email, "Tu Turno Ha Sido Aceptado", htmlContent);
+      await this.mailService.sendMail(message);
+    }
+  }
+
+  private async sendPatientAddedEmail(patientEmail: string, numAppointment: number) {
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Has sido añadido a un turno en nuestros consultorios.</p>
+      <p><strong>Detalles del turno:</strong></p>
+      <ul>
+        <li><strong>Número de turno:</strong> ${numAppointment}</li>
+        <li><strong>Estado:</strong> Pendiente de tu aceptación</li>
+      </ul>
+      <p>Por favor, verifica que esta asignación sea correcta. Si se trata de un error, contáctanos inmediatamente.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(patientEmail, "Has Sido Añadido a un Turno", htmlContent);
+    await this.mailService.sendMail(message);
   }
 }
