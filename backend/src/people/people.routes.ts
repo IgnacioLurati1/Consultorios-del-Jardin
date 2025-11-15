@@ -25,7 +25,7 @@ personRouter.get("/NoAdmin", verifyToken, verifyAdmin, findAllNoAdmin)
 personRouter.get("/:email", verifyToken, findOne);
 personRouter.get("/type/:peopleType", verifyToken, verifyAdmin, findAllPerType);
 personRouter.get("/type/active/:peopleType", verifyToken, findAllPerTypeActive);
-personRouter.get("/professionals/office/:officeId/:speciality?", findProfesionalByOffice); // nueva ruta para obtener profesionales por consultorio y especialidad
+personRouter.get("/professionals/office/:officeId/:speciality?",verifyToken, findProfesionalByOffice); // nueva ruta para obtener profesionales por consultorio y especialidad
 personRouter.post("/", sanitizePersonInput, add);
 personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
 personRouter.post("/logout", logOut);
