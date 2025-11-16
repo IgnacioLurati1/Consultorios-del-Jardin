@@ -1,34 +1,71 @@
+import { useState } from "react";
 import type { appointmentCreationModalProps } from "../../appointmentTypes.ts"
 import "./appointmentCreationModal.css"
 import { FaChevronLeft, FaTimes , FaPhone, FaUserTie } from 'react-icons/fa';
+import { ToastContainer } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
-export function AppointmentCreationModal({isOpen, onClose, schedule, selectedDate, professional, office}: appointmentCreationModalProps) {
+export function diffInMinutes(time1: string, time2: string): number {
+  const [h1, m1] = time1.split(":").map(Number);
+  const [h2, m2] = time2.split(":").map(Number);
 
+  const total1 = h1 * 60 + m1;
+  const total2 = h2 * 60 + m2;
+
+  return total1 - total2;
+}
+
+export function AppointmentCreationModal({isOpen, onClose, appointment, professional, office, onCreate}: appointmentCreationModalProps) {
+    const navigate = useNavigate();
+    const [showButton, setShowButton] = useState(true);
+
+    let auxDate;
+    if (appointment){
+        auxDate = new Date(appointment.date);
+    }
     function handleKeyDown(event: React.KeyboardEvent) {
         if (event.key !== 'Enter') {
             return;
         } 
     }
     let fechaFormateada = "";
+    let fechaAppointment = "";
     let diaFormateado = "";
-    if (selectedDate){
-        const day = String(selectedDate.getDate()).padStart(2, "0");       // "12"
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0"); // "11"
-        const year = String(selectedDate.getFullYear()).slice(-2);          // "25"
+    if (appointment && auxDate){
+        const day = String(auxDate.getDate()).padStart(2, "0");       // "12"
+        const month = String(auxDate.getMonth() + 1).padStart(2, "0"); // "11"
+        const year = String(auxDate.getFullYear());          // "2025"
 
         fechaFormateada = `${day}/${month}/${year}`;
-        diaFormateado = (selectedDate.toLocaleDateString("es-ES", { weekday: "long" })).charAt(0).toUpperCase() + (selectedDate.toLocaleDateString("es-ES", { weekday: "long" })).slice(1)
+        fechaAppointment = `${year}-${month}-${day}`;
+        diaFormateado = (auxDate.toLocaleDateString("es-ES", { weekday: "long" })).charAt(0).toUpperCase() + (auxDate.toLocaleDateString("es-ES", { weekday: "long" })).slice(1)
     }
-    
 
-    if (!isOpen) return null;
+    function handleSubmit(){
+        if (appointment){
+            onCreate({date: fechaAppointment,initialHour: appointment.initialHour,type: appointment.type,professionalEmail: professional.email,officeId: office.idOffice});
+            setShowButton(false);
+            setTimeout(() => {
+                navigate('/');
+                window.scrollTo(0, 0);
+            }, 3000);
+        }
+    }
+
+    function handleClose(){
+        setShowButton(true);
+        onClose();
+    }
+
+    if (!isOpen || !appointment) return null;
     return (
         <>
-            <div className="appointment-modal-overlay" onClick={onClose}>
+            <div className="appointment-modal-overlay" onClick={()=>handleClose()}>
+                <ToastContainer className = {`toast-container`} draggable={false}/>
                 <div className="appointment-modal-details-container" onClick={(e) => e.stopPropagation()}  onKeyDown={handleKeyDown}>
                     <div className="appointment-modal-details-wrapper">
                         <div className="appointment-modal-details-header">
-                            <button className="appointment-modal-details-close-btn" onClick={onClose}>
+                            <button className="appointment-modal-details-close-btn" onClick={()=>handleClose()}>
                             <FaTimes  size={25} />
                             </button>
                             <h1 className="appointment-modal-details-title">Detalles del turno</h1>
@@ -50,11 +87,11 @@ export function AppointmentCreationModal({isOpen, onClose, schedule, selectedDat
                                     </div>
                                     <div className="appointment-modal-location-info">
                                         <span className="appointment-modal-info-label">Horario</span>
-                                        <span className="appointment-modal-info-value"> - {selectedDate ? selectedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }): "Sin fecha"} horas</span>
+                                        <span className="appointment-modal-info-value"> - {appointment ? appointment.initialHour: "Sin fecha"} horas</span>
                                     </div>
                                     <div className="appointment-modal-location-info">
                                         <span className="appointment-modal-info-label">Duración estimada</span>
-                                        <span className="appointment-modal-info-value"> - {schedule?.duration} minutos</span>
+                                        <span className="appointment-modal-info-value"> - {diffInMinutes(appointment.finalHour, appointment.initialHour)} minutos</span>
                                     </div>
                                 </div>
                             </div>
@@ -87,7 +124,9 @@ export function AppointmentCreationModal({isOpen, onClose, schedule, selectedDat
                                     </div>
                                 </div>
                             </div>
-                            <button className="appointment-modal-reserve-btn">Solicitar turno</button>
+                            {showButton ?
+                            <button className="appointment-modal-reserve-btn" onClick={()=>handleSubmit()}>Solicitar turno</button>:
+                            <div className="spinner"></div>}
                         </div>
                     </div>
                 </div>

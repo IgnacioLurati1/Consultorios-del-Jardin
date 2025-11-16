@@ -1,5 +1,6 @@
 import api from "../../axios"
 import type { Appointment, Diagnostic } from "../types.ts";
+import type { partialAppointment } from "./appointmentTypes.ts";
 
 export function findPatientAppointments(): Promise<Appointment[]> {
     return api.get(`/appointments/patient`)
@@ -47,11 +48,10 @@ export function updateDiagnostic(numAppointment: number, patientEmail: string, o
     .catch(() => false);
 }
 
-export function getAvailableAppointmentsForPatient(patientEmail:string,professionalEmail:string, officeId:Number): Promise<Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }>>  {
+export function getAvailableAppointmentsForPatient(professionalEmail:string, office:string): Promise<Array<partialAppointment>>  {
     return api.post(`/appointments/getAppointments`,{
-        patientEmail: patientEmail,
-        professionalEmail: professionalEmail,
-        officeId: officeId
+        professionalEmail,
+        office
     })
     .then(response => response.data.data)
     .catch(() => {
@@ -59,18 +59,14 @@ export function getAvailableAppointmentsForPatient(patientEmail:string,professio
     });
 }
 
-export function createProfessionalAppointment(newAppointment:{date: Date,initialHour: string,finalHour: string,idRoom: string,value: number,type: "simple" | "taller",professionalEmail: string,patientEmail?: string}): 
-Promise<Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }>>{
-    return api.post(`/professional`,{
+export function createAppointment(newAppointment:{date: string,initialHour: string,type: "simple" | "taller",professionalEmail: string,officeId: string}): 
+Promise<Array<{ numAppointment: Number; date: Date; initialHour: string; finalHour: string; type: "simple" | "taller"; state: string;}>> {
+    return api.post(`/appointments`,{
         date: newAppointment.date,
         initialHour: newAppointment.initialHour,
-        finalHour: newAppointment.finalHour,
-        idRoom: newAppointment.idRoom,
-        value: newAppointment.value,
         type: newAppointment.type,
-        patientEmail: newAppointment.patientEmail,
         professionalEmail: newAppointment.professionalEmail,
-        
+        office: newAppointment.officeId,
     })
     .then(response => response.data.data)
     .catch(() => {

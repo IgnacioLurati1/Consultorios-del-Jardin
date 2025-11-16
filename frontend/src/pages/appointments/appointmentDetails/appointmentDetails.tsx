@@ -1,26 +1,24 @@
 import { useEffect, useState } from "react";
-import type {Person,Schedule } from "../../types.ts"
+import type {Person} from "../../types.ts"
 import './appointmentDetails.css';
 import './appointmentDetailsTable.css';
 import { FaChevronLeft, FaPhone, FaUserTie } from 'react-icons/fa';
 import { useLocation} from 'react-router-dom';
 import { toast } from "react-toastify";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
-import type { appointmentDetailsProps } from "../appointmentTypes.ts";
+import type { appointmentDetailsProps, partialAppointment } from "../appointmentTypes.ts";
 import { AppointmentGridModule } from "./gridAppointment/appointmentGridModule.tsx";
-import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 import { AppointmentCreationModal } from "./appointmentModal/appointmentCreationModal.tsx";
-import {createProfessionalAppointment, getAvailableAppointmentsForPatient} from "../appointmentsService.ts"
+import {createAppointment, getAvailableAppointmentsForPatient} from "../appointmentsService.ts"
 
 export function AppointmentDetails() {
 
     const [patient, setPatient] = useState<Person | undefined>(undefined);
     const [showSimple, setShowSimple] = useState(true);
     const [showTaller, setShowTaller] = useState(true);
-    const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
-    const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
     const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
+    const [possibleAppointments, setPossibleAppointments] = useState<partialAppointment[]>([]);
+    const [selectedAppointment, setSelectedAppointment] = useState<partialAppointment | undefined>();
 
     const location = useLocation();
     const state = location.state as appointmentDetailsProps | null;
@@ -44,16 +42,27 @@ export function AppointmentDetails() {
     const professional = state?.professional;
 
     useEffect(() => {
-    if (state && professional) {
-        findProfessionalSchedules(professional.email)
+    if (professional && office) {
+        getAvailableAppointmentsForPatient(professional.email,office.idOffice)
         .then(data => {
-            setFilteredSchedules(data);
+            setPossibleAppointments(data);
         })
         .catch(err => {
-            toast.error(`Error al obtener horarios del profesional: ${err.message}`);
+            toast.error(`Error: ${err.message}`);
         });
     }
-    }, [professional]);
+    }, [professional, office]);
+
+    async function addAppointment(newAppointment:{date: string,initialHour: string,type: "simple" | "taller",professionalEmail: string,officeId: string}){     
+        try{
+            const createdAppointment = await createAppointment(newAppointment)
+            if (createdAppointment ){
+                toast.success(`Turno solicitado con éxito`);
+                }
+        }catch (error:any){
+        toast.error(`Error al solicitar el turno: ${error.message}`);
+        }
+    }
     
     if (!office || !professional || !patient) {
         return <div>Faltan datos del paciente o profesional u oficina.</div>;
@@ -164,12 +173,12 @@ export function AppointmentDetails() {
                 </div>
 
                 <div className="appointment-table-container">
-                    <AppointmentGridModule schedules={filteredSchedules} showSimple={showSimple} showTaller={showTaller} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedDate={setSelectedDate}/>
+                    <AppointmentGridModule appointments={possibleAppointments} showSimple={showSimple} showTaller={showTaller} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedAppointment={setSelectedAppointment}/>
                 </div>
                 
             </div>
             <div>
-                <AppointmentCreationModal isOpen={appointmentModalOpen} onClose={() => setAppointmentModalOpen(false)} schedule={selectedSchedule} selectedDate={selectedDate} professional={professional} office={office}/>
+                <AppointmentCreationModal isOpen={appointmentModalOpen} onClose={() => setAppointmentModalOpen(false)} appointment={selectedAppointment} professional={professional} office={office} onCreate={addAppointment}/>
             </div>
         </>
     );

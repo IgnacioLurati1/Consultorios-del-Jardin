@@ -1,35 +1,33 @@
-import type{ Schedule, Room, Office, City, Person, Appointment} from "../types.ts";
+import type{ Office, Person} from "../types.ts";
 
+export type partialAppointment = {date: Date;initialHour: string;finalHour: string;type: "simple" | "taller";};
 export interface appointmentDetailsProps {
     office?: Office;
     professional?: Person;
 }
 
 export interface columnModuleProps{
-    schedules: Schedule[];
+    appointments: partialAppointment[];
     showSimple: boolean;
     showTaller: boolean;
     setAppointmentModalOpen?: (isOpen: boolean) => void; // Función para abrir el modal
-    setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el turno
-    setSelectedDate: (date: Date|undefined) => void; //Función para seleccionar la key del turno
+    setSelectedAppointment: (partialAppointment: partialAppointment | undefined) => void; // Función para seleccionar el turno
 }
 
 export interface cellModuleProps{
-    date: Date;
-    time?: string;
-    schedule?: Schedule;
+    appointment?: partialAppointment;
     height: number;
     setAppointmentModalOpen?: (isOpen: boolean) => void; // Función para abrir el modal
-    setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
-    setSelectedDate: (date: Date) => void; //Función para seleccionar la key del horario
+    setSelectedAppointment: (partialAppointment: partialAppointment | undefined) => void; // Función para seleccionar el turno
     className?: string;
 }
 
 export interface appointmentCreationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    schedule: Schedule | undefined;
-    selectedDate: Date | undefined;
+    appointment?: partialAppointment;
     professional: Person;
     office: Office;
+    onCreate: ((newAppointment:{date: string,initialHour: string,type: "simple" | "taller",professionalEmail: string,officeId: string}) => void);
+
 }

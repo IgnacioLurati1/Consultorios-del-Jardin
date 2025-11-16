@@ -4,24 +4,30 @@ import {AppointmentCellModule} from "./appointmentCellModule/appointmentCellModu
 import "./appointmentGridModule.css"
 import { FaAngleDown, FaGreaterThan, FaLessThan} from "react-icons/fa";
 
-function diffHours(open: string, close: string): number { // PODRIA IR EN EL SERVICIO
-    
-    const [h1, m1] = open.split(":").map(Number);
-    const [h2, m2] = close.split(":").map(Number);
+function diffInMinutes(time1: string, time2: string): number {
+    const [h1, m1] = time1.split(":").map(Number);
+    const [h2, m2] = time2.split(":").map(Number);
 
-    const date1 = new Date(0, 0, 0, h1, m1);
-    const date2 = new Date(0, 0, 0, h2, m2);
+    const total1 = h1 * 60 + m1;
+    const total2 = h2 * 60 + m2;
 
-    const diffMs = date2.getTime() - date1.getTime();
-
-    return diffMs / (1000 * 60 * 60); // diferencia en horas
+    return total1 - total2;
 }
 
 function getStartOfWeek(date: Date): Date {
-    const day = date.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-    const diff = (day === 0 ? -6 : 1 - day); // si es domingo, retrocedé 6 días
+    const day = date.getDay(); // 0 = domingo, 6 = sábado
     const monday = new Date(date);
-    monday.setDate(date.getDate() + diff);
+
+    if (day === 6 || day === 0) {
+        // sábado (6) o domingo (0) → próximo lunes
+        const diff = (8 - day); // sábado: 2 días, domingo: 1 día
+        monday.setDate(date.getDate() + diff);
+    } else {
+        // lunes a viernes → lunes de esta semana
+        const diff = 1 - day;
+        monday.setDate(date.getDate() + diff);
+    }
+
     return monday;
 }
 
@@ -37,14 +43,27 @@ function getWeekDays(date: Date): Date[] { //genera los 7 días de esa semana
     return days;
 }
 
-// Convierte minutos totales a string "HH:MM"
-function minutesToTime(totalMinutes: number): string {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+function isSameDay(d1: any, d2: any): boolean {
+    const date1 = new Date(d1);
+    const date2 = new Date(d2);
+
+    //console.log(date1, date2);
+
+    return (
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
+    );
 }
 
-export function AppointmentGridModule({ schedules, showSimple, showTaller,setAppointmentModalOpen, setSelectedSchedule, setSelectedDate}: columnModuleProps) {
+function hoursToTime(hours: number): string {
+    const h = Math.floor(hours);
+    const decimalPart = hours - h;
+    const m = Math.round(decimalPart * 60);
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function AppointmentGridModule({ appointments, showSimple, showTaller,setAppointmentModalOpen, setSelectedAppointment}: columnModuleProps) {
     const [showDay, setShowDay] = useState<boolean[]>([false,false,false,false,false,false]); // estado para mostrar mas info del dia
     const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -58,9 +77,9 @@ export function AppointmentGridModule({ schedules, showSimple, showTaller,setApp
 
     const weekDays = getWeekDays(currentDate);
 
-    const filteredSchedules = schedules.filter((s) => {
-        if (s.allowedType === "simple" && !showSimple) return false;
-        if (s.allowedType === "taller" && !showTaller) return false;
+    const filteredAppointments = appointments.filter((a) => {
+        if (a.type === "simple" && !showSimple) return false;
+        if (a.type === "taller" && !showTaller) return false;
         return true;
     });
 
@@ -93,37 +112,21 @@ export function AppointmentGridModule({ schedules, showSimple, showTaller,setApp
                                 const cells: React.ReactNode[] = []; //array de componentes de react representa la columna
                                 let hourId = 0;
 
-                                while (hourId < 13) {
+                                while (hourId < (13)) {
                                     const currentHour = 8 + hourId;
-                                    const currentHourStr = String(currentHour).padStart(2, "0") + ":00";
+                                    const currentHourStr = hoursToTime(currentHour);
 
-                                    const schedule = filteredSchedules.find(
-                                    (s) =>
-                                        s.day.toLowerCase() === (day.toLocaleDateString("es-ES", { weekday: "long"}).normalize("NFD").replace(/[\u0300-\u036f]/g, "")) &&
-                                        s.initialHour === currentHourStr
-                                    );
+                                    const appointment = filteredAppointments.find(
+                                    (a) => isSameDay(a.date, day) && a.initialHour === currentHourStr);
+                                    
                                     const today = new Date();
-                                    if (schedule && day>=today) {
-
-                                        const difference = diffHours(schedule.initialHour,schedule.finalHour);
-                                        let minuteId = 0;
-
-                                        while (minuteId < (difference*60)) {
-                                            
-                                            const currentMinute = currentHour*60 + minuteId;
-                                            const currentTime = minutesToTime(currentMinute) 
-                                            const dayTime = new Date(day);
-                                            const [hours, minutes] = currentTime.split(":").map(Number);
-                                            dayTime.setHours(hours, minutes, 0, 0);
-
-                                            cells.push(<AppointmentCellModule key={`${day}-${currentHourStr}-${currentTime}`} date={dayTime} time={currentTime} schedule={schedule} height={schedule.duration/30} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedDate={setSelectedDate}/>);
-                                            
-                                            minuteId += (schedule.duration);
-                                        }
+                                    if (appointment && day>=today) {
                                         
-                                        hourId += difference; // salta horas
+                                        cells.push(<AppointmentCellModule key={`${day}-${appointment.initialHour.split(":")[0]}:${appointment.initialHour.split(":")[1]}`} appointment={appointment} height={(diffInMinutes(appointment.finalHour, appointment.initialHour))/30} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedAppointment={setSelectedAppointment}/>);
+                                        hourId += diffInMinutes(appointment.finalHour, appointment.initialHour)/60; // salta minutos
+
                                     } else {
-                                        cells.push(<AppointmentCellModule key={`${day}-${currentHourStr}`} date={day} time={undefined} schedule={undefined} height={1} setAppointmentModalOpen={undefined} setSelectedSchedule={setSelectedSchedule} setSelectedDate={setSelectedDate}/>);
+                                        cells.push(<AppointmentCellModule key={`${day}-${currentHourStr}`} appointment={undefined} height={1} setAppointmentModalOpen={undefined} setSelectedAppointment={setSelectedAppointment}/>);
                                         hourId += 0.5; // avanza 30 minutos
                                     }
                                 }
@@ -131,7 +134,7 @@ export function AppointmentGridModule({ schedules, showSimple, showTaller,setApp
 
                             })()}
 
-                                <AppointmentCellModule date={day}  time={undefined} schedule={undefined} height={1} setAppointmentModalOpen={setAppointmentModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedDate={setSelectedDate} className="appointment-last-empty" />
+                                <AppointmentCellModule appointment={undefined} height={1} setAppointmentModalOpen={undefined} setSelectedAppointment={setSelectedAppointment} className="appointment-last-empty" />
                         </div>
                     </div>
                 ))}

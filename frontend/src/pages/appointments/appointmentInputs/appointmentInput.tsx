@@ -56,9 +56,6 @@ useEffect(() => {
 
 function findFilteredProfessionals(){
     if ((office && specialty) || (office)){
-        console.log("Buscando profesionales con consultorio y especialidad:", specialty);
-        console.log("Consultorio ID:", office.idOffice);
-        console.log(typeof(String(office.idOffice)));
         findProfessionalsOfficeSpecialty(String(office.idOffice),specialty)
         .then(data => {
             setFilteredProfessionals(data);
