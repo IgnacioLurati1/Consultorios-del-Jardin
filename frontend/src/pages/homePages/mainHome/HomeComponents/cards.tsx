@@ -1,6 +1,5 @@
 import "./Cards.css"
-
-import moneyImg from "../../../../assets/HomePhotos/HomeCardsPhotos/money.png";
+import iaImg from "../../../../assets/HomePhotos/HomeCardsPhotos/logoIA.png";
 import clockImg from "../../../../assets/HomePhotos/HomeCardsPhotos/clock.png";
 import peopleImg from "../../../../assets/HomePhotos/HomeCardsPhotos/people.png";
 
@@ -12,9 +11,9 @@ interface CardProps {
 
 const cardsData: CardProps[] = [
   {
-    img: moneyImg,
-    title: "Pagos presenciales y online",
-    text: "Podés abonar de manera presencial, con efectivo o tarjeta, o bien de forma online a través de MercadoPago."
+    img: iaImg,
+    title: "Asistente con Inteligencia Artificial",
+    text: "Ahora es más fácil solicitar un turno mediante un chatbot con inteligencia artifical."
   },
   {
     img: clockImg,
@@ -23,7 +22,7 @@ const cardsData: CardProps[] = [
   },
   {
     img: peopleImg,
-    title: "Talleres Grupales",
+    title: "Diversos Talleres Grupales",
     text: "Contamos con talleres grupales donde podrás compartir experiencias, aprender en equipo y potenciar tus habilidades junto a otros."
   }
 ];
