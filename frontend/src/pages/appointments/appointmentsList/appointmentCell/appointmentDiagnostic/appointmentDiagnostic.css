@@ -1,0 +1,141 @@
+.appointment-diagnostic-background{
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.37);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.appointment-diagnostic-container{
+    background-color: white;
+    color:rgba(0, 0, 0, 0.37);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: min(900px, 90vw);  
+    max-width: 90vw; 
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    font-size: 1vw
+    
+}
+
+.appointment-diagnostic-header{
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #3B7658;
+    color: aliceblue;
+    align-items: center;
+    justify-content: center;
+}
+
+.appointment-diagnostic-header-content{
+    display: flex;
+    width: 90%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.appointment-diagnostic-content{
+    display: flex;
+    flex-direction: column;
+    gap: 1vw;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    height: 40vh;
+}
+
+.appointment-diagnostic-textarea {
+  width: 90%;
+  height: 40vh;              /* tamaño fijo vertical */
+  resize: none;               /* evita que el usuario lo deforme */
+  font-size: 0.9vw;            /* texto legible */
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  color: #333;
+  background-color: #f9f9f9;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.appointment-diagnostic-footer{
+    width: 90%;
+    display: flex;
+    flex-direction: row;
+    gap: 0.5vw;
+    justify-content: space-between;
+    padding-bottom:20px
+}
+.appointment-diagnostic-button{
+    font-size: 0.9vw;
+    font-weight: bold;
+    color:aliceblue;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    padding: 10px 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3vw;
+}
+
+.save-button{
+    background-color: #105C81;
+}
+
+.appointment-diagnostic-close-button{
+    cursor: pointer;
+}
+
+.assisted-button{
+    background-color: #49976f;
+}
+
+.assisted-marked-button{
+    background-color: #2e5a42c2;
+    cursor: default;
+}
+
+.medical-history-button{
+    background-color: #316148;
+}
+
+.appointment-diagnostic-patient-item{
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+}
+.appointment-diagnostic-select-button{
+    cursor: pointer;
+    width: 40%;
+    height: 4vh;
+    background-color: #105C81;
+    font-size: 0.9vw;
+    font-size: bold;
+    color: aliceblue;
+    border-radius: 10px;
+}
+
+.appointment-diagnostic-select-button:hover{
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.appointment-diagnostic-select-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}

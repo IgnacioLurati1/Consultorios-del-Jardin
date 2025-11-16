@@ -41,14 +41,9 @@ export interface Person{
     active: boolean;
 }
 
-export interface Duration{
-    idDuration: string;
-    duration: string;
-}
-
 export interface Schedule {
     day: "lunes"|"martes"|"miercoles"|"jueves"|"viernes"|"sabado";
-    initialHour: string;
+    initialHour: string; //"HH:MM"
     person: Person;
     room: Room;
     finalHour: string;
@@ -61,4 +56,31 @@ export interface TokenPayload {
     email:string;
     type:string;
     exp:number;
+}
+
+export interface Diagnostic {
+    appointment: number;
+    patient: string;
+    state: string;
+    observations: string;
+}
+
+export interface DiagnosticPopulatedAppointment {
+    appointment: Appointment;
+    patient: string;
+    state: string;
+    observations: string;
+}
+
+export interface Appointment {
+    numAppointment: number;
+    date: string;
+    initialHour: string;
+    finalHour: string;
+    value: number;
+    type: "simple" | "taller";
+    state: string;
+    professional: string;
+    room: Room;
+    diagnostics: Diagnostic[];
 }

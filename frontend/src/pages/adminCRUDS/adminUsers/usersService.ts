@@ -1,5 +1,5 @@
 import api from "../../../axios"
-import type { Person } from "../../types";
+import type { Person, Office } from "../../types";
 
 export function getAllUsers(): Promise<Person[]>{
     return api.get('/people/NoAdmin')
@@ -9,6 +9,30 @@ export function getAllUsers(): Promise<Person[]>{
         throw new Error(backendMsg);
     }
     )
+}
+
+export function findAllProfessionals(): Promise<Person[]>{
+    return api.get('/people/type/professional')
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
+export function findAllActiveProfessionals(): Promise<Person[]>{
+    return api.get('/people/type/active/professional')
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
+export function findProfessionalsOfficeSpecialty(officeId:string,speciality?:string): Promise<Person[]>{
+    return api.get(`/people/professionals/office/${officeId}${speciality ? "/" + speciality : ""}`)
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
 }
 
 export function toggleState(email:string){

@@ -49,7 +49,7 @@ export function Section() {
         </div>
         <div className="section-content">
           <h2>¡Quiero Atenderme!</h2>
-          <button onClick={() => navigate("*")}>
+          <button onClick={() => navigate("Appointment")}>
             Turnos disponibles
           </button>
         </div>
