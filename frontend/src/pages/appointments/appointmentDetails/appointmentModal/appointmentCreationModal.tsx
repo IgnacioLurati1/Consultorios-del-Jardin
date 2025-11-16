@@ -126,7 +126,7 @@ export function AppointmentCreationModal({isOpen, onClose, appointment, professi
                             </div>
                             {showButton ?
                             <button className="appointment-modal-reserve-btn" onClick={()=>handleSubmit()}>Solicitar turno</button>:
-                            <div className="spinner"></div>}
+                            <div className="appointment-modal-spinner"></div>}
                         </div>
                     </div>
                 </div>
