@@ -42,7 +42,6 @@
   /* ocultamos los vacíos normales */
   
   .appointment-hourly-module.empty::after {
-    content: "+"; /* 👈 así sí aparece */
     display: flex;
     font-size: 2em;
     font-weight: bold;

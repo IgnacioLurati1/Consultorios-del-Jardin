@@ -20,7 +20,7 @@ function getStartOfWeek(date: Date): Date {
 
     if (day === 6 || day === 0) {
         // sábado (6) o domingo (0) → próximo lunes
-        const diff = (8 - day); // sábado: 2 días, domingo: 1 día
+        const diff = (day === 6 ? 2 : 1);
         monday.setDate(date.getDate() + diff);
     } else {
         // lunes a viernes → lunes de esta semana
@@ -133,8 +133,6 @@ export function AppointmentGridModule({ appointments, showSimple, showTaller,set
                                 return cells;
 
                             })()}
-
-                                <AppointmentCellModule appointment={undefined} height={1} setAppointmentModalOpen={undefined} setSelectedAppointment={setSelectedAppointment} className="appointment-last-empty" />
                         </div>
                     </div>
                 ))}

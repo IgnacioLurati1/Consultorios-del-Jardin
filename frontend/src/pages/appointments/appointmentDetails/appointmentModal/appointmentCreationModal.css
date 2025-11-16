@@ -227,4 +227,8 @@
         grid-template-columns: 1fr;
         gap: 1rem;
     }
+    .appointment-modal-details-wrapper {
+        margin: 0 2vw 0 2vw;
+        font-size: 0.8em;
+    }
 }

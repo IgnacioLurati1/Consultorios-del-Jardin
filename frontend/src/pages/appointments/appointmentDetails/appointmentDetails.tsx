@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type {Person} from "../../types.ts"
 import './appointmentDetails.css';
-import './appointmentDetailsTable.css';
 import { FaChevronLeft, FaPhone, FaUserTie } from 'react-icons/fa';
 import { useLocation} from 'react-router-dom';
 import { toast } from "react-toastify";
