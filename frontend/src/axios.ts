@@ -30,6 +30,7 @@ api.interceptors.response.use(
 
         localStorage.setItem("token", data.token);
         // Reintenta **solo una vez**
+        originalRequest.headers.Authorization = `Bearer ${data.token}`;  //Actualiza el header del request original
         return api(originalRequest);
       } catch (refreshError) {
         try {
