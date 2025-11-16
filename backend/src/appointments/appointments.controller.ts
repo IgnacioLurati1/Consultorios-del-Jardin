@@ -197,7 +197,7 @@ async function acceptAppointment(req: RequestWithUser, res: Response) {
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const appointment = await appointmentService.acceptAppointment(numAppointment, req.user.email);
 
-    res.status(200).json({ message: "Turno aceptado exitosamente", data: appointment });
+    res.status(200).json({ message: "Turno aceptado exitosamente" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
