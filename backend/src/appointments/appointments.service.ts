@@ -93,11 +93,12 @@ export class AppointmentService {
         state: "pending",
         professional: { email: professionalEmail },
       },
-      { populate: ["diagnostics", "diagnostics.patient"] }
+      { populate: ["diagnostics"] }
     );
+
+    await this.sendAppointmentRejectedEmails(appointment);
     em.remove(appointment);
     await em.flush();
-    await this.sendAppointmentRejectedEmails(appointment);
     return appointment; // Not used for now
   }
 

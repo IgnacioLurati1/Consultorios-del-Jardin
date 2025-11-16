@@ -18,7 +18,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFja
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFjaW9sdXJhdGkzQGdtYWlsLmNvbSIsInR5cGUiOiJjbGllbnQiLCJpYXQiOjE3NjMyNTUyMTgsImV4cCI6MTc2MzI1NjExOH0.Dj3PJLKtbu8PERxs_6m6TDqXFkXc-cqGHga7pAXFvdc
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFjaW9sdXJhdGkzQGdtYWlsLmNvbSIsInR5cGUiOiJjbGllbnQiLCJpYXQiOjE3NjMzMzM4ODcsImV4cCI6MTc2MzMzNDc4N30.uxev5VoaLOpxKBojeogByS43Frpf9SkWjDBBM3BiWgY
 
 
 {
@@ -77,7 +77,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 
 
 ###
-PATCH http://localhost:3000/api/appointments/1/accept
+PATCH http://localhost:3000/api/appointments/7/accept
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjExNCwiZXhwIjoxNzU5ODAzMDE0fQ.ZxvyVJ8ua5V_q5ytGAlzUgv16P9uPQk_ML_Z8e80M7k
 
@@ -86,9 +86,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 }
 
 ###
-PATCH http://localhost:3000/api/appointments/1/cancel
+PATCH http://localhost:3000/api/appointments/13/cancel
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjExNCwiZXhwIjoxNzU5ODAzMDE0fQ.ZxvyVJ8ua5V_q5ytGAlzUgv16P9uPQk_ML_Z8e80M7k
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc2MzMzMzg2MCwiZXhwIjoxNzYzMzM0NzYwfQ.Y3g-vAXDK8YcUN3XarIlpnppjchD5G-Wk5274YoFqI0
 
 
 {
