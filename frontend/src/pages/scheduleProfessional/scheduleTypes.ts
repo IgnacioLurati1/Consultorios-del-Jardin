@@ -50,6 +50,6 @@ export interface GridFilterProps{
   professionals?: Person[];
   schedules?: Schedule[];
   offices?: Office[];
-  setOfficeToFilter: (office: Office) => void;
-  setRoomToFilter: (room: Room)=> void;
+  setOfficeToFilter: (office: Office|undefined) => void;
+  setRoomToFilter: (room: Room|undefined)=> void;
 }

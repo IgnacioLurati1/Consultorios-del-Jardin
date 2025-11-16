@@ -105,25 +105,22 @@ export function ScheduleProfessional(){
       });
   }, []);
 
-  useEffect(() =>{
-     if(officeToFilter){
-      const filtered = schedules.filter(sch => String(sch.room.office) === String(officeToFilter.idOffice));
-      setFilteredSchedules(filtered);
-    } else {
-      setFilteredSchedules(schedules);
+  // Combinar ambos filtros en un solo useEffect
+  useEffect(() => {
+    let filtered = schedules;
+
+    // Filtrar por office si está seleccionada
+    if (officeToFilter) {
+      filtered = filtered.filter(sch => String(sch.room.office) === String(officeToFilter.idOffice));
     }
-  },[officeToFilter, schedules])
 
-
-  useEffect(()=>{ //Filtro por sala cuando se setea en el filter
-    if(roomToFilter){
-      const filtered = schedules.filter(sch => sch.room.idRoom === roomToFilter.idRoom);
-      setFilteredSchedules(filtered);
-    } else {
-      setFilteredSchedules(schedules);
+    // Filtrar por room si está seleccionada (tiene prioridad sobre office)
+    if (roomToFilter) {
+      filtered = filtered.filter(sch => sch.room.idRoom === roomToFilter.idRoom);
     }
-  },[roomToFilter, schedules])
 
+    setFilteredSchedules(filtered);
+  }, [officeToFilter, roomToFilter, schedules]);
 
 
   async function addSchedule(newSchedule: { day: string, initialHour: string, finalHour: string, room: string, personEmail: string, allowedType: string, duration: number }){     
@@ -162,7 +159,7 @@ export function ScheduleProfessional(){
                 <GridFilter setProfessional={setProfessional} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>
             <div className="schedule-container">
-              <GridModule schedules={schedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
+              <GridModule schedules={filteredSchedules} daysSpanish={daysSpanish} openingTime={openingTime} closingTime={closingTime} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey}/>
             </div>
           </div>
           <ScheduleModal isOpen={scheduleModalOpen} onClose={() => setScheduleModalOpen(false)} schedule={selectedSchedule} cellKey={selectedKey} daysSpanish={daysSpanish} professional={professional} rooms={rooms} offices={offices} cities={cities} onCreate={null} onDelete={null} isProfessional={isProfessional}/>
@@ -198,4 +195,3 @@ export function ScheduleProfessional(){
       );
   }
 }
-
