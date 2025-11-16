@@ -98,7 +98,7 @@ export class AppointmentService {
     em.remove(appointment);
     await em.flush();
     await this.sendAppointmentRejectedEmails(appointment);
-    return appointment;
+    return appointment; // Not used for now
   }
 
   async updateAppointment(num: number, professionalEmail: string, data: Partial<Appointment>) {
@@ -109,11 +109,10 @@ export class AppointmentService {
         state: "accepted",
         professional: { email: professionalEmail },
       },
-      { populate: ["diagnostics", "diagnostics.patient"] } // HABRIA QUE FILTRAR QUE DEVUELVE
+      { populate: ["diagnostics", "diagnostics.patient"] }
     );
 
     if (!data.initialHour || !data.finalHour) throw new Error("Debe proporcionar initialHour y finalHour");
-    // Lo puse aca porque sino typescript me tiraba flor de error
 
     if (!this.checkHoursOverlapAndFormat(data.initialHour, data.finalHour))
       throw new Error("El formato de las horas es inválido o la hora inicial es mayor o igual a la final");
@@ -133,7 +132,7 @@ export class AppointmentService {
     em.assign(appointment, data);
     await em.flush();
     await this.sendAppointmentUpdatedEmails(appointment);
-    return appointment;
+    return appointment; // Not used for now
   }
 
   isValidDate(date: Date): boolean {
@@ -240,7 +239,7 @@ export class AppointmentService {
     appointment.state = "accepted";
     await em.flush();
     await this.sendAppointmentAcceptedEmails(appointment);
-    return appointment;
+    return appointment; // Not used for now
   }
 
   async cancelAppointment(num: number, email: string, type: "professional" | "client") {
@@ -275,7 +274,7 @@ export class AppointmentService {
 
     await em.flush();
     await this.sendAppointmentCanceledEmails(appointment);
-    return appointment;
+    return appointment; // Not used for now
   }
 
   async createPatientAppointment(
@@ -525,17 +524,8 @@ export class AppointmentService {
 
   async getAppointmentsForReminder(): Promise<Appointment[]> {
     const now = new Date();
-    const argentinaTz = new Intl.DateTimeFormat("es-AR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "America/Argentina/Buenos_Aires",
-    }).format(now);
-
-    // argentinaTz is in format dd/MM/yyyy; split into parts
+    const argentinaTz = this.formatDateArgentina(now);
     const [day, month, year] = argentinaTz.split("/");
-    // Build a date string anchoring midnight in Argentina (UTC-3) to avoid timezone rollbacks
-    // e.g. '2025-11-16T00:00:00-03:00' which JS Date will parse to the correct UTC instant
     const today = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
 
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
@@ -558,7 +548,7 @@ export class AppointmentService {
       <p>Te recordamos que tienes un turno programado mañana.</p>
       <p><strong>Detalles del turno:</strong></p>
       <ul>
-        <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-AR")}</li>
+        <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
         <li><strong>Hora:</strong> ${appointment.initialHour}</li>
         <li><strong>Profesional:</strong> ${appointment.professional.name} ${appointment.professional.surname}</li>
       </ul>
