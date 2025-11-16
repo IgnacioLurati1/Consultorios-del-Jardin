@@ -19,7 +19,7 @@ export function ProfessionalCard({ professional, office,display }:ProfessionalCa
     }
     return (
         <>
-            <div className={display? "professional-card":"professional-card hidden"}>
+            <div className={display? "professional-box":"professional-box hidden"}>
                 <div className="professional-info">
                     <div className="professional-avatar">
                         <FaUserTie className="avatar-icon" />

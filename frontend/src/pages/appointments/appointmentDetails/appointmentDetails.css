@@ -70,54 +70,54 @@ html {
     gap: 2rem;
 }
 
-.patient-section,
 .professional-section {
     padding: 0.5rem;
     border-radius: 12px;
 }
 
-.section-header {
+.appointment-section-header {
     display: flex;
     align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid #848484;
+    border-bottom: 2px solid #ccc;
+    width: fit-content;
 }
 
-.section-title {
+.appointment-section-title {
     font-size: 1.8em;
     font-weight: 600;
     margin: 0;
 }
 
-.section-chevron {
+.appointment-section-chevron {
     margin-left: 0.5rem;
     transform: rotate(180deg);
 }
 
-.info-list {
+.appointment-info-list {
     display: flex;
     flex-direction: column;
     gap: 0.875rem;
 }
 
-.info-label {
+.appointment-info-label {
     font-weight: 600;
     font-size: 1.8em;
 }
 
-.info-value {
+.appointment-info-value {
     color: #333;
     font-size: 1.8em;
 }
 
-.professional-details-info {
+.appointment-professional-details-info {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-.professional-details-card {
+.appointment-professional-details-card {
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -125,7 +125,7 @@ html {
     border-radius: 12px;
 }
 
-.professional-details-avatar {
+.appointment-professional-details-avatar {
     width: 70px;
     height: 70px;
     display: flex;
@@ -133,71 +133,43 @@ html {
     justify-content: center;
     flex-shrink: 0;
 }
-.avatar-details-icon {
+.appointment-avatar-details-icon {
     width: 70px;
     height: 70px;
 }
 
-.professional-details {
+.appointment-professional-details {
     flex: 1;
 }
 
-.professional-name-wrapper {
+.appointment-professional-name-wrapper {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.25rem;
 }
 
-.professional-name {
+.appointment-professional-name {
     font-size: 1.8em;
     font-weight: 600;
 }
-.professional-phone {
+.appointment-professional-phone {
     height: 24px;
     width: 24px;
 }
 
-.professional-specialty {
+.appointment-professional-specialty {
     font-size: 22px;
     margin: 0;
     color: #333;
 }
 
-.reserve-btn {
-    margin-top: 1.5rem;
-    width: 100%;
-    background-color: var(--button-color);
-    color: var(--background-text);
-    padding: 14px 40px;
-    font-size: 1.8em;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.1s ease;
-    box-shadow: 0 4px 8px rgba(45, 122, 95, 0.3);
-}
-
-.reserve-btn:hover {
+.appointment-reserve-btn:hover {
     background-color: #33654b;
 }
 
-.reserve-btn:active {
+.appointment-reserve-btn:active {
     transform: translateY(1px);
-}
-
-.appointment-details-table-container{
-    background-color: var(--background-text);
-    min-height: 60vh;
-    padding: 40px 20px;
-    opacity: 1;
-    max-height: 100%;
-    overflow: hidden;
-    transition: opacity 1s ease, max-height 1s ease;
-    display: flex;
-    justify-content: center;
-    color: black;
 }
 
 @media (max-width: 768px) {

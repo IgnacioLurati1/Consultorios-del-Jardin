@@ -1,13 +1,5 @@
 import api from "../../axios";
-import type {Schedule, Person} from "../types.ts"
-
-export function findAllProfessionals(): Promise<Person[]>{
-    return api.get('/people/type/professional')
-    .then(response => response.data.data)
-    .catch(()=> {
-        return [];
-    });
-}
+import type {Schedule} from "../types.ts"
 
 export function findProfessionalSchedules(professionalEmail: string): Promise<Schedule[]>{
     if(!professionalEmail) return Promise.resolve([])

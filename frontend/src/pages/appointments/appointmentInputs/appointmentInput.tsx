@@ -3,7 +3,7 @@ import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeServic
 import { ToastContainer, toast } from "react-toastify";
 import type{Office, Person} from "../../types.ts"
 import './appointmentInput.css';
-import { findAllProfessionals } from '../../scheduleProfessional/scheduleServices.ts';
+import { findAllActiveProfessionals, findProfessionalsOfficeSpecialty } from "../../adminCRUDS/adminUsers/usersService.ts";
 import { FaExclamationTriangle } from "react-icons/fa";
 import { ProfessionalCard } from './professionalCard.tsx';
 
@@ -13,17 +13,8 @@ const [office, setOffice] = useState<Office>();
 const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
 const [specialty, setSpecialty] = useState<string>();
 const [showAppointments, setShowAppointments] = useState(false);
-const [filteredProfessionals, setFilteredProfessionals] = useState('');
+const [filteredProfessionals, setFilteredProfessionals] = useState<Person[] | []>([]);
 const [errors, setErrors] = useState<{office?:string ,professional?:string, specialty?: string}>({});
-
-const handleSearch = () => {
-    if(!validateInputs()) {
-            console.log("Validación fallida", errors)
-            toast.dismiss();
-            
-        return;}
-    setShowAppointments(!showAppointments);
-};
 
 function validateInputs(){
         const newErrors: typeof errors = {};
@@ -54,7 +45,7 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-    findAllProfessionals()
+    findAllActiveProfessionals()
     .then(data => {
         setProfessionalsList(data);
     })
@@ -62,6 +53,27 @@ useEffect(() => {
         toast.error("Error cargando profesionales:", err);
     });
 }, []);
+
+function findFilteredProfessionals(){
+    if ((office && specialty) || (office)){
+        findProfessionalsOfficeSpecialty(String(office.idOffice),specialty)
+        .then(data => {
+            setFilteredProfessionals(data);
+            
+        })
+        .catch(err => {
+            toast.error("Error cargando profesionales con ese consultorio y esa oficina:", err);
+        });
+    }
+}
+
+const handleSearch = () => {
+    if(!validateInputs()) {
+            toast.dismiss();
+        return;}
+    setShowAppointments(true);
+    findFilteredProfessionals();
+};
 
 return (
     <>
@@ -162,7 +174,7 @@ return (
 
                     <div className="form-actions">
                         <div className="form-hint">
-                            {showAppointments? "x resultados encontrados" :"Ingrese consultorio y profesional y/o especialidad"}
+                            {showAppointments ? `${filteredProfessionals.length} resultados encontrados` : "Ingrese consultorio y profesional y/o especialidad"}
                         </div>
 
                         <button onClick={handleSearch} className="search-button">
@@ -173,10 +185,18 @@ return (
             </div>
         </div>
         <div className={showAppointments ? 'results-container' : 'results-container hidden'}>
-                <div className="professionals-results-content"> 
-                    {showAppointments && professionalsList.map((professional) => 
-                        <ProfessionalCard key={professional.email} professional={professional} office={office} display={showAppointments}></ProfessionalCard>
-                    )}
+            <div className="professionals-results-content">
+                {
+                    filteredProfessionals.length === 0 ? (
+                    <div>
+                        <h2 className="no-results-title">No se encontraron resultados</h2>
+                    </div>
+                    ) : (
+                    showAppointments && filteredProfessionals.map((professional) => (
+                        <ProfessionalCard key={professional.email} professional={professional} office={office} display={showAppointments}/>
+                    ))
+                    )
+                }
             </div>
         </div>
     </>
