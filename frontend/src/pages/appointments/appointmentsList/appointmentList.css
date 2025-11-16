@@ -1,0 +1,104 @@
+.appointment-person-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.upper-appointment-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  width: 100%;
+  margin-top: 10px;
+}
+.upper-appointment-container .navZone{
+  margin: 0;
+  width: 40%;
+  height: 8vh;
+}
+
+.appointment-container{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 90%;
+}
+
+.toast-container {
+    position: fixed !important;
+    margin-top:2vh;
+    width: auto;
+    font-size: 1.5vw;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+.appointment-subcontainer{
+  flex-direction: column;
+  align-items: center;
+  background-color:aliceblue;
+  max-height: 70vh;
+  border-radius: 10px;
+  width: 100%;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.nextPageButton{
+  font-size: 0.9vw;
+  font-weight: bold;
+  color:aliceblue;
+  cursor: pointer;
+  border-radius: 5px;
+  border: none;
+  padding: 10px 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3vw;
+  width: 10vw;
+  background-color: #3478af;
+  margin-top: 1vh;
+}
+
+.nextPageButton:hover{
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nextPageButton:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .appointment-person-container  {
+    position: relative;
+    width: 100vw;
+  }
+
+  .upper-appointment-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 90vw;
+  }
+
+  .upper-appointment-container .navZone{
+    width: 100%;
+    height: auto;
+  }
+
+  .toast-container {
+    margin-top:0vh;
+    width: 100%;
+    font-size: 4vw;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+
+}

@@ -6,6 +6,7 @@
 }
 
 .upper-container {
+  margin-top: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -13,9 +14,7 @@
   width: 100%;
 }
 .upper-container .navZone{
-  margin-left: 0;
-  margin-right: 0;
-  margin-bottom: 0;
+  margin: 0;
   width: 40%;
   height: 8vh;
 }
