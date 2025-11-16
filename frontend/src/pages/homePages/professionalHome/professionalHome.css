@@ -1,38 +1,28 @@
 
 .professional-home-container-whole {
-    display: flex;
-    height: 80vh;
-}
-
-.professional-home-container-left {
+    width: 90vw;
+    align-items: center;
     justify-content: center;
-    flex-direction: column;
-    display: flex;
-    gap: 50px;
-    min-width: 75vw;
+    margin: auto;
 }
 
 .nav-zone-container .navZone {
     height: 70%;
-    width: 94.3%;
+    width: 90%;
     margin-left: 40px;
 }
 
 .professional-cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    display: flex;
+    
     align-items: center;
     justify-content: center;
-    gap:10px;
-    margin:0 40px 0 40px;
+    margin-top: 5vh;
+    gap:10px
 }
 .professional-card{
-    height: 60vh;
-    min-width: 100px;
-}
-
-.professional-home-container-right {
-    border-left: 1px solid #ddd;  
+    height: 40vh;
+    width: 300px;
 }
 
 @media (max-width: 768px) {
@@ -41,7 +31,7 @@
         height: auto;
     }
 
-    .professional-home-container-left {
+    .professional-home-container {
         min-width: 100%;
         gap: 20px;
     }
@@ -53,15 +43,12 @@
     }
 
     .professional-cards-container {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        margin: 0 10px;
-    }
-
-    .professional-home-container-right {
-        display: none;
+        grid-template-columns: repeat(2, 1fr);
+        font-size: 10px;
     }
     .professional-card{
-    height: 35vh;
-    min-width: 100px;
-}
+        height: 30vh;  
+        width: 100%;    
+        min-width: unset; 
+    }
 }
