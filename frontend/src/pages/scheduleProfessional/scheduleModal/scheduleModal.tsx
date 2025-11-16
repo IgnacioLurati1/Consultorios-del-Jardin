@@ -6,7 +6,7 @@ import { FaExclamationTriangle } from "react-icons/fa";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 
-const durations: number[] = [15, 30, 45, 60];
+const durations: number[] = [15, 30, 60];
 
 function validateOfficeTimes(initialHour:string, finalHour:string): boolean {
   if (initialHour && finalHour) {
@@ -62,6 +62,12 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
         }
         if(!newScheduleData.finalHour.trim()){
             newErrors.finalHour = "Ingrese hora de fin"
+        }
+        if(!(newScheduleData.initialHour > "07:59")){
+            newErrors.initialHour = "Hora de inicio inválida"
+        }
+        if(!(newScheduleData.finalHour < "21:01")){
+            newErrors.finalHour = "Hora de fin inválida"
         }
         if(newScheduleData.finalHour.trim() && newScheduleData.initialHour.trim() && !validateOfficeTimes(newScheduleData.initialHour, newScheduleData.finalHour)){
             newErrors.initialHour = "Los horas son inválidas"
@@ -162,6 +168,7 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                                 type="time" 
                                 className={`input-modal ${false? "input-error" : "input-valid"}`} 
                                 value={newScheduleData.initialHour}
+                                step="3600"
                                 onChange={(e) => 
                                     setNewScheduleData({...newScheduleData, initialHour: e.target.value
                                 })}
@@ -179,6 +186,7 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                             <input 
                                 type="time" 
                                 className={`input-modal ${false? "input-error" : "input-valid"}`}
+                                step="3600"
                                 onChange={(e) => setNewScheduleData({...newScheduleData, finalHour: e.target.value})}
                             /> 
                             <div className="error-container">
