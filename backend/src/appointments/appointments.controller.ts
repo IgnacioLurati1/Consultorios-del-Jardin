@@ -128,6 +128,9 @@ async function createPatientAppointment(req: RequestWithUser, res: Response) {
     );
     res.status(201).json({ message: "Turno creado con éxito", data: appointment });
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "Ya existe un turno en esa fecha y hora con ese profesional" });
+    }
     res.status(500).json({ message: error.message });
   }
 }
@@ -141,16 +144,23 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const { date, initialHour, type, room, value, finalHour } = req.body.sanitizedInput;
 
-    const appointment = await appointmentService.updateAppointment(numAppointment, req.user.email, {
-      date,
-      initialHour,
-      type,
-      room,
-      value,
-      finalHour,
-    });
+    try {
+      const appointment = await appointmentService.updateAppointment(numAppointment, req.user.email, {
+        date,
+        initialHour,
+        type,
+        room,
+        value,
+        finalHour,
+      });
 
-    res.status(200).json({ message: "Turno actualizado con éxito" });
+      res.status(200).json({ message: "Turno actualizado con éxito" });
+    } catch (updateError: any) {
+      if (updateError.code === "ER_DUP_ENTRY" || updateError.message.includes("Duplicate entry")) {
+        return res.status(409).json({ message: "Ya existe un turno en esa fecha y hora con ese profesional" });
+      }
+      throw updateError;
+    }
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

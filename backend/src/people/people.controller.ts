@@ -115,6 +115,9 @@ async function add(req: Request, res: Response) {
 
     res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token }); // return person data and token
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "La persona ya existe" });
+    }
     res.status(500).json({ message: error.message });
   }
 }
@@ -133,6 +136,9 @@ async function update(req: RequestWithUser, res: Response) {
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
     res.status(200).json({ message: "Persona actualizada con éxito!", data: safeData });
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "La persona ya existe" });
+    }
     res.status(500).json({ message: error.message });
   }
 }
