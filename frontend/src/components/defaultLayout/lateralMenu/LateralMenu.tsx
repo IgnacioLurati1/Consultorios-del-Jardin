@@ -13,6 +13,7 @@ import {
   faUserTie,
   faArrowLeft,
   faDatabase,
+  faCalendarCheck,
 } from '@fortawesome/free-solid-svg-icons';
 import { getDecodedToken } from '../../../pages/commonServices';
 
@@ -37,9 +38,11 @@ const iconMap: Record<string, IconDefinition> = {
   phone: faPhone,
   database: faDatabase,
   professional: faUserTie,
+  appointments: faCalendarCheck,
+  requestAppointments: faCalendarDays,
 };
 
-let currentUserType = 'guest'; // Valor por defecto
+let currentUserType = 'all'; // Valor por defecto
 
 export function LateralMenu({isOpen, items, onClose }: LateralMenuProps) {
   
@@ -52,7 +55,7 @@ export function LateralMenu({isOpen, items, onClose }: LateralMenuProps) {
     <div className={`lateral-menu ${isOpen ? 'open' : 'closed'}`}>
         <div>
             {items.map((item) => {
-              if(item.userType == 'guest' || item.userType == currentUserType) {
+              if(item.userType == 'all' || item.userType == currentUserType) {
                 const icon = iconMap[item.faviconName] ?? faHouse; // ícono por defecto
                 return (
                 <Link className='link-menu-item' onClick={onClose} key={item.path} to={item.path}>

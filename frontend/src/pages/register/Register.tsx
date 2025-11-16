@@ -11,8 +11,6 @@ import { DataInputSelector } from "../../components/inputs/selectorInput/DataInp
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import type { TokenPayload } from "../types.ts";
-import { jwtDecode } from "jwt-decode";
 
 export function Register() {
   const { login } = useAuth();
