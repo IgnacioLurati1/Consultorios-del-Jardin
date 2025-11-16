@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/mysql";
 import { OfficeService } from "../offices/offices.service.js";
 import { PeopleService } from "../people/people.service.js";
-import { RoomService } from "../rooms/rooms.services.js";
+import { RoomService } from "../rooms/rooms.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "./appointments.service.js";
 import { Appointment } from "./appointments.entity.js";

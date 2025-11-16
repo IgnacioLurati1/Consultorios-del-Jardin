@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { RoomService } from "./rooms.services.js";
+import { RoomService } from "./rooms.service.js";
 import { wrap } from "@mikro-orm/core";
 
 const roomService = new RoomService();

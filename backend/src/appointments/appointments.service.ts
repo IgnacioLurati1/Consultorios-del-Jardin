@@ -5,7 +5,7 @@ import { PeopleService } from "../people/people.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { OfficeService } from "../offices/offices.service.js";
 import { EntityManager } from "@mikro-orm/mysql";
-import { RoomService } from "../rooms/rooms.services.js";
+import { RoomService } from "../rooms/rooms.service.js";
 import { AppointmentEngine } from "./appointments.engine.js";
 import MailService from "../config/sendGrid.js";
 

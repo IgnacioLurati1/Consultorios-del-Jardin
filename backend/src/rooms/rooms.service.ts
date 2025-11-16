@@ -1,12 +1,12 @@
 import { orm } from "../shared/db/orm.js";
 import { Room } from "./rooms.entity.js";
 import { EntityManager } from "@mikro-orm/core";
-//import { OfficeService } from '../offices/offices.service.js'; ----------- FALTA LO DE ALAN -
+import { OfficeService } from '../offices/offices.service.js';
 import type { RequiredEntityData } from "@mikro-orm/core";
 
 const em = orm.em;
 export class RoomService {
-  //constructor(private officeService = new OfficeService()) {} ----------- FALTA LO DE ALAN -
+  constructor(private officeService = new OfficeService()) {}
 
   //VALIDATIONS
 
@@ -18,10 +18,10 @@ export class RoomService {
     }
 
     try {
-      //const office = await this.officeService.findOfficeById(sanitizedInput.office) ----------- FALTA LO DE ALAN -
+      const office = await this.officeService.findOficeById(sanitizedInput.office)
 
-      if (true) {
-        // cambiar a office.active ----------- FALTA LO DE ALAN -
+      if (office.active) {
+
         return false;
       }
       return true;
