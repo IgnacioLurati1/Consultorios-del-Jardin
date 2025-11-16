@@ -38,7 +38,6 @@ export function Register() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     toast.dismiss();
-    setShowButton(false);
 
     if (formData.contraseña !== formData.confirmarContraseña) {
       toast.error("Las contraseñas no coinciden", {
@@ -86,6 +85,7 @@ export function Register() {
           localStorage.setItem("token", response.data.token);
           toast.success("Usuario registrado con éxito", {
             className: "feedBack-box success",});
+            setShowButton(false);
             
             axios
               .post(

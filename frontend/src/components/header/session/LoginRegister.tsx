@@ -40,7 +40,12 @@ export function LoginRegister() {
 
       <div className={`logout-confirmation ${sureLogOut ? "visible" : ""}`} onClick={() => setSureLogOut(false)}>
         <div className="logout-content" onClick={(e) => e.stopPropagation()}>
-          <p>¿Está seguro de que desea cerrar sesión?</p>
+          
+          {showButtons
+          ?(<p>¿Está seguro de que desea cerrar sesión?</p>
+          ):(
+            <p>Cerrando sesión...</p>
+          )}
           {showButtons
           ?(<div className="logout-buttons">
             <button className="confirm-logout-button button-right" onClick={handleLogout}>
