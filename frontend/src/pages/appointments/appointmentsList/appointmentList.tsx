@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
 import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
-import {findProfessionalAppointments, findPatientAppointments, GetAppointmentDiagnostics} from "../appointmentsService.ts"
+import {findProfessionalAppointments, findPatientAppointments} from "../appointmentsService.ts"
 import { AppointmentsGrid } from "./appointmentsGrid.tsx";
 import { AppointmentsGridFilter } from "./appointmentsGridFilter.tsx";
 
@@ -109,8 +109,8 @@ useEffect(() => {
     });
 
     return () => {
-      ignore = true; //eliminar en produccion
-    };
+       ignore = true; //eliminar en produccion
+    };
 
   }, [person, pagesAppointment]);
 
