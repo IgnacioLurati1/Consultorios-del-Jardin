@@ -482,4 +482,60 @@ export class AppointmentService {
     const message = await this.mailService.createMessage(patientEmail, "Has Sido Añadido a un Turno", htmlContent);
     await this.mailService.sendMail(message);
   }
+
+  async getAppointmentsForReminder(): Promise<Appointment[]> {
+    const now = new Date();
+    const argentinaTz = new Intl.DateTimeFormat("es-AR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }).format(now);
+
+    const [day, month, year] = argentinaTz.split("/").reverse();
+    const today = new Date(`${year}-${month}-${day}T00:00:00`);
+
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrow2359 = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000 - 1000);
+
+    return await em.find(
+      Appointment,
+      {
+        date: { $gte: tomorrow, $lte: tomorrow2359 },
+        state: "accepted",
+        reminderSent: "not sent",
+      },
+      { populate: ["diagnostics", "diagnostics.patient", "professional"] }
+    );
+  }
+
+  private async sendReminderEmail(patientEmail: string, appointment: Appointment) {
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Te recordamos que tienes un turno programado mañana.</p>
+      <p><strong>Detalles del turno:</strong></p>
+      <ul>
+        <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-AR")}</li>
+        <li><strong>Hora:</strong> ${appointment.initialHour}</li>
+        <li><strong>Profesional:</strong> ${appointment.professional.name} ${appointment.professional.surname}</li>
+      </ul>
+      <p>Por favor, asegúrate de llegar 5 minutos antes de tu turno.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(patientEmail, "Recordatorio de Tu Turno", htmlContent);
+    await this.mailService.sendMail(message);
+  }
+
+  async sendReminderEmails(appointment: Appointment): Promise<void> {
+    const diagnosticsItems = appointment.diagnostics.getItems();
+    for (const diagnostic of diagnosticsItems) {
+      await this.sendReminderEmail(diagnostic.patient.email, appointment);
+    }
+  }
+
+  async updateReminderStatus(numAppointment: number): Promise<void> {
+    const appointment = await em.findOneOrFail(Appointment, { numAppointment });
+    appointment.reminderSent = "sent";
+    await em.flush();
+  }
 }

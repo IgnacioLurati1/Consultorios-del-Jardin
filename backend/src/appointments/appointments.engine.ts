@@ -56,6 +56,7 @@ export class AppointmentEngine {
       room,
       value,
       state: "accepted",
+      reminderSent: "not sent",
     });
 
     if (type === "simple" && patientEmail) {
@@ -148,6 +149,7 @@ export class AppointmentEngine {
           room,
           value: 0,
           state: "pending",
+          reminderSent: "not sent",
         });
       }
     } else {
@@ -162,6 +164,7 @@ export class AppointmentEngine {
         room,
         value: 0,
         state: "pending",
+        reminderSent: "not sent",
       });
     }
     appointment.diagnostics.add(
@@ -198,9 +201,9 @@ export class AppointmentEngine {
 
     const availableSlots: Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }> = [];
 
-    const now = new Date(); 
-    
-    const today = new Date(now); 
+    const now = new Date();
+
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
 
     const days = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
@@ -213,10 +216,10 @@ export class AppointmentEngine {
         const dayName = days[dayOfWeek];
         const daySchedules = schedules.filter((s) => s.day === dayName);
 
-        const isToday = (currentDate.toDateString() === now.toDateString());
-        
+        const isToday = currentDate.toDateString() === now.toDateString();
+
         // 4. Obtén los minutos actuales (solo si es "hoy")
-        const realCurrentMinutes = isToday ? (now.getHours() * 60 + now.getMinutes()) : 0;
+        const realCurrentMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0;
 
         for (const schedule of daySchedules) {
           const [scheduleHours, scheduleMinutes] = schedule.initialHour.split(":").map(Number);
@@ -227,12 +230,11 @@ export class AppointmentEngine {
           let currentMinutes = scheduleInitialMinutes;
 
           while (currentMinutes + schedule.duration <= scheduleFinalMinutes) {
-
             if (isToday && currentMinutes < realCurrentMinutes) {
               currentMinutes += schedule.duration; // Avanza al siguiente slot
               continue; // Omite el resto del código y sigue con el próximo slot
             }
-            
+
             const slotHours = Math.floor(currentMinutes / 60);
             const slotMinutes = currentMinutes % 60;
             const initialHour = `${slotHours.toString().padStart(2, "0")}:${slotMinutes.toString().padStart(2, "0")}`;
