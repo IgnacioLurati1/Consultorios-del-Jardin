@@ -166,12 +166,11 @@ export function AppointmentCell({
               <button className="appointment-cell-button mark-button"><FaClock /> No atendido</button>
             )}
           </>) :
-          <></>}
+          <><button className="appointment-cell-button diagnostic-button" onClick={() => setShowDiagnostic(true)}><FaClipboard /> Diagnóstico</button></>}
         {isCanceled ? (
           <button className="appointment-cell-button canceled-button" disabled>Cancelado</button>
         ) : (
           <>
-            <button className="appointment-cell-button diagnostic-button" onClick={() => setShowDiagnostic(true)}><FaClipboard /> Diagnóstico</button>
             <button className="appointment-cell-button cancel-button" onClick={() => setShowCancel(true)}><FaXmark />Cancelar</button>
           </>
           
