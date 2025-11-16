@@ -9,7 +9,7 @@ Authorization: Bearer
 ### POST - Turnos posibles
 POST http://localhost:3000/api/appointments/getAppointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMjEzNiwiZXhwIjoxNzU5ODAzMDM2fQ.xh9XK5vPdGn1B05YSzVT3m-X3wK3DG7lM-ek8cr3_gY
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFjaW9sdXJhdGkzQGdtYWlsLmNvbSIsInR5cGUiOiJjbGllbnQiLCJpYXQiOjE3NjMyNTM4NzgsImV4cCI6MTc2MzI1NDc3OH0.XiA2F-O9eJLvobZrpp-6HuA4gzyLwmhwgSAr4x3Tz8U
 
 {
   "professionalEmail": "prof@gmail.com",
@@ -18,13 +18,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllb
 ### POST - crear un nuevo turno
 POST http://localhost:3000/api/appointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBhdGllbnRAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc1OTgwMzI2NCwiZXhwIjoxNzU5ODA0MTY0fQ.zbS-TwKkSafPGU27fmJ99vc4vxtFn9AztejatojIC1g
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFjaW9sdXJhdGkzQGdtYWlsLmNvbSIsInR5cGUiOiJjbGllbnQiLCJpYXQiOjE3NjMyNTUyMTgsImV4cCI6MTc2MzI1NjExOH0.Dj3PJLKtbu8PERxs_6m6TDqXFkXc-cqGHga7pAXFvdc
 
 
 {
-  "date": "2025-10-08",
-  "initialHour": "16:00",
-  "type": "taller",
+  "date": "2025-11-18",
+  "initialHour": "10:00",
+  "type": "simple",
   "professionalEmail": "prof@gmail.com",
   "office": 1
 }

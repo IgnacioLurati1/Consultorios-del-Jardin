@@ -70,14 +70,7 @@ export class AppointmentEngine {
       );
     }
 
-    return {
-      numAppointment: appointment.numAppointment,
-      date: appointment.date,
-      initialHour: appointment.initialHour,
-      finalHour: appointment.finalHour,
-      type: appointment.type,
-      state: appointment.state,
-    };
+    return appointment;
   }
 
   async validateAndCreateAppointment(
@@ -176,14 +169,7 @@ export class AppointmentEngine {
       })
     );
 
-    return {
-      numAppointment: appointment.numAppointment,
-      date: appointment.date,
-      initialHour: appointment.initialHour,
-      finalHour: appointment.finalHour,
-      type: appointment.type,
-      state: appointment.state,
-    };
+    return appointment;
   }
 
   async getAvailableAppointmentsForPatient(

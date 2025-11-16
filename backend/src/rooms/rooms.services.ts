@@ -43,7 +43,7 @@ export class RoomService {
   }
 
   async findRoomById(idRoom: number, emT?: EntityManager): Promise<Room> {
-    return await (em || emT).findOneOrFail(Room, { idRoom }, { populate: ["office.city"] });
+    return await (emT || em).findOneOrFail(Room, { idRoom }, { populate: ["office.city"] });
   }
 
   async createRoom(data: RequiredEntityData<Room>): Promise<Room> {
