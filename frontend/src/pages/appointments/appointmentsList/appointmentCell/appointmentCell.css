@@ -64,7 +64,7 @@
   margin-left: auto;
 }
 
-.appointment-cell-button{
+.appointment-cell-button, .appointment-cell-info{
     font-size: 0.9vw;
     font-weight: bold;
     color:aliceblue;
@@ -79,6 +79,8 @@
     gap: 0.3vw;
     min-width: 10vw;
 }
+
+.appointment-cell-info{cursor: default}
 
 .appointment-cell-button:hover{
     transform: scale(1.05);
@@ -98,7 +100,7 @@
     background-color: #CD6965;
 }
 
-.pending-button{
+.pending-button, .pending-client{
     background-color: #93C0E4;
 }
 
@@ -106,7 +108,7 @@
     display: none;
 }
 
-.pending-button:hover{
+.pending-button:hover, .accepted-client{
     background-color:rgb(37, 170, 126);
 }
 
@@ -209,7 +211,7 @@
         padding: 5px 10px; 
     }
 
-    .appointment-cell-button {
+    .appointment-cell-button, .appointment-cell-info {
         font-size: 1rem; 
         padding: 12px 15px; 
         gap: 0.5rem; 

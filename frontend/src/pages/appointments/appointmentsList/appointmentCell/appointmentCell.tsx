@@ -125,6 +125,20 @@ export function AppointmentCell({
   }
 
   function handleDiagnosticUpdate() {
+    if(appointment.state !== "accepted"){
+      acceptAppointment(appointment.numAppointment)
+      .then((success: boolean) => {
+        if (success) {
+          setState("accepted");
+          onAppointmentStateUpdate(appointment.numAppointment, "accepted");
+        } else {
+          toast.error("Error al aceptar la cita");
+        }
+      })
+      .catch(err => {
+        toast.error(`Error al aceptar la cita: ${err.message}`);
+      });
+    }
     GetAppointmentDiagnostics(appointment.numAppointment)
       .then(data => {
         setDiagnostics(data);
@@ -153,28 +167,26 @@ export function AppointmentCell({
       </div>
       <div className="appointment-cell-buttons">
 
-        {user.type === "professional" && !isCanceled ? (
+        {!isCanceled ? (
           <>
-            <button className="appointment-cell-button diagnostic-button" onClick={() => setShowDiagnostic(true)}><FaClipboard /> Diagnóstico</button>
-            {state === "pending" ? (
+          <button className="appointment-cell-button diagnostic-button" onClick={() => setShowDiagnostic(true)}><FaClipboard /> Diagnóstico</button>
+          {user.type === "professional" ? (<>{state === "pending" ? (
               <button className="appointment-cell-button pending-button" onClick={() => handleAcceptAppointment(appointment.numAppointment)}>
                 <FaClock /><span className="default-text">Pendiente</span><span className="hover-text">Aceptar</span>
               </button>
-            ) : state === "accepted" && diagnostics.every(d => d.state === "assisted") ? (
+            ) : diagnostics.some(d => d.state === "assisted") ? (
               <button className="appointment-cell-button attended-button"><FaCheck /> Atendido</button>
             ) : (
               <button className="appointment-cell-button mark-button"><FaClock /> No atendido</button>
-            )}
-          </>) :
-          <><button className="appointment-cell-button diagnostic-button" onClick={() => setShowDiagnostic(true)}><FaClipboard /> Diagnóstico</button></>}
-        {isCanceled ? (
-          <button className="appointment-cell-button canceled-button" disabled>Cancelado</button>
-        ) : (
-          <>
-            <button className="appointment-cell-button cancel-button" onClick={() => setShowCancel(true)}><FaXmark />Cancelar</button>
-          </>
-          
-        )}
+            )}</>):<>
+              {appointment.state === "accepted" ? <>
+                <div className="appointment-cell-info accepted-client"><FaCheck />Aceptado</div>
+              </>: <><div className="appointment-cell-info pending-client"><FaClock />Pendiente</div></>}
+            </> }
+            {diagnostics.every(d => d.state !== "assisted") ? 
+            <button className="appointment-cell-button cancel-button" onClick={() => setShowCancel(true)}><FaXmark />Cancelar</button>: <></>}
+          </>):<><button className="appointment-cell-info canceled-button" disabled>Cancelado</button></>}
+
       </div>
       <div className="appointment-cell-confirm-cancel">
         {showCancel && (
