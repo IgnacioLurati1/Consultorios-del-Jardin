@@ -128,6 +128,9 @@ async function createPatientAppointment(req: RequestWithUser, res: Response) {
     );
     res.status(201).json({ message: "Turno creado con éxito", data: appointment });
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "Ya existe un turno en esa fecha y hora con ese profesional" });
+    }
     res.status(500).json({ message: error.message });
   }
 }
@@ -141,16 +144,23 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const { date, initialHour, type, room, value, finalHour } = req.body.sanitizedInput;
 
-    const appointment = await appointmentService.updateAppointment(numAppointment, req.user.email, {
-      date,
-      initialHour,
-      type,
-      room,
-      value,
-      finalHour,
-    });
-    //Devolver algo?
-    res.status(200).json({ message: "Turno actualizado con éxito" });
+    try {
+      const appointment = await appointmentService.updateAppointment(numAppointment, req.user.email, {
+        date,
+        initialHour,
+        type,
+        room,
+        value,
+        finalHour,
+      });
+
+      res.status(200).json({ message: "Turno actualizado con éxito" });
+    } catch (updateError: any) {
+      if (updateError.code === "ER_DUP_ENTRY" || updateError.message.includes("Duplicate entry")) {
+        return res.status(409).json({ message: "Ya existe un turno en esa fecha y hora con ese profesional" });
+      }
+      throw updateError;
+    }
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -163,7 +173,8 @@ async function deleteAppointment(req: RequestWithUser, res: Response) {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    await appointmentService.deleteAppointment(numAppointment, req.user.email);
+    const appointment = await appointmentService.deleteAppointment(numAppointment, req.user.email);
+
     res.status(200).json({ message: "Turno eliminado con éxito" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -190,6 +201,7 @@ async function acceptAppointment(req: RequestWithUser, res: Response) {
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const appointment = await appointmentService.acceptAppointment(numAppointment, req.user.email);
+
     res.status(200).json({ message: "Turno aceptado exitosamente", data: appointment });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -212,7 +224,8 @@ async function updateDiagnostic(req: RequestWithUser, res: Response) {
 async function cancelAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    await appointmentService.cancelAppointment(numAppointment, req.user.email, req.user.type);
+    const appointment = await appointmentService.cancelAppointment(numAppointment, req.user.email, req.user.type);
+
     res.status(200).json({ message: "Turno cancelado con éxito" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -249,6 +262,7 @@ async function addPatientToAppointment(req: RequestWithUser, res: Response) {
     const patientEmail = req.body.sanitizedInput.patientEmail;
 
     const diagnostic = await appointmentService.addPatientToAppointment(numAppointment, patientEmail, req.user.email);
+
     res.status(201).json({ message: "Paciente añadido con éxito!", data: diagnostic });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

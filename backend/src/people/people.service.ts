@@ -6,12 +6,18 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import sgMail from "@sendgrid/mail";
 import { Schedule } from "../schedule/schedules.entity.js";
+import MailService from "../config/sendGrid.js";
 
 dotenv.config();
 
 const em = orm.em;
 
 export class PeopleService {
+  private mailService: MailService;
+
+  constructor() {
+    this.mailService = new MailService();
+  }
   async findAllPeople(): Promise<Person[]> {
     return await em.find(Person, {});
   }
@@ -24,8 +30,8 @@ export class PeopleService {
     return await em.find(Person, { type: peopleType, active: true });
   }
 
-  async findAllNoAdmin(): Promise<Person[]>{
-    return await em.find(Person, {type: {$ne: 'admin'}})
+  async findAllNoAdmin(): Promise<Person[]> {
+    return await em.find(Person, { type: { $ne: "admin" } });
   }
 
   async findPersonByEmail(email: string, emT?: EntityManager): Promise<Person> {
@@ -37,16 +43,17 @@ export class PeopleService {
   }
 
   async findProfesionalByOffice(officeId: number, speciality?: string): Promise<Person[]> {
-    const query = em.createQueryBuilder(Schedule , 's')
-      .select('p.*')
+    const query = em
+      .createQueryBuilder(Schedule, "s")
+      .select("p.*")
       .distinct()
-      .join('s.person', 'p')
-      .join('s.room', 'r')
-      .join('r.office', 'o')
-      .where({ 'o.idOffice': officeId, 'p.type': 'professional', 'p.active': true });
+      .join("s.person", "p")
+      .join("s.room", "r")
+      .join("r.office", "o")
+      .where({ "o.idOffice": officeId, "p.type": "professional", "p.active": true });
 
     if (speciality) {
-      query.andWhere({ 'p.speciality': speciality });
+      query.andWhere({ "p.speciality": speciality });
     }
 
     return await query.execute();
@@ -56,7 +63,23 @@ export class PeopleService {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const person = em.create(Person, { ...data, password: hashedPassword });
     await em.flush();
+    await this.sendWelcomeEmail(person);
     return person;
+  }
+
+  private async sendWelcomeEmail(person: Person) {
+    const htmlContent = `<div style="font-family: Arial, Helvetica, sans-serif; color: #333; background: #f5f7fb; padding: 24px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+        <h1 style="margin: 0 0 8px; color: #0b62ff;">¡Bienvenido${person.name ? " " + person.name : ""}!</h1>
+        <p style="margin: 0 0 16px;">Gracias por registrarte en <strong>Consultorios Jardín</strong>. Nos alegra que te hayas sumado.</p>
+        <p style="margin: 0 0 20px;">Con tu cuenta podrás gestionar turnos, ver profesionales y mucho más desde una sola plataforma.</p>
+        <a href="${process.env.BASE_URL || "#"}" style="display: inline-block; text-decoration: none; background: #0b62ff; color: #fff; padding: 10px 16px; border-radius: 6px;">Ir al sitio web</a>
+        <hr style="border: none; border-top: 1px solid #eef2ff; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #777; margin: 0;">Si no solicitaste esta cuenta, simplemente ignora este correo.</p>
+      </div>
+      </div>`;
+    const message = await this.mailService.createMessage(person.email, "Bienvenido a Consultorios Jardín", htmlContent);
+    await this.mailService.sendMail(message);
   }
 
   async createPersonTokens(personEmail: string, personType: string) {
@@ -107,7 +130,7 @@ export class PeopleService {
     sgMail.setApiKey(process.env.SENDGRID_KEY as any);
 
     const changeToken = jwt.sign({ email }, process.env.CHANGE_SECRET as jwt.Secret, { expiresIn: "30m" });
-    const url = `http://localhost:5173/reset-password?token=${changeToken}`;
+    const url = `${process.env.BASE_URL}/reset-password?token=${changeToken}`;
     const fromMail = process.env.MAIL as string;
 
     const msg = {

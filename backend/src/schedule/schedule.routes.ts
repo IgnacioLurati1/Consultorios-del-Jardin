@@ -9,7 +9,6 @@ import {
   findByEmail,
   findByProfesionalLogged
 } from './schedule.controller.js';
-import { verify } from 'crypto';
 import { verifyAdmin } from '../config/middlewares.js';
 
 export const scheduleRouter = Router();

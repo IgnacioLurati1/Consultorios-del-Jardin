@@ -35,4 +35,7 @@ export class Appointment {
 
   @ManyToOne(() => Room, { nullable: false })
   room!: Rel<Room>;
+
+  @Property({ default: "not sent" })
+  reminderSent: "not sent" | "sent" = "not sent";
 }

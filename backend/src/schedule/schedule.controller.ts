@@ -75,6 +75,9 @@ async function add(req: Request, res: Response) {
     const schedule = await scheduleService.createSchedule(req.body.sanitizedInput);
     res.status(201).json({ message: "Horario creado", data: schedule });
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "El horario ya existe" });
+    }
     res.status(500).json({ message: error.message });
   }
 }
@@ -85,6 +88,9 @@ async function update(req: Request, res: Response) {
     const schedule = await scheduleService.updateSchedule(req.body.sanitizedInput);
     res.status(200).json({ message: "Horario actualizado", data: schedule });
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "El horario ya existe" });
+    }
     res.status(500).json({ message: error.message });
   }
 }

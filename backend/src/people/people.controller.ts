@@ -66,7 +66,7 @@ async function findAllPerTypeActive(req: Request, res: Response) {
   }
 }
 
-async function findAllNoAdmin(req: Request, res:Response){
+async function findAllNoAdmin(req: Request, res: Response) {
   try {
     const people = await peopleService.findAllNoAdmin();
     const safeData = people.map((person) => ({ ...person, password: undefined }));
@@ -81,7 +81,7 @@ async function findProfesionalByOffice(req: Request, res: Response) {
     const officeId = Number.parseInt(req.params.officeId);
     const people = await peopleService.findProfesionalByOffice(officeId, req.params.speciality);
     const safeData = people.map((person) => ({ ...person, password: undefined }));
-    res.status(200).json({ message: "Personas profesionales encontradas en el consultorio" , data: safeData });
+    res.status(200).json({ message: "Personas profesionales encontradas en el consultorio", data: safeData });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -115,6 +115,9 @@ async function add(req: Request, res: Response) {
 
     res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token }); // return person data and token
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "La persona ya existe" });
+    }
     res.status(500).json({ message: error.message });
   }
 }
@@ -133,6 +136,9 @@ async function update(req: RequestWithUser, res: Response) {
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
     res.status(200).json({ message: "Persona actualizada con éxito!", data: safeData });
   } catch (error: any) {
+    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
+      return res.status(409).json({ message: "La persona ya existe" });
+    }
     res.status(500).json({ message: error.message });
   }
 }

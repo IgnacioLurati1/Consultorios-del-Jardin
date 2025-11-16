@@ -13,6 +13,7 @@ import { scheduleRouter } from "./schedule/schedule.routes.js";
 import refreshToken from "./config/refreshToken.js";
 import cookieParser from "cookie-parser";
 import { appointmentRouter } from "./appointments/appointments.routes.js";
+import { startReminderJob } from "./jobs/reminder.job.js";
 
 const app = express();
 app.use(express.json());
@@ -39,6 +40,8 @@ app.use((_, res) => {
 });
 
 await syncSchema(); //Never in production
+
+startReminderJob();
 
 app.listen(3000, () => {
   console.log("Server runnning on http://localhost:3000/");
