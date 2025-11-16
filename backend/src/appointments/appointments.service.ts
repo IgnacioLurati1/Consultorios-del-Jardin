@@ -250,7 +250,7 @@ export class AppointmentService {
         numAppointment: num,
         $or: [{ professional: { email } }, { diagnostics: { patient: { email } } }],
       },
-      { populate: ["diagnostics", "diagnostics.patient"] }
+      { populate: ["diagnostics", "diagnostics.patient", "professional.email"] }
     );
 
     if (appointment.type === "taller" && type === "professional") {
@@ -262,7 +262,7 @@ export class AppointmentService {
       diagnostic.state = "canceled";
 
       await em.flush();
-      await this.sendAppointmentCanceledToProfessional(appointment, email);
+      await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email);
       return appointment;
     } else if (appointment.type === "simple" && appointment.state === "accepted") {
       appointment.state = new Date().toISOString();
