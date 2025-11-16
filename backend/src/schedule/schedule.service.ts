@@ -57,16 +57,15 @@ export class ScheduleService {
     return false;
   }
 
-async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string): Promise<boolean> {
-  
-  const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ['office'] });
+  async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string): Promise<boolean> {
+    const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ["office"] });
 
-  if (!selectedRoom || !selectedRoom.office) {
-    throw new Error("Office not found for the given room");
+    if (!selectedRoom || !selectedRoom.office) {
+      throw new Error("Office not found for the given room");
+    }
+
+    return initialHour < selectedRoom.office.openingTime || finalHour > selectedRoom.office.closingTime;
   }
-
-  return initialHour < selectedRoom.office.openingTime || finalHour > selectedRoom.office.closingTime;
-}
 
   //CRUD basico
 
@@ -87,7 +86,7 @@ async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string
   }
 
   async findScheduleByHourRange(initialHour: string, day: string, person: Person, office: Office, emT?: EntityManager): Promise<Schedule> {
-    return await (em || emT).findOneOrFail(
+    return await (emT || em).findOneOrFail(
       Schedule,
       {
         initialHour: { $lte: initialHour },
@@ -105,19 +104,19 @@ async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string
   } // Metodo para buscar horarios por sala y día
 
   async findSchedulesByProfessionalAndOffice(professional: Person, office: Office, emT?: EntityManager): Promise<Schedule[]> {
-    return await (em || emT).find(Schedule, { person: professional, room: { office } }, { populate: ["room"] });
+    return await (emT || em).find(Schedule, { person: professional, room: { office } }, { populate: ["room"] });
   }
-  
-  async createSchedule(data: RequiredEntityData<Schedule>) : Promise<Schedule> {
-    
+
+  async createSchedule(data: RequiredEntityData<Schedule>): Promise<Schedule> {
     data.day = this.removeAccents(data.day.trim().toLowerCase());
     data.allowedType = this.removeAccents(data.allowedType.trim().toLowerCase());
 
-    const isValid = this.isValidDay(data.day) && 
-                    this.isValidHourFormat(data.initialHour) && 
-                    this.isValidHourFormat(data.finalHour) && 
-                    this.isValidHourRange(data.initialHour, data.finalHour) &&
-                    this.isValidAllowedTypes(data.allowedType);
+    const isValid =
+      this.isValidDay(data.day) &&
+      this.isValidHourFormat(data.initialHour) &&
+      this.isValidHourFormat(data.finalHour) &&
+      this.isValidHourRange(data.initialHour, data.finalHour) &&
+      this.isValidAllowedTypes(data.allowedType);
 
     if (!isValid) {
       throw new Error("Invalid schedule data");
@@ -126,7 +125,7 @@ async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string
     const [overlapping, existingInRoom, outOfHours] = await Promise.all([
       this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person),
       this.isOverlappingInRoom(data.day, data.initialHour, data.finalHour, data.room as Room),
-      this.isOutOfWorkingHours(data.room as any as number, data.initialHour, data.finalHour)
+      this.isOutOfWorkingHours(data.room as any as number, data.initialHour, data.finalHour),
     ]);
 
     if (overlapping) {
@@ -140,11 +139,11 @@ async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string
     if (outOfHours) {
       throw new Error("Fuera del horario laboral del consultorio");
     }
-    
+
     const schedule = em.create(Schedule, data);
-    await em.populate(schedule, ['room', 'person']); 
+    await em.populate(schedule, ["room", "person"]);
     await em.flush();
-    return schedule; 
+    return schedule;
   }
 
   async updateSchedule(data: Partial<Schedule>): Promise<Schedule> {

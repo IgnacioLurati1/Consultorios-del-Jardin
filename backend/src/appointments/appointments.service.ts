@@ -155,7 +155,7 @@ export class AppointmentService {
     date: Date,
     emT?: EntityManager
   ): Promise<Appointment | null> {
-    const appointment = await (em || emT).findOne(Appointment, {
+    const appointment = await (emT || em).findOne(Appointment, {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
@@ -172,7 +172,7 @@ export class AppointmentService {
     date: Date,
     emT?: EntityManager
   ): Promise<Appointment | null> {
-    const appointment = await (em || emT).findOne(Appointment, {
+    const appointment = await (emT || em).findOne(Appointment, {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
@@ -293,7 +293,14 @@ export class AppointmentService {
       if (!isValid) throw new Error("Información de turno inválida");
 
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
-      const appointment = engine.validateAndCreateAppointment(patientEmail, date, initialHour, type, professionalEmail, officeId) as any;
+      const appointment: Appointment = await engine.validateAndCreateAppointment(
+        patientEmail,
+        date,
+        initialHour,
+        type,
+        professionalEmail,
+        officeId
+      );
 
       await em.flush();
       const refreshed = await em.findOneOrFail(
@@ -302,7 +309,16 @@ export class AppointmentService {
         { populate: ["diagnostics", "diagnostics.patient", "professional"] }
       );
       await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour, type);
-      return refreshed;
+      return {
+        numAppointment: refreshed.numAppointment,
+        date: refreshed.date,
+        initialHour: refreshed.initialHour,
+        finalHour: refreshed.finalHour,
+        value: refreshed.value,
+        type: refreshed.type,
+        professionalEmail: refreshed.professional.email,
+        room: refreshed.room,
+      };
     });
   }
 
@@ -315,7 +331,7 @@ export class AppointmentService {
     value: number,
     professionalEmail: string,
     patientEmail?: string
-  ) {
+  ): Promise<Partial<Appointment>> {
     return await em.transactional(async (em) => {
       const isValid =
         this.scheduleService.isValidHourFormat(initialHour) &&
@@ -326,7 +342,7 @@ export class AppointmentService {
 
       if (!isValid) throw new Error("Información de turno inválida");
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
-      const appointment = engine.validateAndCreateProfessionalAppointment(
+      const appointment = await engine.validateAndCreateProfessionalAppointment(
         date,
         initialHour,
         finalHour,
@@ -338,7 +354,16 @@ export class AppointmentService {
       );
 
       await em.flush();
-      return appointment;
+      return {
+        numAppointment: appointment.numAppointment,
+        date: appointment.date,
+        initialHour: appointment.initialHour,
+        finalHour: appointment.finalHour,
+        value: appointment.value,
+        type: appointment.type,
+        professionalEmail: appointment.professional.email,
+        room: appointment.room,
+      };
     });
   }
 
@@ -379,7 +404,7 @@ export class AppointmentService {
       <p>Tu solicitud de turno ha sido registrada correctamente.</p>
       <p><strong>Detalles del turno:</strong></p>
       <ul>
-        <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+        <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
         <li><strong>Hora inicial:</strong> ${initialHour}</li>
         <li><strong>Tipo:</strong> ${type}</li>
       </ul>
@@ -398,7 +423,7 @@ export class AppointmentService {
         <p>Te notificamos que tu turno ha sido modificado.</p>
         <p><strong>Nuevos detalles del turno:</strong></p>
         <ul>
-          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
           <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
           <li><strong>Hora final:</strong> ${appointment.finalHour}</li>
         </ul>
@@ -418,7 +443,7 @@ export class AppointmentService {
         <p>Te informamos que tu solicitud de turno ha sido rechazada.</p>
         <p><strong>Detalles del turno rechazado:</strong></p>
         <ul>
-          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
           <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
         </ul>
         <p>Si tienes alguna pregunta, por favor contáctanos.</p>
@@ -437,7 +462,7 @@ export class AppointmentService {
         <p>Te notificamos que se ha cancelado el turno.</p>
         <p><strong>Detalles del turno:</strong></p>
         <ul>
-          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
           <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
         </ul>
         <p>Sugerimos la posibilidad de realizar un nuevo turno.</p>
@@ -456,7 +481,7 @@ export class AppointmentService {
         <p>Te informamos que tu turno ha sido aceptado por el profesional.</p>
         <p><strong>Detalles del turno:</strong></p>
         <ul>
-          <li><strong>Fecha:</strong> ${(appointment.date as Date).toLocaleDateString("es-ES")}</li>
+          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
           <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
         </ul>
         <p>Por favor, revisa tu calendario. Si tienes alguna duda, contáctanos.</p>
@@ -483,6 +508,21 @@ export class AppointmentService {
     await this.mailService.sendMail(message);
   }
 
+  private formatDateArgentina(date: Date): string {
+    if (!date) return "";
+    const d = new Date(date);
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth();
+    const day = d.getUTCDate();
+    const noonUtc = new Date(Date.UTC(year, month, day, 12, 0, 0));
+    return new Intl.DateTimeFormat("es-AR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }).format(noonUtc);
+  }
+
   async getAppointmentsForReminder(): Promise<Appointment[]> {
     const now = new Date();
     const argentinaTz = new Intl.DateTimeFormat("es-AR", {
@@ -492,8 +532,11 @@ export class AppointmentService {
       timeZone: "America/Argentina/Buenos_Aires",
     }).format(now);
 
-    const [day, month, year] = argentinaTz.split("/").reverse();
-    const today = new Date(`${year}-${month}-${day}T00:00:00`);
+    // argentinaTz is in format dd/MM/yyyy; split into parts
+    const [day, month, year] = argentinaTz.split("/");
+    // Build a date string anchoring midnight in Argentina (UTC-3) to avoid timezone rollbacks
+    // e.g. '2025-11-16T00:00:00-03:00' which JS Date will parse to the correct UTC instant
+    const today = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
 
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
     const tomorrow2359 = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000 - 1000);

@@ -32,7 +32,7 @@ export class OfficeService {
   }
 
   async findOficeById(idOffice: number, emT?: EntityManager): Promise<Office> {
-    return await (em || emT).findOneOrFail(Office, { idOffice }, { populate: ["city", "city.province"] });
+    return await (emT || em).findOneOrFail(Office, { idOffice }, { populate: ["city", "city.province"] });
   }
 
   async createOffice(data: RequiredEntityData<Office>): Promise<Office> {
