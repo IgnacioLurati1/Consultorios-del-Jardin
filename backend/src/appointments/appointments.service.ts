@@ -262,7 +262,7 @@ export class AppointmentService {
       diagnostic.state = "canceled";
 
       await em.flush();
-      await this.sendAppointmentCanceledEmails(appointment);
+      await this.sendAppointmentCanceledToProfessional(appointment, email);
       return appointment;
     } else if (appointment.type === "simple" && appointment.state === "accepted") {
       appointment.state = new Date().toISOString();
@@ -468,9 +468,25 @@ export class AppointmentService {
         <p>Sugerimos la posibilidad de realizar un nuevo turno.</p>
         <p>¡Gracias!</p>
       `;
-      const message = await this.mailService.createMessage(diagnostic.patient.email, "Cambio en tu Turno", htmlContent);
+      const message = await this.mailService.createMessage(diagnostic.patient.email, "Turno cancelado", htmlContent);
       await this.mailService.sendMail(message);
     }
+  }
+
+  private async sendAppointmentCanceledToProfessional(appointment: Appointment, email: string) {
+    const htmlContent = `
+        <p>Hola,</p>
+        <p>Te notificamos que un paciente ha cancelado su turno.</p>
+        <p><strong>Detalles del turno:</strong></p>
+        <ul>
+          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
+          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+        </ul>
+        <p>Para más información acceder vía web.</p>
+        <p>¡Gracias!</p>
+      `;
+    const message = await this.mailService.createMessage(email, "Cancelación de paciente", htmlContent);
+    await this.mailService.sendMail(message);
   }
 
   private async sendAppointmentAcceptedEmails(appointment: Appointment) {
