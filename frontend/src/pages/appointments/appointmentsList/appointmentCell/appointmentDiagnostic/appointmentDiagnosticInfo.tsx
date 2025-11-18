@@ -37,18 +37,20 @@ export function AppointmentDiagnosticInfo({ appointment, diagnostic, onClose, ty
     }
 
     function saveDiagnostic(){
-        updateDiagnostic(appointment.numAppointment, patient.email, observations, localState)
-        .then(success => {
-            if (success) {
-                toast.success("Diagnóstico guardado");
-                if (onDiagnosticUpdate) {
-                    onDiagnosticUpdate();
+        if(observations && observations.trim() !== "" && localState !== "assisted"){
+            updateDiagnostic(appointment.numAppointment, patient.email, observations, "assisted")
+            .then(success => {
+                if (success) {
+                    toast.success("Diagnóstico guardado");
+                    if (onDiagnosticUpdate) {
+                        onDiagnosticUpdate();
+                    }
+                    if (onClose) onClose();
+                } else {
+                    toast.error("Error al guardar el diagnóstico");
                 }
-                if (onClose) onClose();
-            } else {
-                toast.error("Error al guardar el diagnóstico");
-            }
-        });
+            });
+        }
     }
 
     if (type == "professional") {
