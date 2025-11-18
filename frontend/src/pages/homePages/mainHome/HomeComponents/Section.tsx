@@ -5,10 +5,12 @@ import professionalImg from "../../../../assets/HomePhotos/HomeSectionsPhotos/pr
 import informationImg from "../../../../assets/HomePhotos/HomeSectionsPhotos/information.jpg";
 
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function Section() {
   const navigate = useNavigate();
+  const [decodedToken, setDecodedToken] = useState<string | null>(null);
+  const [showAppointmentsSection, setShowAppointmentsSection] =  useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -27,6 +29,15 @@ export function Section() {
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setDecodedToken(token);
+  }, []);
+
+    useEffect(() => {
+      setShowAppointmentsSection(!!decodedToken);
+    }, [decodedToken]);
 
   return (
     <>
@@ -54,7 +65,21 @@ export function Section() {
           </button>
         </div>
       </div>
-
+      {showAppointmentsSection 
+      ?
+      
+      <div className="section">
+        <div className="section-image">
+          <img src={informationImg} alt="¿Todavía no tenés cuenta?" />
+        </div>
+        <div className="section-content">
+          <h2>Tus turnos te estan esperando!</h2>
+          <button onClick={() => navigate("/AppointmentsList")}>
+            Ver mis turnos
+          </button>
+        </div>
+      </div>
+      :
       <div className="section">
         <div className="section-image">
           <img src={informationImg} alt="¿Todavía no tenés cuenta?" />
@@ -66,6 +91,7 @@ export function Section() {
           </button>
         </div>
       </div>
+      }
     </>
   );
 }

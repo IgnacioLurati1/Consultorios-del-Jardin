@@ -9,10 +9,12 @@ import { DataInput } from '../../../components/inputs/standardTextInput/DataInpu
 import { DataInputPassword } from '../../../components/inputs/passwordInput/DataInputPassword';
 import { DataInputSelector } from '../../../components/inputs/selectorInput/DataInputSelector';
 import { registerProfessional } from './usersService';
+import { useNavigate } from 'react-router-dom';
 
 export function RegisterProf() {
-
+    const navigate = useNavigate();
     const [activo, setPage] = useState(false);
+    const [showButton, setShowButton] = useState(true);
     
     const changePage = () => {
         setPage(!activo);
@@ -40,7 +42,7 @@ export function RegisterProf() {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         toast.dismiss();
-    
+
         if (formData.password !== formData.confirmPassword) {
             toast.error("Las contraseñas no coinciden", {
                 className: "feedBack-box error"})
@@ -70,8 +72,12 @@ export function RegisterProf() {
         })
             .then(() => {
             toast.success("Usuario registrado con éxito", {
-            className: "feedBack-box success",
-            });
+            className: "feedBack-box success",});
+            setShowButton(false);
+            setTimeout(() => {
+                    navigate("/")
+                    window.scrollTo(0, 0);}
+                  , 3000);
             })
             .catch((err: Error) => {
                 toast.error(err.message || "Error al registrar usuario", {
@@ -124,7 +130,9 @@ export function RegisterProf() {
                 <div className='register-body-right professional-buttons'>
                     <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
                     <button type="button" className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
-                    <button type="submit" className={activo? 'register-button registerBut shown': 'register-button registerBut not-shown'}>Registrar</button>
+                    {showButton
+                    ? <button type="submit" className={activo ? "register-button registerBut shown" : "register-button registerBut not-shown"} >Registrar</button>
+                    : <div className="register-spinner"></div>}
                     <button type="button" className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
                 </div>
                     <ToastContainer 

@@ -1,26 +1,39 @@
 import { useState, useEffect } from 'react';
 import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import type{Office, Person} from "../../types.ts"
 import './appointmentInput.css';
 import { findAllActiveProfessionals, findProfessionalsOfficeSpecialty } from "../../adminCRUDS/adminUsers/usersService.ts";
-import { FaExclamationTriangle } from "react-icons/fa";
+import { FaExclamationTriangle, FaAngleDown } from "react-icons/fa";
 import { ProfessionalCard } from './professionalCard.tsx';
 
 export function AppointmentInput() {
+
 const [officesList, setOfficesList] = useState<Office[] | []>([]);
 const [office, setOffice] = useState<Office>();
-const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
+const [filteredOffices, setFilteredOffices] = useState<Office[] | []>([]);
+const [officeSelector, setOfficeSelector] = useState(false);
+const [officeInputValue, setOfficeInputValue] = useState<string>('');
+
+const [specialtiesList, setSpecialtiesList] = useState<string[] | []>([]);
 const [specialty, setSpecialty] = useState<string>();
-const [showAppointments, setShowAppointments] = useState(false);
+const [filteredSpecialties, setFilteredSpecialties] = useState<string[] | []>([]);
+const [specialtySelector, setSpecialtySelector] = useState(false);
+const [specialtyInputValue, setSpecialtyInputValue] = useState<string>('');
+
+const [professionalsList, setProfessionalsList] = useState<Person[] | []>([]);
 const [filteredProfessionals, setFilteredProfessionals] = useState<Person[] | []>([]);
+
+const [showAppointments, setShowAppointments] = useState(false);
 const [errors, setErrors] = useState<{office?:string ,professional?:string, specialty?: string}>({});
+
 
 function validateInputs(){
         const newErrors: typeof errors = {};
 
         if(!office){
             newErrors.office = "El consultorio es obligatorio"
+            setOfficeSelector(false);
         }
         /*if(!specialty && !professional && !office){
             newErrors.specialty = "Ingrese un profesional o una especialidad"
@@ -38,6 +51,7 @@ useEffect(() => {
     findAllActiveOffices()
     .then(data => {
         setOfficesList(data);
+        setFilteredOffices(data);
     })
     .catch(err => {
         toast.error("Error cargando salas:", err);
@@ -48,6 +62,10 @@ useEffect(() => {
     findAllActiveProfessionals()
     .then(data => {
         setProfessionalsList(data);
+        const specialties = [...new Set(data.map(p => p.speciality))];
+        setSpecialtiesList(specialties);
+        setFilteredSpecialties(specialties);
+
     })
     .catch(err => {
         toast.error("Error cargando profesionales:", err);
@@ -75,42 +93,79 @@ const handleSearch = () => {
     findFilteredProfessionals();
 };
 
+function FilterOffices(text: string){
+      const lowertext = text.toLocaleLowerCase();
+      const filtered = officesList.filter( off => off.description.toLocaleLowerCase().includes(lowertext) 
+      || off.city.nameCity.toLocaleLowerCase().includes(lowertext) 
+      ||off.city.province.nameProvince.toLocaleLowerCase().includes(lowertext))
+      setFilteredOffices(filtered)
+    }
+
+function FilterSpecialties(text: string){
+    const lowertext = text.toLocaleLowerCase();
+    const filtered = specialtiesList.filter( spe => spe.toLocaleLowerCase().includes(lowertext))
+    setFilteredSpecialties(filtered)
+}
+
 return (
     <>
         <div className= {showAppointments ? 'appointments-input-container reduced' : 'appointments-input-container'}>
-            <div className={showAppointments ? 'appointment-content reduced' : 'appointment-content'}>
-                <div className="appointment-title"> Encontrá tu turno</div>
-                <div className="appointment-card">
-                    <div className="form-grid">
-                        <div className="form-field">
-                            <label className="form-label">Consultorio</label>
-                                <select 
-                                    className="form-select"
-                                    value={office?.idOffice || ""} 
-                                    onFocus={() => {
-                                        setOffice(undefined);
-                                    }}
-        
+            <div className={showAppointments ? 'appointment-input-content reduced' : 'appointment-input-content'}>
+                <div className="appointment-input-title"> Encontrá tu turno</div>
+                <div className="appointment-input-card">
+                    <div className="appointment-input-form-grid">
+                        <div className="appointment-input-form-field">
+                            <label className="appointment-input-form-label">Consultorio</label>
+                            <div className="appointment-input-form-select" onClick={() => setOfficeSelector(!officeSelector)}>
+                                <input 
+                                    className="appointment-input-filter-input" 
+                                    placeholder="Buscá por consultorio" 
+                                    value={officeInputValue}
+                                    type="text"
                                     onChange={(e) => {
-                                        const selectedOffice = officesList.find(r => r.idOffice == e.target.value);
-                                        
-                                        if (selectedOffice){
-                                            setOffice(selectedOffice);
-                                        }
+                                        setOfficeInputValue(e.target.value);
+                                        FilterOffices(e.target.value); 
+                                        if(!officeSelector) setOfficeSelector(true);
+                                    }} 
+                                    onFocus={() => {
+                                        if(!officeSelector) setOfficeSelector(true);
                                     }}
-                                >
-                                    <option value="" disabled>Buscá por consultorio</option>
-                                    {officesList.map((office)=>
-                                        <option key={office.idOffice} value={office.idOffice}>{office.description+ ", " + office.city.nameCity}</option>
+                                    onClick={(event) => {event.stopPropagation()
+                                                        setOfficeSelector(true)
+                                    }} 
+                                />
+                                <FaAngleDown className={officeSelector ? "appointment-input-icon rotated list-icon" : "appointment-input-icon list-icon"} />
+                            </div>
+                            {officeSelector && (
+                            <ul className={"appointment-input-filter-list" + (officeSelector ? " active" : " disabled")}>
+                                    {filteredOffices.length > 0 ? (
+                                        filteredOffices.map((of) => (
+                                            <li 
+                                                className="appointment-input-filter-list-item" 
+                                                key={of.idOffice} 
+                                                onClick={() => { 
+                                                    setOffice(of);
+                                                    setOfficeInputValue(`${of.description} - ${of.city.nameCity} - ${of.city.province.nameProvince}`);
+                                                    setOfficeSelector(false);
+                                                }}
+                                            >
+                                                {of.description} - {of.city.nameCity} - {of.city.province.nameProvince}
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="appointment-input-filter-list-item no-results">No se encontraron resultados</li>
                                     )}
-                                </select>
-                                <div className="error-container">
+                                </ul>
+                            )}
+                                <div className="appointment-input-error-container">
                                 {errors.office && 
-                                    <div className="error-text">
-                                        <FaExclamationTriangle className="error-icon"/>{errors.office}
-                                    </div>}
-                                </div>
+                                    <div className="appointment-input-error-text">
+                                        <FaExclamationTriangle className="appointment-input-error-icon"/>{errors.office}
+                                    </div>
+                                }
+                            </div>
                         </div>
+                        
 
                         {/*<div className="form-field">
                             <label className="form-label"> Profesional</label>
@@ -141,55 +196,77 @@ return (
                                     </div>}
                                 </div>
                         </div>*/}
-                        <div className="form-field">
-                            <label className="form-label">Especialidad</label>
-                            <select 
-                                    className="form-select"
-                                    value={specialty || ""} 
-                                    onFocus={() => {
-                                        setSpecialty(undefined);
-                                    }}
-        
+
+                        <div className="appointment-input-form-field">
+                            <label className="appointment-input-form-label">Especialidad</label>
+                            <div className="appointment-input-form-select" onClick={() => setSpecialtySelector(!specialtySelector)}>
+                                <input 
+                                    className="appointment-input-filter-input" 
+                                    placeholder="Buscá por especialidad" 
+                                    value={specialtyInputValue}
+                                    type="text"
                                     onChange={(e) => {
-                                        const selectedSpecialty = e.target.value
-                                        
-                                        if (selectedSpecialty){
-                                            setSpecialty(selectedSpecialty);
-                                        }
+                                        setSpecialtyInputValue(e.target.value);
+                                        FilterSpecialties(e.target.value); 
+                                        if(!specialtySelector) setSpecialtySelector(true);
+                                    }} 
+                                    onFocus={() => {
+                                        if(!specialtySelector) setSpecialtySelector(true);
                                     }}
-                                >
-                                    <option value="" disabled>Buscá por especialidad</option>
-                                    {professionalsList.map((prof)=>
-                                        <option key={prof.email} value={prof.speciality}>{prof.speciality}</option>
+                                    onClick={(event) => {event.stopPropagation()
+                                                        setSpecialtySelector(true)
+                                    }} 
+                                />
+                                <FaAngleDown className={specialtySelector ? "appointment-input-icon rotated list-icon" : "appointment-input-icon list-icon"} />
+                            </div>
+                            {specialtySelector && (
+                            <ul className={"appointment-input-filter-list" + (specialtySelector ? " active" : " disabled")}>
+                                <li className="appointment-input-filter-list-item" onClick={() => { 
+                                setSpecialty(undefined);
+                                setSpecialtyInputValue('');
+                                setSpecialtySelector(false);
+                            }}>Caulquier especialidad</li>
+                                    {filteredSpecialties.length > 0 ? (
+                                        filteredSpecialties.map((spe) => (
+                                            <li 
+                                                className="appointment-input-filter-list-item" 
+                                                key={spe} 
+                                                onClick={() => { 
+                                                    setSpecialty(spe);
+                                                    setSpecialtyInputValue(spe);
+                                                    setSpecialtySelector(false);
+                                                }}
+                                            >
+                                                {spe}
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="appointment-input-filter-list-item no-results">No se encontraron resultados</li>
                                     )}
-                                </select>
-                                <div className="error-container">
-                                {errors.specialty && 
-                                    <div className="error-text">
-                                        <FaExclamationTriangle className="error-icon"/>{errors.specialty}
-                                    </div>}
-                                </div>
+                                </ul>
+                            )}
                         </div>
+
                     </div>
 
-                    <div className="form-actions">
-                        <div className="form-hint">
-                            {showAppointments ? `${filteredProfessionals.length} resultados encontrados` : "Ingrese consultorio y profesional y/o especialidad"}
+                    <div className="appointment-input-form-actions">
+                        <div className="appointment-input-form-hint">
+                            {showAppointments ? `${filteredProfessionals.length} resultados encontrados` : "Ingrese consultorio y/o especialidad"}
                         </div>
 
-                        <button onClick={handleSearch} className="search-button">
+                        <button onClick={handleSearch} className="appointment-input-search-button">
                             Buscar turnos
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        <div className={showAppointments ? 'results-container' : 'results-container hidden'}>
-            <div className="professionals-results-content">
+        <div className={showAppointments ? 'appointment-input-results-container' : 'appointment-input-results-container hidden'}>
+            <div className="appointment-input-professionals-results-content">
                 {
                     filteredProfessionals.length === 0 ? (
                     <div>
-                        <h2 className="no-results-title">No se encontraron resultados</h2>
+                        <h2 className="appointment-input-no-results-title">No se encontraron resultados</h2>
                     </div>
                     ) : (
                     showAppointments && filteredProfessionals.map((professional) => (

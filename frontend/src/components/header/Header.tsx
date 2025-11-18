@@ -16,11 +16,14 @@ export function Header(){
     };
 
         const menuItems = [
-    { faviconName: "home", title: "Home", path: "/", userType: "guest"},
+    { faviconName: "home", title: "Home", path: "/", userType: "all"},
     { faviconName: "user", title: "Login", path: "/login", userType: "guest"},
-    { faviconName: "phone", title: "Contacto", path: "/contacto" , userType: "guest"},
+    { faviconName: "phone", title: "Contacto", path: "/contacto" , userType: "all"},
     { faviconName: "database", title: "Menú Admin", path: "/adminHome" , userType: "admin"},
     { faviconName: "professional", title: "Menú Profesional", path: "/professionalHome" , userType: "professional"},
+    { faviconName: "appointments", title: "Mis turnos", path: "/AppointmentsList" , userType: "client"},
+    { faviconName: "appointments", title: "Administrar turnos", path: "/AppointmentsList" , userType: "professional"},
+    { faviconName: "requestAppointments", title: "Solicitar turnos", path: "/Appointment" , userType: "client"},
   ];
 
     return(

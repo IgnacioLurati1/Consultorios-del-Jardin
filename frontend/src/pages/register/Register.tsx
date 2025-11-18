@@ -9,8 +9,11 @@ import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { DataInputPassword } from "../../components/inputs/passwordInput/DataInputPassword";
 import { DataInputSelector } from "../../components/inputs/selectorInput/DataInputSelector";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export function Register() {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -21,6 +24,9 @@ export function Register() {
     tipoDocumento: "",
     nroDocumento: "",
   });
+
+  const navigate = useNavigate();
+  const [showButton, setShowButton] = useState(true);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -78,8 +84,39 @@ export function Register() {
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
           toast.success("Usuario registrado con éxito", {
-            className: "feedBack-box success",
-          });
+            className: "feedBack-box success",});
+            setShowButton(false);
+            
+            axios
+              .post(
+                "api/people/login",
+                {
+                  email: formData.email,
+                  password: formData.contraseña,
+                },
+                {
+                  withCredentials: true, // sin esto, no se envía ni se recibe la cookie
+                }
+              )
+              .then((response) => {
+                if (response.data.token) {
+                  localStorage.setItem("token", response.data.token);
+
+                  login(response.data.token);
+                  
+                  setTimeout(() => {
+                    navigate("/")
+                    window.scrollTo(0, 0);}
+                  , 3000);
+                  
+                }
+              })
+              .catch((error) => {
+                console.error("Login error:", error);
+                toast.error("Error en el inicio de sesión", {
+                  className: "feedBack-box error",
+                });
+              });
         }
       })
       .catch((error) => {
@@ -170,9 +207,11 @@ export function Register() {
             <button type="button" className={activo ? "register-button next shown" : "register-button next not-shown"} onClick={changePage}>
               Volver
             </button>
-            <button type="submit" className={activo ? "register-button registerBut shown" : "register-button registerBut not-shown"}>
-              Registrar
-            </button>
+
+            {showButton
+            ? <button type="submit" className={activo ? "register-button registerBut shown" : "register-button registerBut not-shown"} >Registrar</button>
+            : <div className="register-spinner"></div>}
+
             <button type="button" className={activo ? "register-button next not-shown" : "register-button next shown"} onClick={changePage}>
               Siguiente
             </button>

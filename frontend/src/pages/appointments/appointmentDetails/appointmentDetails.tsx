@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type {Person} from "../../types.ts"
 import './appointmentDetails.css';
-import './appointmentDetailsTable.css';
 import { FaChevronLeft, FaPhone, FaUserTie } from 'react-icons/fa';
 import { useLocation} from 'react-router-dom';
 import { toast } from "react-toastify";
@@ -10,9 +9,11 @@ import type { appointmentDetailsProps, partialAppointment } from "../appointment
 import { AppointmentGridModule } from "./gridAppointment/appointmentGridModule.tsx";
 import { AppointmentCreationModal } from "./appointmentModal/appointmentCreationModal.tsx";
 import {createAppointment, getAvailableAppointmentsForPatient} from "../appointmentsService.ts"
+import { useNavigate } from "react-router-dom";
 
 export function AppointmentDetails() {
 
+    const navigate = useNavigate();
     const [patient, setPatient] = useState<Person | undefined>(undefined);
     const [showSimple, setShowSimple] = useState(true);
     const [showTaller, setShowTaller] = useState(true);
@@ -72,7 +73,7 @@ export function AppointmentDetails() {
             <div className="appointment-details-container">
                 <div className="appointment-details-wrapper">
                     <div className="appointment-details-header">
-                        <button className="appointment-details-back-btn">
+                        <button className="appointment-details-back-btn" onClick={() => navigate("/Appointment")}>
                         <FaChevronLeft size={24} />
                         </button>
                         <h1 className="appointment-details-title">Detalles del turno</h1>
