@@ -9,35 +9,38 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    padding: 10px;
 }
 
 .schedule-modal{
     background-color: white;
-    position: absolute;
     color: black;
     z-index: 1001;
     border-radius: 10px;
-    font-size: 1.2em;
-    font-size: 20px;
+    font-size: clamp(16px, 2vw, 20px);
     max-width: 700px;
     width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .schedule-modal-header{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1em;
-    padding-bottom:0.5em;
-    padding-top:0.5em;
+    padding: 0.8em 1em;
     border-bottom: 1px solid #ccc;
     color: #3B7658;
     font-weight: bold;
     font-size: 1.2em;
+    flex-shrink: 0;
 }
 
 .schedule-modal-header-title{
     margin: 0;
+    font-size: clamp(18px, 3vw, 24px);
 }
 
 .schedule-modal-header-close{
@@ -45,24 +48,38 @@
     border: none;
     font-size: 1.5em;
     cursor: pointer;
+    padding: 5px;
+    min-width: 30px;
 }
 
 .schedule-modal-content{
     padding: 1em;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
+    overflow-y: auto;
 }
 
 .button-container {
     display: flex;
     justify-content: flex-end;
     color: #FEFAE0;
+    margin-top: 10px;
+}
+
+.create-button,
+.delete-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
 }
 
 .create-button {
     background-color: #3B7658;
 }
+
 .delete-button {
     background-color: #CD6965;
 }
@@ -81,7 +98,7 @@
 .time-input-container{
     display: grid;
     grid-template-columns: 1fr 1fr;
-    margin-right: 0.5em;
+    gap: 10px;
 }
 
 .time-input-container input{
@@ -90,14 +107,18 @@
 
 .modal-input-container label {
     text-align: right;
+    font-size: clamp(14px, 2vw, 20px);
+    padding-right: 5px;
 }
 
 .input-modal {
     border: 1px solid black;
     border-radius: 5px;
-    padding: 2%;
+    padding: 8px;
     margin-left: 1%;
-    font-size: 20px;
+    font-size: clamp(14px, 2vw, 20px);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .input-error{
@@ -105,22 +126,129 @@
 }
 
 .input-valid{
-    border: 1px solid rgb(0, 0, 0)
+    border: 1px solid rgb(0, 0, 0);
 }
+
 .error-container {
-    grid-column: 2 / 3; /* lo coloca debajo del input */
+    grid-column: 2 / 3;
     margin-top: 4px;
-    height: 10px;
+    min-height: 20px;
 }
 
 .error-text {
     color: red;
-    font-size: 0.8em;
+    font-size: 0.75em;
     margin: 0;
+    display: flex;
+    align-items: center;
 }
 
 .error-icon{
     color: red;
     margin-right: 5px;
+    flex-shrink: 0;
 }
 
+/* Responsive para tablets y móviles pequeños */
+@media (max-width: 768px) {
+    .schedule-modal {
+        width: 95%;
+        font-size: 18px;
+    }
+
+    .modal-input-container {
+        grid-template-columns: 100px 1fr;
+        gap: 5px;
+    }
+
+    .modal-input-container label {
+        font-size: 16px;
+    }
+
+    .input-modal {
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    .schedule-modal-header {
+        padding: 0.6em 0.8em;
+    }
+
+    .schedule-modal-content {
+        padding: 0.8em;
+        gap: 12px;
+    }
+
+    .time-input-container {
+        gap: 8px;
+    }
+
+    .create-button,
+    .delete-button {
+        padding: 10px 18px;
+        font-size: 16px;
+    }
+}
+
+/* Responsive para móviles muy pequeños */
+@media (max-width: 480px) {
+    .schedule-modal {
+        width: 98%;
+        font-size: 16px;
+    }
+
+    .modal-input-container {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .modal-input-container label {
+        text-align: left;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .input-modal {
+        margin-left: 0;
+        font-size: 16px;
+    }
+
+    .error-container {
+        grid-column: 1;
+    }
+
+    .time-input-container {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .schedule-modal-header-title {
+        font-size: 20px;
+    }
+
+    .create-button,
+    .delete-button {
+        width: auto;
+        font-size: 16px;
+    }
+
+    .button-container {
+        justify-content: flex-end;
+    }
+}
+
+/* Para pantallas muy bajas en altura */
+@media (max-height: 600px) {
+    .schedule-modal {
+        max-height: 95vh;
+    }
+
+    .schedule-modal-content {
+        gap: 8px;
+        padding: 0.6em;
+    }
+
+    .modal-input-container {
+        gap: 4px;
+    }
+}
