@@ -3,6 +3,7 @@ import { Room } from "./rooms.entity.js";
 import { EntityManager } from "@mikro-orm/core";
 import { OfficeService } from '../offices/offices.service.js';
 import type { RequiredEntityData } from "@mikro-orm/core";
+import { Schedule } from "../schedule/schedules.entity.js";
 
 const em = orm.em;
 export class RoomService {
@@ -44,6 +45,18 @@ export class RoomService {
 
   async findRoomById(idRoom: number, emT?: EntityManager): Promise<Room> {
     return await (emT || em).findOneOrFail(Room, { idRoom }, { populate: ["office.city"] });
+  }
+
+  async findRoomsByOfficeAndProfessional(officeId: number, professionalEmail: string): Promise<Room[]> {
+    const query = em
+      .createQueryBuilder(Schedule, "s")
+      .select("r.*")
+      .distinct()
+      .join("s.person", "p")
+      .join("s.room", "r")
+      .join("r.office", "o")
+      .where({ "o.idOffice": officeId, "p.email": professionalEmail, "r.active": true, "o.active": true });
+    return await query.execute();
   }
 
   async createRoom(data: RequiredEntityData<Room>): Promise<Room> {

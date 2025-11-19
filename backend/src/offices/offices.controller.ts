@@ -30,7 +30,7 @@ async function findAll(req: Request, res: Response) {
   }
 }
 
-export async function findAllActive(req: Request, res: Response) {
+async function findAllActive(req: Request, res: Response) {
   try {
     let offices = await officeService.findAllActiveOffices();
     res.status(200).json({ message: "Consultorios activos encontrados", data: offices });
@@ -95,4 +95,4 @@ async function toggleOfficeState(req: Request, res: Response) {
   }
 }
 
-export { sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState, findAllOfficesByProfessional };
+export { sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState, findAllOfficesByProfessional, findAllActive };
