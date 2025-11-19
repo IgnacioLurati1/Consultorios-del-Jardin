@@ -98,7 +98,6 @@ useEffect(() => {
       });
       
       setPeopleMap(newPeopleMap);
-      console.log(enrichedAppointments)
       setAppointments(enrichedAppointments);
     })
     .catch(err => {
