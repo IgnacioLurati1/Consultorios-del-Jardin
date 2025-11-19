@@ -12,11 +12,12 @@ interface AppointmentDiagnosticProps {
     type: string
     appointment: Appointment;
     diagnostics: Diagnostic[];
+    user: Person;
     setShowDiagnostic: (show: boolean) => void;
     onDiagnosticUpdate: () => void;
 }
 
-export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowDiagnostic, onDiagnosticUpdate }: AppointmentDiagnosticProps) {
+export function AppointmentDiagnostic({ type, appointment, diagnostics,user, setShowDiagnostic, onDiagnosticUpdate }: AppointmentDiagnosticProps) {
     const [selectedDiagnostic, setSelectedDiagnostic] = useState<Diagnostic>();
     const [patient, setPatient] = useState<Person>();
     const [patients, setPatients] = useState<(Person | undefined)[]>([]);
@@ -102,7 +103,8 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                             </button>
                         </div>
                     ))}
-                    <div key={"+"} className="appointment-diagnostic-patient-item">
+                    {user.type ==="professional"
+                    ?<div key={"+"} className="appointment-diagnostic-patient-item">
                             <button 
                                 className="appointment-diagnostic-select-button" 
                                 onClick={() => setAppoAddPatientModal(true)}
@@ -110,6 +112,9 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                                 Agregar paciente +
                             </button>
                         </div>
+                    :<> </>
+                    }
+                    
                 </div>
                 <div className="appointment-diagnostic-footer">
                     <button className="appointment-diagnostic-button cancel-button" onClick={() => setShowDiagnostic(false)}>

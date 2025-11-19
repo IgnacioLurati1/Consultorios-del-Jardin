@@ -44,6 +44,7 @@
     width: 90%;
     justify-content: space-between;
     align-items: center;
+        overflow-y: auto;
 }
 
 .appointment-diagnostic-content{

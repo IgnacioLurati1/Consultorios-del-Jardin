@@ -204,6 +204,7 @@ export function AppointmentCell({
             type={user.type}
             appointment={appointment}
             diagnostics={diagnostics}
+            user={user}
             setShowDiagnostic={setShowDiagnostic}
             onDiagnosticUpdate={handleDiagnosticUpdate} // Esto llama a la función de la celda
           />
