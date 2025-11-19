@@ -4,7 +4,7 @@ import { wrap } from "@mikro-orm/core";
 
 const roomService = new RoomService();
 
-export function sanitizeRoomInput(req: Request, res: Response, next: NextFunction) {
+function sanitizeRoomInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
     idRoom: req.body.idRoom,
     description: req.body.description?.toString().trim(),
@@ -20,7 +20,7 @@ export function sanitizeRoomInput(req: Request, res: Response, next: NextFunctio
   next();
 }
 
-export async function findAll(req: Request, res: Response) {
+async function findAll(req: Request, res: Response) {
   try {
     let rooms = await roomService.findAllRooms();
     res.status(200).json({ message: "Salas encontradas", data: rooms });
@@ -29,7 +29,7 @@ export async function findAll(req: Request, res: Response) {
   }
 }
 
-export async function findAllActive(req: Request, res: Response) {
+async function findAllActive(req: Request, res: Response) {
   try {
     let rooms = await roomService.findAllActiveRooms();
     res.status(200).json({ message: "Salas activas encontradas", data: rooms });
@@ -38,7 +38,7 @@ export async function findAllActive(req: Request, res: Response) {
   }
 }
 
-export async function findOne(req: Request, res: Response) {
+async function findOne(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idRoom);
     const room = await roomService.findRoomById(id);
@@ -48,7 +48,18 @@ export async function findOne(req: Request, res: Response) {
   }
 }
 
-export async function add(req: Request, res: Response) {
+async function findRoomsByOfficeAndProfessional(req: Request, res: Response) {
+  try {
+    const officeId = Number.parseInt(req.params.officeId);
+    const professionalEmail = req.params.email;
+    const rooms = await roomService.findRoomsByOfficeAndProfessional(officeId, professionalEmail);
+    res.status(200).json({ message: "Salas encontradas para el consultorio y profesional", data: rooms });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function add(req: Request, res: Response) {
   try {
     const room = await roomService.createRoom(req.body.sanitizedInput);
     res.status(201).json({ message: "Sala creada correctamente", data: wrap(room).toObject() });
@@ -60,7 +71,7 @@ export async function add(req: Request, res: Response) {
   }
 }
 
-export async function update(req: Request, res: Response) {
+async function update(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idRoom);
     const updatedRoom = await roomService.updateRoom(id, req.body.sanitizedInput);
@@ -73,7 +84,7 @@ export async function update(req: Request, res: Response) {
   }
 }
 
-export async function toggleRoomState(req: Request, res: Response) {
+async function toggleRoomState(req: Request, res: Response) {
   try {
     const id = Number(req.params.idCity);
     const room = await roomService.toggleRoomState(id);
@@ -82,3 +93,5 @@ export async function toggleRoomState(req: Request, res: Response) {
     res.status(500).json({ message: error.message });
   }
 }
+
+export { sanitizeRoomInput, findAll, findOne, add, update, toggleRoomState, findAllActive, findRoomsByOfficeAndProfessional };
