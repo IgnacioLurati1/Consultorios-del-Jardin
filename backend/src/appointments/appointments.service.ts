@@ -32,7 +32,15 @@ export class AppointmentService {
     return await em.find(
       Appointment,
       { diagnostics: { patient: { email: patientEmail } } },
-      { populate: ["room.office", "diagnostics"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
+      {
+        populate: ["room.office", "diagnostics"],
+        populateWhere: {
+          diagnostics: { patient: { email: patientEmail } },
+        },
+        limit,
+        offset,
+        orderBy: { date: "DESC", initialHour: "DESC" },
+      }
     );
   }
 

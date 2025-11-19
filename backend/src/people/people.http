@@ -29,8 +29,8 @@ POST http://localhost:3000/api/people/login
 Content-Type: application/json
 
 {
-    "email": "ignaciolurati3@gmail.com",
-    "password": "1234"
+    "email": "a@gmail.com",
+    "password": "123"
 }
 
 ### modificar una persona (PUT - recurso completo e idempotente)

@@ -9,7 +9,7 @@ Authorization: Bearer
 ### POST - Turnos posibles
 POST http://localhost:3000/api/appointments/getAppointments
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFjaW9sdXJhdGkzQGdtYWlsLmNvbSIsInR5cGUiOiJjbGllbnQiLCJpYXQiOjE3NjMyNTM4NzgsImV4cCI6MTc2MzI1NDc3OH0.XiA2F-O9eJLvobZrpp-6HuA4gzyLwmhwgSAr4x3Tz8U
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFAZ21haWwuY29tIiwidHlwZSI6ImNsaWVudCIsImlhdCI6MTc2MzUxMjYwMCwiZXhwIjoxNzYzNTEzNTAwfQ.eriBnnyGiLQ-qqI-UUQtNIRYMtllHdj4xM8dB4ftrF8
 
 {
   "professionalEmail": "prof@gmail.com",
