@@ -18,6 +18,12 @@
   width: 40%;
   height: 8vh;
 }
+.sub-upper-appointment-container{
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 2vw;
+}
 
 .appointment-container{
   display: flex;
@@ -75,6 +81,36 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.create-professional-appointment-container{
+  box-shadow: 0px 1px 10px #6C788E;
+  background: #F3F7F8;
+  color: #3B7658;
+  border: none;
+  width: 14vw;
+  height: 8vh;       
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border-radius: 8px; 
+  font-size: 1.5em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-weight: bold;
+}
+
+.create-professional-appointment-container:hover{
+    cursor: pointer;
+    background-color: #E1E8EB;
+    transform: scale(1.02);
+    box-shadow: 0px 1px 10px #6C788E;
+}
+.create-professional-appointment-icon {
+  transition: transform 0.3s ease, rotate 1s ease;
+}
+
+.create-professional-appointment-container:hover .create-professional-appointment-icon {
+  transform: rotate(90deg) scale(1.2);
+}
+
 @media (max-width: 768px) {
   .appointment-person-container  {
     position: relative;
@@ -99,6 +135,13 @@
     font-size: 4vw;
     overflow: hidden;
     margin-bottom: 0;
+  }
+  .create-professional-appointment-container{
+    width: 10vw;      
+    font-size: 2vw;
+  }
+  p{
+    display: none;
   }
 
 }

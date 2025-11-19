@@ -1,6 +1,14 @@
 import api from "../../../axios";
 import type {Office} from "../../types.ts"
 
+interface DBOffice {
+    id_office: string;
+    closing_time: string;
+    description:  string;
+    city_id_city: number;
+    opening_time: string;
+}
+
 export function findAllOffices(): Promise<Office[]>{
     return api.get('/offices')
     .then(response => response.data.data)
@@ -81,4 +89,12 @@ export function updateOffice(id: string, newDescription: string, newOpeningTime:
             throw new Error(backendMsg);
         });
     };
+}
+
+export function findAllOfficesByProfessional(professionalEmail: string): Promise<DBOffice[]> {
+    return api.get(`/offices/professional/${professionalEmail}`)
+    .then(response => response.data.data)
+    .catch(() => {
+        return[];
+    });
 }

@@ -67,6 +67,10 @@ Promise<Array<{ numAppointment: Number; date: Date; initialHour: string; finalHo
         type: newAppointment.type,
         professionalEmail: newAppointment.professionalEmail,
         office: newAppointment.officeId,
+    })
+    .then(response => response.data)
+    .catch(() => {
+        return null;
     });
 }
 export function getPatienMedicalHistory(emailPatient: string): Promise <DiagnosticPopulatedAppointment[]>{
@@ -75,4 +79,23 @@ export function getPatienMedicalHistory(emailPatient: string): Promise <Diagnost
     .catch(() => {
         return [];
     });
+}
+
+export function createProfessionalAppointment(newAppointment:{date: string,initialHour: string,finalHour: string,room: string,type: string,value: number,patientEmail: string}): Promise< Appointment | undefined > {
+    return api.post(`/appointments/professional`,{
+        date: newAppointment.date,
+        initialHour: newAppointment.initialHour,
+        finalHour: newAppointment.finalHour,
+        type: newAppointment.type,
+        room: newAppointment.room,
+        value: newAppointment.value,
+        patientEmail: newAppointment.patientEmail,
+    })
+    .then(created => {
+        return created.data.data       
+    })
+    .catch(err =>{
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    })
 }

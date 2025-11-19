@@ -1,6 +1,12 @@
 import api from "../../../axios";
 import type {Room} from "../../types.ts"
 
+interface DBRoom {
+    id_room: string;
+    description:  string;
+    office_id_office: number;
+}
+
 export function findAllRooms(): Promise<Room[]>{
     return api.get('/rooms')
     .then(response => response.data.data)
@@ -79,3 +85,13 @@ export function updateRoom(updatedRoom: { idRoom: string; description: string; o
         });
     };
 }
+
+export function findRoomsByOfficeAndProfessional(officeId: string, professionalEmail: string): Promise<DBRoom[]> {
+    return api.get(`/rooms/office/professional/${officeId}/${professionalEmail}`)
+    .then(response => response.data.data)
+    .catch(() => {
+        return [];
+    });
+}
+
+

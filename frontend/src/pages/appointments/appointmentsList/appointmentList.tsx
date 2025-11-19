@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
 import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
-import {findProfessionalAppointments, findPatientAppointments} from "../appointmentsService.ts"
+import {findProfessionalAppointments, findPatientAppointments, createProfessionalAppointment} from "../appointmentsService.ts"
 import { AppointmentsGrid } from "./appointmentsGrid.tsx";
 import { AppointmentsGridFilter } from "./appointmentsGridFilter.tsx";
+import { FaPlus } from "react-icons/fa";
+import { ProfessionalAppointmentModal } from "./professionalAppointmentModal/professionalAppointmentModal.tsx";
 
 
 export function AppointmentsList(){
@@ -34,6 +36,8 @@ export function AppointmentsList(){
   const [pagesAppointment, setPagesAppointment] = useState<number>(0);
   const [showButtonMore, setShowButtonMore] = useState(false);
 
+  const [openProfAppoModal, setOpenProfAppoModal] = useState(false);
+
   useEffect(() => {
 
     const decoded = getDecodedToken();
@@ -51,7 +55,7 @@ export function AppointmentsList(){
     }, []);
 
 useEffect(() => {
-    if (!person) return;
+    if (!person || openProfAppoModal) return;
     let ignore = false;
 
     setIsLoading(true);
@@ -94,10 +98,8 @@ useEffect(() => {
       });
       
       setPeopleMap(newPeopleMap);
-      setAppointments(currentAppointments => [
-      ...currentAppointments, 
-      ...enrichedAppointments
-]);
+      console.log(enrichedAppointments)
+      setAppointments(enrichedAppointments);
     })
     .catch(err => {
       if (ignore) return; //eliminar en produccion
@@ -112,7 +114,7 @@ useEffect(() => {
        ignore = true; //eliminar en produccion
     };
 
-  }, [person, pagesAppointment]);
+  }, [openProfAppoModal,person, pagesAppointment]);
 
 
   // Callback para que la CELDA notifique al PADRE de cambios en DIAGNÓSTICOS
@@ -202,15 +204,39 @@ useEffect(() => {
       </div>
     );
   }
+
+  async function addAppointment(newAppointment:{date: string,initialHour: string,finalHour: string,room: string,type: string,value: number,patientEmail: string}){
+    try{
+      const createdAppointment = await createProfessionalAppointment(newAppointment)
+      if ( createdAppointment ){
+          //setAppointments([createdAppointment, ...appointments]);
+          toast.success(`Turno creado con éxito`);
+          setOpenProfAppoModal(false);
+          console.log("Created appointment:", createdAppointment);
+        }
+    }catch (error:any){
+      toast.error(`Error al crear el turno: ${error.message}`);
+    }
+  }
  
   if(person){
     return (
         <div className="appointment-person-container">
           <div className="appointment-container">
             <div className="upper-appointment-container">
+              <div className="sub-upper-appointment-container">
                 <NavZone title={`Turnos de ${person.name}, ${person.surname}`}/>
-                <ToastContainer className = {`toast-container`} draggable={false}/>
-                <AppointmentsGridFilter appointments={appointments} 
+                {
+                  person.type === "professional" ? 
+                  <div className="create-professional-appointment-container" onClick={()=>setOpenProfAppoModal(true)}>
+                    <p>Crear un turno</p>
+                    <FaPlus className="create-professional-appointment-icon" size={24}/>
+                  </div> 
+                  : <></>
+                }
+              </div>
+              <ToastContainer className = {`toast-container`} draggable={false}/>
+              <AppointmentsGridFilter appointments={appointments} 
                 offices={offices} 
                 setOfficeToFilter={setOfficeToFilter} 
                 acceptedFilter={acceptedFilter} 
@@ -225,6 +251,7 @@ useEffect(() => {
                 peopleMap = {peopleMap}
                 userType={person.type}
                 />
+                
             </div>
             <div className="appointment-subcontainer">
               <AppointmentsGrid
@@ -239,6 +266,7 @@ useEffect(() => {
             : <></>}
             
           </div>    
+          <ProfessionalAppointmentModal isOpen={openProfAppoModal} onClose={() => setOpenProfAppoModal(false)} onCreate={addAppointment} user={person}/>
         </div>
       );
   } 

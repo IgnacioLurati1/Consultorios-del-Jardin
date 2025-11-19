@@ -38,6 +38,7 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                 const patientPromises = diagnostics.map(d => findPerson(d.patient));
                 try {
                     const loadedPatients = await Promise.all(patientPromises);
+                    console.log(loadedPatients)
                     setPatients(loadedPatients);
                 } catch (error) {
                     toast.error("Error al obtener los pacientes");

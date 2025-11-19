@@ -1,5 +1,5 @@
 .filter-container{
-  width: 25%;
+  width: 10vw;
   position: relative;
   z-index: 900;
 }
@@ -42,8 +42,9 @@
   position: absolute;
   margin-top: 5px;
   background-color:#F3F7F8;
-  width: 100%;
+  width: 20vw;
   border-radius: 5px;
+  right: 0;
 }
 
 .disabled{

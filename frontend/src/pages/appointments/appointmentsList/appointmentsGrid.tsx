@@ -19,8 +19,8 @@ export function AppointmentsGrid({
   
   return (
     <div className="appointment-grid">
-      {appointments.map(appointment => (
-        <div key={appointment.numAppointment}>
+      {appointments.map((appointment, index) => (
+        <div key={`${appointment.numAppointment}-${index}`}>
           {/* 5. Pasar TODOS los props a la celda hija */}
           <AppointmentCell
             appointment={appointment}

@@ -27,6 +27,14 @@ export function findAllActiveProfessionals(): Promise<Person[]>{
     });
 }
 
+export function findAllActiveClients(): Promise<Person[]>{
+    return api.get('/people/type/active/client')
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
 export function findProfessionalsOfficeSpecialty(officeId:string,speciality?:string): Promise<Person[]>{
     return api.get(`/people/professionals/office/${officeId}${speciality ? "/" + speciality : ""}`)
     .then(response => response.data.data)
