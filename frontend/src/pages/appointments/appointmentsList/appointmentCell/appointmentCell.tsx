@@ -38,6 +38,9 @@ export function AppointmentCell({
   
   const [state, setState] = useState(appointment.state);
 
+  const[estado, setEstado]= useState(false);
+  
+
   // Sincronizamos el estado interno si los props cambian
   useEffect(() => {
     setDiagnostics(appointment.diagnostics || []);

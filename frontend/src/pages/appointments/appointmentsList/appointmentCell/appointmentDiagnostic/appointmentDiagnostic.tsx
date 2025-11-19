@@ -5,19 +5,22 @@ import { useEffect, useState } from "react";
 import {AppointmentDiagnosticInfo} from "./appointmentDiagnosticInfo.tsx"
 import { toast } from "react-toastify/unstyled";
 import "./appointmentDiagnostic.css"
+import { AppointmentAddPatientModal } from "./appointmentAddPatientModal.tsx";
+import { addPatientToAppointment } from "../../../appointmentsService.ts";
 
 interface AppointmentDiagnosticProps {
     type: string
     appointment: Appointment;
     diagnostics: Diagnostic[];
     setShowDiagnostic: (show: boolean) => void;
-    onDiagnosticUpdate?: () => void;
+    onDiagnosticUpdate: () => void;
 }
 
 export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowDiagnostic, onDiagnosticUpdate }: AppointmentDiagnosticProps) {
     const [selectedDiagnostic, setSelectedDiagnostic] = useState<Diagnostic>();
     const [patient, setPatient] = useState<Person>();
     const [patients, setPatients] = useState<(Person | undefined)[]>([]);
+    const [appoAddPatientModal, setAppoAddPatientModal] = useState<boolean>(false);
 
     useEffect(() => {
         if (appointment.type === "simple" && diagnostics.length > 0) {
@@ -33,20 +36,19 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
     }, [appointment.type, diagnostics]);
     
     useEffect(() => {
-        if (appointment.type !== "simple") {
+        if (!appoAddPatientModal && appointment.type !== "simple") {
             const loadPatients = async () => {
                 const patientPromises = diagnostics.map(d => findPerson(d.patient));
                 try {
                     const loadedPatients = await Promise.all(patientPromises);
-                    console.log(loadedPatients)
                     setPatients(loadedPatients);
                 } catch (error) {
                     toast.error("Error al obtener los pacientes");
                 }
             };
             loadPatients();
-     }
-    }, [appointment.type, diagnostics]);
+        }
+    }, [appoAddPatientModal,appointment.type, diagnostics]);
 
     if (appointment.type === "simple" && selectedDiagnostic && patient) {
         return (
@@ -60,6 +62,19 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
             />
         );
     }
+    async function addDiagnostic(numAppointment: string,patientEmail: string){
+        try{
+            const statusRes = await addPatientToAppointment(numAppointment,patientEmail)
+            if ( statusRes == 201 ){
+                    toast.success(`Paciente añadido con éxito`);
+                    onDiagnosticUpdate()
+                    setAppoAddPatientModal(false)
+                }
+            }catch (error:any){
+                toast.error(`Error al crear el turno: ${error.message}`);
+        }
+    }
+    
 
     return (
         <div className="appointment-diagnostic-background" onClick={()=>setShowDiagnostic(false)}>
@@ -79,7 +94,6 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                                 className="appointment-diagnostic-select-button" 
                                 onClick={() => { 
                                     const found = diagnostics.find(d => d.patient === patient?.email);
-                                    console.log("patient email:", patient?.email, "found diagnostic:", found);
                                     setSelectedDiagnostic(found);
                                     setPatient(patient); 
                                 }}
@@ -88,6 +102,14 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                             </button>
                         </div>
                     ))}
+                    <div key={"+"} className="appointment-diagnostic-patient-item">
+                            <button 
+                                className="appointment-diagnostic-select-button" 
+                                onClick={() => setAppoAddPatientModal(true)}
+                            >
+                                Agregar paciente +
+                            </button>
+                        </div>
                 </div>
                 <div className="appointment-diagnostic-footer">
                     <button className="appointment-diagnostic-button cancel-button" onClick={() => setShowDiagnostic(false)}>
@@ -105,6 +127,7 @@ export function AppointmentDiagnostic({ type, appointment, diagnostics, setShowD
                     onDiagnosticUpdate={onDiagnosticUpdate}
                 />
             )}
+            <AppointmentAddPatientModal isOpen={appoAddPatientModal} onClose={()=>{setAppoAddPatientModal(false)}} numAppo={String(appointment.numAppointment)} onAdd={addDiagnostic} diagnostics={diagnostics}/>
         </div>
     );
 }

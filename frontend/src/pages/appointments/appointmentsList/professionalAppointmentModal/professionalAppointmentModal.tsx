@@ -135,7 +135,7 @@ export function ProfessionalAppointmentModal({isOpen, onClose,onCreate, user}: P
         });
     }, [isOpen]);
 
-   useEffect(() => {
+    useEffect(() => {
         findAllActiveClients()
         .then(data => {
             setPatients(data);
@@ -223,240 +223,240 @@ export function ProfessionalAppointmentModal({isOpen, onClose,onCreate, user}: P
     if (!isOpen) return null;
     return (
         <div className="prof-appo-modal-overlay" onClick={onClose}>
-                    <div className="prof-appo-modal" onClick={(e) => e.stopPropagation()}  onKeyDown={handleKeyDown}>
-                        <div className="prof-appo-modal-header">
-                            <h2 className="prof-appo-modal-header-title">Agendar un Turno</h2> 
-                            <button className="prof-appo-modal-header-close" onClick={onClose}> <FaXmark/> </button>
-                        </div>
-                        <div className="prof-appo-modal-content">
-                            <div className="prof-appo-modal-input-container">
-                                <label>Fecha</label>
-                                <input 
-                                    type="date" 
-                                    min={new Date().toISOString().split("T")[0]}
-                                    className={`prof-appo-modal-input ${false? "input-error" : "input-valid"}`} 
-                                    value={newAppointmentData.date}
-                                    onChange={(e) => 
-                                        setNewAppointmentData({...newAppointmentData, date: e.target.value})
-                                    }
-                                />
-                                <div className="prof-appo-modal-error-container">
-                                    {errors.date &&
-                                        <div className="prof-appo-modal-error-text">
-                                            <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.date}
-                                        </div>
-                                    }
+            <div className="prof-appo-modal" onClick={(e) => e.stopPropagation()}  onKeyDown={handleKeyDown}>
+                <div className="prof-appo-modal-header">
+                    <h2 className="prof-appo-modal-header-title">Agendar un Turno</h2> 
+                    <button className="prof-appo-modal-header-close" onClick={onClose}> <FaXmark/> </button>
+                </div>
+                <div className="prof-appo-modal-content">
+                    <div className="prof-appo-modal-input-container">
+                        <label>Fecha</label>
+                        <input 
+                            type="date" 
+                            min={new Date().toISOString().split("T")[0]}
+                            className={`prof-appo-modal-input ${false? "input-error" : "input-valid"}`} 
+                            value={newAppointmentData.date}
+                            onChange={(e) => 
+                                setNewAppointmentData({...newAppointmentData, date: e.target.value})
+                            }
+                        />
+                        <div className="prof-appo-modal-error-container">
+                            {errors.date &&
+                                <div className="prof-appo-modal-error-text">
+                                    <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.date}
                                 </div>
-                            </div>
-                            <div className="prof-appo-modal-time-input-container">
-                                <div className="prof-appo-modal-input-container">
-                                    <label>Hora inicio</label>
-                                    <input 
-                                        type="time" 
-                                        className={`prof-appo-modal-input ${false? "input-error" : "input-valid"}`} 
-                                        value={newAppointmentData.initialHour}
-                                        step="900"
-                                        onChange={(e) => {
-                                            const value = e.target.value; // HH:MM
-                                            const [hh, mm] = value.split(":").map(Number);
-                                            let durationAux = 0;
-
-                                            if (mm === 0) {
-                                                setDuration(60); 
-                                                durationAux = 60
-                                            };
-                                            if (mm === 15) {
-                                                setDuration(15); 
-                                                durationAux = 15
-                                            };
-                                            if (mm === 30) {
-                                                setDuration(30); 
-                                                durationAux = 30
-                                            };
-                                            if (mm === 45) {
-                                                setDuration(15); 
-                                                durationAux = 15
-                                            };
-
-                                            const newFinal = sumarMinutos(value, durationAux);
-
-                                            setNewAppointmentData(prev => ({
-                                                ...prev,
-                                                initialHour: value,
-                                                finalHour: newFinal,
-                                            }));
-                                        }}
-                                    />
-                                    <div className="prof-appo-modal-error-container">
-                                        {errors.initialHour &&
-                                            <div className="prof-appo-modal-error-text">
-                                                <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.initialHour}
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                                <div className="prof-appo-modal-input-container">
-                                    <label>Duración</label>
-                                    <select 
-                                        className="prof-appo-modal-input input-valid"
-                                        value={duration}
-                                        onChange={(e) => {
-
-                                            setDuration(Number(e.target.value))}}
-                                    >
-                                        {durations.map((dur) =>
-                                            <option key={dur} value={dur}>
-                                                {dur + " min"}
-                                            </option>
-                                        )}
-                                    </select>
-                                    <div className="prof-appo-modal-error-container"></div>
-                                </div>
-                            </div>
-                            
-                            <div className="prof-appo-modal-input-container">
-                                <label>Profesional</label>
-                                <input 
-                                    type="text" 
-                                    className="prof-appo-modal-input input-valid" 
-                                    value={user.surname + ", " + user.name} disabled 
-                                /> 
-                                <div className="prof-appo-modal-error-container"></div>
-                            </div>
-                            <div className="prof-appo-modal-input-container">
-                                <label>Consultorio</label>
-                                <select 
-                                    className="prof-appo-modal-input input-valid"
-                                    value={office?.id_office || ""} 
-                                    onFocus={() => {
-                                        setOffice(undefined);
-                                        setRoom(undefined);
-                                        setFilteredRooms(rooms);
-                                    }}
-        
-                                    onChange={(e) => {
-                                        const selectedOffice = offices.find(r => r.id_office == e.target.value);
-                                        if (selectedOffice){
-                                            setOffice(selectedOffice);
-                                            FindRooms(selectedOffice.id_office, user.email);
-                                        }
-                                    }}
-                                >
-                                    <option key={-1} value="" disabled>Seleccione un consultorio</option>
-                                    {offices.map((office)=>
-                                        <option key={office.id_office} value={office.id_office}> {office.description} </option>
-                                    )}
-                                </select>
-                                <div className="prof-appo-modal-error-container">
-                                {errors.office && 
-                                    <div className="prof-appo-modal-error-text">
-                                        <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.office}
-                                    </div>}
-                                </div>
-                            </div>
-                            <div className="prof-appo-modal-input-container">
-                                <label>Sala</label>
-                                <select 
-                                    className="prof-appo-modal-input input-valid"
-                                    value={room?.id_room || ""} 
-                                    onFocus={() => {
-                                        setRoom(undefined);
-                                    }}
-        
-                                    onChange={(e) => {
-                                        
-                                        const selectedRoom = rooms.find(r => r.id_room == e.target.value);
-                                        if (selectedRoom){
-                                            setRoom(selectedRoom);
-                                            setNewAppointmentData({...newAppointmentData, room: selectedRoom.id_room })
-                                        } else {
-                                            setNewAppointmentData({ ...newAppointmentData, room:"" });
-                                        }}}
-                                >
-                                    <option value="" disabled>Seleccione una sala</option>
-                                    {office && filteredRooms.map((room)=>
-                                        <option key={room.id_room} value={room.id_room}>{room.description}</option>
-                                    )}
-                                </select>
-                                <div className="prof-appo-modal-error-container">
-                                {errors.room && 
-                                    <div className="prof-appo-modal-error-text">
-                                        <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.room}
-                                    </div>}
-                                </div>
-                            </div>
-                            <div className="prof-appo-modal-input-container">
-                                <label>Tipo de turno</label>
-                                <select 
-                                    className="prof-appo-modal-input input-valid"
-                                    value={newAppointmentData.type}
-                                    
-                                    onChange={(e) => setNewAppointmentData({...newAppointmentData, type: e.target.value})}
-                                >
-                                    <option key={"simple"} value="simple">Simple</option>
-                                    <option key={"taller"} value="taller">Taller</option>
-                                </select>
-                                <div className="prof-appo-modal-error-container"></div>
-                            </div>
-
-                            <div className="prof-appo-modal-input-container">
-                                <label>Paciente</label>
-                                <div className="prof-appo-modal-form-select" onClick={() => setPatientSelector(!patientSelector)}>
-                                    <input 
-                                        className={`prof-appo-modal-input ${false? "input-error" : "input-valid"}`}  
-                                        placeholder="Buscá por paciente" 
-                                        value={patientInputValue}
-                                        type="text"
-                                        onChange={(e) => {
-                                            setPatientInputValue(e.target.value);
-                                            FilterPatients(e.target.value); 
-                                            if(!patientSelector) setPatientSelector(true);
-                                        }} 
-                                        onFocus={() => {
-                                            if(!patientSelector) setPatientSelector(true);
-                                        }}
-                                        onClick={(event) => {event.stopPropagation()
-                                                            setPatientSelector(true)
-                                        }} 
-                                    />
-                                    <FaAngleDown className={patientSelector ? "prof-appo-modal-icon rotated" : "prof-appo-modal-icon"} />
-                                    {patientSelector && (
-                                <ul className={"prof-appo-modal-filter-list" + (patientSelector ? " active" : " disabled")}>
-                                        {filteredPatients.length > 0 ? (
-                                            filteredPatients.map((patient) => (
-                                                <li 
-                                                    className="prof-appo-modal-filter-list-item" 
-                                                    key={patient.email} 
-                                                    onClick={() => { 
-                                                        setPatient(patient);
-                                                        setNewAppointmentData({...newAppointmentData, patientEmail: patient.email });
-                                                        setPatientInputValue(`${patient.surname}, ${patient.name} - ${patient.email}`);
-                                                        setPatientSelector(false);
-                                                    }}
-                                                >
-                                                    {patient.surname}, {patient.name} - {patient.email}
-                                                </li>
-                                            ))
-                                        ) : (
-                                            <li className="prof-appo-modal-filter-list-item prof-appo-modal-no-results">No se encontraron resultados</li>
-                                        )}
-                                    </ul>
-                                )}
-                                </div>
-                                    <div className="prof-appo-modal-error-container">
-                                    {errors.patient && 
-                                        <div className="prof-appo-modal-error-text">
-                                            <FaExclamationTriangle className="appointment-input-error-icon"/>{errors.patient}
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                            
-                            <div className="prof-appo-modal-button-container">
-                                <button className="prof-appo-modal-create-button" onClick={()=>{handleSubmit()}}>Crear horario</button>
-                            </div>
+                            }
                         </div>
                     </div>
+                    <div className="prof-appo-modal-time-input-container">
+                        <div className="prof-appo-modal-input-container">
+                            <label>Hora inicio</label>
+                            <input 
+                                type="time" 
+                                className={`prof-appo-modal-input ${false? "input-error" : "input-valid"}`} 
+                                value={newAppointmentData.initialHour}
+                                step="900"
+                                onChange={(e) => {
+                                    const value = e.target.value; // HH:MM
+                                    const [hh, mm] = value.split(":").map(Number);
+                                    let durationAux = 0;
+
+                                    if (mm === 0) {
+                                        setDuration(60); 
+                                        durationAux = 60
+                                    };
+                                    if (mm === 15) {
+                                        setDuration(15); 
+                                        durationAux = 15
+                                    };
+                                    if (mm === 30) {
+                                        setDuration(30); 
+                                        durationAux = 30
+                                    };
+                                    if (mm === 45) {
+                                        setDuration(15); 
+                                        durationAux = 15
+                                    };
+
+                                    const newFinal = sumarMinutos(value, durationAux);
+
+                                    setNewAppointmentData(prev => ({
+                                        ...prev,
+                                        initialHour: value,
+                                        finalHour: newFinal,
+                                    }));
+                                }}
+                            />
+                            <div className="prof-appo-modal-error-container">
+                                {errors.initialHour &&
+                                    <div className="prof-appo-modal-error-text">
+                                        <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.initialHour}
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div className="prof-appo-modal-input-container">
+                            <label>Duración</label>
+                            <select 
+                                className="prof-appo-modal-input input-valid"
+                                value={duration}
+                                onChange={(e) => {
+
+                                    setDuration(Number(e.target.value))}}
+                            >
+                                {durations.map((dur) =>
+                                    <option key={dur} value={dur}>
+                                        {dur + " min"}
+                                    </option>
+                                )}
+                            </select>
+                            <div className="prof-appo-modal-error-container"></div>
+                        </div>
+                    </div>
+                    
+                    <div className="prof-appo-modal-input-container">
+                        <label>Profesional</label>
+                        <input 
+                            type="text" 
+                            className="prof-appo-modal-input input-valid" 
+                            value={user.surname + ", " + user.name} disabled 
+                        /> 
+                        <div className="prof-appo-modal-error-container"></div>
+                    </div>
+                    <div className="prof-appo-modal-input-container">
+                        <label>Consultorio</label>
+                        <select 
+                            className="prof-appo-modal-input input-valid"
+                            value={office?.id_office || ""} 
+                            onFocus={() => {
+                                setOffice(undefined);
+                                setRoom(undefined);
+                                setFilteredRooms(rooms);
+                            }}
+
+                            onChange={(e) => {
+                                const selectedOffice = offices.find(r => r.id_office == e.target.value);
+                                if (selectedOffice){
+                                    setOffice(selectedOffice);
+                                    FindRooms(selectedOffice.id_office, user.email);
+                                }
+                            }}
+                        >
+                            <option key={-1} value="" disabled>Seleccione un consultorio</option>
+                            {offices.map((office)=>
+                                <option key={office.id_office} value={office.id_office}> {office.description} </option>
+                            )}
+                        </select>
+                        <div className="prof-appo-modal-error-container">
+                        {errors.office && 
+                            <div className="prof-appo-modal-error-text">
+                                <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.office}
+                            </div>}
+                        </div>
+                    </div>
+                    <div className="prof-appo-modal-input-container">
+                        <label>Sala</label>
+                        <select 
+                            className="prof-appo-modal-input input-valid"
+                            value={room?.id_room || ""} 
+                            onFocus={() => {
+                                setRoom(undefined);
+                            }}
+
+                            onChange={(e) => {
+                                
+                                const selectedRoom = rooms.find(r => r.id_room == e.target.value);
+                                if (selectedRoom){
+                                    setRoom(selectedRoom);
+                                    setNewAppointmentData({...newAppointmentData, room: selectedRoom.id_room })
+                                } else {
+                                    setNewAppointmentData({ ...newAppointmentData, room:"" });
+                                }}}
+                        >
+                            <option value="" disabled>Seleccione una sala</option>
+                            {office && filteredRooms.map((room)=>
+                                <option key={room.id_room} value={room.id_room}>{room.description}</option>
+                            )}
+                        </select>
+                        <div className="prof-appo-modal-error-container">
+                        {errors.room && 
+                            <div className="prof-appo-modal-error-text">
+                                <FaExclamationTriangle className="prof-appo-modal-error-icon"/>{errors.room}
+                            </div>}
+                        </div>
+                    </div>
+                    <div className="prof-appo-modal-input-container">
+                        <label>Tipo de turno</label>
+                        <select 
+                            className="prof-appo-modal-input input-valid"
+                            value={newAppointmentData.type}
+                            
+                            onChange={(e) => setNewAppointmentData({...newAppointmentData, type: e.target.value})}
+                        >
+                            <option key={"simple"} value="simple">Simple</option>
+                            <option key={"taller"} value="taller">Taller</option>
+                        </select>
+                        <div className="prof-appo-modal-error-container"></div>
+                    </div>
+
+                    <div className="prof-appo-modal-input-container">
+                        <label>Paciente</label>
+                        <div className="prof-appo-modal-form-select" onClick={() => setPatientSelector(!patientSelector)}>
+                            <input 
+                                className={`prof-appo-modal-input ${false? "input-error" : "input-valid"}`}  
+                                placeholder="Buscá por paciente" 
+                                value={patientInputValue}
+                                type="text"
+                                onChange={(e) => {
+                                    setPatientInputValue(e.target.value);
+                                    FilterPatients(e.target.value); 
+                                    if(!patientSelector) setPatientSelector(true);
+                                }} 
+                                onFocus={() => {
+                                    if(!patientSelector) setPatientSelector(true);
+                                }}
+                                onClick={(event) => {event.stopPropagation()
+                                                    setPatientSelector(true)
+                                }} 
+                            />
+                            <FaAngleDown className={patientSelector ? "prof-appo-modal-icon rotated" : "prof-appo-modal-icon"} />
+                            {patientSelector && (
+                        <ul className={"prof-appo-modal-filter-list" + (patientSelector ? " active" : " disabled")}>
+                                {filteredPatients.length > 0 ? (
+                                    filteredPatients.map((patient) => (
+                                        <li 
+                                            className="prof-appo-modal-filter-list-item" 
+                                            key={patient.email} 
+                                            onClick={() => { 
+                                                setPatient(patient);
+                                                setNewAppointmentData({...newAppointmentData, patientEmail: patient.email });
+                                                setPatientInputValue(`${patient.surname}, ${patient.name} - ${patient.email}`);
+                                                setPatientSelector(false);
+                                            }}
+                                        >
+                                            {patient.surname}, {patient.name} - {patient.email}
+                                        </li>
+                                    ))
+                                ) : (
+                                    <li className="prof-appo-modal-filter-list-item prof-appo-modal-no-results">No se encontraron resultados</li>
+                                )}
+                            </ul>
+                        )}
+                        </div>
+                            <div className="prof-appo-modal-error-container">
+                            {errors.patient && 
+                                <div className="prof-appo-modal-error-text">
+                                    <FaExclamationTriangle className="appointment-input-error-icon"/>{errors.patient}
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    
+                    <div className="prof-appo-modal-button-container">
+                        <button className="prof-appo-modal-create-button" onClick={()=>{handleSubmit()}}>Agendar turno</button>
+                    </div>
                 </div>
+            </div>
+        </div>
     );
 }

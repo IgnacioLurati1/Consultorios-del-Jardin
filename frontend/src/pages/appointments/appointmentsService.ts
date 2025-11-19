@@ -99,3 +99,15 @@ export function createProfessionalAppointment(newAppointment:{date: string,initi
         throw new Error(backendMsg);
     })
 }
+
+export function addPatientToAppointment(numAppointment: string, patientEmail:string):Promise <number>{ 
+    return api.post(`/appointments/patient/${numAppointment}`,{patientEmail: patientEmail})
+    .then(created => {
+        return created.status      
+    })
+    .catch(err =>{
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    })
+}
+

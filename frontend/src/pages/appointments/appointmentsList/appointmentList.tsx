@@ -96,7 +96,6 @@ useEffect(() => {
           newPeopleMap.set(p.email, `${p.name} ${p.surname}`);
         }
       });
-      
       setPeopleMap(newPeopleMap);
       setAppointments(enrichedAppointments);
     })
@@ -113,7 +112,64 @@ useEffect(() => {
        ignore = true; //eliminar en produccion
     };
 
-  }, [openProfAppoModal,person, pagesAppointment]);
+  }, [openProfAppoModal,person]);
+
+  useEffect(() => {
+    if(!person) return ;
+    let ignore = false;
+
+    setIsLoading(true);
+    let promise;
+
+    if (person.type === "professional") {
+      promise = findProfessionalAppointments(pagesAppointment);
+    } else {
+      promise = findPatientAppointments(pagesAppointment);
+    }
+
+    promise.then(async (enrichedAppointments) => {
+      if (ignore) return; //eliminar en produccion (se pone esto por el stricted mode que ejecuta las peticiones dos veces) 
+
+      if (enrichedAppointments.length == 15){
+        setShowButtonMore(true);
+      }else{
+        setShowButtonMore(false);
+      }
+      // Extraer todos los emails únicos de la lista
+      const uniqueEmails = new Set<string>();
+      enrichedAppointments.forEach(app => {
+        uniqueEmails.add(app.professional);
+        app.diagnostics?.forEach(d => { 
+          uniqueEmails.add(d.patient);
+        });
+      });
+
+      const personPromises = Array.from(uniqueEmails).map(email =>
+        findPerson(email).catch(() => null)
+      );
+
+      const peopleData = await Promise.all(personPromises);
+
+      const newPeopleMap = new Map<string, string>();
+      peopleData.forEach(p => {
+        if (p && p.email !== person.email) {
+          newPeopleMap.set(p.email, `${p.name} ${p.surname}`);
+        }
+      });
+      
+      setPeopleMap(newPeopleMap);
+      
+      setAppointments((prev) => [...prev, ...enrichedAppointments]);
+    })
+    .catch(err => {
+      if (ignore) return; //eliminar en produccion
+      toast.error(`Error al obtener turnos: ${err.message}`);
+    })
+    .finally(() => {
+      if (ignore) return; //eliminar en produccion
+      setIsLoading(false);
+    });
+  },[pagesAppointment]);
 
 
   // Callback para que la CELDA notifique al PADRE de cambios en DIAGNÓSTICOS
@@ -211,7 +267,6 @@ useEffect(() => {
           //setAppointments([createdAppointment, ...appointments]);
           toast.success(`Turno creado con éxito`);
           setOpenProfAppoModal(false);
-          console.log("Created appointment:", createdAppointment);
         }
     }catch (error:any){
       toast.error(`Error al crear el turno: ${error.message}`);
