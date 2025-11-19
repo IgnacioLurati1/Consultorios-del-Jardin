@@ -382,13 +382,13 @@ export class AppointmentService {
     if (await this.checkPatientAppointmentOverlap(appointment.initialHour, appointment.finalHour, patientEmail, appointment.date))
       throw new Error("El paciente ya tiene una cita en este horario");
 
-    if (!(appointment.type == "simple" && diagnostics.length == 0)) {
+    if (appointment.type == "simple" && diagnostics.length == 1) {
       throw new Error("El turno ya tiene un paciente!");
     }
     let diagnostic;
     appointment.diagnostics.add(
       (diagnostic = em.create(Diagnostic, {
-        patient: await this.peopleService.findPersonByEmail(patientEmail, em),
+        patient: await this.peopleService.findPersonByEmail(patientEmail),
         appointment,
         state: "pending",
         observations: null,
@@ -397,7 +397,7 @@ export class AppointmentService {
 
     await em.flush();
     await this.sendPatientAddedEmail(patientEmail, numAppointment);
-    return diagnostic;
+    return diagnostic; // Not used for now
   }
 
   async getAvailableAppointmensForPatient(idOffice: number, professionalEmail: string, patientEmail: string) {

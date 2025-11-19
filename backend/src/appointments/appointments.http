@@ -45,11 +45,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 ### POST - Crear del profesional!
 POST http://localhost:3000/api/appointments/professional
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc1OTgwMjcyNCwiZXhwIjoxNzU5ODAzNjI0fQ.G5k5LoYlCKBLDDBMoY_BYpap1ksbKoWKHL0j_9PeUSo
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc2MzU4MzQ2NywiZXhwIjoxNzYzNTg0MzY3fQ.ApMMgdTjbgwtNMbPaSGOg1N7PXuiXqMSjet_e2cM5zA
 
 
 {
-  "date": "2025-10-08",
+  "date": "2025-11-25",
   "initialHour": "13:00",
   "finalHour": "14:00",
   "type": "taller",
@@ -111,4 +111,15 @@ Content-Type: application/json
 {
     "email": "prof@gmail.com",
     "password": "123456"
+}
+
+### ADD PATIENT
+
+POST http://localhost:3000/api/appointments/patient/40
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ21haWwuY29tIiwidHlwZSI6InByb2Zlc3Npb25hbCIsImlhdCI6MTc2MzU4MzQ2NywiZXhwIjoxNzYzNTg0MzY3fQ.ApMMgdTjbgwtNMbPaSGOg1N7PXuiXqMSjet_e2cM5zA
+
+
+{
+    "patientEmail": "patient@gmail.com"
 }

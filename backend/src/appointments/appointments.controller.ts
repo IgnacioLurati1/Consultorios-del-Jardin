@@ -258,7 +258,7 @@ async function addPatientToAppointment(req: RequestWithUser, res: Response) {
 
     const diagnostic = await appointmentService.addPatientToAppointment(numAppointment, patientEmail, req.user.email);
 
-    res.status(201).json({ message: "Paciente añadido con éxito!", data: diagnostic });
+    res.status(201).json({ message: "Paciente añadido con éxito!" });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
