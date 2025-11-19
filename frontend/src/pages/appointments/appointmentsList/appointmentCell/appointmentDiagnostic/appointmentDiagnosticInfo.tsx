@@ -37,7 +37,7 @@ export function AppointmentDiagnosticInfo({ appointment, diagnostic, onClose, ty
     }
 
     function saveDiagnostic(){
-        if(observations && observations.trim() !== "" && localState !== "assisted"){
+        if(observations && observations.trim() !== ""){
             updateDiagnostic(appointment.numAppointment, patient.email, observations, "assisted")
             .then(success => {
                 if (success) {
