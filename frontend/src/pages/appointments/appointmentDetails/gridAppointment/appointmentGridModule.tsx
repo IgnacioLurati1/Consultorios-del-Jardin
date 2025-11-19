@@ -126,8 +126,25 @@ export function AppointmentGridModule({ appointments, showSimple, showTaller,set
                                         hourId += diffInMinutes(appointment.finalHour, appointment.initialHour)/60; // salta minutos
 
                                     } else {
-                                        cells.push(<AppointmentCellModule key={`${day}-${currentHourStr}`} appointment={undefined} height={1} setAppointmentModalOpen={undefined} setSelectedAppointment={setSelectedAppointment}/>);
-                                        hourId += 0.5; // avanza 30 minutos
+                                        // Buscar la próxima cita del día para calcular el tamaño de la celda vacía
+                                        const nextAppointment = filteredAppointments.find(
+                                            (a) => isSameDay(a.date, day) && a.initialHour > currentHourStr
+                                        );
+                                        
+                                        let emptySlotDuration = 0.5;
+                                        
+                                        if (nextAppointment) {
+                                            const minutesUntilNext = diffInMinutes(nextAppointment.initialHour, currentHourStr);
+                                            emptySlotDuration = Math.min(minutesUntilNext / 60, 0.5);
+                                        } else {
+                                            const decimal = hourId - Math.floor(hourId);
+                                            if (decimal === 0.25 || decimal === 0.75) {
+                                                emptySlotDuration = 0.25;
+                                            }
+                                        }
+                                        
+                                        cells.push(<AppointmentCellModule key={`${day}-${currentHourStr}`} appointment={undefined} height={emptySlotDuration * 2} setAppointmentModalOpen={undefined} setSelectedAppointment={setSelectedAppointment}/>);
+                                        hourId += emptySlotDuration;
                                     }
                                 }
                                 return cells;
