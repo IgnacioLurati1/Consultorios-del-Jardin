@@ -1,3 +1,4 @@
+import { Schedule } from "../schedule/schedules.entity.js";
 import { orm } from "../shared/db/orm.js";
 import { Office } from "./offices.entity.js";
 import { EntityManager, RequiredEntityData } from "@mikro-orm/core";
@@ -33,6 +34,18 @@ export class OfficeService {
 
   async findOficeById(idOffice: number, emT?: EntityManager): Promise<Office> {
     return await (emT || em).findOneOrFail(Office, { idOffice }, { populate: ["city", "city.province"] });
+  }
+
+  async findOfficesByProfessional(email: string): Promise<Office[]> {
+    const query = em
+      .createQueryBuilder(Schedule, "s")
+      .select("o.*")
+      .distinct()
+      .join("s.person", "p")
+      .join("s.room", "r")
+      .join("r.office", "o")
+      .where({ "p.email": email, "o.active": true });
+    return await query.execute();
   }
 
   async createOffice(data: RequiredEntityData<Office>): Promise<Office> {

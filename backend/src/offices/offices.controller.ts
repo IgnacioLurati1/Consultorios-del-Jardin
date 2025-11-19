@@ -49,6 +49,16 @@ async function findOne(req: Request, res: Response) {
   }
 }
 
+async function findAllOfficesByProfessional(req: Request, res: Response) {
+  try {
+    const email = req.params.email;
+    const offices = await officeService.findOfficesByProfessional(email);
+    res.status(200).json({ message: "Consultorios del profesional encontrados", data: offices });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 async function add(req: Request, res: Response) {
   try {
     const office = await officeService.createOffice(req.body.sanitizedInput);
@@ -85,4 +95,4 @@ async function toggleOfficeState(req: Request, res: Response) {
   }
 }
 
-export { sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState };
+export { sanitizeOfficeInput, findAll, findOne, add, update, toggleOfficeState, findAllOfficesByProfessional };

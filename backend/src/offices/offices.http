@@ -7,6 +7,9 @@ GET http://localhost:3000/api/offices
 
 GET http://localhost:3000/api/offices/1
 
+### Find all offices for a professional
+GET http://localhost:3000/api/offices/professional/profTesting@gmail.com
+
 ### Create a new office
 # @name CreateOffice
 POST http://localhost:3000/api/offices
