@@ -12,6 +12,7 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import type { TokenPayload } from "../types.ts";
+import ReCaptcha from "../../components/reCaptcha.tsx";
 
 export function Login() {
   const { login } = useAuth();
@@ -22,6 +23,7 @@ export function Login() {
   });
 
   const navigate = useNavigate();
+  const [captchaOk, setCaptchaOk] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -37,6 +39,13 @@ export function Login() {
     // Validaciones mínimas (También se tiene que hacer en el backend)
     if (!formData.email || !formData.contraseña) {
       toast.error("Complete todos los campos requeridos", {
+        className: "feedBack-box error",
+      });
+      return;
+    }
+
+    if (!captchaOk) {
+      toast.error("Por favor, completá el captcha", {
         className: "feedBack-box error",
       });
       return;
@@ -118,10 +127,15 @@ export function Login() {
             <div className="login-logo-consultorios">
               <img src={Logo} alt="Logo" />
             </div>
+
             <div className="login-button-container">
               <button className="login-button">Iniciar sesión</button>
             </div>
           </div>
+        </div>
+
+        <div className="captcha-container">
+          <ReCaptcha onChange={setCaptchaOk} />
         </div>
 
         <div className="toast-container">

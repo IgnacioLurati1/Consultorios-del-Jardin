@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import api from "../../axios.ts";
 import { toast, ToastContainer } from "react-toastify"
 import { useState } from "react";
+import ReCaptcha from "../../components/reCaptcha.tsx";
 
 async function sendEmail(email: string) {
 
@@ -22,6 +23,7 @@ async function sendEmail(email: string) {
 export function RecoverPassword() {
 
   const [email, setEmail] = useState("");
+    const [captchaOk, setCaptchaOk] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setEmail(e.target.value);
@@ -54,8 +56,21 @@ export function RecoverPassword() {
           <div className="recoverPassword-logo-consultorios">
             <img src={Logo} alt="Logo" />
           </div>
+
           <div className="recoverPassword-button-container">
-            <button className="recoverPassword-button" onClick={() => sendEmail(email)}>
+            <button
+              className="recoverPassword-button"
+              onClick={() => {
+                if (!captchaOk) {
+                  toast.error("Por favor, completá el captcha", {
+                    className: "feedBack-box error",
+                  });
+                  return;
+                }
+
+                sendEmail(email);
+              }}
+            >
               Enviar instrucciones
             </button>
           </div>
@@ -66,6 +81,10 @@ export function RecoverPassword() {
           draggable={false}
           toastClassName="feedBack-box"
         />
+
+        <div className="captcha-container">
+          <ReCaptcha onChange={setCaptchaOk} />
+        </div>
     </div>
   );
 }
