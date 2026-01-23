@@ -8,6 +8,8 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { RoomService } from "../rooms/rooms.service.js";
 import { AppointmentEngine } from "./appointments.engine.js";
 import MailService from "../config/sendGrid.js";
+import {groqClient, GROQ_CONFIG} from "../config/groq.js";
+import {SECRETARY_PROMPT} from "../prompts/secretary.js";
 
 const em = orm.em;
 
@@ -595,5 +597,18 @@ export class AppointmentService {
     const appointment = await em.findOneOrFail(Appointment, { numAppointment });
     appointment.reminderSent = "sent";
     await em.flush();
+  }
+
+  async generateSecretaryResponse(userMessage: string): Promise<string> {
+    const response = await groqClient.chat.completions.create({
+      ...GROQ_CONFIG,
+      messages: [
+        { role: "system", content: SECRETARY_PROMPT },
+        { role: "user", content: userMessage }
+      ]
+    });
+    
+    return response.choices[0].message.content || "Lo siento, no pude generar una respuesta en este momento.";
+
   }
 }

@@ -6,6 +6,15 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
 GET http://localhost:3000/api/appointments/medical-history/mailpaciente@gmail.com
 Authorization: Bearer
 
+### POST - Asistente virtual secretaria
+POST http://localhost:3000/api/appointments/secretary-response
+Content-Type: application/json
+Authorization: Bearer 
+
+{
+  "message": "Hola, quisiera saber cuáles son los horarios disponibles para el próximo lunes con el Dr. Pérez."
+}
+
 ### POST - Turnos posibles
 POST http://localhost:3000/api/appointments/getAppointments
 Content-Type: application/json
