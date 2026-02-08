@@ -67,9 +67,10 @@ export function Login() {
       })
       .catch((err: any) => {
         console.error("Login error:", err);
-        toast.error("Error en el inicio de sesión", {
-          className: "feedBack-box error",
-        });
+        const message = err.message || "Error en el inicio de sesión";
+        toast.error(message, {
+      className: "feedBack-box error",
+      });
       });
   };
 

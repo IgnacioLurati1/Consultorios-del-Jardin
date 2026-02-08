@@ -9,9 +9,10 @@ type dataInputProps ={
 }
 
 export function DataInputSelector(props: dataInputProps) {
+    const inputId = `datalist-${props.label.replace(/\s+/g, '-').toLowerCase()}`;
 
         let input =  <select className='data-input-selector' 
-                id={`datalist-${props.label}`}
+                id={inputId}
                 value={props.value}
                 onChange={props.onChange}>
                     <option value="" disabled>Seleccionar...</option>
@@ -23,7 +24,7 @@ export function DataInputSelector(props: dataInputProps) {
     return (
 
         <div className="data-input-container">      
-            <label className="data-input-label">{props.label}</label>
+            <label htmlFor={inputId} className="data-input-label">{props.label}</label>
             {input}  
         </div>
         
