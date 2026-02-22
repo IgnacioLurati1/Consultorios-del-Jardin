@@ -11,6 +11,9 @@ import { DataInputSelector } from "../../components/inputs/selectorInput/DataInp
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import ReCaptcha from "../../components/reCaptcha.tsx";
+
+
 
 export function Register() {
   const { login } = useAuth();
@@ -27,6 +30,7 @@ export function Register() {
 
   const navigate = useNavigate();
   const [showButton, setShowButton] = useState(true);
+  const [captchaOk, setCaptchaOk] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -41,6 +45,13 @@ export function Register() {
 
     if (formData.contraseña !== formData.confirmarContraseña) {
       toast.error("Las contraseñas no coinciden", {
+        className: "feedBack-box error",
+      });
+      return;
+    }
+
+    if (!captchaOk) {
+      toast.error("Por favor, completá el captcha", {
         className: "feedBack-box error",
       });
       return;
@@ -202,6 +213,10 @@ export function Register() {
 
             <div className="toast-container">
               <ToastContainer position="top-right" closeOnClick={false} draggable={false} />
+            </div>
+
+            <div className="captcha-container">
+              <ReCaptcha onChange={setCaptchaOk} />
             </div>
 
             <button type="button" className={activo ? "register-button next shown" : "register-button next not-shown"} onClick={changePage}>

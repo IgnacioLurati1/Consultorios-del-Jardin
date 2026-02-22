@@ -11,6 +11,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "../../context/AuthContext";
 import type { TokenPayload } from "../types.ts";
+import ReCaptcha from "../../components/reCaptcha.tsx";
 import { LoginService } from "./loginServices.ts";
 
 export function Login() {
@@ -22,6 +23,7 @@ export function Login() {
   });
 
   const navigate = useNavigate();
+  const [captchaOk, setCaptchaOk] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -42,10 +44,17 @@ export function Login() {
       return;
     }
 
-    LoginService(formData.email, formData.contraseña)
-      .then((responseData: any) => {
-        if (responseData.token) {
-          localStorage.setItem("token", responseData.token);
+if (!captchaOk) {
+  toast.error("Por favor, completá el captcha", {
+    className: "feedBack-box error",
+  });
+  return;
+}
+
+LoginService(formData.email, formData.contraseña)
+  .then((responseData: any) => {
+    if (responseData.token) {
+      localStorage.setItem("token", responseData.token);
           toast.success("Inicio de sesión exitoso", {
             className: "feedBack-box success",
           });
@@ -109,10 +118,15 @@ export function Login() {
             <div className="login-logo-consultorios">
               <img src={Logo} alt="Logo" />
             </div>
+
             <div className="login-button-container">
               <button className="login-button">Iniciar sesión</button>
             </div>
           </div>
+        </div>
+
+        <div className="captcha-container">
+          <ReCaptcha onChange={setCaptchaOk} />
         </div>
 
         <div className="toast-container">
