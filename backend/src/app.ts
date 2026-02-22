@@ -33,7 +33,7 @@ app.use("/api/tokenStatus", verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: "Token válido" });
 });
 app.use("/api/refreshToken", refreshToken);
-app.use("/api/appointments", appointmentRouter);
+app.use("/api/appointments", verifyToken, appointmentRouter);
 
 app.use((_, res) => {
   return res.status(404).send({ message: "Resource not found" });

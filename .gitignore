@@ -32,3 +32,6 @@ Thumbs.db
 
 ## TEMPORAL API PROTECTION
 /backend/src/config/serviceAccountKey.json
+
+## CLAUDE Files
+CLAUDE.md
