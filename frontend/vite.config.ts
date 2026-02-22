@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from 'vitest/config'
 import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
@@ -14,5 +14,11 @@ export default defineConfig({
         cookieDomainRewrite: "localhost",
       },
     },
+  },
+  test: {
+    globals: true,                // IMPORTANTE: Hace que 'expect' sea global
+    environment: 'jsdom',         // Simula el navegador
+    setupFiles: './src/setupTests.ts', // Archivo de configuración inicial
+    css: true,
   },
 });

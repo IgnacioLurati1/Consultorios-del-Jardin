@@ -9,10 +9,10 @@ import { DataInputPassword } from "../../components/inputs/passwordInput/DataInp
 import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import type { TokenPayload } from "../types.ts";
 import ReCaptcha from "../../components/reCaptcha.tsx";
+import { LoginService } from "./loginServices.ts";
 
 export function Login() {
   const { login } = useAuth();
@@ -44,34 +44,24 @@ export function Login() {
       return;
     }
 
-    if (!captchaOk) {
-      toast.error("Por favor, completá el captcha", {
-        className: "feedBack-box error",
-      });
-      return;
-    }
+if (!captchaOk) {
+  toast.error("Por favor, completá el captcha", {
+    className: "feedBack-box error",
+  });
+  return;
+}
 
-    axios
-      .post(
-        "api/people/login",
-        {
-          email: formData.email,
-          password: formData.contraseña,
-        },
-        {
-          withCredentials: true, // sin esto, no se envía ni se recibe la cookie
-        }
-      )
-      .then((response) => {
-        if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
+LoginService(formData.email, formData.contraseña)
+  .then((responseData: any) => {
+    if (responseData.token) {
+      localStorage.setItem("token", responseData.token);
           toast.success("Inicio de sesión exitoso", {
             className: "feedBack-box success",
           });
 
-          const decoded: TokenPayload = jwtDecode(response.data.token);
+          const decoded: TokenPayload = jwtDecode(responseData.token);
 
-          login(response.data.token);
+          login(responseData.token);
 
           if (decoded.type === "admin") {
             navigate("/adminHome");
@@ -84,11 +74,12 @@ export function Login() {
           navigate("/");
         }
       })
-      .catch((error) => {
-        console.error("Login error:", error);
-        toast.error("Error en el inicio de sesión", {
-          className: "feedBack-box error",
-        });
+      .catch((err: any) => {
+        console.error("Login error:", err);
+        const message = err.message || "Error en el inicio de sesión";
+        toast.error(message, {
+      className: "feedBack-box error",
+      });
       });
   };
 

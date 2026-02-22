@@ -10,6 +10,7 @@ type dataInputProps ={
 }
 
 export function DataInput(props: dataInputProps) {
+    const inputId = `input-${props.label.replace(/\s+/g, '-').toLowerCase()}`;
     
     let input = <input 
                     type={props.type} 
@@ -17,12 +18,13 @@ export function DataInput(props: dataInputProps) {
                     value={props.value}
                     onChange={props.onChange}
                     disabled={props.disabled}
+                    id={inputId}
                 />;
                 
     return (
 
         <div className="data-input-container"> 
-            <label className="data-input-label">{props.label}</label>
+            <label htmlFor={inputId} className="data-input-label">{props.label}</label>
             {input}
         </div>
 
