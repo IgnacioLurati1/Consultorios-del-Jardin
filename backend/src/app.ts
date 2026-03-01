@@ -14,6 +14,7 @@ import refreshToken from "./config/refreshToken.js";
 import cookieParser from "cookie-parser";
 import { appointmentRouter } from "./appointments/appointments.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
+import { setupSwagger } from './config/swagger.js';
 
 const app = express();
 app.use(express.json());
@@ -22,6 +23,7 @@ app.use(cookieParser());
 app.use((req, res, next) => {
   RequestContext.create(orm.em, next);
 });
+setupSwagger(app); // documentacion de endpoints
 
 app.use("/api/provinces", verifyToken, provinceRouter);
 app.use("/api/cities", verifyToken, cityRouter);
