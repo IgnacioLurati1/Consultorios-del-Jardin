@@ -9,8 +9,24 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+function getValidToken(): string | null {
+  const stored = localStorage.getItem("token");
+  if (!stored) return null;
+  try {
+    const payload = JSON.parse(atob(stored.split(".")[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem("token");
+      return null;
+    }
+  } catch {
+    localStorage.removeItem("token");
+    return null;
+  }
+  return stored;
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(getValidToken());
 
   const login = (newToken: string) => {
     localStorage.setItem("token", newToken);
@@ -23,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const handleStorage = () => setToken(localStorage.getItem("token"));
+    const handleStorage = () => setToken(getValidToken());
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
