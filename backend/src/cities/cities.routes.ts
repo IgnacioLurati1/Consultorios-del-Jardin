@@ -22,7 +22,11 @@ export const cityRouter = Router();
  *               items:
  *                 $ref: '#/components/schemas/City'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 cityRouter.get("/", verifyAdmin, findAll);
 
@@ -41,6 +45,8 @@ cityRouter.get("/", verifyAdmin, findAll);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/City'
+ *       500:
+ *         description: Error del servidor
  */
 cityRouter.get("/active", findAllActive);
 
@@ -63,8 +69,8 @@ cityRouter.get("/active", findAllActive);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/City'
- *       404:
- *         description: Ciudad no encontrada
+ *       500:
+ *         description: Error del servidor
  */
 cityRouter.get("/:idCity", findOne);
 
@@ -90,7 +96,11 @@ cityRouter.get("/:idCity", findOne);
  *             schema:
  *               $ref: '#/components/schemas/City'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 cityRouter.post("/", verifyAdmin, sanitizeCityInput, add);
 
@@ -118,7 +128,11 @@ cityRouter.post("/", verifyAdmin, sanitizeCityInput, add);
  *       200:
  *         description: Ciudad actualizada con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar ciudad parcialmente
  *     tags: [Cities]
@@ -139,7 +153,11 @@ cityRouter.post("/", verifyAdmin, sanitizeCityInput, add);
  *       200:
  *         description: Ciudad actualizada con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 cityRouter.put("/:idCity", verifyAdmin, sanitizeCityInput, update);
 cityRouter.patch("/:idCity", verifyAdmin, sanitizeCityInput, update);
@@ -162,6 +180,10 @@ cityRouter.patch("/:idCity", verifyAdmin, sanitizeCityInput, update);
  *       200:
  *         description: Estado cambiado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 cityRouter.patch("/:idCity/toggle-state", verifyAdmin, sanitizeCityInput, toggleCityState);

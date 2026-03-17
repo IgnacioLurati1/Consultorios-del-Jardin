@@ -22,7 +22,11 @@ export const roomRouter = Router();
  *               items:
  *                 $ref: '#/components/schemas/Room'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 roomRouter.get("/", verifyAdmin, findAll);
 
@@ -41,6 +45,8 @@ roomRouter.get("/", verifyAdmin, findAll);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Room'
+ *       500:
+ *         description: Error del servidor
  */
 roomRouter.get("/active", findAllActive);
 
@@ -73,7 +79,7 @@ roomRouter.get("/active", findAllActive);
  *               items:
  *                 $ref: '#/components/schemas/Room'
  *       500:
- *         description: Error interno
+ *         description: Error del servidor
  */
 roomRouter.get("/office/professional/:officeId/:email", findRoomsByOfficeAndProfessional);
 
@@ -96,8 +102,8 @@ roomRouter.get("/office/professional/:officeId/:email", findRoomsByOfficeAndProf
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Room'
- *       404:
- *         description: Consultorio no encontrado
+ *       500:
+ *         description: Error del servidor
  */
 roomRouter.get("/:idRoom", findOne);
 
@@ -123,7 +129,11 @@ roomRouter.get("/:idRoom", findOne);
  *             schema:
  *               $ref: '#/components/schemas/Room'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 roomRouter.post("/", verifyAdmin, sanitizeRoomInput, add);
 
@@ -151,7 +161,11 @@ roomRouter.post("/", verifyAdmin, sanitizeRoomInput, add);
  *       200:
  *         description: Consultorio actualizado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar consultorio parcialmente
  *     tags: [Rooms]
@@ -172,14 +186,18 @@ roomRouter.post("/", verifyAdmin, sanitizeRoomInput, add);
  *       200:
  *         description: Consultorio actualizado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 roomRouter.put("/:idRoom", verifyAdmin, sanitizeRoomInput, update);
 roomRouter.patch("/:idRoom", verifyAdmin, sanitizeRoomInput, update);
 
 /**
  * @swagger
- * /api/rooms/{idCity}/toggle-state:
+ * /api/rooms/{idRoom}/toggle-state:
  *   patch:
  *     summary: Cambiar estado activo/inactivo de un consultorio
  *     tags: [Rooms]
@@ -187,7 +205,7 @@ roomRouter.patch("/:idRoom", verifyAdmin, sanitizeRoomInput, update);
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: idCity
+ *         name: idRoom
  *         required: true
  *         schema:
  *           type: integer
@@ -196,6 +214,10 @@ roomRouter.patch("/:idRoom", verifyAdmin, sanitizeRoomInput, update);
  *       200:
  *         description: Estado cambiado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 roomRouter.patch("/:idCity/toggle-state", verifyAdmin, sanitizeRoomInput, toggleRoomState);

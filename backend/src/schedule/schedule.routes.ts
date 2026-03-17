@@ -30,6 +30,10 @@ export const scheduleRouter = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Schedule'
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.get('/', findAll);
 
@@ -51,7 +55,9 @@ scheduleRouter.get('/', findAll);
  *               items:
  *                 $ref: '#/components/schemas/Schedule'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.get('/profesional', findByProfesionalLogged);
 
@@ -79,8 +85,10 @@ scheduleRouter.get('/profesional', findByProfesionalLogged);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Schedule'
- *       404:
- *         description: Profesional no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.get('/by-email/:email', findByEmail);
 
@@ -112,8 +120,10 @@ scheduleRouter.get('/by-email/:email', findByEmail);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Schedule'
- *       404:
- *         description: Horario no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.get('/by-day-hour/:day/:initialHour', findOne);
 
@@ -139,7 +149,9 @@ scheduleRouter.get('/by-day-hour/:day/:initialHour', findOne);
  *             schema:
  *               $ref: '#/components/schemas/Schedule'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.post('/', sanitizeScheduleInput, add);
 
@@ -161,7 +173,9 @@ scheduleRouter.post('/', sanitizeScheduleInput, add);
  *       200:
  *         description: Horario actualizado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar horario parcialmente
  *     tags: [Schedules]
@@ -176,7 +190,9 @@ scheduleRouter.post('/', sanitizeScheduleInput, add);
  *       200:
  *         description: Horario actualizado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.put('/', sanitizeScheduleInput, update);
 scheduleRouter.patch('/', sanitizeScheduleInput, update);
@@ -211,7 +227,9 @@ scheduleRouter.patch('/', sanitizeScheduleInput, update);
  *     responses:
  *       200:
  *         description: Horario eliminado con éxito
- *       404:
- *         description: Horario no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 scheduleRouter.delete('/by-day-hour/:day/:initialHour/:person', remove);

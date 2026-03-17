@@ -42,7 +42,11 @@ export const personRouter = Router();
  *                   items:
  *                     $ref: '#/components/schemas/Person'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.get("/", verifyToken, verifyAdmin, findAll);
 
@@ -68,7 +72,11 @@ personRouter.get("/", verifyToken, verifyAdmin, findAll);
  *                   items:
  *                     $ref: '#/components/schemas/Person'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.get("/NoAdmin", verifyToken, verifyAdmin, findAllNoAdmin);
 
@@ -101,7 +109,11 @@ personRouter.get("/NoAdmin", verifyToken, verifyAdmin, findAllNoAdmin);
  *                   items:
  *                     $ref: '#/components/schemas/Person'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.get("/type/:peopleType", verifyToken, verifyAdmin, findAllPerType);
 
@@ -134,7 +146,9 @@ personRouter.get("/type/:peopleType", verifyToken, verifyAdmin, findAllPerType);
  *                   items:
  *                     $ref: '#/components/schemas/Person'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.get("/type/active/:peopleType", verifyToken, findAllPerTypeActive);
 
@@ -173,7 +187,9 @@ personRouter.get("/type/active/:peopleType", verifyToken, findAllPerTypeActive);
  *                   items:
  *                     $ref: '#/components/schemas/Person'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.get("/professionals/office/:officeId/:speciality?", verifyToken, findProfesionalByOffice);
 
@@ -203,6 +219,8 @@ personRouter.get("/professionals/office/:officeId/:speciality?", verifyToken, fi
  *                 message: { type: string }
  *                 data:
  *                   $ref: '#/components/schemas/Person'
+ *       401:
+ *         description: Token ausente, inválido o expirado
  *       500:
  *         description: Error interno
  */
@@ -236,6 +254,8 @@ personRouter.get("/:email", verifyToken, findOne);
  *         description: Tipo de persona inválido
  *       409:
  *         description: La persona ya existe
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.post("/", sanitizePersonInput, add);
 
@@ -271,6 +291,8 @@ personRouter.post("/", sanitizePersonInput, add);
  *                 token: { type: string }
  *       401:
  *         description: Credenciales inválidas
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
 
@@ -283,6 +305,8 @@ personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
  *     responses:
  *       200:
  *         description: Sesión cerrada
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.post("/logout", logOut);
 
@@ -292,8 +316,6 @@ personRouter.post("/logout", logOut);
  *   patch:
  *     summary: Cambiar contraseña
  *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -308,8 +330,8 @@ personRouter.post("/logout", logOut);
  *     responses:
  *       200:
  *         description: Contraseña cambiada con éxito
- *       401:
- *         description: Token inválido o ausente
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.patch("/changePassword", sanitizePersonInput, changePassword);
 
@@ -337,9 +359,11 @@ personRouter.patch("/changePassword", sanitizePersonInput, changePassword);
  *       200:
  *         description: Persona actualizada con éxito
  *       401:
- *         description: Credenciales inválidas
+ *         description: Token ausente, inválido o expirado
  *       409:
  *         description: La persona ya existe
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar persona parcialmente
  *     tags: [People]
@@ -360,7 +384,9 @@ personRouter.patch("/changePassword", sanitizePersonInput, changePassword);
  *       200:
  *         description: Persona actualizada con éxito
  *       401:
- *         description: Credenciales inválidas
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.put("/:email", verifyToken, sanitizePersonInput, update);
 personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
@@ -383,7 +409,11 @@ personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
  *       200:
  *         description: Solicitud procesada
  *       401:
- *         description: La persona no puede ser removida
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, remove);
 
@@ -404,6 +434,10 @@ personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, re
  *     responses:
  *       200:
  *         description: Estado cambiado con éxito
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
  *       500:
  *         description: Error interno
  */

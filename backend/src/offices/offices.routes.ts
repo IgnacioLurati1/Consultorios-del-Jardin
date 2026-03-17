@@ -22,7 +22,11 @@ export const officeRouter = Router()
  *               items:
  *                 $ref: '#/components/schemas/Office'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.get('/', verifyAdmin, findAll)
 
@@ -41,6 +45,8 @@ officeRouter.get('/', verifyAdmin, findAll)
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Office'
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.get('/active', findAllActive)
 
@@ -50,8 +56,6 @@ officeRouter.get('/active', findAllActive)
  *   get:
  *     summary: Obtener oficinas por profesional
  *     tags: [Offices]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: email
@@ -68,8 +72,8 @@ officeRouter.get('/active', findAllActive)
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Office'
- *       404:
- *         description: Profesional no encontrado
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.get('/professional/:email', findAllOfficesByProfessional)
 
@@ -92,8 +96,8 @@ officeRouter.get('/professional/:email', findAllOfficesByProfessional)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Office'
- *       404:
- *         description: Oficina no encontrada
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.get('/:idOffice', findOne)
 
@@ -119,7 +123,11 @@ officeRouter.get('/:idOffice', findOne)
  *             schema:
  *               $ref: '#/components/schemas/Office'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.post('/', verifyAdmin, sanitizeOfficeInput, add)
 
@@ -147,7 +155,11 @@ officeRouter.post('/', verifyAdmin, sanitizeOfficeInput, add)
  *       200:
  *         description: Oficina actualizada con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar oficina parcialmente
  *     tags: [Offices]
@@ -168,7 +180,11 @@ officeRouter.post('/', verifyAdmin, sanitizeOfficeInput, add)
  *       200:
  *         description: Oficina actualizada con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.put('/:idOffice', verifyAdmin, sanitizeOfficeInput, update)
 officeRouter.patch('/:idOffice', verifyAdmin, sanitizeOfficeInput, update)
@@ -191,6 +207,10 @@ officeRouter.patch('/:idOffice', verifyAdmin, sanitizeOfficeInput, update)
  *       200:
  *         description: Estado cambiado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 officeRouter.patch('/:idOffice/toggle', verifyAdmin, toggleOfficeState)

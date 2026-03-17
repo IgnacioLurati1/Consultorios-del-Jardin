@@ -22,7 +22,11 @@ export const provinceRouter = Router();
  *               items:
  *                 $ref: '#/components/schemas/Province'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 provinceRouter.get("/", verifyAdmin, findAll);
 
@@ -41,6 +45,8 @@ provinceRouter.get("/", verifyAdmin, findAll);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Province'
+ *       500:
+ *         description: Error del servidor
  */
 provinceRouter.get("/active", findAllActive);
 
@@ -50,8 +56,6 @@ provinceRouter.get("/active", findAllActive);
  *   get:
  *     summary: Obtener provincia por ID
  *     tags: [Provinces]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: idProvince
@@ -65,8 +69,8 @@ provinceRouter.get("/active", findAllActive);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Province'
- *       404:
- *         description: Provincia no encontrada
+ *       500:
+ *         description: Error del servidor
  */
 provinceRouter.get("/:idProvince", findOne);
 
@@ -92,7 +96,11 @@ provinceRouter.get("/:idProvince", findOne);
  *             schema:
  *               $ref: '#/components/schemas/Province'
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 provinceRouter.post("/", verifyAdmin, sanitizeProvinceInput, add);
 
@@ -120,7 +128,11 @@ provinceRouter.post("/", verifyAdmin, sanitizeProvinceInput, add);
  *       200:
  *         description: Provincia actualizada con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar provincia parcialmente
  *     tags: [Provinces]
@@ -141,7 +153,11 @@ provinceRouter.post("/", verifyAdmin, sanitizeProvinceInput, add);
  *       200:
  *         description: Provincia actualizada con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 provinceRouter.put("/:idProvince", verifyAdmin, sanitizeProvinceInput, update);
 provinceRouter.patch("/:idProvince", verifyAdmin, sanitizeProvinceInput, update);
@@ -164,6 +180,10 @@ provinceRouter.patch("/:idProvince", verifyAdmin, sanitizeProvinceInput, update)
  *       200:
  *         description: Estado cambiado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error del servidor
  */
 provinceRouter.patch("/:idProvince/toggle-state", verifyAdmin, sanitizeProvinceInput, toggleProvinceState);

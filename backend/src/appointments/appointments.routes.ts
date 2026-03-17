@@ -46,6 +46,10 @@ export const appointmentRouter = Router();
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/patient/:page", getPatientAppointments);
 
@@ -73,6 +77,10 @@ appointmentRouter.get("/patient/:page", getPatientAppointments);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/professional/:page", getProfessionalAppointments);
 
@@ -93,6 +101,10 @@ appointmentRouter.get("/professional/:page", getProfessionalAppointments);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/pending", getPendingAppointments);
 
@@ -113,6 +125,10 @@ appointmentRouter.get("/pending", getPendingAppointments);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/medical-history", getPersonalMedicalHistory);
 
@@ -140,6 +156,10 @@ appointmentRouter.get("/medical-history", getPersonalMedicalHistory);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Appointment'
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/medical-history/:patientEmail", getPatientMedicalHistory);
 
@@ -164,8 +184,10 @@ appointmentRouter.get("/medical-history/:patientEmail", getPatientMedicalHistory
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Diagnostic'
- *       404:
- *         description: Turno no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/:numAppointment/diagnostic", getDiagnostic);
 
@@ -192,8 +214,10 @@ appointmentRouter.get("/:numAppointment/diagnostic", getDiagnostic);
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Diagnostic'
- *       404:
- *         description: Turno no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.get("/:numAppointment/diagnostics", getAppointmentDiagnostics);
 
@@ -219,6 +243,10 @@ appointmentRouter.get("/:numAppointment/diagnostics", getAppointmentDiagnostics)
  *     responses:
  *       200:
  *         description: Observación agregada con éxito
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.patch("/:numAppointment/observations", sanitizeAppointmentInput, addObservation);
 
@@ -239,8 +267,10 @@ appointmentRouter.patch("/:numAppointment/observations", sanitizeAppointmentInpu
  *     responses:
  *       200:
  *         description: Turno aceptado con éxito
- *       404:
- *         description: Turno no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.patch("/:numAppointment/accept", sanitizeAppointmentInput, acceptAppointment);
 
@@ -261,8 +291,10 @@ appointmentRouter.patch("/:numAppointment/accept", sanitizeAppointmentInput, acc
  *     responses:
  *       200:
  *         description: Turno cancelado con éxito
- *       404:
- *         description: Turno no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.patch("/:numAppointment/cancel", cancelAppointment);
 
@@ -291,6 +323,10 @@ appointmentRouter.patch("/:numAppointment/cancel", cancelAppointment);
  *     responses:
  *       200:
  *         description: Lista de turnos disponibles
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.post("/getAppointments", sanitizeAppointmentInput, getAvailableAppointmentsForPatient);
 
@@ -312,7 +348,9 @@ appointmentRouter.post("/getAppointments", sanitizeAppointmentInput, getAvailabl
  *       201:
  *         description: Turno creado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.post("/professional", sanitizeAppointmentInput, createProfessionalAppointment);
 
@@ -342,8 +380,10 @@ appointmentRouter.post("/professional", sanitizeAppointmentInput, createProfessi
  *     responses:
  *       200:
  *         description: Paciente agregado con éxito
- *       404:
- *         description: Turno no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.post("/patient/:numAppointment", sanitizeAppointmentInput, addPatientToAppointment);
 
@@ -365,7 +405,9 @@ appointmentRouter.post("/patient/:numAppointment", sanitizeAppointmentInput, add
  *       201:
  *         description: Turno creado con éxito
  *       401:
- *         description: No autorizado
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.post("/", sanitizeAppointmentInput, createPatientAppointment);
 
@@ -391,6 +433,10 @@ appointmentRouter.post("/", sanitizeAppointmentInput, createPatientAppointment);
  *     responses:
  *       200:
  *         description: Diagnóstico actualizado con éxito
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar diagnóstico parcialmente
  *     tags: [Appointments]
@@ -410,6 +456,10 @@ appointmentRouter.post("/", sanitizeAppointmentInput, createPatientAppointment);
  *     responses:
  *       200:
  *         description: Diagnóstico actualizado con éxito
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.put("/:numAppointment/diagnostic", sanitizeAppointmentInput, updateDiagnostic);
 appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput, updateDiagnostic);
@@ -436,6 +486,10 @@ appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput,
  *     responses:
  *       200:
  *         description: Turno actualizado con éxito
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  *   patch:
  *     summary: Actualizar turno parcialmente
  *     tags: [Appointments]
@@ -455,6 +509,10 @@ appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput,
  *     responses:
  *       200:
  *         description: Turno actualizado con éxito
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  *   delete:
  *     summary: Eliminar turno
  *     tags: [Appointments]
@@ -469,8 +527,10 @@ appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput,
  *     responses:
  *       200:
  *         description: Turno eliminado con éxito
- *       404:
- *         description: Turno no encontrado
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 appointmentRouter.put("/:numAppointment", sanitizeAppointmentInput, updateAppointment);
 appointmentRouter.patch("/:numAppointment", sanitizeAppointmentInput, updateAppointment);
