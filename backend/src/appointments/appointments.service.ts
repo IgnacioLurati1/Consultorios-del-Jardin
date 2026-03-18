@@ -8,8 +8,18 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { RoomService } from "../rooms/rooms.service.js";
 import { AppointmentEngine } from "./appointments.engine.js";
 import MailService from "../config/sendGrid.js";
+import {groqClient, GROQ_CONFIG} from "../config/groq.js";
+import {buildSecretaryPrompt} from "../prompts/secretary.js";
+import {SECRETARY_TOOLS} from "./secretary.tools.js";
+import Groq from "groq-sdk";
 
 const em = orm.em;
+
+type SimpleMessage = { role: "user" | "assistant"; content: string };
+interface SecretaryResponse {
+  content: string;
+  chatHistory: SimpleMessage[];
+}
 
 export class AppointmentService {
   private peopleService: PeopleService;
@@ -33,7 +43,7 @@ export class AppointmentService {
       Appointment,
       { diagnostics: { patient: { email: patientEmail } } },
       {
-        populate: ["room.office", "diagnostics"],
+        populate: ["room.office", "diagnostics", "professional"],
         populateWhere: {
           diagnostics: { patient: { email: patientEmail } },
         },
@@ -294,7 +304,7 @@ export class AppointmentService {
     professionalEmail: string,
     officeId: number
   ): Promise<Partial<Appointment>> {
-    return await em.transactional(async (em) => {
+    const refreshed = await em.transactional(async (em) => {
       const isValid =
         this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date) && this.scheduleService.isValidAllowedTypes(type);
 
@@ -311,23 +321,27 @@ export class AppointmentService {
       );
 
       await em.flush();
-      const refreshed = await em.findOneOrFail(
+      return await em.findOneOrFail(
         Appointment,
         { numAppointment: appointment.numAppointment },
         { populate: ["diagnostics", "diagnostics.patient", "professional"] }
       );
-      await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour, type);
-      return {
-        numAppointment: refreshed.numAppointment,
-        date: refreshed.date,
-        initialHour: refreshed.initialHour,
-        finalHour: refreshed.finalHour,
-        value: refreshed.value,
-        type: refreshed.type,
-        professionalEmail: refreshed.professional.email,
-        room: refreshed.room,
-      };
     });
+
+    await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour, type).catch((err) =>
+      console.error("Error enviando email de creación de turno:", err)
+    );
+    const result = {
+      numAppointment: refreshed.numAppointment,
+      date: refreshed.date,
+      initialHour: refreshed.initialHour,
+      finalHour: refreshed.finalHour,
+      value: refreshed.value,
+      type: refreshed.type,
+      professionalEmail: refreshed.professional.email,
+      room: refreshed.room,
+    };
+    return result as Partial<Appointment>;
   }
 
   async createProfessionalAppointment(
@@ -595,5 +609,79 @@ export class AppointmentService {
     const appointment = await em.findOneOrFail(Appointment, { numAppointment });
     appointment.reminderSent = "sent";
     await em.flush();
+  }
+
+  async generateSecretaryResponse(patientEmail: string, userMessage: string, history: SimpleMessage[]): Promise<SecretaryResponse> {
+    const [patient, appointments] = await Promise.all([
+      this.peopleService.findPersonByEmail(patientEmail),
+      this.findPatientAppointmentsByEmail(patientEmail, 0),
+    ]);
+
+    const systemPrompt = buildSecretaryPrompt(patient.name, appointments);
+
+    const messages: Groq.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...history,
+      { role: "user", content: userMessage },
+    ];
+
+    const MAX_ITERATIONS = 5;
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      const response = await groqClient.chat.completions.create({
+        ...GROQ_CONFIG,
+        messages,
+        tools: SECRETARY_TOOLS,
+        tool_choice: "auto",
+      });
+
+      const choice = response.choices[0];
+      messages.push(choice.message as any);
+
+      if (choice.finish_reason !== "tool_calls" || !choice.message.tool_calls) {
+        const content = choice.message.content || "Lo siento, no pude generar una respuesta en este momento.";
+        const chatHistory = messages
+          .filter((m): m is { role: "user" | "assistant"; content: string } =>
+            (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.length > 0
+          )
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+        return { content, chatHistory };
+      }
+
+      for (const toolCall of choice.message.tool_calls) {
+        const args = JSON.parse(toolCall.function.arguments);
+        let result: any;
+        try {
+          result = await this.executeTool(toolCall.function.name, args, patientEmail);
+        } catch (err: any) {
+          result = { error: err.message };
+        }
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: JSON.stringify(result),
+        } as any);
+      }
+    }
+
+    return { content: "Lo siento, no pude completar la solicitud. Por favor intentá de nuevo.", chatHistory: [] };
+  }
+
+  private async executeTool(name: string, args: any, patientEmail: string): Promise<any> {
+    switch (name) {
+      case "get_active_offices":
+        return await this.officeService.findAllActiveOffices();
+
+      case "get_professionals":
+        if (args.officeId) {
+          return await this.peopleService.findProfesionalByOffice(args.officeId, args.speciality);
+        }
+        return await this.peopleService.findAllPerTypeActive("professional");
+
+      case "get_available_appointments":
+        return await this.getAvailableAppointmensForPatient(args.officeId, args.professionalEmail, patientEmail);
+
+      default:
+        throw new Error(`Herramienta desconocida: ${name}`);
+    }
   }
 }
