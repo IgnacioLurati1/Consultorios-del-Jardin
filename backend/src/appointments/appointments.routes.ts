@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import {
   getPatientAppointments,
   getDiagnostic,
@@ -18,9 +19,19 @@ import {
   getAvailableAppointmentsForPatient,
   getPatientMedicalHistory,
   getPersonalMedicalHistory,
+  generateSecretaryResponse,
 } from "./appointments.controller.js";
 
 export const appointmentRouter = Router();
+
+const secretaryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  keyGenerator: (req: any) => req.user?.email ?? ipKeyGenerator(req.ip ?? ""),
+  message: { message: "Demasiadas consultas al asistente. Intentá de nuevo en un minuto." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 appointmentRouter.get("/patient/:page", getPatientAppointments);
 appointmentRouter.get("/professional/:page", getProfessionalAppointments);
@@ -38,6 +49,7 @@ appointmentRouter.post("/getAppointments", sanitizeAppointmentInput, getAvailabl
 appointmentRouter.post("/professional", sanitizeAppointmentInput, createProfessionalAppointment);
 appointmentRouter.post("/patient/:numAppointment", sanitizeAppointmentInput, addPatientToAppointment);
 appointmentRouter.post("/", sanitizeAppointmentInput, createPatientAppointment);
+appointmentRouter.post("/secretary-response", secretaryLimiter, sanitizeAppointmentInput, generateSecretaryResponse);
 
 appointmentRouter.put("/:numAppointment/diagnostic", sanitizeAppointmentInput, updateDiagnostic);
 appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput, updateDiagnostic);

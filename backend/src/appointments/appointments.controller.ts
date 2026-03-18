@@ -22,6 +22,8 @@ function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunctio
     patientEmail: req.body.patientEmail,
     state: req.body.state,
     page: req.body.page,
+    message: req.body.message,
+    history: req.body.history,
   };
 
   Object.keys(req.body.sanitizedInput).forEach((key) => {
@@ -274,6 +276,20 @@ async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Res
   }
 }
 
+async function generateSecretaryResponse(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "client") return res.status(403).json({ message: "Solo los pacientes pueden usar el asistente virtual" });
+
+    const { message: userMessage, history = [] } = req.body.sanitizedInput;
+
+    const response = await appointmentService.generateSecretaryResponse(req.user.email, userMessage, history);
+
+    res.status(200).json({ message: "Respuesta generada", data: response });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 export {
   getPatientAppointments,
   getDiagnostic,
@@ -293,4 +309,5 @@ export {
   getAvailableAppointmentsForPatient,
   getPersonalMedicalHistory,
   getPatientMedicalHistory,
+  generateSecretaryResponse,
 };
