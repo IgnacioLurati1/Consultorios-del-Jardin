@@ -78,7 +78,7 @@ useEffect(() => {
       // Extraer todos los emails únicos de la lista
       const uniqueEmails = new Set<string>();
       enrichedAppointments.forEach(app => {
-        uniqueEmails.add(app.professional);
+        uniqueEmails.add(app.professional.email);
         app.diagnostics?.forEach(d => { 
           uniqueEmails.add(d.patient);
         });
@@ -138,7 +138,7 @@ useEffect(() => {
       // Extraer todos los emails únicos de la lista
       const uniqueEmails = new Set<string>();
       enrichedAppointments.forEach(app => {
-        uniqueEmails.add(app.professional);
+        uniqueEmails.add(app.professional.email);
         app.diagnostics?.forEach(d => { 
           uniqueEmails.add(d.patient);
         });
@@ -220,7 +220,7 @@ useEffect(() => {
     }
 
     if(personToFilter){
-      filtered = filtered.filter(app => app.professional === personToFilter || app.diagnostics.some(d => d.patient == personToFilter))
+      filtered = filtered.filter(app => app.professional.email === personToFilter || app.diagnostics.some(d => d.patient == personToFilter))
     }
 
     // 2. Filtros de Estado
@@ -308,12 +308,18 @@ useEffect(() => {
                 
             </div>
             <div className="appointment-subcontainer">
-              <AppointmentsGrid
-              appointments={filteredAppointments}
-              user={person}
-              onDiagnosticsUpdate={handleDiagnosticsUpdate}
-              onAppointmentStateUpdate={handleAppointmentStateUpdate}
-            />
+              {isLoading ? (
+                <p>Cargando...</p> 
+              ) : filteredAppointments.length === 0 ? (
+                <p>No hay turnos para mostrar</p>
+              ) : (
+                <AppointmentsGrid
+                  appointments={filteredAppointments}
+                  user={person}
+                  onDiagnosticsUpdate={handleDiagnosticsUpdate}
+                  onAppointmentStateUpdate={handleAppointmentStateUpdate}
+                />
+              )}
             </div>
             {showButtonMore ? 
               <button className="nextPageButton" onClick={()=>setPagesAppointment(pagesAppointment+1)}>Cargar mas turnos</button>

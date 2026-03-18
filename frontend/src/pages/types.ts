@@ -80,7 +80,7 @@ export interface Appointment {
     value: number;
     type: "simple" | "taller";
     state: string;
-    professional: string;
+    professional: Person;
     room: Room;
     diagnostics: Diagnostic[];
 }

@@ -71,7 +71,7 @@ export function AppointmentCell({
       setPersonName("Varios pacientes");
     }
     else {
-      findPerson(appointment.professional)
+      findPerson(appointment.professional.email)
         .then(data => {
           if (data) {
             setPersonName(`${data.name} ${data.surname}`);
