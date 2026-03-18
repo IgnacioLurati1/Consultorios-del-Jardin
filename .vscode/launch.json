@@ -1,23 +1,25 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
       "name": "start:dev",
       "cwd": "${workspaceFolder}/backend",
       "request": "launch",
-      "runtimeArgs": ["run","start:dev"],
+      "runtimeArgs": ["run", "start:dev"],
       "runtimeExecutable": "npm",
       "skipFiles": ["<node_internals>/"],
-      "type": "node"
+      "type": "node",
+      "serverReadyAction": {
+        "pattern": "Server runnning on http://localhost:([0-9]+)",
+        "uriFormat": "http://localhost:%s/docs",
+        "action": "openExternally"
+      }
     },
     {
       "name": "build",
       "cwd": "${workspaceFolder}/backend",
       "request": "launch",
-      "runtimeArgs": ["run","build"],
+      "runtimeArgs": ["run", "build"],
       "runtimeExecutable": "npm",
       "skipFiles": ["<node_internals>/"],
       "type": "node"
