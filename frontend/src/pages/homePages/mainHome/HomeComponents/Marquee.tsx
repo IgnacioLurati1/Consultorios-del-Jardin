@@ -9,7 +9,7 @@ const images = [
   { src: img1, caption: "Nutrición" },
   { src: img2, caption: "Psicología" },
   { src: img3, caption: "Psicopedagogía" },
-  { src: img4, caption: "particulares" },
+  { src: img4, caption: "Particulares" },
 ];
 
 const repeatedImages = Array(300).fill(images).flat();
