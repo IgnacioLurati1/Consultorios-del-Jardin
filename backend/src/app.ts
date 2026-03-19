@@ -17,13 +17,18 @@ import { startReminderJob } from "./jobs/reminder.job.js";
 import { setupSwagger } from './config/swagger.js';
 
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(express.json());
 app.use(cookieParser());
 
 app.use((req, res, next) => {
   RequestContext.create(orm.em, next);
 });
-setupSwagger(app); // documentacion de endpoints
+
+if (!isProduction) {
+  setupSwagger(app); // documentacion de endpoints
+}
 
 app.use("/api/provinces", verifyToken, provinceRouter);
 app.use("/api/cities", verifyToken, cityRouter);
@@ -41,7 +46,9 @@ app.use((_, res) => {
   return res.status(404).send({ message: "Resource not found" });
 });
 
-await syncSchema(); //Never in production
+if (!isProduction){
+  await syncSchema(); //Never in production
+}
 
 startReminderJob();
 
