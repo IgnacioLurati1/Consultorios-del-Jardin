@@ -19,16 +19,18 @@ import { setupSwagger } from './config/swagger.js';
 
 
 const app = express();
-const isProduction = process.env.NODE_ENV === 'production';
+
 
 app.use(cors({
   // Reemplaza esto con tu URL real de Vercel
   origin: ["dsw-autogestora-de-turnos-production.up.railway.app", "http://localhost:5173"], 
-  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
+app.options('*', cors());
 
+const isProduction = process.env.NODE_ENV === 'production';
 app.use(express.json());
 app.use(cookieParser());
 
