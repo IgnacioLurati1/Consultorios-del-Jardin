@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import "./CrudNav.css";
+import "./crudNav.css";
 import { FaArrowUp } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
