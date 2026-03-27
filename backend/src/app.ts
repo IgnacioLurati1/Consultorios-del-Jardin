@@ -21,9 +21,23 @@ import { setupSwagger } from './config/swagger.js';
 const app = express();
 
 
+const allowedOrigins = [
+  "https://dsw-autogestora-de-turnos.vercel.app", // Tu URL de producción
+  "http://localhost:5173",                      
+  "http://localhost:3000"                        
+];
+
 app.use(cors({
-  origin: true, // Esto acepta CUALQUIER sitio que te llame
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Bloqueado por CORS: Este origen no está permitido"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
 }));
 
 app.options('*', cors());
