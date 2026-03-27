@@ -21,7 +21,7 @@ export function Section() {
           }
         });
       },
-      { threshold: 0.18 }
+      { threshold: 0.05 }
     );
 
     const sections = document.querySelectorAll(".section");
