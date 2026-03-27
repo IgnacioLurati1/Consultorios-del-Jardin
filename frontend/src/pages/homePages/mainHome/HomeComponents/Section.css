@@ -122,6 +122,7 @@
     flex-direction: column;
     text-align: center;
     padding: 40px 0;
+    opacity: 1;
   }
 
   .section.reverse {
@@ -144,5 +145,12 @@
   .section-content button {
     padding: 12px 40px;
     font-size: 1rem;
+  }
+
+  .section:not(.reverse) .section-image,
+  .section:not(.reverse) .section-content,
+  .section.reverse .section-image,
+  .section.reverse .section-content {
+    transform: translateX(0);
   }
 }
