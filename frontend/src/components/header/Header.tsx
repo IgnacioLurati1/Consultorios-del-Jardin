@@ -5,7 +5,7 @@ import {Session} from './session/Session';
 import './Header.css';
 import {useState} from 'react';
 import {LateralMenu} from '../defaultLayout/lateralMenu/LateralMenu';
-import LogoHojas from '../../assets/LogoHojasRecortado.png';
+import LogoHojas from '../../assets/LogoHojasRecortado.PNG';
 
 export function Header(){
 
