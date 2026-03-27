@@ -12,31 +12,23 @@ export function Section() {
   const [decodedToken, setDecodedToken] = useState<string | null>(null);
   const [showAppointmentsSection, setShowAppointmentsSection] =  useState(false);
 
-useEffect(() => {
-  const sections = document.querySelectorAll(".section");
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.18 }
+    );
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-        }
-      });
-    },
-    { threshold: 0.05 }
-  );
+    const sections = document.querySelectorAll(".section");
+    sections.forEach((s) => observer.observe(s));
 
-  sections.forEach((section) => {
-    observer.observe(section);
-
-    const rect = section.getBoundingClientRect();
-    if (rect.top < window.innerHeight) {
-      section.classList.add("visible");
-    }
-  });
-
-  return () => observer.disconnect();
-}, []);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
