@@ -22,12 +22,10 @@ const app = express();
 
 
 app.use(cors({
-  // Reemplaza esto con tu URL real de Vercel
-  origin: ["dsw-autogestora-de-turnos-production.up.railway.app", "http://localhost:5173"], 
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: true, // Esto acepta CUALQUIER sitio que te llame
   credentials: true
 }));
+
 app.options('*', cors());
 
 const isProduction = process.env.NODE_ENV === 'production';
