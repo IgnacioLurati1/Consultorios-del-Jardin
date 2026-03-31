@@ -42,4 +42,6 @@
   font-size: 1.2rem;
   color: #000000;
   line-height: 1.5;
+  display: block;
+  visibility: visible;
 }
