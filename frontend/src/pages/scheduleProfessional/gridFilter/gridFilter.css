@@ -158,6 +158,7 @@
 
 .delete-filters{
   padding: 0.5vw;
+  color: #6C788E;
 }
 
 @media (max-width: 768px) {
