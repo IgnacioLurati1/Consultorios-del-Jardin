@@ -76,7 +76,7 @@ export function Register() {
 
     api
       .post(
-        "api/people",
+        "/people",
         {
           name: formData.nombre,
           surname: formData.apellido,
@@ -100,7 +100,7 @@ export function Register() {
             
             api
               .post(
-                "api/people/login",
+                "/people/login",
                 {
                   email: formData.email,
                   password: formData.contraseña,
