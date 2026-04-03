@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import axios from "axios";
+import api from "../../../axios";
 import { useState } from "react";
 import "../Header.css";
 
@@ -10,15 +10,13 @@ export function LoginRegister() {
 
   const handleLogout = () => {
     logout();
-    axios.post("api/people/logout", {}, { withCredentials: true });
+    api.post("/people/logout", {}, { withCredentials: true });
     setShowButtons(false);
-    setTimeout(() => {
-      window.location.reload();
-      window.scrollTo(0, 0);
-      setSureLogOut(false);}
-    , 2000);
-    
+    window.location.reload();
+    window.scrollTo(0, 0);
+    setSureLogOut(false);
   };
+  
   const [sureLogOut, setSureLogOut] = useState(false);
 
   return (
