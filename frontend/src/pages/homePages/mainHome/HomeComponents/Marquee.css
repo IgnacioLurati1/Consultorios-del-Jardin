@@ -16,7 +16,9 @@
   flex: 0 0 auto;
   margin-right: 50px;
   position: relative;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .marquee-item img {
@@ -29,14 +31,17 @@
 
 .caption {
   position: absolute;
-  top: 31%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
+  color: rgb(255, 255, 255);
+  inset: 0;
   font-size: 30px;
-  font-weight: bold;
-  -webkit-text-stroke: 0.8px black;
-  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: none;
+  -webkit-text-stroke: 0.75px black;
+  text-align: center;
+  padding: 0 10px;
+  line-height: 1.2; 
 }
 
 @keyframes scroll {
@@ -45,5 +50,17 @@
   }
   to {
     transform: translateX(-0.5%);
+  }
+}
+
+@media (max-width: 790px) {
+  .marquee-track {
+    transform: translateZ(0);
+  }
+
+  .caption {
+    transform: translate(-50%, -50%) translateZ(0);
+    top: 50%;
+    left: 50%;
   }
 }

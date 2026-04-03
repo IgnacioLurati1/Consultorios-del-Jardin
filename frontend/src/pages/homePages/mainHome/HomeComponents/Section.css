@@ -98,6 +98,8 @@
   color: #000000;
   margin-bottom: 25px;
   line-height: 1.75;
+  display: block;
+  visibility: visible;
 }
 
 .section-content button {
