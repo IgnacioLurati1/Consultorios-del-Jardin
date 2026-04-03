@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
 import { DataInputPassword } from "../../components/inputs/passwordInput/DataInputPassword";
 import { DataInputSelector } from "../../components/inputs/selectorInput/DataInputSelector";
-import axios from "axios";
+import api from "../../axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ReCaptcha from "../../components/reCaptcha.tsx";
@@ -74,7 +74,7 @@ export function Register() {
       return;
     }
 
-    axios
+    api
       .post(
         "api/people",
         {
@@ -98,7 +98,7 @@ export function Register() {
             className: "feedBack-box success",});
             setShowButton(false);
             
-            axios
+            api
               .post(
                 "api/people/login",
                 {
