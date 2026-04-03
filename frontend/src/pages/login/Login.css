@@ -116,6 +116,8 @@
 .no-account {
     font-size: 1.3rem;
     color: #555;
+    display: block;
+    visibility: visible;
 }
 
 .register-link {
