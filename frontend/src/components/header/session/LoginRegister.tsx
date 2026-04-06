@@ -40,9 +40,9 @@ export function LoginRegister() {
         <div className="logout-content" onClick={(e) => e.stopPropagation()}>
           
           {showButtons
-          ?(<p>¿Está seguro de que desea cerrar sesión?</p>
+          ?(<p className="logout-text">¿Está seguro de que desea cerrar sesión?</p>
           ):(
-            <p>Cerrando sesión...</p>
+            <p className="logout-text">Cerrando sesión...</p>
           )}
           {showButtons
           ?(<div className="logout-buttons">

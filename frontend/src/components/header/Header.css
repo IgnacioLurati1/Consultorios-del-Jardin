@@ -201,5 +201,11 @@
         height: auto;
         padding: 30px 20px;
     }
+    .logout-text{
+        display: flex;        
+        justify-content: center;
+        text-align: center;
+        font-size: 1rem;
+    }
 }
 
