@@ -258,7 +258,7 @@ personRouter.get("/:email", verifyToken, findOne);
  *       500:
  *         description: Error del servidor
  */
-personRouter.post("/", sanitizePersonInput, add);
+personRouter.post("/",authLimiter, sanitizePersonInput, add);
 
 /**
  * @swagger
@@ -334,7 +334,7 @@ personRouter.post("/logout", logOut);
  *       500:
  *         description: Error del servidor
  */
-personRouter.patch("/changePassword", sanitizePersonInput, changePassword);
+personRouter.patch("/changePassword",authLimiter, sanitizePersonInput, changePassword);
 
 /**
  * @swagger
@@ -462,4 +462,4 @@ personRouter.patch("/:email/toggleState", verifyToken, verifyAdmin, sanitizePers
  *       500:
  *         description: Error al enviar el mail
  */
-personRouter.post("/:email/passwordMail", sendPasswordMail);
+personRouter.post("/:email/passwordMail",authLimiter, sendPasswordMail);
