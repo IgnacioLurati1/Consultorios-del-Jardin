@@ -72,6 +72,9 @@ export function UsersAdmin(){
                 />
                 <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre, apellido o email del usuario" />
                 <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
+                    {users.length === 0 ? (
+                <div className= "no-content"> No hay usuarios cargadas </div>
+                ):(
                     <ul className = "crud-list">
                         {filteredUsers.map(user => (
                             <li key={user.email}
@@ -82,7 +85,7 @@ export function UsersAdmin(){
                                 <UserLabel key={user.email} user={user}></UserLabel>
                             </li>
                         ))}
-                    </ul>
+                    </ul>)}
                 </div>
                 <div>
                     <button className="crud-add-button" onClick={()=>{navigate("/AdminHome/RegisterProfAdmin")}}><strong>Registrar profesional</strong><FaPlus /></button>

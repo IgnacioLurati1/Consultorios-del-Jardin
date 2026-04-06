@@ -151,6 +151,9 @@ export function OfficesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de un consultorio" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
+              {offices.length === 0 ? (
+                    <div className= "no-content"> No hay consultorios cargados </div>
+                ):(
                 <ul className = "crud-list">
                     {filteredOffices.map(office => (
                         <li key={office.idOffice}
@@ -163,7 +166,7 @@ export function OfficesAdmin() {
                             <OfficeLabel key={office.idOffice} office={office} active={office.active}></OfficeLabel>
                         </li>
                     ))}
-                </ul>   
+                </ul>)}   
             </div>
             <div>
                 <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyOffice);setModalType("create")}}><strong>Agregar Consultorio</strong><FaPlus /></button>

@@ -95,6 +95,9 @@ export function ProvincesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una provincia" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
+              {provinces.length === 0 ? (
+                    <div className= "no-content"> No hay provincias cargadas </div>
+                ):(
                 <ul className="crud-list">
                     {filteredProvinces.map(prov => (
                     <li key={prov.idProvince} onClick={() => {
@@ -105,7 +108,7 @@ export function ProvincesAdmin() {
                         <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "", prov.active)} active={prov.active} />
                     </li>
                 ))}
-                </ul>
+                </ul>)}
             </div>
           <div><button className="crud-add-button" onClick={() => (setModalVisible(true), setModalAction('create'))}><strong>Agregar Provincia </strong><FaPlus /></button></div>
            {selectedProvince != null && modalAction === "edit" && (

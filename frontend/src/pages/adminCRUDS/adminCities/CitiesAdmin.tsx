@@ -121,6 +121,9 @@ export function CitiesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una localidad" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
+                {provinces.length === 0 ? (
+                <div className= "no-content"> No hay cidudades cargadas </div>
+                ):(
                 <ul className = "crud-list">
                     {filteredCities.map(city => (
                         <li key={city.idCity}
@@ -132,7 +135,7 @@ export function CitiesAdmin() {
                             <CityLabel key={city.idCity} city={city}></CityLabel>
                         </li>
                     ))}
-                </ul>
+                </ul>)}
             </div>
             <div>
                 <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyCity);setModalType("create")}}><strong>Agregar Localidad</strong><FaPlus /></button>
