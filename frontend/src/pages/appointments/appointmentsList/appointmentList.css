@@ -137,7 +137,9 @@
     margin-bottom: 0;
   }
   .create-professional-appointment-container{
+    height: auto;
     width: 10vw;      
+    aspect-ratio: 1 / 1;
     font-size: 2vw;
   }
   p{
