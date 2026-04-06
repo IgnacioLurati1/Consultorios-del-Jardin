@@ -45,10 +45,8 @@ export function AppointmentCreationModal({isOpen, onClose, appointment, professi
         if (appointment){
             onCreate({date: fechaAppointment,initialHour: appointment.initialHour,type: appointment.type,professionalEmail: professional.email,officeId: office.idOffice});
             setShowButton(false);
-            setTimeout(() => {
-                navigate('/');
-                window.scrollTo(0, 0);
-            }, 3000);
+            navigate('/');
+            window.scrollTo(0, 0);
         }
     }
 

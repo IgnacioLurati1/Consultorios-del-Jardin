@@ -114,11 +114,9 @@ export function Register() {
                   localStorage.setItem("token", response.data.token);
 
                   login(response.data.token);
-                  
-                  setTimeout(() => {
-                    navigate("/")
-                    window.scrollTo(0, 0);}
-                  , 3000);
+            
+                  navigate("/")
+                  window.scrollTo(0, 0);
                   
                 }
               })

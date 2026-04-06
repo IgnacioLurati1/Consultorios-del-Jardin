@@ -74,10 +74,9 @@ export function RegisterProf() {
             toast.success("Usuario registrado con éxito", {
             className: "feedBack-box success",});
             setShowButton(false);
-            setTimeout(() => {
-                    navigate("/")
-                    window.scrollTo(0, 0);}
-                  , 3000);
+            navigate("/")
+            window.scrollTo(0, 0);
+
             })
             .catch((err: Error) => {
                 toast.error(err.message || "Error al registrar usuario", {
