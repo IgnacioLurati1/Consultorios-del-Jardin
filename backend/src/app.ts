@@ -16,9 +16,11 @@ import cookieParser from "cookie-parser";
 import { appointmentRouter } from "./appointments/appointments.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
 import { setupSwagger } from './config/swagger.js';
+import { authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
 
 const app = express();
+app.set("trust proxy", 1); //Evita la ip del proxy
 
 
 const allowedOrigins = [
@@ -54,16 +56,18 @@ if (!isProduction) {
   setupSwagger(app); // documentacion de endpoints
 }
 
+app.use("/api", generalLimiter); // Limiter general para todas las rutas
+
 app.use("/api/provinces", verifyToken, provinceRouter);
 app.use("/api/cities", verifyToken, cityRouter);
 app.use("/api/people", personRouter);
 app.use("/api/offices", verifyToken, officeRouter);
 app.use("/api/rooms", verifyToken, roomRouter);
 app.use("/api/schedules", verifyToken, scheduleRouter);
-app.use("/api/tokenStatus", verifyToken, (req: Request, res: Response) => {
+app.use("/api/tokenStatus", authLimiter, verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: "Token válido" });
 });
-app.use("/api/refreshToken", refreshToken);
+app.use("/api/refreshToken",authLimiter, refreshToken);
 app.use("/api/appointments", verifyToken, appointmentRouter);
 
 app.use((_, res) => {

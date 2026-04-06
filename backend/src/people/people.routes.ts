@@ -17,6 +17,7 @@ import {
   findAllPerTypeActive
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
+import { authLimiter } from "../config/rateLimiter.js";
 
 export const personRouter = Router();
 
@@ -294,7 +295,7 @@ personRouter.post("/", sanitizePersonInput, add);
  *       500:
  *         description: Error del servidor
  */
-personRouter.post("/login", sanitizePersonInput, loginWithEmailAndPassword);
+personRouter.post("/login",authLimiter, sanitizePersonInput, loginWithEmailAndPassword);
 
 /**
  * @swagger
