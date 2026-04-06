@@ -16,11 +16,12 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit, act
           <h2 className="crud-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
           <FaTimes className="close-icon" onClick={onClose} />
         </div>
-        <p>ID: {province.idProvince}</p>
-
-        <p>Nombre:  <input type="text" className="input-crud" placeholder={province.nameProvince} value={newName} onChange={e => {
-            setNewName(e.target.value);
-        }}/></p>
+        <div className="crud-input-container">
+          <label>Nombre: </label>
+          <input type="text" className="input-crud" placeholder={province.nameProvince} value={newName} onChange={e => {
+              setNewName(e.target.value);
+          }}/>
+        </div>
 
         <div className="buttons">
           <button className="delete-button" onClick={onDelete}>Eliminar provincia <FaTrash /></button>
@@ -43,10 +44,12 @@ export function ProvinceModal({visible, onClose, province, onDelete, onEdit, act
             <h2 className="crud-modal-title">Crear Nueva Provincia <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
-
-          <p>Nombre:  <input type="text" className="input-crud" placeholder="Nombre de la provincia" value={newName} onChange={e => {
-              setNewName(e.target.value);
-          }}/></p>
+          <div className="crud-input-container">
+            <label>Nombre: </label>
+            <input type="text" className="input-crud" placeholder="Nombre de la provincia" value={newName} onChange={e => {
+                setNewName(e.target.value);
+            }}/>
+          </div>
 
           <div className="buttons">
             <button className="create-button" onClick={() => onCreate(newName)}>Crear provincia</button>

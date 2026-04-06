@@ -27,13 +27,22 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
-          <p>ID: {office.idOffice}</p>
-
-          <p>Descripción: <input type="text" className="input-crud" placeholder={office.description} value={newDescription} onChange={e => setNewDescription(e.target.value)} /></p>
-          <p>Horario de Apertura: <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} /></p>
-          <p>Horario de Cierre: <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} /></p>    
-          <p>Provincia:
-              <select className="input-crud" value={newProvinceId} onChange={handleProvinceChange}>  {}
+          
+          <div className="crud-input-container">
+            <label>Descripción: </label>
+            <input type="text" className="input-crud" placeholder={office.description} value={newDescription} onChange={e => setNewDescription(e.target.value)} />
+          </div>
+          <div className="crud-input-container">
+            <label>Horario de Apertura: </label>
+            <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} />
+          </div>
+          <div className="crud-input-container">
+            <label>Horario de Cierre: </label>
+            <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} />
+          </div>
+          <div className="crud-input-container">
+            <label>Provincia: </label>
+            <select className="input-crud" value={newProvinceId} onChange={handleProvinceChange}>  {}
                 <option value="">Seleccione una provincia</option>  {}
                 {provinces.map(province => (
                   <option key={province.idProvince} value={province.idProvince}>
@@ -41,8 +50,9 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
                   </option>
                 ))}
               </select>
-            </p>
-          <p>Ciudad: 
+          </div>
+          <div className="crud-input-container">
+            <label>Ciudad: </label>
             <select className="input-crud" value={newCityId} onChange={e => setNewCityId(e.target.value)}>
               <option value="">Seleccione una ciudad</option>  {}
               {filteredCities.map(city => (
@@ -51,7 +61,7 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
                 </option>
               ))}
             </select>
-          </p>
+          </div>
           <div className="buttons">
             <button className="delete-button" onClick={() => office && onDelete(office.idOffice)}>Eliminar Consultorio <FaTrash /></button>
             <button className="edit-button" onClick={() => onEdit(office.idOffice, newDescription , newOpeningTime, newClosingTime, newCityId, office.active)}>Modificar</button>
@@ -89,11 +99,20 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
             <h2 className="crud-modal-title">Crear Nuevo Consultorio <FaChevronRight /></h2>
             <FaTimes className="close-icon" onClick={onClose} />
           </div>
-
-          <p>Descripción: <input type="text" className="input-crud" placeholder="Descripción del Consultorio" value={newDescription} onChange={e => setNewDescription(e.target.value)} /></p>
-          <p>Horario de Apertura: <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} /></p>
-          <p>Horario de Cierre: <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} /></p>       
-          <p>Provincia:
+          <div className="crud-input-container">
+            <label>Descripción:</label>
+            <input type="text" className="input-crud" placeholder="Descripción del Consultorio" value={newDescription} onChange={e => setNewDescription(e.target.value)} />
+          </div>
+          <div className="crud-input-container">
+            <label>Horario de Apertura:</label>
+            <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} />
+          </div>
+          <div className="crud-input-container">
+            <label>Horario de Cierre:</label>
+            <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} />
+          </div>
+          <div className="crud-input-container">
+            <label>Provincia:</label>
             <select className="input-crud" value={newProvinceId} onChange={handleProvinceChange}> {}
               <option value="">Seleccione una provincia</option> {}
               {provinces.map(province => (
@@ -102,8 +121,9 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
                 </option>
               ))}
             </select>
-          </p>
-          <p>Ciudad: 
+          </div>
+          <div className="crud-input-container">
+            <label>Ciudad:</label>
             <select className="input-crud" value={newCityId} onChange={e => setNewCityId(e.target.value)}>
               <option value="">Seleccione una ciudad</option> {}
               {filteredCities.map(city => (
@@ -112,7 +132,8 @@ export function OfficeModal({visible, onClose, office, onDelete, onEdit, action,
                 </option>
               ))}
             </select>
-          </p>
+          </div>
+          
           <div className="buttons">
             <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Consultorio</button>
           </div>

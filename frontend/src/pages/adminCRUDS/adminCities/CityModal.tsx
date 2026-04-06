@@ -120,7 +120,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
                         <p>Nombre: {cityData.nameCity}</p>
                         <p>Provincia: {provinceName}    <strong>(Inhabilitada)</strong></p>
                         No es posible modificar la Localidad porque no hay provincias disponibles.
-                        </div>) : 
+                        </div>) :
                         (<div>
                         No es posible crear una Localidad porque no hay provincias disponibles.
                         </div>)}
@@ -137,25 +137,19 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
                     "Detalles de la Localidad":"Crear Localidad"}<FaChevronRight /></h2>
                     <FaTimes className="close-icon" onClick={onClose} />
                     </div>
-
-                    {type === "edit" && city? (
-                    <div>
-                        <p><strong> ID: {city.idCity}</strong></p>
-                    </div>
-                    ) : null}
-                    <div>
-                        <p>Nombre:
+                    <div className="crud-input-container">
+                        <label>Nombre: </label>
                         <input
                             className={`input-crud ${errors.nameCity? "input-error" : "input-valid"}`}
                             type="text"
                             value={cityData.nameCity}
                             onChange={(e) => setCityData({ ...cityData, nameCity: e.target.value })}
-                        /></p>
+                        />
                         <div>
                             {errors.nameCity && <p className="error-text">{errors.nameCity}</p>}
                         </div>
                     </div>
-                    <div>
+                    <div className="crud-input-container">
                         <label>Provincia:</label>
                         <input
                             className={`input-crud ${errors.province? "input-error" : "input-valid"}`}

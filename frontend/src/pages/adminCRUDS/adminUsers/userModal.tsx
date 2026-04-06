@@ -47,7 +47,7 @@ export function UserModal({visible, user, onClose, onToggleState}:UserModalProps
             <div className="crud-modal" onClick={onClose}>
                 <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
                  <div className="titleAndClose">
-                    <h2 className="crud-modal-title">"Detalles del usuario"<FaChevronRight /></h2>
+                    <h2 className="crud-modal-title">Detalles del usuario<FaChevronRight /></h2>
                         <FaTimes className="close-icon" onClick={onClose} />
                         </div>
                 

@@ -134,11 +134,6 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                     </h2>
                     <FaTimes className="close-icon" onClick={onClose}/>
                 </div>
-                <div>
-                    {type === "edit" && room? (   
-                        <p>ID: {room.idRoom}</p>
-                    ) : null}
-                </div>
                 <div className="crud-input-container">
                     <label>Descripción:</label>
                     <input
@@ -148,7 +143,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                         onChange={(e) => 
                             setRoomData({ ...roomData, description: e.target.value })}
                     />
-                    <div className="error-container">
+                    <div>
                         {errors.description &&
                         <div className="error-text">
                                 <FaExclamationTriangle className="error-icon"/>{errors.description}
@@ -245,7 +240,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
                             <option key={office.idOffice} value={office.description}/>
                         ))}
                     </datalist>
-                    <div className="error-container">
+                    <div>
                         {errors.office && 
                             <div className="error-text">
                                 <FaExclamationTriangle className="error-icon"/>{errors.office}

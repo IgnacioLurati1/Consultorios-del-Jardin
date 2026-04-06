@@ -2,15 +2,17 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;  /* ancho total viewport */
-    height: 100vh; /* alto total viewport */
-    background: rgba(0, 0, 0, 0.6); /* negro semitransparente */
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
-    justify-content: center; /* centrado horizontal */
-    align-items: center;     /* centrado vertical */
+    justify-content: center;
+    align-items: center;
     z-index: 1000;
     animation: fadeIn 0.5s ease forwards;
+    padding: 16px;           /* evita que toque los bordes */
+    box-sizing: border-box;
 }
 
 @keyframes fadeIn {
@@ -22,15 +24,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 25px;
 }
 
-.crud-input-container{
+.crud-input-container {
     display: grid;
     grid-template-columns: 120px 1fr;
     gap: 8px;
     align-items: center;
     margin-bottom: 10px;
 }
+
 .crud-input-container label {
     text-align: right;
 }
@@ -48,49 +52,30 @@
     width: 100%;
     color: black;
     box-sizing: border-box;
+    max-height: 90vh;        /* límite de altura */
+    overflow-y: auto;        /* scroll si el contenido es largo */
 }
 
-.create-button {
-    background-color: #3B5576;
-    color: #FEFAE0;
-    padding: 2%;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    font-size: 25px;
-    gap: 15px;
-
-}
-
-
-.delete-button {
-    background-color: #CD6965;
-    color: #FEFAE0;
-    padding: 2%;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    font-size: 25px;
-    gap: 15px;
-}
-
+/* Botones: padding fijo en lugar de porcentaje */
+.create-button,
+.delete-button,
 .edit-button {
-    background-color: #3B5576;
     color: #FEFAE0;
-    padding: 2%;
+    padding: 10px 16px;      /* fijo, predecible en cualquier pantalla */
     border: none;
     border-radius: 5px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    font-size: 25px;
-    gap: 15px;
-
+    justify-content: center;
+    font-size: 18px;
+    gap: 8px;
+    white-space: nowrap;
 }
+
+.create-button { background-color: #3B5576; }
+.delete-button { background-color: #CD6965; }
+.edit-button   { background-color: #3B5576; }
 
 .crud-modal-title {
     margin: 0;
@@ -103,41 +88,29 @@
 
 .buttons {
     display: flex;
-    gap: 3%;
+    gap: 12px;
     justify-content: space-between;
     margin-top: 40px;
+    flex-wrap: wrap;         /* si no entran, bajan a la siguiente línea */
 }
 
-.user-button{
+.user-button {
     justify-content: center;
 }
 
 .input-crud {
+    display: block;
     border: 1px solid black;
     border-radius: 5px;
-    padding: 2%;
+    padding: 8px 10px;       /* fijo en lugar de 2% */
     margin-left: 1%;
-    font-size: 20px;
+    font-size: 18px;
     box-sizing: border-box;
+    width: 100%;
 }
 
-.input-error{
-    border: 1px solid rgb(197, 69, 69);
-}
-
-.input-valid{
-    border: 1px solid rgb(0, 0, 0)
-}
-
-.error-text{
-    color: red;
-    font-size: 0.8em;
-}
-
-.error-container {
-    grid-column: 2 / 3; /* lo coloca debajo del input */
-    margin-top: 4px;
-}
+.input-error  { border: 1px solid rgb(197, 69, 69); }
+.input-valid  { border: 1px solid rgb(0, 0, 0); }
 
 .error-text {
     color: red;
@@ -145,7 +118,51 @@
     margin: 0;
 }
 
-.error-icon{
+.error-icon {
     color: red;
     margin-right: 5px;
+}
+
+/* ── Mobile ── */
+@media screen and (max-width: 768px) {
+    .crud-modal-content {
+        font-size: 16px;
+        padding: 16px;
+    }
+
+    .crud-modal-title {
+        font-size: 5vw;
+        gap: 10px;
+    }
+
+    .titleAndClose {
+        margin-bottom: 16px;
+    }
+
+    /* El grid label + input colapsa a una sola columna */
+    .crud-input-container {
+        grid-template-columns: 1fr;
+    }
+
+    .crud-input-container label {
+        text-align: left;
+    }
+
+    .error-container {
+        grid-column: 1 / 2;
+    }
+
+    /* Botones ocupan todo el ancho disponible */
+    .buttons {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 24px;
+    }
+
+    .create-button,
+    .delete-button,
+    .edit-button {
+        width: 100%;
+        font-size: 16px;
+    }
 }
