@@ -43,6 +43,14 @@ export function findProfessionalsOfficeSpecialty(officeId:string,speciality?:str
     });
 }
 
+export function findOne(email:string): Promise<Person>{
+    return api.get(`/people/${email}`)
+    .then(response => response.data.data)
+    .catch(()=> {
+        return [];
+    });
+}
+
 export function toggleState(email:string){
     return api.patch(`/people/${email}/toggleState`)
     .then(res => res.data)

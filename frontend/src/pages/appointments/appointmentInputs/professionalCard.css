@@ -15,7 +15,7 @@
     width: 70vw;
 }
 
-.professional-box .hidden{
+.professional-box.hidden {   /* ← punto en vez de espacio */
     height: 0;
     opacity: 0;
 }
@@ -96,11 +96,38 @@
 @media (max-width: 768px) {
     .professional-box {
         flex-direction: column;
-        gap: 20px;
         align-items: flex-start;
+        gap: 16px;
+        width: 90vw;        /* ← más ancho en mobile */
+        max-height: none;   /* ← elimina el corte de altura */
+        padding: 20px 16px;
+    }
+
+    .professional-info {
+        width: 100%;
+    }
+
+    .professional-name {
+        font-size: 18px;
+    }
+
+    .professional-specialty {
+        font-size: 15px;
+    }
+
+    .avatar-icon {
+        width: 50px;
+        height: 50px;
+    }
+
+    .professional-avatar {
+        width: 50px;
+        height: 50px;
     }
 
     .action-button {
         width: 100%;
+        font-size: 18px;
+        padding: 14px 20px;
     }
 }
