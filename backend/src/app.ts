@@ -1,3 +1,5 @@
+process.env.TZ = "America/Argentina/Buenos_Aires";
+
 import "reflect-metadata";
 import express from "express";
 import cors from "cors";
