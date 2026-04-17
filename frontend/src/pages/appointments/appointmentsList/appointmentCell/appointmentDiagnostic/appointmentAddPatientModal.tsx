@@ -13,9 +13,10 @@ interface AppointmentAddPatientModalProps{
     numAppo: string
     onAdd: (numAppo: string, patientEmail: string) => void;
     diagnostics: Diagnostic[]
+    onDiagnosticUpdate: () => void;
 }
 
-export function AppointmentAddPatientModal({isOpen, onClose, numAppo,onAdd, diagnostics}:AppointmentAddPatientModalProps){
+export function AppointmentAddPatientModal({isOpen, onClose, numAppo,onAdd, diagnostics, onDiagnosticUpdate}:AppointmentAddPatientModalProps){
     
     const [patients, setPatients] = useState<Person[] | []>([]);
     const [filteredPatients, setFilteredPatients] = useState<Person[]>([]);
@@ -84,6 +85,11 @@ export function AppointmentAddPatientModal({isOpen, onClose, numAppo,onAdd, diag
         }
         if(patient){
             onAdd(numAppo, patient.email)
+            onClose();
+            setPatient(undefined);
+            setPatientInputValue("");
+            setPatientSelector(false);
+            onDiagnosticUpdate();
             
         }
     }

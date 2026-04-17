@@ -53,8 +53,8 @@
     gap: 1vw;
     width: 100%;
     align-items: center;
-    justify-content: center;
     height: 40vh;
+    overflow-y: auto;
 }
 
 .appointment-diagnostic-textarea {

@@ -30,6 +30,7 @@ export function AppointmentInput() {
 
     const [showAppointments, setShowAppointments] = useState(false);
     const [errors, setErrors] = useState<{ office?: string; specialtyOrProfessional?: string }>({});
+    const [isLoadingProfessionals, setIsLoadingProfessionals] = useState(false);
 
     // --- Validation ---
     function validateInputs() {
@@ -74,7 +75,7 @@ export function AppointmentInput() {
     // --- Find professionals to show in results ---
     async function findFilteredProfessionals() {
         if (!office) return;
-
+        setIsLoadingProfessionals(true);
         try {
             if (professional) {
                 // 1) Traer lista de profesionales del consultorio
@@ -100,7 +101,10 @@ export function AppointmentInput() {
             }
         } catch (err) {
             toast.error("Error cargando profesionales:", err as any);
+        } finally {
+        setIsLoadingProfessionals(false);
         }
+        
     }
 
     const handleSearch = () => {
@@ -349,9 +353,14 @@ export function AppointmentInput() {
 
             <div className={showAppointments ? 'appointment-input-results-container' : 'appointment-input-results-container hidden'}>
                 <div className="appointment-input-professionals-results-content">
-                    {professionalsToSearch.length === 0 ? (
-                        <div>
-                            <h2 className="appointment-input-no-results-title">No se encontraron resultados</h2>
+                    {isLoadingProfessionals ? (
+                        <div className="appointments-status-state">
+                            <span>Cargando profesionales...</span>
+                        </div>
+                    ) : professionalsToSearch.length === 0 ? (
+                        <div className="appointments-empty-state">
+                            <span>No se encontraron resultados</span>
+                            <small>Probá cambiando los filtros de búsqueda.</small>
                         </div>
                     ) : (
                         showAppointments && professionalsToSearch.map((prof) => (
