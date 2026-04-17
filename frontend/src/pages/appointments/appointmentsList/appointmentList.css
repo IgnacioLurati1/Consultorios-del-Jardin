@@ -111,6 +111,36 @@
   transform: rotate(90deg) scale(1.2);
 }
 
+.appointments-status-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #888;
+  font-size: 25px;
+}
+
+.appointments-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 2.5rem 2rem;
+  margin: 1rem 0;
+}
+
+.appointments-empty-state span {
+  font-size: 25px;
+  font-weight: 500;
+  color: #555;
+}
+
+.appointments-empty-state small {
+  font-size: 18px;
+  color: #aaa;
+}
+
 @media (max-width: 768px) {
   .appointment-person-container  {
     position: relative;

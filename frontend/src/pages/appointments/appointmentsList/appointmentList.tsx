@@ -309,9 +309,14 @@ useEffect(() => {
             </div>
             <div className="appointment-subcontainer">
               {isLoading ? (
-                <p>Cargando...</p> 
+                <div className="appointments-status-state">
+                  <span>Cargando turnos...</span>
+                </div>
               ) : filteredAppointments.length === 0 ? (
-                <p>No hay turnos para mostrar</p>
+                <div className="appointments-empty-state">
+                  <span>Sin turnos para mostrar</span>
+                  <small>No hay turnos que coincidan con los filtros aplicados.</small>
+                </div>
               ) : (
                 <AppointmentsGrid
                   appointments={filteredAppointments}

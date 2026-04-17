@@ -47,6 +47,7 @@ export function AppointmentDetails() {
         getAvailableAppointmentsForPatient(professional.email,office.idOffice)
         .then(data => {
             setPossibleAppointments(data);
+            console.log(data);
         })
         .catch(err => {
             toast.error(`Error: ${err.message}`);
