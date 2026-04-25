@@ -5,8 +5,12 @@ dotenv.config();
 
 export default class MailService {
   async sendMail(msg: MailDataRequired) {
+    try {
     sgMail.setApiKey(process.env.SENDGRID_KEY as string);
     await sgMail.send(msg);
+    } catch (error) {
+      console.error("--------------------------- Error al enviar email --------------------------- \n", error); // para depuración desde consola de railway en caso de fallos de mails masivos por parte de la api de sendgrid
+    }
   }
 
   async createMessage(to: string, subject: string, htmlContent: string): Promise<MailDataRequired> {
