@@ -23,7 +23,7 @@ export const personRouter = Router();
 
 /**
  * @swagger
- * /people:
+ * /api/people:
  *   get:
  *     summary: Obtener todas las personas
  *     tags: [People]
@@ -53,7 +53,7 @@ personRouter.get("/", verifyToken, verifyAdmin, findAll);
 
 /**
  * @swagger
- * /people/NoAdmin:
+ * /api/people/NoAdmin:
  *   get:
  *     summary: Obtener todas las personas que no son admin
  *     tags: [People]
@@ -83,7 +83,7 @@ personRouter.get("/NoAdmin", verifyToken, verifyAdmin, findAllNoAdmin);
 
 /**
  * @swagger
- * /people/type/{peopleType}:
+ * /api/people/type/{peopleType}:
  *   get:
  *     summary: Obtener personas por tipo
  *     tags: [People]
@@ -120,7 +120,7 @@ personRouter.get("/type/:peopleType", verifyToken, verifyAdmin, findAllPerType);
 
 /**
  * @swagger
- * /people/type/active/{peopleType}:
+ * /api/people/type/active/{peopleType}:
  *   get:
  *     summary: Obtener personas activas por tipo
  *     tags: [People]
@@ -155,7 +155,7 @@ personRouter.get("/type/active/:peopleType", verifyToken, findAllPerTypeActive);
 
 /**
  * @swagger
- * /people/professionals/office/{officeId}/{speciality}:
+ * /api/people/professionals/office/{officeId}/{speciality}:
  *   get:
  *     summary: Obtener profesionales por consultorio y especialidad
  *     tags: [People]
@@ -196,7 +196,7 @@ personRouter.get("/professionals/office/:officeId/:speciality?", verifyToken, fi
 
 /**
  * @swagger
- * /people/{email}:
+ * /api/people/{email}:
  *   get:
  *     summary: Obtener persona por email
  *     tags: [People]
@@ -229,7 +229,7 @@ personRouter.get("/:email", verifyToken, findOne);
 
 /**
  * @swagger
- * /people:
+ * /api/people:
  *   post:
  *     summary: Registrar nueva persona
  *     tags: [People]
@@ -258,11 +258,11 @@ personRouter.get("/:email", verifyToken, findOne);
  *       500:
  *         description: Error del servidor
  */
-personRouter.post("/",authLimiter, sanitizePersonInput, add);
+personRouter.post("/api/people",authLimiter, sanitizePersonInput, add);
 
 /**
  * @swagger
- * /people/login:
+ * /api/people/login:
  *   post:
  *     summary: Login con email y contraseña
  *     tags: [Auth]
@@ -299,7 +299,7 @@ personRouter.post("/login",authLimiter, sanitizePersonInput, loginWithEmailAndPa
 
 /**
  * @swagger
- * /people/logout:
+ * /api/people/logout:
  *   post:
  *     summary: Cerrar sesión (limpia el refreshToken cookie)
  *     tags: [Auth]
@@ -313,7 +313,7 @@ personRouter.post("/logout", logOut);
 
 /**
  * @swagger
- * /people/changePassword:
+ * /api/people/changePassword:
  *   patch:
  *     summary: Cambiar contraseña
  *     tags: [Auth]
@@ -338,7 +338,7 @@ personRouter.patch("/changePassword",authLimiter, sanitizePersonInput, changePas
 
 /**
  * @swagger
- * /people/{email}:
+ * /api/people/{email}:
  *   put:
  *     summary: Actualizar persona
  *     tags: [People]
@@ -394,7 +394,7 @@ personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
 
 /**
  * @swagger
- * /people/{email}:
+ * /api/people/{email}:
  *   delete:
  *     summary: Eliminar persona
  *     tags: [People]
@@ -420,7 +420,7 @@ personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, re
 
 /**
  * @swagger
- * /people/{email}/toggleState:
+ * /api/people/{email}/toggleState:
  *   patch:
  *     summary: Cambiar estado activo/inactivo de una persona
  *     tags: [People]
@@ -446,7 +446,7 @@ personRouter.patch("/:email/toggleState", verifyToken, verifyAdmin, sanitizePers
 
 /**
  * @swagger
- * /people/{email}/passwordMail:
+ * /api/people/{email}/passwordMail:
  *   post:
  *     summary: Enviar mail para recuperación de contraseña
  *     tags: [Auth]
