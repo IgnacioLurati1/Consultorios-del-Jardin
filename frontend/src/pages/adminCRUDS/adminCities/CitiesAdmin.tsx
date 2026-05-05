@@ -121,7 +121,7 @@ export function CitiesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una localidad" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-                {provinces.length === 0 ? (
+                {cities.length === 0 && !loading ? (
                 <div className= "no-content"> No hay cidudades cargadas </div>
                 ):(
                 <ul className = "crud-list">

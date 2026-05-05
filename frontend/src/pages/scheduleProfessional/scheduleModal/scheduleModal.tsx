@@ -135,6 +135,7 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                         <div className="button-container">
                             <button className={`delete-button ${isProfessional ? "isProf" : ""}`} onClick={()=> handleDelete(schedule.person.email, schedule.day, schedule.initialHour)}>Eliminar</button> 
                         </div>
+                        <div>Sala: {schedule.room.description}</div>
                     </div>
                 </div>
             </div>

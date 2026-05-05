@@ -152,7 +152,7 @@ export function RoomsAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una sala" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-                {rooms.length === 0 ? (
+                {rooms.length === 0 && !loading ? (
                     <div className= "no-content"> No hay salas cargadas </div>
                 ):(
                 <ul className = "crud-list">

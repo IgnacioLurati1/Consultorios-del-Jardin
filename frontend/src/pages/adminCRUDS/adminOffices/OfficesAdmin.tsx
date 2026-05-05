@@ -151,7 +151,7 @@ export function OfficesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de un consultorio" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-              {offices.length === 0 ? (
+              {offices.length === 0 && !loading ? (
                     <div className= "no-content"> No hay consultorios cargados </div>
                 ):(
                 <ul className = "crud-list">

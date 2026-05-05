@@ -72,7 +72,7 @@ export function UsersAdmin(){
                 />
                 <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre, apellido o email del usuario" />
                 <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-                    {users.length === 0 ? (
+                    {users.length === 0 && !loading ? (
                 <div className= "no-content"> No hay usuarios cargadas </div>
                 ):(
                     <ul className = "crud-list">

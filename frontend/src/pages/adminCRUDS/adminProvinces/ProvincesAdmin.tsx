@@ -95,7 +95,7 @@ export function ProvincesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una provincia" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-              {provinces.length === 0 ? (
+              {provinces.length === 0 && !loading ? (
                     <div className= "no-content"> No hay provincias cargadas </div>
                 ):(
                 <ul className="crud-list">
@@ -105,7 +105,7 @@ export function ProvincesAdmin() {
                       setModalAction('edit');
                       setSelectedProvince(prov);
                     }}>
-                        <ProvinceLabel name={prov.nameProvince} id={prov.idProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "", prov.active)} active={prov.active} />
+                        <ProvinceLabel name={prov.nameProvince} onDelete={() => deleteProvince(prov.idProvince)} onEdit={() => editProvince(prov.idProvince, "", prov.active)} active={prov.active} />
                     </li>
                 ))}
                 </ul>)}
