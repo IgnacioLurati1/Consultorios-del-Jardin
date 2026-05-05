@@ -57,6 +57,7 @@ export function OfficesAdmin() {
                     return weight(a) - weight(b);
                 })
                 );
+            setLoading(false); 
               })
         .catch(err => {
             toast.error(`Error al cargar consultorios: ${err.message}`);
@@ -89,16 +90,15 @@ export function OfficesAdmin() {
     findAllActiveCities()
       .then((data) => setCities(data))
       .catch((err) => toast.error(`Error al cargar las ciudades: ${err.message}`))
-      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     findAllActiveProvinces()
     .then(data => {
       setProvinces(data);
-      setLoading(false); })
+       })
       .catch(err => toast.error(`Error al cargar las provincias: ${err.message}`))
-      setLoading(false);
+      
   }, []);
 
   async function addOffice(description: string, openingTime: string, closingTime:string, city:string) {
@@ -151,9 +151,9 @@ export function OfficesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de un consultorio" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-              {offices.length === 0 && !loading ? (
+              {(!loading && offices.length === 0) ? (
                     <div className= "no-content"> No hay consultorios cargados </div>
-                ):(
+                ): !loading && (
                 <ul className = "crud-list">
                     {filteredOffices.map(office => (
                         <li key={office.idOffice}

@@ -74,7 +74,7 @@ export function UsersAdmin(){
                 <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                     {users.length === 0 && !loading ? (
                 <div className= "no-content"> No hay usuarios cargadas </div>
-                ):(
+                ): !loading && (
                     <ul className = "crud-list">
                         {filteredUsers.map(user => (
                             <li key={user.email}

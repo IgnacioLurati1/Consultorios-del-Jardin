@@ -51,7 +51,8 @@ export function RoomsAdmin() {
         findAllActiveOffices()
         .then(data => {
             setOffices(data);
-            setLoading(false); })
+            setLoading(false); 
+        })
         .catch(err => {
             setLoading(false);
             toast.error(`Error cargando consultorios: ${err.message}`);    
@@ -62,9 +63,8 @@ export function RoomsAdmin() {
         findAllActiveCities()
         .then(data => {
             setCities(data);
-            setLoading(false); })
+        })
         .catch(err => {
-            setLoading(false);
             toast.error(`Error cargando ciudades: ${err.message}` )});
     }, []);
 
@@ -84,11 +84,9 @@ export function RoomsAdmin() {
                     return weight(a) - weight(b);
                 })
                 );
-            setLoading(false);
         })
         .catch(err => {   
             toast.error(`Error cargando salas: ${err.message}`)});
-            setLoading(false);
     }, []);
 
     useEffect(() => {
@@ -154,7 +152,7 @@ export function RoomsAdmin() {
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 {rooms.length === 0 && !loading ? (
                     <div className= "no-content"> No hay salas cargadas </div>
-                ):(
+                ): !loading && (
                 <ul className = "crud-list">
                     {filteredRooms.map(room => (
                         <li key={room.idRoom}

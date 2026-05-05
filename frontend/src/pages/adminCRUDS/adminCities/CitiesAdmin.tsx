@@ -121,11 +121,11 @@ export function CitiesAdmin() {
             />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una localidad" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
-                {cities.length === 0 && !loading ? (
-                <div className= "no-content"> No hay cidudades cargadas </div>
-                ):(
-                <ul className = "crud-list">
-                    {filteredCities.map(city => (
+                {!loading && cities.length === 0 ? (
+                    <div className="no-content"> No hay ciudades cargadas </div>
+                ) : !loading && (
+                    <ul className="crud-list">
+                        {filteredCities.map(city => (
                         <li key={city.idCity}
                         onClick={()=>{
                             setEditData(city);
