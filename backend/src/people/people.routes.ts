@@ -258,7 +258,7 @@ personRouter.get("/:email", verifyToken, findOne);
  *       500:
  *         description: Error del servidor
  */
-personRouter.post("/api/people",authLimiter, sanitizePersonInput, add);
+personRouter.post("/people",authLimiter, sanitizePersonInput, add);
 
 /**
  * @swagger
