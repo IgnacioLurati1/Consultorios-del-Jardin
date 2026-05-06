@@ -132,7 +132,6 @@ export function ScheduleModal({isOpen, onClose, schedule, cellKey, daysSpanish, 
                         <div>Sala: {schedule.room.description}</div>
                         <div>Tipo de turno: {schedule.allowedType.charAt(0).toUpperCase() + schedule.allowedType.slice(1)}</div>
                         <div>Duracion Permitida: {schedule.duration} min</div>
-                        <div>Sala: {schedule.room.description}</div>
                         <div className="button-container">
                             <button className={`delete-button ${isProfessional ? "isProf" : ""}`} onClick={()=> handleDelete(schedule.person.email, schedule.day, schedule.initialHour)}>Eliminar</button> 
                         </div>
