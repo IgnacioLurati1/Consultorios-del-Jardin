@@ -51,6 +51,7 @@ html {
     border-radius: 20px;
     padding: 30px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: visible;
 }
 
 .appointment-input-form-grid {
@@ -317,8 +318,7 @@ html {
 }
 
 .appointment-input-form-field {
-    overflow: hidden; /* contiene el border-bottom */
-    min-width: 0;     /* fix para grid items */
+    overflow: visible;    
 }
 }
 
