@@ -41,12 +41,18 @@ export function AppointmentCreationModal({isOpen, onClose, appointment, professi
         diaFormateado = (auxDate.toLocaleDateString("es-ES", { weekday: "long" })).charAt(0).toUpperCase() + (auxDate.toLocaleDateString("es-ES", { weekday: "long" })).slice(1)
     }
 
-    function handleSubmit(){
+    async function handleSubmit(){
         if (appointment){
-            onCreate({date: fechaAppointment,initialHour: appointment.initialHour,type: appointment.type,professionalEmail: professional.email,officeId: office.idOffice});
             setShowButton(false);
-            navigate('/');
-            window.scrollTo(0, 0);
+            try {
+                await onCreate({date: fechaAppointment,initialHour: appointment.initialHour,type: appointment.type,professionalEmail: professional.email,officeId: office.idOffice});
+                setTimeout(() => {
+                    navigate('/');
+                    window.scrollTo(0, 0);
+                }, 5000);
+            } catch {
+                setShowButton(true);
+            }
         }
     }
 

@@ -43,8 +43,8 @@ export function AppointmentAddPatientModal({isOpen, onClose, numAppo,onAdd, diag
             setPatients(notAddedPatients);
             setFilteredPatients(notAddedPatients);
         })
-        .catch(err => {
-            toast.error("Error cargando salas:", err);
+        .catch((err: any) => {
+            toast.error(`Error cargando pacientes: ${err.message}`);
         });
     }, [isOpen]);
 

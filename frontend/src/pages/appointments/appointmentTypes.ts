@@ -28,6 +28,6 @@ export interface appointmentCreationModalProps {
     appointment?: partialAppointment;
     professional: Person;
     office: Office;
-    onCreate: ((newAppointment:{date: string,initialHour: string,type: "simple" | "taller",professionalEmail: string,officeId: string}) => void);
+    onCreate: ((newAppointment:{date: string,initialHour: string,type: "simple" | "taller",professionalEmail: string,officeId: string}) => Promise<void>);
 
 }

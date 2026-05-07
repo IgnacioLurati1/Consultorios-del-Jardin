@@ -58,7 +58,7 @@ export function ScheduleProfessional(){
         setProfessionalsList(data);
     })
     .catch(err => {
-        toast.error("Error cargando profesionales:", err);
+        toast.error(`Error cargando profesionales: ${err.message}`);
     });
     }
   }, []);
@@ -82,17 +82,17 @@ export function ScheduleProfessional(){
           setRooms(data);
       })
       .catch(err => {
-          toast.error("Error cargando salas:", err);
+          toast.error(`Error cargando salas: ${err.message}`);
       });
   }, []);
-  
+
   useEffect(() => {
       findAllActiveOffices()
       .then(data => {
           setOffices(data);
       })
       .catch(err => {
-          toast.error("Error cargando salas:", err);
+          toast.error(`Error cargando consultorios: ${err.message}`);
       });
   }, []);
 
@@ -102,7 +102,7 @@ export function ScheduleProfessional(){
           setCities(data);
       })
       .catch(err => {
-          toast.error("Error cargando salas:", err);
+          toast.error(`Error cargando ciudades: ${err.message}`);
       });
   }, []);
 
@@ -155,7 +155,7 @@ export function ScheduleProfessional(){
         <div className="schedule-professional-container">
           <div className="schedule-subcontainer">
             <div className="upper-container">
-                <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
+                <NavZone title={`Horarios de ${professional.surname}, ${professional.name}`}/>
                 <ToastContainer className = {`toast-container`} draggable={false}/>
                 <GridFilter setProfessional={setProfessional} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>
@@ -183,7 +183,7 @@ export function ScheduleProfessional(){
         <div className="schedule-professional-container">
           <div className="schedule-subcontainer">
             <div className="upper-container">
-                <NavZone title={`Horarios de ${professional.name}, ${professional.surname}`}/>
+                <NavZone title={`Horarios de , ${professional.surname}`}/>
                 <ToastContainer className = {`toast-container`} draggable={false}/>
                 <GridFilter setProfessional={setProfessional} professionals={professionalsList} schedules={schedules} offices={offices} setOfficeToFilter={setOfficeToFilter} setRoomToFilter={setRoomToFilter}/>
             </div>

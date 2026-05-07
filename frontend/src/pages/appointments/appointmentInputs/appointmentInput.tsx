@@ -68,7 +68,7 @@ export function AppointmentInput() {
                 setFilteredProfessionals(data);
             })
             .catch(err => {
-                toast.error("Error cargando profesionales:", err);
+                toast.error(`Error cargando profesionales: ${err.message}`);
             });
     }, []);
 

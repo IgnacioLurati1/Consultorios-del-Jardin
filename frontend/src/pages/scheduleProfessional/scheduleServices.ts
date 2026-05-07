@@ -6,9 +6,10 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
 
     return api.get(`/schedules/by-email/${professionalEmail}`)
     .then(response => response.data.data)
-    .catch(() => {
-        return [];
-});
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
 }
 
 export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, room:String, personEmail:string, allowedType: string, duration: number}): Promise<Schedule | undefined>{

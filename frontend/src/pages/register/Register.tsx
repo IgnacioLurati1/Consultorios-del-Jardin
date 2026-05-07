@@ -130,7 +130,8 @@ export function Register() {
       })
       .catch((error) => {
         console.error("Error:", error);
-        toast.error("Error al registrar usuario", {
+        const backendMsg = error.response?.data?.message || error.message || "Error al registrar usuario";
+        toast.error(backendMsg, {
           className: "feedBack-box error",
         });
       });

@@ -8,7 +8,7 @@ export function findPerson(email: string): Promise<Person|undefined>{
 
     return api.get(`/people/${email}`)
     .then(response => response.data.data)
-    .catch(err => {throw new Error(err?.message)})
+    .catch(err => {throw new Error(err.response?.data?.message || err.message)})
 }
 
 export function getDecodedToken() {

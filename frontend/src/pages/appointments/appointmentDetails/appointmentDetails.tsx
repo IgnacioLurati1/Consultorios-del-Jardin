@@ -62,7 +62,8 @@ export function AppointmentDetails() {
                 toast.success(`Turno solicitado con éxito`);
                 }
         }catch (error:any){
-        toast.error(`Error al solicitar el turno: ${error.message}`);
+            toast.error(`Error al solicitar el turno: ${error.message}`);
+            throw error;
         }
     }
     
