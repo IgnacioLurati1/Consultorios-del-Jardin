@@ -18,6 +18,19 @@ export class PeopleService {
   constructor() {
     this.mailService = new MailService();
   }
+
+  private validateDocNumber(docNumber: any): boolean {
+    return !docNumber || /^\d+$/.test(String(docNumber));
+  }
+
+  private validatePhoneNumber(phoneNumber: any): boolean {
+    return !phoneNumber || /^\d+$/.test(String(phoneNumber));
+  }
+
+  private validateEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+ 
   async findAllPeople(): Promise<Person[]> {
     return await em.find(Person, {});
   }
@@ -60,6 +73,14 @@ export class PeopleService {
   }
 
   async createPerson(data: RequiredEntityData<Person>) {
+
+    if (!this.validateDocNumber(data.docNumber))
+      throw new Error("El número de documento debe contener solo dígitos");
+    if (!this.validatePhoneNumber(data.phoneNumber))
+      throw new Error("El número de teléfono debe contener solo dígitos");
+    if (data.email && !this.validateEmail(data.email))
+      throw new Error("El email no tiene un formato válido");
+
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const person = em.create(Person, { ...data, password: hashedPassword });
     await em.flush();
