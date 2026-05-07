@@ -69,8 +69,9 @@ Promise<Array<{ numAppointment: Number; date: Date; initialHour: string; finalHo
         office: newAppointment.officeId,
     })
     .then(response => response.data)
-    .catch(() => {
-        return null;
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
     });
 }
 export function getPatienMedicalHistory(emailPatient: string): Promise <DiagnosticPopulatedAppointment[]>{

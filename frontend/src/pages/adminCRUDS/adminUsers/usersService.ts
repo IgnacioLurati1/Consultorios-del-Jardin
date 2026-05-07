@@ -22,16 +22,18 @@ export function findAllProfessionals(): Promise<Person[]>{
 export function findAllActiveProfessionals(): Promise<Person[]>{
     return api.get('/people/type/active/professional')
     .then(response => response.data.data)
-    .catch(()=> {
-        return [];
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
     });
 }
 
 export function findAllActiveClients(): Promise<Person[]>{
     return api.get('/people/type/active/client')
     .then(response => response.data.data)
-    .catch(()=> {
-        return [];
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
     });
 }
 
