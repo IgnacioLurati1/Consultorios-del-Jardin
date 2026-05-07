@@ -15,7 +15,10 @@ import Groq from "groq-sdk";
 
 const em = orm.em;
 
-type SimpleMessage = { role: "user" | "assistant"; content: string };
+type SimpleMessage =
+  | { role: "user" | "assistant"; content: string }
+  | { role: "assistant"; content: string | null; tool_calls: any[] }
+  | { role: "tool"; tool_call_id: string; content: string };
 interface SecretaryResponse {
   content: string;
   chatHistory: SimpleMessage[];
@@ -639,11 +642,13 @@ export class AppointmentService {
 
       if (choice.finish_reason !== "tool_calls" || !choice.message.tool_calls) {
         const content = choice.message.content || "Lo siento, no pude generar una respuesta en este momento.";
-        const chatHistory = messages
-          .filter((m): m is { role: "user" | "assistant"; content: string } =>
-            (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.length > 0
-          )
-          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+        const chatHistory: SimpleMessage[] = messages
+          .filter((m) => m.role !== "system")
+          .map((m) => {
+            if (m.role === "tool") return { role: "tool" as const, tool_call_id: (m as any).tool_call_id, content: m.content as string };
+            if (m.role === "assistant" && (m as any).tool_calls) return { role: "assistant" as const, content: m.content ?? null, tool_calls: (m as any).tool_calls };
+            return { role: m.role as "user" | "assistant", content: (m.content as string) ?? "" };
+          });
         return { content, chatHistory };
       }
 
