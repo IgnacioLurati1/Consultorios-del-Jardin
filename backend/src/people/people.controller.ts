@@ -108,7 +108,7 @@ async function add(req: Request, res: Response) {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none",
     });
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
