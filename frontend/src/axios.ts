@@ -24,9 +24,10 @@ api.interceptors.response.use(
       originalRequest._retry = true; // marca este request como retry
 
       try {
-        const { data } = await axios.get("/api/refreshToken", {
-          withCredentials: true,
-        });
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/refreshToken`, 
+          { withCredentials: true }
+        );
 
         localStorage.setItem("token", data.token);
         // Reintenta **solo una vez**
@@ -34,7 +35,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         try {
-          await axios.post("/api/logout", {}, { withCredentials: true });
+          await axios.post(`${import.meta.env.VITE_API_URL}/api/logout`, {}, { withCredentials: true });
         } catch (logoutError) {
           console.error("Error cerrando sesión:", logoutError);
         } finally {
