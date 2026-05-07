@@ -175,8 +175,8 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
     });
 
     res.status(200).json({ message: "Login exitoso", token });
