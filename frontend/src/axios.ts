@@ -25,7 +25,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/refreshToken`, 
+          `${import.meta.env.VITE_API_URL}/refreshToken`, 
           { withCredentials: true }
         );
 
@@ -35,7 +35,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         try {
-          await axios.post(`${import.meta.env.VITE_API_URL}/api/logout`, {}, { withCredentials: true });
+          await axios.post(`${import.meta.env.VITE_API_URL}/logout`, {}, { withCredentials: true });
         } catch (logoutError) {
           console.error("Error cerrando sesión:", logoutError);
         } finally {
