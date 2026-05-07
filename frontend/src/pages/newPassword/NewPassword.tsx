@@ -13,7 +13,7 @@ export function NewPassword() {
 
   const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
 
-  const { search } = useLocation(); // ✅ hook en el nivel superior
+  const { search } = useLocation();
 
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -28,11 +28,11 @@ export function NewPassword() {
     const token = localStorage.getItem("tokenTemp");
 
     try {
-      const response = await fetch("api/people/changePassword", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/people/changePassword`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // 🔥 token en header
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           password: newPassword,
