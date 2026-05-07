@@ -28,7 +28,7 @@ export function NewPassword() {
     const token = localStorage.getItem("tokenTemp");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/people/changePassword`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/people/changePassword`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
