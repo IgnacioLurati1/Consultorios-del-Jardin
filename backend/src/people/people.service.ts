@@ -23,8 +23,12 @@ export class PeopleService {
     return !docNumber || /^\d+$/.test(String(docNumber));
   }
 
+  private normalizePhoneNumber(phoneNumber: any): string {
+    return String(phoneNumber).replace(/\D/g, "");
+  }
+
   private validatePhoneNumber(phoneNumber: any): boolean {
-    return !phoneNumber || /^\d+$/.test(String(phoneNumber));
+    return !phoneNumber || /^\d{10}$/.test(this.normalizePhoneNumber(phoneNumber));
   }
 
   private validateEmail(email: string): boolean {
@@ -73,11 +77,13 @@ export class PeopleService {
   }
 
   async createPerson(data: RequiredEntityData<Person>) {
+    if (data.phoneNumber)
+      data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
 
     if (!this.validateDocNumber(data.docNumber))
       throw new Error("El número de documento debe contener solo dígitos");
     if (!this.validatePhoneNumber(data.phoneNumber))
-      throw new Error("El número de teléfono debe contener solo dígitos");
+      throw new Error("El número de teléfono debe contener 10 dígitos");
     if (data.email && !this.validateEmail(data.email))
       throw new Error("El email no tiene un formato válido");
 
