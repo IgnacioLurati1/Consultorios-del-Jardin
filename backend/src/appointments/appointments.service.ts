@@ -646,7 +646,7 @@ export class AppointmentService {
           .filter((m) => m.role !== "system")
           .map((m) => {
             if (m.role === "tool") return { role: "tool" as const, tool_call_id: (m as any).tool_call_id, content: m.content as string };
-            if (m.role === "assistant" && (m as any).tool_calls) return { role: "assistant" as const, content: m.content ?? null, tool_calls: (m as any).tool_calls };
+            if (m.role === "assistant" && (m as any).tool_calls) return { role: "assistant" as const, content: typeof m.content === "string" ? m.content : null, tool_calls: (m as any).tool_calls };
             return { role: m.role as "user" | "assistant", content: (m.content as string) ?? "" };
           });
         return { content, chatHistory };
