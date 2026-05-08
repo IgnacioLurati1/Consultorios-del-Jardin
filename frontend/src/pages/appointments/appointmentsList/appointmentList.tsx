@@ -254,7 +254,7 @@ useEffect(() => {
 
   if (isLoading && person) {
     return (
-      <div className="appointment-person-container">
+      <div className="appointments-status-state">
         <p>Cargando diagnósticos de los turnos...</p>
       </div>
     );
