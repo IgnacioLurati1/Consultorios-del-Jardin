@@ -15,10 +15,7 @@ import Groq from "groq-sdk";
 
 const em = orm.em;
 
-type SimpleMessage =
-  | { role: "user" | "assistant"; content: string }
-  | { role: "assistant"; content: string | null; tool_calls: any[] }
-  | { role: "tool"; tool_call_id: string; content: string };
+type SimpleMessage = { role: "user" | "assistant"; content: string };
 interface SecretaryResponse {
   content: string;
   chatHistory: SimpleMessage[];
@@ -630,25 +627,29 @@ export class AppointmentService {
 
     const MAX_ITERATIONS = 5;
     for (let i = 0; i < MAX_ITERATIONS; i++) {
-      const response = await groqClient.chat.completions.create({
-        ...GROQ_CONFIG,
-        messages,
-        tools: SECRETARY_TOOLS,
-        tool_choice: "auto",
-      });
+      let response: Groq.Chat.ChatCompletion;
+      try {
+        response = await groqClient.chat.completions.create({
+          ...GROQ_CONFIG,
+          messages,
+          tools: SECRETARY_TOOLS,
+          tool_choice: "auto",
+        });
+      } catch (err: any) {
+        console.error("[Secretary] Groq API error:", err?.message, err?.status, JSON.stringify(err?.error));
+        throw err;
+      }
 
       const choice = response.choices[0];
       messages.push(choice.message as any);
 
       if (choice.finish_reason !== "tool_calls" || !choice.message.tool_calls) {
         const content = choice.message.content || "Lo siento, no pude generar una respuesta en este momento.";
-        const chatHistory: SimpleMessage[] = messages
-          .filter((m) => m.role !== "system")
-          .map((m) => {
-            if (m.role === "tool") return { role: "tool" as const, tool_call_id: (m as any).tool_call_id, content: m.content as string };
-            if (m.role === "assistant" && (m as any).tool_calls) return { role: "assistant" as const, content: typeof m.content === "string" ? m.content : null, tool_calls: (m as any).tool_calls };
-            return { role: m.role as "user" | "assistant", content: (m.content as string) ?? "" };
-          });
+        const chatHistory = messages
+          .filter((m): m is { role: "user" | "assistant"; content: string } =>
+            (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.length > 0
+          )
+          .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
         return { content, chatHistory };
       }
 
