@@ -5,7 +5,6 @@ import { RoomService } from "../rooms/rooms.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "./appointments.service.js";
 import { Appointment } from "./appointments.entity.js";
-import { Diagnostic } from "./diagnostics.entity.js";
 export class AppointmentEngine {
   private peopleService: PeopleService;
   private scheduleService: ScheduleService;
@@ -36,7 +35,6 @@ export class AppointmentEngine {
     finalHour: string,
     idRoom: number,
     value: number,
-    type: "simple" | "taller",
     professionalEmail: string,
     patientEmail?: string
   ) {
@@ -51,24 +49,14 @@ export class AppointmentEngine {
       date,
       initialHour,
       finalHour,
-      type,
       professional: await this.peopleService.findPersonByEmail(professionalEmail, this.em),
+      patient: patientEmail ? await this.peopleService.findPersonByEmail(patientEmail, this.em) : null,
       room,
       value,
       state: "accepted",
+      observations: null,
       reminderSent: "not sent",
     });
-
-    if (type === "simple" && patientEmail) {
-      appointment.diagnostics.add(
-        this.em.create(Diagnostic, {
-          patient: await this.peopleService.findPersonByEmail(patientEmail, this.em),
-          appointment,
-          state: "pending",
-          observations: null,
-        })
-      );
-    }
 
     return appointment;
   }
@@ -77,7 +65,6 @@ export class AppointmentEngine {
     patientEmail: string,
     date: Date,
     initialHour: string,
-    type: "simple" | "taller",
     professionalEmail: string,
     officeId: number
   ) {
@@ -100,8 +87,6 @@ export class AppointmentEngine {
     const schedule = await this.scheduleService.findScheduleByHourRange(initialHour, dayName, professional, office, this.em);
     // We ask for the office eventhough it's not strictly necessary, to ensure in case of schedule overlaps that the office is the correct one
 
-    if (schedule.allowedType !== type) throw new Error("El tipo de turno no coincide con el tipo de horario");
-
     const [hours, minutes] = initialHour.split(":").map(Number);
     const startDateTime = new Date();
     startDateTime.setHours(hours, minutes, 0, 0);
@@ -120,54 +105,21 @@ export class AppointmentEngine {
 
     if (!room.active) throw new Error("La sala asignada al horario no está activa");
 
-    let appointment;
+    if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
+      throw new Error("El profesional ya tiene una cita en este horario");
 
-    if (type === "taller") {
-      appointment = await this.em.findOne(Appointment, {
-        date,
-        initialHour,
-        professional: { email: professionalEmail },
-        type: "taller",
-        state: { $in: ["pending", "accepted"] },
-      });
-      if (!appointment) {
-        if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
-          throw new Error("El profesional ya tiene una cita en este horario");
-        appointment = this.em.create(Appointment, {
-          date,
-          initialHour,
-          finalHour,
-          type,
-          professional,
-          room,
-          value: 0,
-          state: "pending",
-          reminderSent: "not sent",
-        });
-      }
-    } else {
-      if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
-        throw new Error("El profesional ya tiene una cita en este horario");
-      appointment = this.em.create(Appointment, {
-        date,
-        initialHour,
-        finalHour,
-        type,
-        professional,
-        room,
-        value: 0,
-        state: "pending",
-        reminderSent: "not sent",
-      });
-    }
-    appointment.diagnostics.add(
-      this.em.create(Diagnostic, {
-        patient: await this.peopleService.findPersonByEmail(patientEmail, this.em),
-        appointment,
-        state: "pending",
-        observations: null,
-      })
-    );
+    const appointment = this.em.create(Appointment, {
+      date,
+      initialHour,
+      finalHour,
+      professional,
+      patient: await this.peopleService.findPersonByEmail(patientEmail, this.em),
+      room,
+      value: 0,
+      state: "pending",
+      observations: null,
+      reminderSent: "not sent",
+    });
 
     return appointment;
   }
@@ -176,7 +128,7 @@ export class AppointmentEngine {
     patientEmail: string,
     professionalEmail: string,
     officeId: number
-  ): Promise<Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }>> {
+  ): Promise<Array<{ date: Date; initialHour: string; finalHour: string }>> {
     const professional = await this.peopleService.findPersonByEmail(professionalEmail, this.em);
     if (professional.type !== "professional") throw new Error("El email no corresponde a un profesional");
 
@@ -185,7 +137,7 @@ export class AppointmentEngine {
 
     const schedules = await this.scheduleService.findSchedulesByProfessionalAndOffice(professional, office, this.em);
 
-    const availableSlots: Array<{ date: Date; initialHour: string; finalHour: string; type: "simple" | "taller" }> = [];
+    const availableSlots: Array<{ date: Date; initialHour: string; finalHour: string }> = [];
 
     const now = new Date();
 
@@ -239,28 +191,16 @@ export class AppointmentEngine {
             );
 
             if (!patientHasConflict) {
-              const professionalConflict = await this.em.findOne(
-                Appointment,
-                {
-                  date: new Date(currentDate),
-                  initialHour: { $lt: finalHour },
-                  finalHour: { $gt: initialHour },
-                  state: { $in: ["pending", "accepted"] },
-                  professional: { email: professionalEmail },
-                },
-                { populate: ["diagnostics", "diagnostics.patient"] }
+              const professionalConflict = await this.appointmentService.checkProfessionalAppointmentOverlap(
+                initialHour,
+                finalHour,
+                professionalEmail,
+                new Date(currentDate),
+                this.em
               );
 
               if (!professionalConflict) {
-                if (schedule.allowedType !== "simple" && schedule.allowedType !== "taller") {
-                  throw new Error(`Tipo de horario inválido: ${schedule.allowedType}`);
-                }
-                availableSlots.push({ date: new Date(currentDate), initialHour, finalHour, type: schedule.allowedType });
-              } else if (professionalConflict.type === "taller") {
-                const patientAlreadyInWorkshop = professionalConflict.diagnostics.getItems().some((d) => d.patient.email === patientEmail);
-                if (!patientAlreadyInWorkshop) {
-                  availableSlots.push({ date: new Date(currentDate), initialHour, finalHour, type: "taller" });
-                }
+                availableSlots.push({ date: new Date(currentDate), initialHour, finalHour });
               }
             }
 

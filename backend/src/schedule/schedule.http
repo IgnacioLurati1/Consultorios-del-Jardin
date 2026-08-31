@@ -22,7 +22,6 @@ Content-Type: application/json
   "person": "genaro@gmail.com",
   "room": 3,
   "active": true,
-  "allowedType": "simple",
   "duration": 60
 }
 

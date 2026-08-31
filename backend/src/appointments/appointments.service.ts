@@ -1,6 +1,5 @@
 import { orm } from "../shared/db/orm.js";
 import { Appointment } from "./appointments.entity.js";
-import { Diagnostic } from "./diagnostics.entity.js";
 import { PeopleService } from "../people/people.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { OfficeService } from "../offices/offices.service.js";
@@ -21,6 +20,15 @@ interface SecretaryResponse {
   chatHistory: SimpleMessage[];
 }
 
+// Vista "diagnóstico" de un turno. El diagnóstico dejó de ser una entidad propia:
+// ahora es la parte clínica del turno (paciente + estado + observaciones).
+interface DiagnosticView {
+  appointment: number | undefined;
+  patient: string;
+  state: string;
+  observations: string | null;
+}
+
 export class AppointmentService {
   private peopleService: PeopleService;
   private scheduleService: ScheduleService;
@@ -36,17 +44,23 @@ export class AppointmentService {
     this.mailService = new MailService();
   }
 
+  private toDiagnosticView(appointment: Appointment): DiagnosticView {
+    return {
+      appointment: appointment.numAppointment,
+      patient: appointment.patient ? appointment.patient.email : "",
+      state: appointment.state,
+      observations: appointment.observations ?? null,
+    };
+  }
+
   async findPatientAppointmentsByEmail(patientEmail: string, page = 0): Promise<Appointment[]> {
     const limit = 15;
     const offset = page * limit;
     return await em.find(
       Appointment,
-      { diagnostics: { patient: { email: patientEmail } } },
+      { patient: { email: patientEmail } },
       {
-        populate: ["room.office", "diagnostics", "professional"],
-        populateWhere: {
-          diagnostics: { patient: { email: patientEmail } },
-        },
+        populate: ["room.office", "professional", "patient"],
         limit,
         offset,
         orderBy: { date: "DESC", initialHour: "DESC" },
@@ -55,29 +69,39 @@ export class AppointmentService {
   }
 
   async getPersonalMedicalHistory(patientEmail: string) {
-    return await em.find(Diagnostic, { patient: { email: patientEmail } });
+    return await em.find(
+      Appointment,
+      { patient: { email: patientEmail } },
+      { populate: ["professional", "room.office"], orderBy: { date: "DESC", initialHour: "DESC" } }
+    );
   }
 
   async getPatientMedicalHistory(professionalEmail: string, patientEmail: string) {
-    const filter = {
-      patient: { email: patientEmail },
-      appointment: {
+    return await em.find(
+      Appointment,
+      {
+        patient: { email: patientEmail },
         professional: { email: professionalEmail },
       },
-    };
-
-    return await em.find(Diagnostic, filter, {
-      populate: ["appointment"],
-      fields: ["*", "appointment.date"],
-    });
+      { populate: ["professional", "room.office"], orderBy: { date: "DESC", initialHour: "DESC" } }
+    );
   }
 
-  async getDiagnostic(patientEmail: string, num: number) {
-    return await em.findOneOrFail(Diagnostic, { patient: { email: patientEmail }, appointment: { numAppointment: num } });
+  async getDiagnostic(patientEmail: string, num: number): Promise<DiagnosticView> {
+    const appointment = await em.findOneOrFail(
+      Appointment,
+      { numAppointment: num, patient: { email: patientEmail } },
+      { populate: ["patient"] }
+    );
+    return this.toDiagnosticView(appointment);
   }
 
   async findUniqueProfessionalAppointment(professionalEmail: string, numAppointment: number) {
-    return await em.findOneOrFail(Appointment, { professional: { email: professionalEmail }, numAppointment: numAppointment });
+    return await em.findOneOrFail(
+      Appointment,
+      { professional: { email: professionalEmail }, numAppointment: numAppointment },
+      { populate: ["patient"] }
+    );
   }
 
   async findProfessionalAppointmentsByEmail(professionalEmail: string, page = 0): Promise<Appointment[]> {
@@ -86,7 +110,7 @@ export class AppointmentService {
     return await em.find(
       Appointment,
       { professional: { email: professionalEmail } },
-      { populate: ["room.office", "diagnostics"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
+      { populate: ["room.office", "patient"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
     );
   }
 
@@ -94,7 +118,7 @@ export class AppointmentService {
     return await em.find(
       Appointment,
       { professional: { email: professionalEmail }, state: "pending" },
-      { populate: ["room.office", "diagnostics"] }
+      { populate: ["room.office", "patient"] }
     );
   }
 
@@ -111,7 +135,7 @@ export class AppointmentService {
         state: "pending",
         professional: { email: professionalEmail },
       },
-      { populate: ["diagnostics"] }
+      { populate: ["patient"] }
     );
 
     await this.sendAppointmentRejectedEmails(appointment);
@@ -128,7 +152,7 @@ export class AppointmentService {
         state: "accepted",
         professional: { email: professionalEmail },
       },
-      { populate: ["diagnostics", "diagnostics.patient"] }
+      { populate: ["patient"] }
     );
 
     if (!data.initialHour || !data.finalHour) throw new Error("Debe proporcionar initialHour y finalHour");
@@ -136,11 +160,9 @@ export class AppointmentService {
     if (!this.checkHoursOverlapAndFormat(data.initialHour, data.finalHour))
       throw new Error("El formato de las horas es inválido o la hora inicial es mayor o igual a la final");
 
-    for (const diagnostic of appointment.diagnostics.getItems()) {
-      if (
-        await this.checkPatientAppointmentOverlap(data.initialHour, data.finalHour, diagnostic.patient.email, data.date || appointment.date)
-      )
-        throw new Error("Un paciente ya tiene una cita en este horario"); // We don't specify which one for security reasons
+    if (appointment.patient) {
+      if (await this.checkPatientAppointmentOverlap(data.initialHour, data.finalHour, appointment.patient.email, data.date || appointment.date))
+        throw new Error("El paciente ya tiene una cita en este horario");
     }
 
     if (await this.checkProfessionalAppointmentOverlap(data.initialHour, data.finalHour, professionalEmail, data.date || appointment.date))
@@ -162,8 +184,16 @@ export class AppointmentService {
     return !isNaN(inputDate.getTime()) && inputDate >= today;
   }
 
-  async getAppointmentDiagnostics(num: number, professionalEmail: string): Promise<Diagnostic[]> {
-    return await em.find(Diagnostic, { appointment: { numAppointment: num, professional: { email: professionalEmail } } });
+  // Un turno tiene como mucho un paciente, así que devuelve 0 o 1 elemento.
+  async getAppointmentDiagnostics(num: number, professionalEmail: string): Promise<DiagnosticView[]> {
+    const appointment = await em.findOne(
+      Appointment,
+      { numAppointment: num, professional: { email: professionalEmail } },
+      { populate: ["patient"] }
+    );
+
+    if (!appointment || !appointment.patient) return [];
+    return [this.toDiagnosticView(appointment)];
   }
 
   async checkPatientAppointmentOverlap(
@@ -177,8 +207,8 @@ export class AppointmentService {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
-      state: { $in: ["pending", "accepted"] },
-      diagnostics: { patient: { email: patientEmail } },
+      state: { $in: ["pending", "accepted", "assisted"] },
+      patient: { email: patientEmail },
     });
     return appointment;
   }
@@ -194,31 +224,37 @@ export class AppointmentService {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
-      state: { $in: ["pending", "accepted"] },
+      state: { $in: ["pending", "accepted", "assisted"] },
       professional: { email: professionalEmail },
     });
     return appointment;
   }
 
-  async checkDiagnosticStateFormat(state: string): Promise<boolean> {
-    const validStates = ["pending", "assisted", "canceled"];
+  // Estados que el profesional puede setear a mano. La cancelación tiene su propio endpoint.
+  async checkAppointmentStateFormat(state: string): Promise<boolean> {
+    const validStates = ["pending", "accepted", "assisted"];
     return validStates.includes(state);
   }
 
-  async updateDiagnostic(num: number, patientEmail: string, professionalEmail: string, data: Partial<Diagnostic>) {
-    const diagnostic = await em.findOneOrFail(Diagnostic, {
-      appointment: { numAppointment: num, professional: { email: professionalEmail } },
-      patient: { email: patientEmail },
-    });
+  async updateDiagnostic(num: number, patientEmail: string, professionalEmail: string, data: Partial<Appointment>) {
+    const appointment = await em.findOneOrFail(
+      Appointment,
+      { numAppointment: num, professional: { email: professionalEmail } },
+      { populate: ["patient"] }
+    );
+
+    if (patientEmail && appointment.patient?.email !== patientEmail) throw new Error("El paciente no corresponde a este turno");
+
     if (data.state !== undefined) {
-      if (!(await this.checkDiagnosticStateFormat(data.state))) throw new Error("Estado del diagnóstico inválido");
-      diagnostic.state = data.state;
+      if (!(await this.checkAppointmentStateFormat(data.state)))
+        throw new Error("Estado del turno inválido. Para cancelar usá el endpoint de cancelación");
+      appointment.state = data.state;
     }
     if (data.observations !== undefined) {
-      diagnostic.observations = data.observations;
+      appointment.observations = data.observations;
     }
     await em.flush();
-    return diagnostic;
+    return this.toDiagnosticView(appointment);
   }
 
   async checkAppointmentDurationFormat(initialHour: string, scheduleInitialHour: string, duration: number): Promise<boolean> {
@@ -234,14 +270,17 @@ export class AppointmentService {
   }
 
   async addObservation(num: number, professionalEmail: string, observations: string, patientEmail: string) {
-    const diagnostic = await em.findOneOrFail(Diagnostic, {
-      appointment: { numAppointment: num, professional: { email: professionalEmail } },
-      patient: { email: patientEmail },
-    });
+    const appointment = await em.findOneOrFail(
+      Appointment,
+      { numAppointment: num, professional: { email: professionalEmail } },
+      { populate: ["patient"] }
+    );
 
-    diagnostic.observations = observations;
+    if (patientEmail && appointment.patient?.email !== patientEmail) throw new Error("El paciente no corresponde a este turno");
+
+    appointment.observations = observations;
     await em.flush();
-    return diagnostic;
+    return this.toDiagnosticView(appointment);
   }
 
   async acceptAppointment(num: number, professionalEmail: string) {
@@ -252,7 +291,7 @@ export class AppointmentService {
         state: "pending",
         professional: { email: professionalEmail },
       },
-      { populate: ["diagnostics", "diagnostics.patient"] }
+      { populate: ["patient"] }
     );
 
     appointment.state = "accepted";
@@ -266,33 +305,26 @@ export class AppointmentService {
       Appointment,
       {
         numAppointment: num,
-        $or: [{ professional: { email } }, { diagnostics: { patient: { email } } }],
+        $or: [{ professional: { email } }, { patient: { email } }],
       },
-      { populate: ["diagnostics", "diagnostics.patient", "professional.email"] }
+      { populate: ["patient", "professional"] }
     );
 
-    if (appointment.type === "taller" && type === "professional") {
-      appointment.state = new Date().toISOString();
-    } else if (appointment.type === "taller" && type === "client") {
-      let diagnostic = await this.getDiagnostic(email, num);
+    if (appointment.state === "assisted") throw new Error("No puede cancelar un turno asistido");
 
-      if (diagnostic.state === "assisted") throw new Error("No puede cancelar un turno asistido");
-      diagnostic.state = "canceled";
-
-      await em.flush();
-      await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email);
-      return appointment;
-    } else if (appointment.type === "simple" && appointment.state === "accepted") {
-      appointment.state = new Date().toISOString();
-    } else if (appointment.type === "simple" && appointment.state === "pending") {
+    if (appointment.state === "pending") {
       await this.deleteAppointment(num, appointment.professional.email);
       return appointment;
-    } else {
-      throw new Error("El turno ya fue cancelado");
     }
 
+    if (appointment.state !== "accepted") throw new Error("El turno ya fue cancelado");
+
+    appointment.state = new Date().toISOString();
     await em.flush();
+
     await this.sendAppointmentCanceledEmails(appointment);
+    if (type === "client") await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email);
+
     return appointment; // Not used for now
   }
 
@@ -300,13 +332,11 @@ export class AppointmentService {
     patientEmail: string,
     date: Date,
     initialHour: string,
-    type: "simple" | "taller",
     professionalEmail: string,
     officeId: number
   ): Promise<Partial<Appointment>> {
     const refreshed = await em.transactional(async (em) => {
-      const isValid =
-        this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date) && this.scheduleService.isValidAllowedTypes(type);
+      const isValid = this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date);
 
       if (!isValid) throw new Error("Información de turno inválida");
 
@@ -315,7 +345,6 @@ export class AppointmentService {
         patientEmail,
         date,
         initialHour,
-        type,
         professionalEmail,
         officeId
       );
@@ -324,11 +353,11 @@ export class AppointmentService {
       return await em.findOneOrFail(
         Appointment,
         { numAppointment: appointment.numAppointment },
-        { populate: ["diagnostics", "diagnostics.patient", "professional"] }
+        { populate: ["patient", "professional"] }
       );
     });
 
-    await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour, type).catch((err) =>
+    await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour).catch((err) =>
       console.error("Error enviando email de creación de turno:", err)
     );
     const result = {
@@ -337,7 +366,6 @@ export class AppointmentService {
       initialHour: refreshed.initialHour,
       finalHour: refreshed.finalHour,
       value: refreshed.value,
-      type: refreshed.type,
       professionalEmail: refreshed.professional.email,
       room: refreshed.room,
     };
@@ -348,7 +376,6 @@ export class AppointmentService {
     date: Date,
     initialHour: string,
     finalHour: string,
-    type: "simple" | "taller",
     idRoom: number,
     value: number,
     professionalEmail: string,
@@ -358,7 +385,6 @@ export class AppointmentService {
       const isValid =
         this.scheduleService.isValidHourFormat(initialHour) &&
         this.isValidDate(date) &&
-        this.scheduleService.isValidAllowedTypes(type) &&
         initialHour < finalHour &&
         value >= 0;
 
@@ -370,7 +396,6 @@ export class AppointmentService {
         finalHour,
         idRoom,
         value,
-        type,
         professionalEmail,
         patientEmail
       );
@@ -382,7 +407,6 @@ export class AppointmentService {
         initialHour: appointment.initialHour,
         finalHour: appointment.finalHour,
         value: appointment.value,
-        type: appointment.type,
         professionalEmail: appointment.professional.email,
         room: appointment.room,
       };
@@ -390,28 +414,18 @@ export class AppointmentService {
   }
 
   async addPatientToAppointment(numAppointment: number, patientEmail: string, professionalEmail: string) {
-    const diagnostics = await this.getAppointmentDiagnostics(numAppointment, professionalEmail);
     const appointment = await this.findUniqueProfessionalAppointment(professionalEmail, numAppointment);
+
+    if (appointment.patient) throw new Error("El turno ya tiene un paciente!");
 
     if (await this.checkPatientAppointmentOverlap(appointment.initialHour, appointment.finalHour, patientEmail, appointment.date))
       throw new Error("El paciente ya tiene una cita en este horario");
 
-    if (appointment.type == "simple" && diagnostics.length == 1) {
-      throw new Error("El turno ya tiene un paciente!");
-    }
-    let diagnostic;
-    appointment.diagnostics.add(
-      (diagnostic = em.create(Diagnostic, {
-        patient: await this.peopleService.findPersonByEmail(patientEmail),
-        appointment,
-        state: "pending",
-        observations: null,
-      }))
-    );
+    appointment.patient = await this.peopleService.findPersonByEmail(patientEmail);
 
     await em.flush();
     await this.sendPatientAddedEmail(patientEmail, numAppointment);
-    return diagnostic; // Not used for now
+    return this.toDiagnosticView(appointment); // Not used for now
   }
 
   async getAvailableAppointmensForPatient(idOffice: number, professionalEmail: string, patientEmail: string) {
@@ -420,7 +434,7 @@ export class AppointmentService {
     return appointments;
   }
 
-  private async sendAppointmentCreatedEmail(patientEmail: string, appointment: Appointment, initialHour: string, type: string) {
+  private async sendAppointmentCreatedEmail(patientEmail: string, appointment: Appointment, initialHour: string) {
     const htmlContent = `
       <p>Hola,</p>
       <p>Tu solicitud de turno ha sido registrada correctamente.</p>
@@ -428,7 +442,6 @@ export class AppointmentService {
       <ul>
         <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
         <li><strong>Hora inicial:</strong> ${initialHour}</li>
-        <li><strong>Tipo:</strong> ${type}</li>
       </ul>
       <p>Tu turno está pendiente de que el profesional lo acepte. Te notificaremos cuando sea confirmado.</p>
       <p>¡Gracias!</p>
@@ -438,61 +451,58 @@ export class AppointmentService {
   }
 
   private async sendAppointmentUpdatedEmails(appointment: Appointment) {
-    const diagnosticsItems = appointment.diagnostics.getItems();
-    for (const diagnostic of diagnosticsItems) {
-      const htmlContent = `
-        <p>Hola,</p>
-        <p>Te notificamos que tu turno ha sido modificado.</p>
-        <p><strong>Nuevos detalles del turno:</strong></p>
-        <ul>
-          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
-          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
-          <li><strong>Hora final:</strong> ${appointment.finalHour}</li>
-        </ul>
-        <p>Por favor, revisa tu calendario y confirma la disponibilidad.</p>
-        <p>¡Gracias!</p>
-      `;
-      const message = await this.mailService.createMessage(diagnostic.patient.email, "Tu Turno Ha Sido Modificado", htmlContent);
-      await this.mailService.sendMail(message);
-    }
+    if (!appointment.patient) return;
+
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Te notificamos que tu turno ha sido modificado.</p>
+      <p><strong>Nuevos detalles del turno:</strong></p>
+      <ul>
+        <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
+        <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+        <li><strong>Hora final:</strong> ${appointment.finalHour}</li>
+      </ul>
+      <p>Por favor, revisa tu calendario y confirma la disponibilidad.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(appointment.patient.email, "Tu Turno Ha Sido Modificado", htmlContent);
+    await this.mailService.sendMail(message);
   }
 
   private async sendAppointmentRejectedEmails(appointment: Appointment) {
-    const diagnosticsItems = appointment.diagnostics.getItems();
-    for (const diagnostic of diagnosticsItems) {
-      const htmlContent = `
-        <p>Hola,</p>
-        <p>Te informamos que tu solicitud de turno ha sido rechazada.</p>
-        <p><strong>Detalles del turno rechazado:</strong></p>
-        <ul>
-          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
-          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
-        </ul>
-        <p>Si tienes alguna pregunta, por favor contáctanos.</p>
-        <p>¡Gracias!</p>
-      `;
-      const message = await this.mailService.createMessage(diagnostic.patient.email, "Solicitud de Turno Rechazada", htmlContent);
-      await this.mailService.sendMail(message);
-    }
+    if (!appointment.patient) return;
+
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Te informamos que tu solicitud de turno ha sido rechazada.</p>
+      <p><strong>Detalles del turno rechazado:</strong></p>
+      <ul>
+        <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
+        <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+      </ul>
+      <p>Si tienes alguna pregunta, por favor contáctanos.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(appointment.patient.email, "Solicitud de Turno Rechazada", htmlContent);
+    await this.mailService.sendMail(message);
   }
 
   private async sendAppointmentCanceledEmails(appointment: Appointment) {
-    const diagnosticsItems = appointment.diagnostics.getItems();
-    for (const diagnostic of diagnosticsItems) {
-      const htmlContent = `
-        <p>Hola,</p>
-        <p>Te notificamos que se ha cancelado el turno.</p>
-        <p><strong>Detalles del turno:</strong></p>
-        <ul>
-          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
-          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
-        </ul>
-        <p>Sugerimos la posibilidad de realizar un nuevo turno.</p>
-        <p>¡Gracias!</p>
-      `;
-      const message = await this.mailService.createMessage(diagnostic.patient.email, "Turno cancelado", htmlContent);
-      await this.mailService.sendMail(message);
-    }
+    if (!appointment.patient) return;
+
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Te notificamos que se ha cancelado el turno.</p>
+      <p><strong>Detalles del turno:</strong></p>
+      <ul>
+        <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
+        <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+      </ul>
+      <p>Sugerimos la posibilidad de realizar un nuevo turno.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(appointment.patient.email, "Turno cancelado", htmlContent);
+    await this.mailService.sendMail(message);
   }
 
   private async sendAppointmentCanceledToProfessional(appointment: Appointment, email: string) {
@@ -512,22 +522,21 @@ export class AppointmentService {
   }
 
   private async sendAppointmentAcceptedEmails(appointment: Appointment) {
-    const diagnosticsItems = appointment.diagnostics.getItems();
-    for (const diagnostic of diagnosticsItems) {
-      const htmlContent = `
-        <p>Hola,</p>
-        <p>Te informamos que tu turno ha sido aceptado por el profesional.</p>
-        <p><strong>Detalles del turno:</strong></p>
-        <ul>
-          <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
-          <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
-        </ul>
-        <p>Por favor, revisa tu calendario. Si tienes alguna duda, contáctanos.</p>
-        <p>¡Gracias!</p>
-      `;
-      const message = await this.mailService.createMessage(diagnostic.patient.email, "Tu Turno Ha Sido Aceptado", htmlContent);
-      await this.mailService.sendMail(message);
-    }
+    if (!appointment.patient) return;
+
+    const htmlContent = `
+      <p>Hola,</p>
+      <p>Te informamos que tu turno ha sido aceptado por el profesional.</p>
+      <p><strong>Detalles del turno:</strong></p>
+      <ul>
+        <li><strong>Fecha:</strong> ${this.formatDateArgentina(appointment.date as Date)}</li>
+        <li><strong>Hora inicial:</strong> ${appointment.initialHour}</li>
+      </ul>
+      <p>Por favor, revisa tu calendario. Si tienes alguna duda, contáctanos.</p>
+      <p>¡Gracias!</p>
+    `;
+    const message = await this.mailService.createMessage(appointment.patient.email, "Tu Turno Ha Sido Aceptado", htmlContent);
+    await this.mailService.sendMail(message);
   }
 
   private async sendPatientAddedEmail(patientEmail: string, numAppointment: number) {
@@ -576,8 +585,9 @@ export class AppointmentService {
         date: { $gte: tomorrow, $lte: tomorrow2359 },
         state: "accepted",
         reminderSent: "not sent",
+        patient: { $ne: null },
       },
-      { populate: ["diagnostics", "diagnostics.patient", "professional"] }
+      { populate: ["patient", "professional"] }
     );
   }
 
@@ -599,10 +609,8 @@ export class AppointmentService {
   }
 
   async sendReminderEmails(appointment: Appointment): Promise<void> {
-    const diagnosticsItems = appointment.diagnostics.getItems();
-    for (const diagnostic of diagnosticsItems) {
-      await this.sendReminderEmail(diagnostic.patient.email, appointment);
-    }
+    if (!appointment.patient) return;
+    await this.sendReminderEmail(appointment.patient.email, appointment);
   }
 
   async updateReminderStatus(numAppointment: number): Promise<void> {

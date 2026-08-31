@@ -33,7 +33,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlnbmFja
 {
   "date": "2025-11-18",
   "initialHour": "10:00",
-  "type": "simple",
   "professionalEmail": "prof@gmail.com",
   "office": 1
 }
@@ -61,7 +60,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
   "date": "2025-11-25",
   "initialHour": "13:00",
   "finalHour": "14:00",
-  "type": "taller",
   "room": 1,
   "value": 0,
   "patientEmail": "hola@gmail.com"
@@ -78,7 +76,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InByb2ZAZ
   "date": "2025-10-09",
   "initialHour": "13:00",
   "finalHour": "14:00",
-  "type": "simple",
   "room": 1,
   "value": 0,
   "patientEmail": "hola@gmail.com"

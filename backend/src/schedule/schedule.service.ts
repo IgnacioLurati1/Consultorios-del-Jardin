@@ -29,12 +29,6 @@ export class ScheduleService {
     return initialHour < finalHour;
   }
 
-  isValidAllowedTypes(allowedType: string): boolean {
-    const normalizedType = this.removeAccents(allowedType.trim().toLowerCase()); // Convierte a minúsculas y elimina acentos
-    const validTypes = ["simple", "taller"]; // Tipos permitidos
-    return validTypes.includes(normalizedType); // Retorna false si el tipo no es válido
-  }
-
   async isOverlappingSchedule(day: string, initialHour: string, finalHour: string, person: Person): Promise<boolean> {
     const existingSchedules = await this.findScheduleByEmailAndDay(person, day);
 
@@ -109,14 +103,12 @@ export class ScheduleService {
 
   async createSchedule(data: RequiredEntityData<Schedule>): Promise<Schedule> {
     data.day = this.removeAccents(data.day.trim().toLowerCase());
-    data.allowedType = this.removeAccents(data.allowedType.trim().toLowerCase());
 
     const isValid =
       this.isValidDay(data.day) &&
       this.isValidHourFormat(data.initialHour) &&
       this.isValidHourFormat(data.finalHour) &&
-      this.isValidHourRange(data.initialHour, data.finalHour) &&
-      this.isValidAllowedTypes(data.allowedType);
+      this.isValidHourRange(data.initialHour, data.finalHour);
 
     if (!isValid) {
       throw new Error("Invalid schedule data");

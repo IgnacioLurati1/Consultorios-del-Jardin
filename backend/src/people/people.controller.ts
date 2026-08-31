@@ -36,6 +36,15 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
 
 const peopleService = new PeopleService();
 
+// El refresh token vive solo en esta cookie httpOnly: el JS de la página no puede leerlo.
+// Las mismas opciones se usan para setearla y para borrarla; si no coinciden, el browser
+// no la borra en el logout.
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+} as const;
+
 async function findAll(req: Request, res: Response) {
   try {
     const people = await peopleService.findAllPeople();
@@ -105,11 +114,7 @@ async function add(req: Request, res: Response) {
     const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    });
+    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
 
@@ -171,13 +176,13 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
+    if (!person.active) {
+      return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+    }
+
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    });
+    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
 
     res.status(200).json({ message: "Login exitoso", token });
   } catch (error: any) {
@@ -186,11 +191,12 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
 }
 
 async function logOut(req: Request, res: Response) {
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: false, // cambiar en produccion
-    sameSite: "lax", // no funciona al reves el proxy jeje
-  });
+  // Las opciones tienen que ser las mismas con las que se seteó la cookie,
+  // si no el browser no la borra.
+  res.clearCookie("refreshToken", REFRESH_COOKIE_OPTIONS);
+
+  // El logout es del lado del cliente: el refresh token sigue siendo válido hasta que expire.
+  res.status(200).json({ message: "Sesión cerrada" });
 }
 
 async function toggleState(req: Request, res: Response) {
@@ -209,6 +215,7 @@ async function changePassword(req: Request, res: Response) {
     await peopleService.changePassword(token, req.body.sanitizedInput.password);
     res.status(200).json({ message: "Contraseña cambiada con exita" });
   } catch (error: any) {
+    if (error.message === "USER_DISABLED") return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
     res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
   }
 }
@@ -216,6 +223,7 @@ async function changePassword(req: Request, res: Response) {
 async function sendPasswordMail(req: RequestWithUser, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email); //Revisamos que exista
+    if (!person.active) return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
     await peopleService.sendPasswordMail(person.email);
     res.status(200).json({ Message: "Mail enviado!" });
   } catch (error: any) {

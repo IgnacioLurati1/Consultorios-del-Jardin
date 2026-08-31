@@ -58,6 +58,7 @@ El servidor corre en `http://localhost:3000`.
 
 - **[Endpoints API](docs/ENDPOINTS.md)** — Referencia completa de todos los endpoints
 - **[Asistente IA Groq](docs/GROQ_AI.md)** — Detalle de la implementación y próximos pasos
+- **[Reset de la base](backend/docs/reset-db.sql)** — Recrear el esquema desde cero
 
 ## Roles de usuario
 
@@ -69,15 +70,18 @@ El servidor corre en `http://localhost:3000`.
 
 ## Autenticación
 
-- Access token: header `Authorization: Bearer <token>`
-- Refresh token: cookie httpOnly
+- Access token (15 min): header `Authorization: Bearer <token>`
+- Refresh token (30 días): cookie httpOnly. El front tiene que llamar a `/api/refreshToken`
+  con `withCredentials: true`
+- Una persona con `active = false` está deshabilitada: no puede loguearse, renovar el token,
+  recuperar la contraseña ni usar ningún endpoint autenticado (403 con `code: "USER_DISABLED"`)
 
 ## Arquitectura
 
 ```
 backend/src/
 ├── app.ts                 # Entry point
-├── appointments/          # Turnos y diagnósticos
+├── appointments/          # Turnos (incluyen paciente y observaciones)
 ├── people/                # Usuarios
 ├── offices/               # Consultorios
 ├── rooms/                 # Salas

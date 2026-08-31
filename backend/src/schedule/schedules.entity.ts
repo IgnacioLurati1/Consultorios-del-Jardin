@@ -20,8 +20,5 @@ export class Schedule {
   finalHour!: string;
 
   @Property({ nullable: false })
-  allowedType!: string;
-
-  @Property({ nullable: false })
   duration!: number;
 }

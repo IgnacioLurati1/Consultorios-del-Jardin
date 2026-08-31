@@ -8,6 +8,9 @@ const options = {
     info: {
       title: 'Mi API',
       version: '1.0.0',
+      description:
+        'Cualquier endpoint autenticado responde 403 con { code: "USER_DISABLED" } ' +
+        'si la persona duena del token tiene active = false (deshabilitada por el admin).',
     },
     components: {
       securitySchemes: {
@@ -131,7 +134,6 @@ const options = {
                 day:         { type: 'string', example: 'lunes' },
                 initialHour: { type: 'string', example: '08:00' },
                 finalHour:   { type: 'string', example: '09:00' },
-                allowedType: { type: 'string', example: 'client' },
                 duration:    { type: 'integer', example: 30 },
                 person:      { type: 'object', description: 'Profesional asociado' },
                 room:        { type: 'object', description: 'Consultorio asociado' },
@@ -139,12 +141,11 @@ const options = {
             },
             ScheduleInput: {
             type: 'object',
-            required: ['day', 'initialHour', 'finalHour', 'allowedType', 'duration', 'person', 'room'],
+            required: ['day', 'initialHour', 'finalHour', 'duration', 'person', 'room'],
             properties: {
                 day:         { type: 'string', example: 'lunes' },
                 initialHour: { type: 'string', example: '08:00' },
                 finalHour:   { type: 'string', example: '09:00' },
-                allowedType: { type: 'string', example: 'client' },
                 duration:    { type: 'integer', example: 30 },
                 person:      { type: 'string', description: 'Email del profesional', example: 'doctor@mail.com' },
                 room:        { type: 'integer', description: 'ID del consultorio', example: 1 },
@@ -158,43 +159,42 @@ const options = {
                 initialHour:    { type: 'string', example: '09:00' },
                 finalHour:      { type: 'string', example: '09:30' },
                 value:          { type: 'number', example: 1500 },
-                type:           { type: 'string', enum: ['simple', 'taller'] },
-                state:          { type: 'string', enum: ['pending', 'accepted', 'cancelled'], example: 'pending' },
+                state:          { type: 'string', description: 'pending | accepted | assisted, o un ISO timestamp si fue cancelado', example: 'pending' },
+                observations:   { type: 'string', nullable: true, example: 'Paciente con fiebre alta' },
                 reminderSent:   { type: 'string', enum: ['not sent', 'sent'] },
                 professional:   { type: 'object', description: 'Profesional asociado' },
+                patient:        { type: 'object', nullable: true, description: 'Paciente asociado (uno solo por turno)' },
                 room:           { type: 'object', description: 'Consultorio asociado' },
-                diagnostics:    { type: 'array', items: { type: 'object' } },
             },
             },
             AppointmentInput: {
             type: 'object',
-            required: ['date', 'initialHour', 'finalHour', 'type', 'professional', 'room'],
+            required: ['date', 'initialHour', 'finalHour', 'professional', 'room'],
             properties: {
                 date:         { type: 'string', format: 'date', example: '2026-03-15' },
                 initialHour:  { type: 'string', example: '09:00' },
                 finalHour:    { type: 'string', example: '09:30' },
                 value:        { type: 'number', example: 1500 },
-                type:         { type: 'string', enum: ['simple', 'taller'] },
                 professional: { type: 'string', description: 'Email del profesional', example: 'doctor@mail.com' },
+                patientEmail: { type: 'string', description: 'Email del paciente', example: 'paciente@mail.com' },
                 room:         { type: 'integer', description: 'ID del consultorio', example: 1 },
             },
         },
         Diagnostic: {
             type: 'object',
+            description: 'Parte clínica de un turno. Ya no es una entidad propia: se deriva del turno.',
             properties: {
-                appointment:  { type: 'object', description: 'Turno asociado' },
-                patient:      { type: 'object', description: 'Paciente asociado' },
-                state:        { type: 'string', enum: ['pending', 'completed', 'cancelled'], example: 'pending' },
+                appointment:  { type: 'integer', description: 'Número del turno', example: 1 },
+                patient:      { type: 'string', description: 'Email del paciente', example: 'paciente@mail.com' },
+                state:        { type: 'string', description: 'Estado del turno', example: 'assisted' },
                 observations: { type: 'string', example: 'Paciente con fiebre alta', nullable: true },
             },
             },
             DiagnosticInput: {
             type: 'object',
-            required: ['appointment', 'patient', 'state'],
             properties: {
-                appointment:  { type: 'integer', description: 'Número del turno', example: 1 },
-                patient:      { type: 'string', description: 'Email del paciente', example: 'paciente@mail.com' },
-                state:        { type: 'string', example: 'pending' },
+                patientEmail: { type: 'string', description: 'Email del paciente del turno', example: 'paciente@mail.com' },
+                state:        { type: 'string', enum: ['pending', 'accepted', 'assisted'], example: 'assisted' },
                 observations: { type: 'string', example: 'Paciente con fiebre alta' },
             },
         },
@@ -204,7 +204,7 @@ const options = {
   apis: ['./src/people/people.routes.ts', './src/rooms/rooms.routes.ts',
      './src/provinces/provinces.routes.ts', './src/offices/offices.routes.ts' ,
       './src/cities/cities.routes.ts', './src/schedule/schedule.routes.ts', 
-      './src/appointments/appointments.routes.ts', './src/diagnostics/diagnostics.routes.ts'],
+      './src/appointments/appointments.routes.ts'],
 };
 
 const spec = swaggerJsdoc(options);

@@ -115,7 +115,6 @@ const mockSchedule = {
   finalHour: "12:00",
   person: mockProfessional,
   room: mockRoom,
-  allowedType: "simple",
   duration: 30,
 };
 
@@ -174,6 +173,9 @@ describe("Integración: Flujo completo de creación y aceptación de turno", () 
     };
     const next = vi.fn();
 
+    // verifyToken consulta la base para descartar usuarios deshabilitados
+    mockEm.findOne.mockResolvedValue({ email: mockClient.email, active: true });
+
     await verifyToken(req, res, next);
 
     expect(next).toHaveBeenCalled();
@@ -192,18 +194,13 @@ describe("Integración: Flujo completo de creación y aceptación de turno", () 
       date: new Date("2026-02-23"), // un lunes
       initialHour: "09:00",
       finalHour: "09:30",
-      type: "simple" as const,
       professional: mockProfessional,
+      patient: mockClient,
       room: mockRoom,
       value: 0,
       state: "pending",
+      observations: null,
       reminderSent: "not sent" as const,
-      diagnostics: {
-        add: vi.fn(),
-        getItems: vi.fn().mockReturnValue([
-          { patient: mockClient, state: "pending", observations: null },
-        ]),
-      },
     };
 
     // Verificamos que el turno se creó con estado "pending"
@@ -212,7 +209,7 @@ describe("Integración: Flujo completo de creación y aceptación de turno", () 
     expect(mockAppointment.room.office.description).toBe("Consultorio Central");
     expect(mockAppointment.initialHour).toBe("09:00");
     expect(mockAppointment.finalHour).toBe("09:30");
-    expect(mockAppointment.type).toBe("simple");
+    expect(mockAppointment.patient.email).toBe("paciente@test.com");
 
     // --------------------------------------------------------
     // PASO 5: Verificar token del profesional
@@ -224,6 +221,8 @@ describe("Integración: Flujo completo de creación y aceptación de turno", () 
       status: vi.fn().mockReturnValue({ json: vi.fn() }),
     };
     const nextProf = vi.fn();
+
+    mockEm.findOne.mockResolvedValue({ email: mockProfessional.email, active: true });
 
     await verifyToken(reqProf, resProf, nextProf);
 
@@ -258,5 +257,38 @@ describe("Integración: Flujo completo de creación y aceptación de turno", () 
     expect(foundAppointment.room.office.city.nameCity).toBe("Rosario");
     expect(foundAppointment.room.office.description).toBe("Consultorio Central");
     expect(foundAppointment.room.description).toBe("Sala 1");
+  });
+});
+
+// ============================================================
+// TEST DE INTEGRACION: un usuario baneado (active = false) no
+// puede operar aunque tenga un token emitido antes del baneo
+// ============================================================
+describe("Integracion: usuario deshabilitado por el admin", () => {
+  const peopleService = new PeopleService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("debe rechazar con 403 los requests de un usuario baneado despues de emitido el token", async () => {
+    // El paciente se loguea normalmente y obtiene un token valido
+    const { token } = await peopleService.createPersonTokens(mockClient.email, mockClient.type);
+
+    // El admin lo deshabilita: en la base queda active = false
+    mockEm.findOne.mockResolvedValue({ ...mockClient, active: false });
+
+    const req: any = { headers: { authorization: `Bearer ${token}` } };
+    const jsonMock = vi.fn();
+    const statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+    const res: any = { status: statusMock };
+    const next = vi.fn();
+
+    await verifyToken(req, res, next);
+
+    // El token sigue siendo criptograficamente valido, pero el usuario no puede operar
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(jsonMock).toHaveBeenCalledWith({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+    expect(next).not.toHaveBeenCalled();
   });
 });

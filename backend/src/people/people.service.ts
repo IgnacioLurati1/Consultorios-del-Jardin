@@ -166,16 +166,20 @@ export class PeopleService {
   }
 
   async changePassword(token: any, newPassword: string) {
+    let email: string;
+
     try {
       const decodedToken = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
-      const email = decodedToken.email;
-      const person = await em.findOneOrFail(Person, { email });
-      const newPasswordHash = await bcrypt.hash(newPassword, 10);
-      person.password = newPasswordHash;
-      await em.flush();
+      email = decodedToken.email;
     } catch (error: any) {
       throw new Error("Token expirado");
     }
+
+    const person = await em.findOneOrFail(Person, { email });
+    if (!person.active) throw new Error("USER_DISABLED"); // un usuario deshabilitado no puede cambiar su contraseña
+
+    person.password = await bcrypt.hash(newPassword, 10);
+    await em.flush();
   }
 
   async deletePersonRequest(email: string) {

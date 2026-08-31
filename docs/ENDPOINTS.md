@@ -5,6 +5,13 @@ Base URL: `http://localhost:3000/api`
 > **Auth:** La mayoría de endpoints requieren header `Authorization: Bearer <token>`.
 > Las rutas públicas (❌) están marcadas explícitamente.
 
+> **Usuarios deshabilitados:** una persona con `active = false` (baneada por el admin, o
+> profesional cuya solicitud todavía no fue aprobada) no puede operar en la app. Se le
+> rechaza el login, la renovación del token, la recuperación de contraseña y **cualquier
+> endpoint autenticado**, con `403 { "message": "Usuario deshabilitado", "code": "USER_DISABLED" }`.
+> El chequeo se hace contra la base en cada request, así que un ban corta la sesión al instante
+> aunque el usuario ya tenga un token emitido.
+
 ---
 
 ## Auth / Token
@@ -18,6 +25,27 @@ Base URL: `http://localhost:3000/api`
 ```json
 { "message": "Token válido" }
 ```
+
+### POST `/refreshToken`
+
+El refresh token viaja únicamente en la cookie httpOnly `refreshToken`, así que el JS de la
+página no puede leerlo (defensa ante XSS). El front debe llamar a este endpoint con
+`withCredentials: true`.
+
+**Respuesta 200:**
+```json
+{ "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+```
+
+| Código | Causa |
+|--------|-------|
+| 401 | No llegó la cookie con el refresh token |
+| 403 | Refresh token inválido o expirado |
+| 403 | Usuario deshabilitado (`code: "USER_DISABLED"`) |
+
+> El refresh token dura 30 días y **no rota**: se emite una vez en el login/registro y no se
+> guarda en el servidor. El logout es del lado del cliente. La forma de matar una sesión es
+> deshabilitar a la persona (`active = false`).
 
 ---
 
@@ -68,17 +96,24 @@ Base URL: `http://localhost:3000/api`
 ```json
 {
   "message": "Login exitoso",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "email": "usuario@mail.com",
-    "name": "Juan",
-    "surname": "Pérez",
-    "type": "client",
-    "speciality": null,
-    "active": true
-  }
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+> `token` es el access token (15 min) y va en `Authorization: Bearer`.
+> El refresh token (30 días) **no** viene en el body: se setea como cookie httpOnly.
+> El registro (`POST /people/`) devuelve lo mismo, más `data` con la persona creada.
+
+### POST `/people/logout`
+> No requiere body. Borra la cookie del refresh token.
+
+**Respuesta 200:**
+```json
+{ "message": "Sesión cerrada" }
+```
+
+> El logout no invalida el refresh token del lado del servidor: solo borra la cookie.
+> Sigue siendo válido hasta que expire.
 
 ### Body PATCH `/people/changePassword`
 ```json
@@ -99,11 +134,11 @@ Base URL: `http://localhost:3000/api`
 | GET | `/appointments/pending` | ✅ | professional | Turnos pendientes del profesional |
 | GET | `/appointments/medical-history` | ✅ | — | Historial médico personal |
 | GET | `/appointments/medical-history/:patientEmail` | ✅ | professional | Historial médico de un paciente |
-| GET | `/appointments/:numAppointment/diagnostic` | ✅ | — | Diagnóstico del turno para el paciente autenticado |
-| GET | `/appointments/:numAppointment/diagnostics` | ✅ | professional | Todos los diagnósticos de un turno |
+| GET | `/appointments/:numAppointment/diagnostic` | ✅ | — | Parte clínica del turno para el paciente autenticado |
+| GET | `/appointments/:numAppointment/diagnostics` | ✅ | professional | Parte clínica del turno (array de 0 o 1 elemento) |
 | POST | `/appointments/` | ✅ | — | Crear turno (desde paciente) |
 | POST | `/appointments/professional` | ✅ | professional | Crear turno (desde profesional) |
-| POST | `/appointments/patient/:numAppointment` | ✅ | professional | Agregar paciente a turno existente |
+| POST | `/appointments/patient/:numAppointment` | ✅ | professional | Asignar el paciente de un turno sin paciente |
 | POST | `/appointments/getAppointments` | ✅ | — | Consultar turnos disponibles para el paciente |
 | POST | `/appointments/secretary-response` | ✅ | client | Asistente virtual IA (Groq) |
 | PATCH | `/appointments/:numAppointment/observations` | ✅ | professional | Agregar observaciones a diagnóstico |
@@ -120,7 +155,6 @@ Base URL: `http://localhost:3000/api`
 {
   "date": "2025-03-15",
   "initialHour": "09:00",
-  "type": "simple",
   "professionalEmail": "doctor@mail.com",
   "office": 1
 }
@@ -135,7 +169,6 @@ Base URL: `http://localhost:3000/api`
     "initialHour": "09:00",
     "finalHour": "09:30",
     "value": 5000,
-    "type": "simple",
     "professionalEmail": "doctor@mail.com",
     "room": { "idRoom": 1, "description": "Consultorio A" }
   }
@@ -150,7 +183,6 @@ Base URL: `http://localhost:3000/api`
   "date": "2025-03-15",
   "initialHour": "09:00",
   "finalHour": "09:30",
-  "type": "simple",
   "room": 1,
   "value": 5000,
   "patientEmail": "paciente@mail.com"
@@ -168,7 +200,6 @@ Base URL: `http://localhost:3000/api`
     "initialHour": "09:00",
     "finalHour": "09:30",
     "value": 5000,
-    "type": "simple",
     "professionalEmail": "doctor@mail.com",
     "room": { "idRoom": 1, "description": "Consultorio A" }
   }
@@ -177,12 +208,13 @@ Base URL: `http://localhost:3000/api`
 
 ---
 
-### POST `/appointments/patient/:numAppointment` — Agregar paciente a turno (taller)
+### POST `/appointments/patient/:numAppointment` — Asignar paciente a un turno
 ```json
 {
   "patientEmail": "nuevopaciente@mail.com"
 }
 ```
+> Solo funciona si el turno todavía no tiene paciente. Un turno tiene como máximo uno.
 **Respuesta 201:**
 ```json
 { "message": "Paciente añadido con éxito!" }
@@ -250,9 +282,10 @@ Base URL: `http://localhost:3000/api`
 
 ### PATCH `/appointments/:numAppointment/cancel` — Cancelar turno
 > No requiere body. Funciona tanto para `client` como `professional`.
-> - Si es `simple` y `pending` → se elimina el turno
-> - Si es `simple` y `accepted` → state pasa a ISO timestamp (cancelado)
-> - Si es `taller` y lo cancela el cliente → solo cancela su diagnostic
+> - `pending` → se elimina el turno
+> - `accepted` → state pasa a ISO timestamp (cancelado)
+> - `assisted` → error: no se puede cancelar un turno ya asistido
+> - Si lo cancela el `client`, además se le avisa por mail al profesional
 
 **Respuesta 200:**
 ```json
@@ -269,7 +302,9 @@ Base URL: `http://localhost:3000/api`
   "observations": "Paciente asistió sin inconvenientes."
 }
 ```
-> `state` válidos: `"pending"`, `"assisted"`, `"canceled"`
+> `state` válidos: `"pending"`, `"accepted"`, `"assisted"`.
+> Para cancelar hay que usar `PATCH /appointments/:numAppointment/cancel`.
+> `patientEmail` es opcional; si se manda, se valida que sea el paciente del turno.
 
 **Respuesta 200:**
 ```json
@@ -366,11 +401,9 @@ Base URL: `http://localhost:3000/api`
   "initialHour": "09:00",
   "finalHour": "12:00",
   "duration": 30,
-  "allowedType": "simple",
   "room": 1
 }
 ```
-> `allowedType`: `"simple"` o `"taller"`
 > `duration`: duración en minutos de cada slot (ej: 30)
 
 ---
@@ -423,20 +456,11 @@ Base URL: `http://localhost:3000/api`
 |-------|-------------|
 | `"pending"` | Creado, esperando aceptación del profesional |
 | `"accepted"` | Aceptado por el profesional |
+| `"assisted"` | El paciente asistió (lo marca el profesional) |
 | ISO timestamp | Cancelado (ej: `"2025-03-10T14:30:00.000Z"`) |
 
-### Diagnostic.state
-| Valor | Significado |
-|-------|-------------|
-| `"pending"` | Turno aún no realizado |
-| `"assisted"` | Paciente asistió |
-| `"canceled"` | Paciente canceló su participación |
-
-### Appointment.type
-| Valor | Significado |
-|-------|-------------|
-| `"simple"` | 1 solo paciente |
-| `"taller"` | Múltiples pacientes |
+> El estado del turno y el del diagnóstico se unificaron en este campo:
+> `Diagnostic` dejó de ser una entidad y un turno tiene un solo paciente.
 
 ### Person.type (roles)
 | Valor | Acceso |
@@ -452,7 +476,7 @@ Base URL: `http://localhost:3000/api`
 | Código | Causa |
 |--------|-------|
 | 401 | Token ausente, inválido o expirado |
-| 403 | Rol insuficiente para la operación |
+| 403 | Rol insuficiente, o usuario deshabilitado (`code: "USER_DISABLED"`) |
 | 404 | Recurso no encontrado |
 | 409 | Conflicto — turno duplicado en misma fecha/hora |
 | 500 | Error interno del servidor (ver `message` en respuesta) |

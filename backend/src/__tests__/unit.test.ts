@@ -1,26 +1,30 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import jwt from "jsonwebtoken";
 
 // ============================================================
 // Mock del módulo orm ANTES de importar cualquier servicio
-// Esto evita que MikroORM intente conectarse a MySQL
+// Esto evita que MikroORM intente conectarse a MySQL.
+// Usamos vi.hoisted() para poder configurar las respuestas del
+// EntityManager desde cada test (verifyToken consulta la base
+// para saber si el usuario está deshabilitado).
 // ============================================================
-vi.mock("../shared/db/orm.js", () => ({
-  orm: {
-    em: {
-      find: vi.fn(),
-      findOne: vi.fn(),
-      findOneOrFail: vi.fn(),
-      create: vi.fn(),
-      flush: vi.fn(),
-      removeAndFlush: vi.fn(),
-      assign: vi.fn(),
-      populate: vi.fn(),
-      nativeDelete: vi.fn(),
-      createQueryBuilder: vi.fn(),
-    },
-    syncSchema: vi.fn(),
+const { mockEm } = vi.hoisted(() => ({
+  mockEm: {
+    find: vi.fn(),
+    findOne: vi.fn(),
+    findOneOrFail: vi.fn(),
+    create: vi.fn(),
+    flush: vi.fn(),
+    removeAndFlush: vi.fn(),
+    assign: vi.fn(),
+    populate: vi.fn(),
+    nativeDelete: vi.fn(),
+    createQueryBuilder: vi.fn(),
   },
+}));
+
+vi.mock("../shared/db/orm.js", () => ({
+  orm: { em: mockEm },
   syncSchema: vi.fn(),
 }));
 
@@ -39,8 +43,13 @@ process.env.CHANGE_SECRET = "test-change-secret-key";
 
 // Ahora sí importamos los módulos que queremos testear
 import { verifyToken } from "../config/middlewares.js";
-import { sanitizePersonInput } from "../people/people.controller.js";
+import { sanitizePersonInput, logOut } from "../people/people.controller.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
+import refreshTokenHandler from "../config/refreshToken.js";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // ============================================================
 // TEST 1: verifyToken rechaza requests sin token
@@ -68,9 +77,12 @@ describe("verifyToken - sin token", () => {
 // TEST 2: verifyToken llama next() con token válido
 // ============================================================
 describe("verifyToken - token válido", () => {
-  it("debe setear req.user y llamar next() cuando el token es válido", async () => {
+  it("debe setear req.user y llamar next() cuando el token es válido y el usuario está activo", async () => {
     const payload = { email: "test@test.com", type: "client" };
     const token = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: "15m" });
+
+    // El middleware consulta la base para verificar que el usuario no esté deshabilitado
+    mockEm.findOne.mockResolvedValue({ email: "test@test.com", active: true });
 
     const req: any = {
       headers: {
@@ -93,7 +105,49 @@ describe("verifyToken - token válido", () => {
 });
 
 // ============================================================
-// TEST 3: sanitizePersonInput limpia campos undefined
+// TEST 3: verifyToken bloquea usuarios deshabilitados (baneados)
+// ============================================================
+describe("verifyToken - usuario deshabilitado", () => {
+  it("debe retornar 403 aunque el token sea válido, si active es false", async () => {
+    const payload = { email: "baneado@test.com", type: "client" };
+    const token = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: "15m" });
+
+    mockEm.findOne.mockResolvedValue({ email: "baneado@test.com", active: false });
+
+    const req: any = { headers: { authorization: `Bearer ${token}` } };
+    const jsonMock = vi.fn();
+    const statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+    const res: any = { status: statusMock };
+    const next = vi.fn();
+
+    await verifyToken(req, res, next);
+
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(jsonMock).toHaveBeenCalledWith({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("debe retornar 403 si la persona del token ya no existe en la base", async () => {
+    const payload = { email: "fantasma@test.com", type: "client" };
+    const token = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: "15m" });
+
+    mockEm.findOne.mockResolvedValue(null);
+
+    const req: any = { headers: { authorization: `Bearer ${token}` } };
+    const jsonMock = vi.fn();
+    const statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+    const res: any = { status: statusMock };
+    const next = vi.fn();
+
+    await verifyToken(req, res, next);
+
+    expect(statusMock).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================
+// TEST 4: sanitizePersonInput limpia campos undefined
 // ============================================================
 describe("sanitizePersonInput", () => {
   it("debe eliminar campos undefined y conservar los definidos, luego llamar next()", () => {
@@ -133,7 +187,7 @@ describe("sanitizePersonInput", () => {
 });
 
 // ============================================================
-// TEST 4: ScheduleService.isValidHourFormat
+// TEST 5: ScheduleService.isValidHourFormat
 // ============================================================
 describe("ScheduleService.isValidHourFormat", () => {
   const scheduleService = new ScheduleService();
@@ -156,7 +210,7 @@ describe("ScheduleService.isValidHourFormat", () => {
 });
 
 // ============================================================
-// TEST 5: ScheduleService.isValidDay
+// TEST 6: ScheduleService.isValidDay
 // ============================================================
 describe("ScheduleService.isValidDay", () => {
   const scheduleService = new ScheduleService();
@@ -174,5 +228,88 @@ describe("ScheduleService.isValidDay", () => {
     expect(scheduleService.isValidDay("")).toBe(false);
     expect(scheduleService.isValidDay("sunday")).toBe(false);
     expect(scheduleService.isValidDay("monday")).toBe(false);
+  });
+});
+
+
+// ============================================================
+// TEST 7: /api/refreshToken lee el refresh token de la cookie httpOnly
+// ============================================================
+describe("refreshToken", () => {
+  // Devuelve un res mockeado y una promesa que resuelve cuando el handler responde,
+  // porque el callback de jwt.verify es asincronico.
+  function mockRes() {
+    let resolveDone: () => void = () => {};
+    const done = new Promise<void>((r) => (resolveDone = r));
+    const json = vi.fn((_payload?: any) => {
+      resolveDone();
+    });
+    const status = vi.fn(() => ({ json }));
+    return { res: { status, json } as any, done, status, json };
+  }
+
+  function validRefreshToken() {
+    return jwt.sign({ email: "test@test.com", type: "client" }, process.env.REFRESH_SECRET as string, { expiresIn: "30d" });
+  }
+
+  it("debe retornar 401 si no hay cookie de refresh token", async () => {
+    const { res, done, status, json } = mockRes();
+
+    refreshTokenHandler({ cookies: {} } as any, res);
+    await done;
+
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith({ message: "Token inexistente" });
+  });
+
+  it("debe emitir un access token nuevo a partir de la cookie", async () => {
+    mockEm.findOne.mockResolvedValue({ email: "test@test.com", active: true });
+    const { res, done, json } = mockRes();
+
+    refreshTokenHandler({ cookies: { refreshToken: validRefreshToken() } } as any, res);
+    await done;
+
+    const payload = json.mock.calls[0][0] as any;
+    expect(payload.token).toBeDefined();
+    const decoded = jwt.verify(payload.token, process.env.JWT_SECRET as string) as any;
+    expect(decoded.email).toBe("test@test.com");
+  });
+
+  it("debe rechazar con 403 el refresh de un usuario deshabilitado", async () => {
+    mockEm.findOne.mockResolvedValue({ email: "test@test.com", active: false });
+    const { res, done, status, json } = mockRes();
+
+    refreshTokenHandler({ cookies: { refreshToken: validRefreshToken() } } as any, res);
+    await done;
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(json).toHaveBeenCalledWith({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+  });
+
+  it("debe rechazar con 403 un refresh token invalido", async () => {
+    const { res, done, status } = mockRes();
+
+    refreshTokenHandler({ cookies: { refreshToken: "no-es-un-jwt" } } as any, res);
+    await done;
+
+    expect(status).toHaveBeenCalledWith(403);
+  });
+});
+
+// ============================================================
+// TEST 8: logout tiene que responder (antes dejaba el request colgado)
+// ============================================================
+describe("logOut", () => {
+  it("debe limpiar la cookie y responder 200", async () => {
+    const clearCookie = vi.fn();
+    const json = vi.fn();
+    const status = vi.fn().mockReturnValue({ json });
+    const res: any = { clearCookie, status };
+
+    await logOut({} as any, res);
+
+    expect(clearCookie).toHaveBeenCalledWith("refreshToken", expect.objectContaining({ httpOnly: true }));
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith({ message: "Sesión cerrada" });
   });
 });

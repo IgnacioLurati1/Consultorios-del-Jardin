@@ -1,7 +1,6 @@
-import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique, ManyToMany, OneToMany, Collection, Cascade } from "@mikro-orm/core";
+import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
-import { Diagnostic } from "./diagnostics.entity.js";
 
 @Entity()
 @Unique({ properties: ["date", "initialHour", "professional", "state"] })
@@ -21,17 +20,22 @@ export class Appointment {
   @Property({ nullable: true })
   value!: number;
 
-  @Property({ nullable: false })
-  type!: "simple" | "taller";
-
-  @OneToMany(() => Diagnostic, (diagnostic) => diagnostic.appointment, { orphanRemoval: true, cascade: [Cascade.REMOVE] })
-  diagnostics = new Collection<Diagnostic>(this);
-
+  // pending -> accepted -> assisted. Al cancelar se guarda un ISO timestamp,
+  // para que el unique index de arriba permita volver a sacar turno en el mismo horario.
   @Property({ default: "pending" })
   state: string = "pending";
 
+  // Observaciones clínicas que carga el profesional (antes vivían en Diagnostic)
+  @Property({ nullable: true, type: "text" })
+  observations?: string | null;
+
   @ManyToOne(() => Person, { nullable: false })
   professional!: Rel<Person>;
+
+  // Un turno tiene un solo paciente. Es nullable porque el profesional puede
+  // crear el turno primero y asignar el paciente después.
+  @ManyToOne(() => Person, { nullable: true })
+  patient?: Rel<Person> | null;
 
   @ManyToOne(() => Room, { nullable: false })
   room!: Rel<Room>;

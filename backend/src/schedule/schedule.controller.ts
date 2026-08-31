@@ -13,7 +13,6 @@ function sanitizeScheduleInput(req: Request, res: Response, next: NextFunction) 
     room: req.body.room,
     finalHour: req.body.finalHour,
     active: req.body.active !== undefined ? req.body.active : true, // Default state to true if not provided
-    allowedType: req.body.allowedType,
     duration: req.body.duration,
   };
   Object.keys(req.body.sanitizedInput).forEach((key) => {

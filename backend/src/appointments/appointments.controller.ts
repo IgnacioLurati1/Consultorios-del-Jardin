@@ -14,7 +14,6 @@ function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunctio
     initialHour: req.body.initialHour,
     finalHour: req.body.finalHour,
     value: req.body.value,
-    type: req.body.type,
     office: req.body.office,
     professionalEmail: req.body.professionalEmail,
     room: req.body.room,
@@ -119,15 +118,8 @@ async function getPendingAppointments(req: RequestWithUser, res: Response) {
 
 async function createPatientAppointment(req: RequestWithUser, res: Response) {
   try {
-    const { date, initialHour, type, professionalEmail, office } = req.body.sanitizedInput;
-    const appointment = await appointmentService.createPatientAppointment(
-      req.user.email,
-      date,
-      initialHour,
-      type,
-      professionalEmail,
-      office
-    );
+    const { date, initialHour, professionalEmail, office } = req.body.sanitizedInput;
+    const appointment = await appointmentService.createPatientAppointment(req.user.email, date, initialHour, professionalEmail, office);
     res.status(201).json({ message: "Turno creado con éxito", data: appointment });
   } catch (error: any) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
@@ -144,11 +136,10 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    const { date, initialHour, type, room, value, finalHour } = req.body.sanitizedInput;
+    const { date, initialHour, room, value, finalHour } = req.body.sanitizedInput;
     const appointment = await appointmentService.updateAppointment(numAppointment, req.user.email, {
       date,
       initialHour,
-      type,
       room,
       value,
       finalHour,
@@ -233,13 +224,12 @@ async function createProfessionalAppointment(req: RequestWithUser, res: Response
   try {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
-    const { date, initialHour, finalHour, room, value, type, patientEmail } = req.body.sanitizedInput;
+    const { date, initialHour, finalHour, room, value, patientEmail } = req.body.sanitizedInput;
     const professionalEmail = req.user.email;
     const appointment = await appointmentService.createProfessionalAppointment(
       date,
       initialHour,
       finalHour,
-      type,
       room,
       value,
       professionalEmail,
@@ -258,7 +248,7 @@ async function addPatientToAppointment(req: RequestWithUser, res: Response) {
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const patientEmail = req.body.sanitizedInput.patientEmail;
 
-    const diagnostic = await appointmentService.addPatientToAppointment(numAppointment, patientEmail, req.user.email);
+    await appointmentService.addPatientToAppointment(numAppointment, patientEmail, req.user.email);
 
     res.status(201).json({ message: "Paciente añadido con éxito!" });
   } catch (error: any) {
