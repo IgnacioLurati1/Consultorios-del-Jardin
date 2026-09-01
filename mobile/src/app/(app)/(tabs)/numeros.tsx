@@ -176,8 +176,8 @@ export default function OfficeNumbersScreen() {
         <View style={styles.spaced}>
           <Note>
             {channels.since
-              ? `Se anota cada vez que alguien inicia sesión o vuelve a entrar, desde el ${longDate(channels.since)}. Sobre ${channels.accounts} cuentas.`
-              : `Todavía no entró nadie desde que se empezó a medir. Son ${channels.accounts} cuentas.`}
+              ? `Sobre ${channels.accounts} cuentas, desde el ${longDate(channels.since)}.`
+              : `Todavía no entró nadie desde que se mide. Son ${channels.accounts} cuentas.`}
           </Note>
         </View>
       </Section>

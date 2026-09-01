@@ -4,7 +4,6 @@ import { agendaDay } from "../../../api/agenda";
 import { ChipRow } from "../../../components/Chip";
 import { Screen } from "../../../components/Screen";
 import { ErrorState, SkeletonList } from "../../../components/States";
-import { Note } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { DayGrid } from "../../../features/DayGrid";
 import { addDays, mondayOf, sentenceCase, toISODate } from "../../../lib/dates";
@@ -99,13 +98,6 @@ export default function DayScreen() {
         <>
           <View style={styles.pad}>
             <AppText variant="displaySmall">{sentenceCase(state.data.day)}</AppText>
-            <View style={styles.gap}>
-              <Note>
-                {shows === "schedules"
-                  ? "Una columna por consultorio, y cada franja es un módulo de atención. El color es del profesional: el mismo en todos los consultorios donde atienda ese día."
-                  : "Los mismos consultorios, con los turnos cargados. Los cancelados no se dibujan."}
-              </Note>
-            </View>
           </View>
 
           <View style={styles.grid}>
@@ -116,11 +108,11 @@ export default function DayScreen() {
             <AppText variant="caption" tone="muted">
               {shows === "schedules"
                 ? state.data.schedules.length === 0
-                  ? "Ningún profesional atiende este día."
+                  ? "Nadie atiende este día."
                   : `${state.data.schedules.length} módulos de atención.`
                 : state.data.appointments.length === 0
-                  ? "No hay turnos cargados para este día."
-                  : `${state.data.appointments.length} turnos${state.data.cancelled > 0 ? `, más ${state.data.cancelled} cancelados que no se dibujan` : ""}.`}
+                  ? "Sin turnos este día."
+                  : `${state.data.appointments.length} turnos${state.data.cancelled > 0 ? ` · ${state.data.cancelled} cancelados no se dibujan` : ""}.`}
             </AppText>
           </View>
         </>
@@ -132,6 +124,5 @@ export default function DayScreen() {
 const styles = StyleSheet.create({
   controls: { paddingHorizontal: SCREEN_PADDING, marginTop: space.md },
   pad: { paddingHorizontal: SCREEN_PADDING, marginTop: space.lg },
-  gap: { marginTop: space.md },
   grid: { marginTop: space.lg, paddingLeft: space.sm },
 });

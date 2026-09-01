@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
+import { FaMagnifyingGlass, FaTableColumns, FaXmark } from "react-icons/fa6";
 import type { Person, Room } from "../../types.ts";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import "./professionalPicker.css";
@@ -14,6 +14,8 @@ interface ProfessionalPickerProps {
   /** Si se pasan consultorios, la ventana ofrece además arrancar por consultorio. */
   rooms?: Room[];
   onSelectRoom?: (room: Room) => void;
+  /** Tercera puerta: el día completo, sin elegir a nadie en particular. */
+  onSelectDay?: () => void;
 }
 
 const normalize = (text: string) =>
@@ -25,8 +27,11 @@ const normalize = (text: string) =>
 /**
  * Ventana previa de la pantalla de horarios.
  *
- * Se puede entrar por profesional (para ver su agenda) o por consultorio (para ver su
- * ocupación completa). Ninguno de los dos es obligatorio antes que el otro.
+ * Tres puertas a lo mismo: un profesional (su agenda de la semana), un consultorio (quién
+ * lo ocupa) o un día (todo el equipo a la vez). Ninguna es obligatoria antes que otra.
+ *
+ * La del día va abajo y no en una tercera columna porque no se busca nada: es un solo
+ * botón, y ponerlo al lado de dos buscadores lo haría parecer un tercer buscador vacío.
  */
 export function ProfessionalPicker({
   isOpen,
@@ -36,6 +41,7 @@ export function ProfessionalPicker({
   onClose,
   rooms,
   onSelectRoom,
+  onSelectDay,
 }: ProfessionalPickerProps) {
   const [search, setSearch] = useState("");
   const [roomSearch, setRoomSearch] = useState("");
@@ -88,9 +94,7 @@ export function ProfessionalPicker({
           <div>
             <h2 className="picker-title">{offersRooms ? "¿Qué querés ver?" : "Buscar profesional"}</h2>
             <p className="picker-subtitle">
-              {offersRooms
-                ? "Podés arrancar por la agenda de un profesional o por la ocupación de un consultorio."
-                : "Elegí de quién querés ver la agenda semanal."}
+              {offersRooms ? "Un profesional, un consultorio o un día entero." : "Elegí de quién querés ver la agenda semanal."}
             </p>
           </div>
           {onClose && (
@@ -198,6 +202,16 @@ export function ProfessionalPicker({
             </section>
           )}
         </div>
+
+        {onSelectDay && (
+          <button type="button" className="picker-day" onClick={onSelectDay}>
+            <FaTableColumns />
+            <span>
+              <strong>Ver un día completo</strong>
+              <small>Todos los profesionales, consultorio por consultorio</small>
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

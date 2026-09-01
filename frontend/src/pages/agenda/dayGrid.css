@@ -23,6 +23,7 @@
    se está mirando es la mitad de la lectura. */
 .dg-corner,
 .dg-head {
+  box-sizing: border-box;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -65,6 +66,7 @@
 }
 
 .dg-col {
+  box-sizing: border-box;
   position: relative;
   border-left: 1px solid var(--adm-border);
 }
@@ -80,20 +82,22 @@
 
 /* ---------- los bloques ---------- */
 
+/* border-box no está puesto globalmente en el proyecto: sin esto el padding y los
+   bordes se suman al width y el bloque se desborda sobre la columna de al lado. */
 .dg-block {
+  box-sizing: border-box;
   position: absolute;
   display: flex;
   flex-direction: column;
-  gap: 1px;
   overflow: hidden;
-  padding: 5px 8px;
+  padding: 4px 7px;
   text-align: left;
   font: inherit;
   color: var(--adm-text);
   border: 1px solid var(--adm-border);
-  border-left-width: 4px;
+  border-left-width: 3px;
   border-left-style: solid;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: default;
 }
 
@@ -107,49 +111,40 @@
   box-shadow: var(--adm-shadow);
 }
 
+/* La hora y, a la derecha, el único dato que distingue este bloque del de al lado: si es
+   sobreturno, o cuánto dura el módulo. Todo lo demás se lee del alto y de la columna. */
+.dg-block-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .dg-block-hour {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--adm-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.dg-block-name {
-  font-size: 0.84rem;
-  font-weight: 700;
-  line-height: 1.2;
+.dg-block-meta {
+  overflow: hidden;
+  font-size: 0.66rem;
+  color: var(--adm-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.dg-block-patient {
-  font-size: 0.78rem;
-  color: var(--adm-muted);
+.dg-block-name {
+  font-size: 0.79rem;
+  font-weight: 700;
   line-height: 1.25;
 }
 
-.dg-block-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-.dg-tag {
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--adm-bg);
-  border: 1px solid var(--adm-border);
-  font-size: 0.7rem;
-  font-style: normal;
-  font-weight: 600;
+.dg-block-patient {
+  font-size: 0.73rem;
   color: var(--adm-muted);
-}
-
-/* Un sobreturno o un turno que se repite no es un estado: es de qué clase es el turno.
-   Va marcado para que no se lea como una etiqueta más. */
-.dg-tag-kind {
-  background: var(--adm-green-soft);
-  border-color: transparent;
-  color: var(--adm-green-dark);
+  line-height: 1.25;
 }
 
 .dg-empty {

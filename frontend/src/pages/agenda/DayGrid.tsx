@@ -57,18 +57,11 @@ function pack<T extends Span>(items: T[]): { item: T; lane: number; lanes: numbe
   return placed.map((entry) => ({ ...entry, lanes: lastOf.length }));
 }
 
-const STATE_LABELS: Record<string, string> = {
-  pending: "A confirmar",
-  accepted: "Confirmado",
-  assisted: "Asistió",
-  missed: "No vino",
-};
-
-/** Qué clase de turno es, en una palabra. El estado va aparte: son dos cosas distintas. */
-function kindOf(appointment: AgendaAppointment): string | null {
-  if (appointment.overbooked) return "Sobreturno";
-  if (appointment.recurring) return "Se repite";
-  return null;
+/** Qué clase de turno es, en una palabra. Los normales no dicen nada: son la mayoría. */
+function kindOf(appointment: AgendaAppointment): string {
+  if (appointment.overbooked) return "sobreturno";
+  if (appointment.recurring) return "repetido";
+  return "";
 }
 
 interface DayGridProps {
@@ -162,28 +155,20 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
                   role={pick ? "button" : undefined}
                   tabIndex={pick ? 0 : undefined}
                 >
-                  <span className="dg-block-hour">
-                    {item.initialHour}–{item.finalHour}
+                  <span className="dg-block-top">
+                    <span className="dg-block-hour">{item.initialHour}</span>
+                    <span className="dg-block-meta">{isAppointment ? kindOf(item) : `${item.duration} min`}</span>
                   </span>
+
                   <span className="dg-block-name">
                     {item.professional.surname}, {item.professional.name}
                   </span>
 
                   {isAppointment ? (
-                    <>
-                      <span className="dg-block-patient">
-                        {item.patient ? `${item.patient.surname}, ${item.patient.name}` : "Sin paciente asignado"}
-                      </span>
-                      <span className="dg-block-tags">
-                        {kindOf(item) && <em className="dg-tag dg-tag-kind">{kindOf(item)}</em>}
-                        <em className="dg-tag">{STATE_LABELS[item.state] ?? item.state}</em>
-                      </span>
-                    </>
-                  ) : (
                     <span className="dg-block-patient">
-                      {item.professional.speciality ?? "Sin especialidad"} · turnos de {item.duration} min
+                      {item.patient ? `${item.patient.surname}, ${item.patient.name}` : "Sin paciente"}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               );
             })}

@@ -62,18 +62,11 @@ function pack<T extends Span>(items: T[]): { item: T; lane: number; lanes: numbe
   return placed.map((entry) => ({ ...entry, lanes: lastOf.length }));
 }
 
-const STATE_LABELS: Record<string, string> = {
-  pending: "A confirmar",
-  accepted: "Confirmado",
-  assisted: "Asistió",
-  missed: "No vino",
-};
-
-/** Qué clase de turno es. El estado va aparte: son dos cosas distintas. */
-function kindOf(appointment: AgendaAppointment): string | null {
-  if (appointment.overbooked) return "Sobreturno";
-  if (appointment.recurring) return "Se repite";
-  return null;
+/** Qué clase de turno es, en una palabra. Los normales no dicen nada: son la mayoría. */
+function kindOf(appointment: AgendaAppointment): string {
+  if (appointment.overbooked) return "sobreturno";
+  if (appointment.recurring) return "repetido";
+  return "";
 }
 
 /**
@@ -153,7 +146,6 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
                   const color = colorFor(item.professional.email);
                   const width = COLUMN_WIDTH / lanes - 4;
                   const isAppointment = "numAppointment" in item;
-                  const kind = isAppointment ? kindOf(item) : null;
 
                   return (
                     <View
@@ -171,28 +163,24 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
                         },
                       ]}
                     >
-                      <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.blockHour}>
-                        {item.initialHour}–{item.finalHour}
-                      </AppText>
+                      <View style={styles.blockTop}>
+                        <AppText variant="caption" tone="muted" style={styles.blockHour}>
+                          {item.initialHour}
+                        </AppText>
+                        <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.blockMeta}>
+                          {isAppointment ? kindOf(item) : `${item.duration} min`}
+                        </AppText>
+                      </View>
+
                       <AppText variant="caption" numberOfLines={1} style={{ color: colors.text, fontWeight: "700" }}>
                         {item.professional.surname}
                       </AppText>
 
                       {isAppointment ? (
-                        <>
-                          <AppText variant="caption" tone="muted" numberOfLines={1}>
-                            {item.patient ? `${item.patient.surname}, ${item.patient.name}` : "Sin paciente"}
-                          </AppText>
-                          <AppText variant="caption" tone="muted" numberOfLines={1}>
-                            {kind ? `${kind} · ` : ""}
-                            {STATE_LABELS[item.state] ?? item.state}
-                          </AppText>
-                        </>
-                      ) : (
                         <AppText variant="caption" tone="muted" numberOfLines={1}>
-                          turnos de {item.duration} min
+                          {item.patient ? `${item.patient.surname}, ${item.patient.name}` : "Sin paciente"}
                         </AppText>
-                      )}
+                      ) : null}
                     </View>
                   );
                 })}
@@ -228,5 +216,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderRadius: radius.sm,
   },
-  blockHour: { fontVariant: ["tabular-nums"] },
+  blockTop: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: space.xs },
+  blockHour: { fontVariant: ["tabular-nums"], fontWeight: "700" },
+  blockMeta: { flexShrink: 1 },
 });

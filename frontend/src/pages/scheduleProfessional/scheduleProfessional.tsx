@@ -364,12 +364,6 @@ export function ScheduleProfessional() {
 
       {inDayMode && (
         <>
-          <p className="schedule-mode-note">
-            {dayShows === "schedules"
-              ? "Una columna por consultorio, y cada franja es un módulo de atención. El color es del profesional: el mismo en todos los consultorios donde atienda ese día."
-              : "Los mismos consultorios, con los turnos que hay cargados. Los cancelados no se dibujan."}
-          </p>
-
           <div className="dg-days">
             <div className="adm-chips">
               {days.map((entry) => (
@@ -416,8 +410,7 @@ export function ScheduleProfessional() {
               <DayGrid data={dayData} mode={dayShows} />
               {dayShows === "appointments" && dayData.cancelled > 0 && (
                 <p className="schedule-mode-note">
-                  Además hay {dayData.cancelled} {dayData.cancelled === 1 ? "turno cancelado" : "turnos cancelados"} ese día,
-                  que no se dibujan.
+                  {dayData.cancelled} {dayData.cancelled === 1 ? "turno cancelado" : "turnos cancelados"} no se dibujan.
                 </p>
               )}
             </>
@@ -456,7 +449,11 @@ export function ScheduleProfessional() {
         onSelect={selectProfessional}
         rooms={rooms}
         onSelectRoom={selectRoomFromPicker}
-        onClose={professional || inRoomMode ? () => setPickerOpen(false) : undefined}
+        onSelectDay={() => {
+          showDay();
+          setPickerOpen(false);
+        }}
+        onClose={professional || inRoomMode || inDayMode ? () => setPickerOpen(false) : undefined}
       />
 
       {professional && !inRoomMode && (

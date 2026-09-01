@@ -43,10 +43,7 @@ export function AccessChannelsSection({ channels }: { channels: AccessChannels }
 
   return (
     <AnalyticsSection title="Por dónde entran" scope={channels.since ? `desde el ${longDate(channels.since)}` : undefined}>
-      <p className="an-note">
-        Se anota cada vez que alguien inicia sesión o vuelve a entrar. Las cuentas "sin registro" no son cuentas
-        muertas: son las que no entraron desde que se empezó a medir.
-      </p>
+      <p className="an-note">"Sin registro" no es una cuenta muerta: es una que no entró desde que se mide.</p>
 
       <KpiGrid>
         <Kpi

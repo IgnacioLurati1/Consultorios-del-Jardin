@@ -287,3 +287,44 @@
     max-height: 30vh;
   }
 }
+
+/* ── La tercera puerta: el día completo ───────────────────────────
+   Cruza el ancho de la ventana, debajo de los dos buscadores. No es una
+   columna más porque acá no se busca nada: se entra y listo. */
+.picker-day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 22px;
+  border: none;
+  border-top: 1px solid var(--adm-border);
+  background: var(--adm-bg);
+  color: var(--adm-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-day:hover,
+.picker-day:focus-visible {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.picker-day svg {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  color: var(--adm-green);
+}
+
+.picker-day span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.picker-day small {
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+}

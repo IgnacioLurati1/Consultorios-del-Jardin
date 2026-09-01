@@ -32,8 +32,7 @@ export default function AlertsScreen() {
     <Screen>
       <Section>
         <AppText variant="small" tone="muted">
-          Cinco minutos antes de cada turno te decimos con quién es y a qué hora. Solo de los turnos que todavía
-          pueden pasar: uno cancelado no avisa.
+          Cinco minutos antes de cada turno te decimos con quién es y a qué hora.
         </AppText>
       </Section>
 
@@ -69,8 +68,7 @@ export default function AlertsScreen() {
 
       <Section>
         <AppText variant="caption" tone="muted">
-          Los avisos los programa este teléfono, así que llegan aunque no tengas señal en ese momento. Se vuelven a
-          armar solos cada vez que abrís la app, para seguir los cambios de la agenda.
+          Los programa este teléfono, así que llegan aunque no tengas señal.
         </AppText>
       </Section>
     </Screen>
