@@ -104,6 +104,19 @@ function summarize(rows: Row[]): Metrics {
   return metrics;
 }
 
+/**
+ * El mismo recorte, sin la plata.
+ *
+ * Lo que factura un profesional es suyo. El admin necesita ver su actividad —cuántos
+ * turnos da, cuántos se le caen, cuántos sobreturnos— y para eso no hace falta el
+ * dinero. El total del consultorio sí queda: ahí la plata es del consultorio y no de
+ * nadie en particular.
+ */
+function withoutBilling<T extends Metrics>(metrics: T): Omit<T, "billed" | "scheduled"> {
+  const { billed, scheduled, ...rest } = metrics;
+  return rest;
+}
+
 /** Promedio de turnos por día y qué día de la semana carga más. Solo mira turnos vivos. */
 function loadByDay(rows: Row[]): { averagePerDay: number; busiestDay: string | null; busiestDayAverage: number } {
   const perDate = new Map<string, number>();
@@ -209,8 +222,11 @@ export class AnalyticsService {
    *
    * El mes en curso viene aparte de los gráficos a propósito: un mes a medio andar
    * dibuja siempre una caída al final que no significa nada.
+   *
+   * `billing` en false devuelve lo mismo sin las dos cifras de plata: es como lo mira
+   * el admin, que controla la agenda del equipo pero no lo que cobra cada uno.
    */
-  async forProfessional(professionalEmail: string) {
+  async forProfessional(professionalEmail: string, { billing = true }: { billing?: boolean } = {}) {
     const professional = await this.assertProfessional(professionalEmail);
 
     const months = closedMonths();
@@ -227,7 +243,7 @@ export class AnalyticsService {
 
     const closed = rows.filter((row) => startOfDay(row.date) < currentFrom);
 
-    return {
+    const report = {
       professional: {
         email: professional.email,
         name: professional.name,
@@ -255,6 +271,16 @@ export class AnalyticsService {
         label: month.label,
         ...summarize(byMonth.get(month.key) ?? []),
       })),
+    };
+
+    // Se saca acá y no en la pantalla: si viaja en la respuesta, está publicado.
+    if (billing) return report;
+
+    return {
+      ...report,
+      recent: report.recent.map(withoutBilling),
+      total: withoutBilling(report.total),
+      months: report.months.map(withoutBilling),
     };
   }
 

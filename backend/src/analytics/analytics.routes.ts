@@ -55,7 +55,7 @@ analyticsRouter.get("/office", getOfficeAnalytics);
  *           type: string
  *     responses:
  *       200:
- *         description: Los mismos números que ve el profesional
+ *         description: Su actividad, sin las cifras de facturación (billed y scheduled)
  *       403:
  *         description: Solo para el administrador
  *       404:

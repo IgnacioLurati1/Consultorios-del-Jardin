@@ -20,12 +20,17 @@ async function getMyAnalytics(req: RequestWithUser, res: Response) {
   }
 }
 
-/** Los números de un profesional puntual, para el admin. */
+/**
+ * Los números de un profesional puntual, para el admin.
+ *
+ * Van sin la plata: el admin controla la actividad del equipo, y lo que factura cada
+ * uno es asunto suyo. El total del consultorio sigue estando en `/analytics/office`.
+ */
 async function getProfessionalAnalytics(req: RequestWithUser, res: Response) {
   try {
     if (req.user.type !== "admin") return res.status(403).json({ message: "Esta vista es solo para el administrador" });
 
-    const data = await analyticsService.forProfessional(req.params.email);
+    const data = await analyticsService.forProfessional(req.params.email, { billing: false });
     res.status(200).json({ data });
   } catch (error: any) {
     sendError(res, error);

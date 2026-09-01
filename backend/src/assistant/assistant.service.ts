@@ -411,8 +411,10 @@ export class AssistantService {
       case "get_my_analytics":
         return this.digestAnalytics(await this.analytics.forProfessional(user.email));
 
+      // Sin la plata, igual que la pantalla: el admin ve la actividad del profesional,
+      // no lo que cobró.
       case "get_professional_analytics":
-        return this.digestAnalytics(await this.analytics.forProfessional(String(args.professionalEmail)));
+        return this.digestAnalytics(await this.analytics.forProfessional(String(args.professionalEmail), { billing: false }));
 
       case "get_office_analytics":
         return this.digestAnalytics(await this.analytics.forOffice());

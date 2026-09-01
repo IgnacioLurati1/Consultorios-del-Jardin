@@ -170,7 +170,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     ["admin"],
     "get_professional_analytics",
     "Números de un profesional",
-    "Estadísticas de un profesional en particular.",
+    "Estadísticas de un profesional en particular: turnos, asistencias, ausencias y sobreturnos. No incluye lo que factura, que es dato suyo; si te lo preguntan, decilo así y ofrecé el total del consultorio.",
     { professionalEmail: { type: "string", description: "Email del profesional." } },
     ["professionalEmail"]
   ),
