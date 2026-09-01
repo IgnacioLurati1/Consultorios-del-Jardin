@@ -165,9 +165,14 @@ export class RecurrenceService {
       created++;
     }
 
-    // Si ya no queda nada por crear antes del corte, la repetición se apaga sola: así el
-    // job de todos los días deja de mirarla y en la pantalla figura como terminada.
-    if (end && addDays(cursor, step) > end) {
+    // Se apaga cuando el corte ya pasó, no cuando terminó de generar.
+    //
+    // Con lo segundo, una repetición "hasta el viernes que viene" nacía apagada: sus
+    // turnos entran todos en el horizonte de cuatro semanas, así que terminaba de generar
+    // en el mismo momento en que se creaba y desaparecía de la lista ese mismo día, con
+    // los turnos ya agendados y sin forma de tocarla. Activa quiere decir vigente, no
+    // "todavía le falta crear algo": mientras el corte no llegue, la repetición existe.
+    if (end && end < today) {
       recurrence.active = false;
       recurrence.stoppedAt = new Date();
     }
