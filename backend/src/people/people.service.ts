@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import sgMail from "@sendgrid/mail";
 import { Schedule } from "../schedule/schedules.entity.js";
 import MailService from "../config/sendGrid.js";
+import { badRequest, conflict } from "../shared/errors.js";
 
 dotenv.config();
 
@@ -57,6 +58,15 @@ export class PeopleService {
 
   async findPersonOrNull(email: string): Promise<Person | null> {
     return em.findOne(Person, { email });
+  }
+
+  /**
+   * ¿Se puede registrar una cuenta con este email? Un paciente anónimo no ocupa el
+   * lugar: registrarse con su email lo convierte en cuenta real (ver createPerson).
+   */
+  async isEmailAvailable(email: string): Promise<boolean> {
+    const person = await em.findOne(Person, { email });
+    return !person || person.anonymous === true;
   }
 
   async findProfessionalsWithOffices(officeId?: number): Promise<any[]> {
@@ -113,21 +123,92 @@ export class PeopleService {
     return await query.execute();
   }
 
+  private validateCommonFields(data: Partial<Person>) {
+    if (!this.validateDocNumber(data.docNumber))
+      throw badRequest("El número de documento debe contener solo dígitos");
+    if (!this.validatePhoneNumber(data.phoneNumber))
+      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
+    if (data.email && !this.validateEmail(data.email))
+      throw badRequest("El email no tiene un formato válido");
+  }
+
   async createPerson(data: RequiredEntityData<Person>) {
     if (data.phoneNumber)
       data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
 
-    if (!this.validateDocNumber(data.docNumber))
-      throw new Error("El número de documento debe contener solo dígitos");
-    if (!this.validatePhoneNumber(data.phoneNumber))
-      throw new Error("El número de teléfono debe contener 10 dígitos");
-    if (data.email && !this.validateEmail(data.email))
-      throw new Error("El email no tiene un formato válido");
+    this.validateCommonFields(data as Partial<Person>);
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const person = em.create(Person, { ...data, password: hashedPassword });
+    const hashedPassword = await bcrypt.hash(data.password as string, 10);
+
+    // Si ya existe un paciente anónimo con ese email, no es un duplicado: es la misma
+    // persona dándose de alta. Se convierte en cuenta real y conserva sus turnos y
+    // observaciones, porque el email es la PK y no cambia.
+    const existing = await em.findOne(Person, { email: data.email as string });
+
+    if (existing) {
+      if (!existing.anonymous) throw conflict("Ya hay una cuenta registrada con ese email");
+
+      em.assign(existing, {
+        ...data,
+        password: hashedPassword,
+        anonymous: false,
+        active: true,
+      });
+      await em.flush();
+      await this.sendWelcomeEmail(existing);
+      return existing;
+    }
+
+    const person = em.create(Person, { ...data, password: hashedPassword, anonymous: false });
     await em.flush();
     await this.sendWelcomeEmail(person);
+    return person;
+  }
+
+  // Paciente cargado por un profesional, sin cuenta ni contraseña.
+  async createAnonymousPatient(data: {
+    email: string;
+    name: string;
+    surname: string;
+    docType?: string;
+    docNumber?: string;
+    phoneNumber?: string;
+    /** Profesional que lo está cargando. Se guarda para saber quién lo dio de alta. */
+    createdBy: string;
+  }) {
+    const phoneNumber = data.phoneNumber ? this.normalizePhoneNumber(data.phoneNumber) : "";
+
+    if (!data.email || !this.validateEmail(data.email)) throw badRequest("El email no tiene un formato válido");
+    if (!data.name?.trim() || !data.surname?.trim()) throw badRequest("El nombre y el apellido son obligatorios");
+    if (data.docNumber && !this.validateDocNumber(data.docNumber))
+      throw badRequest("El número de documento debe contener solo dígitos");
+    if (phoneNumber && !this.validatePhoneNumber(phoneNumber))
+      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
+
+    const existing = await em.findOne(Person, { email: data.email });
+    if (existing)
+      throw conflict(
+        existing.anonymous
+          ? "Ya cargaste un paciente con ese email"
+          : "Ese email ya pertenece a una cuenta registrada: buscá a la persona en la lista en vez de cargarla de nuevo"
+      );
+
+    const person = em.create(Person, {
+      email: data.email,
+      name: data.name.trim(),
+      surname: data.surname.trim(),
+      docType: data.docType || "DNI",
+      docNumber: data.docNumber || "",
+      phoneNumber,
+      password: null,
+      speciality: null as any,
+      type: "client",
+      active: true,
+      anonymous: true,
+      createdBy: data.createdBy,
+    });
+
+    await em.flush();
     return person;
   }
 
@@ -160,6 +241,13 @@ export class PeopleService {
 
   async updatePerson(data: Partial<Person>, email: string) {
     const person = await em.findOneOrFail(Person, { email });
+
+    if (data.phoneNumber) data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
+    this.validateCommonFields(data);
+
+    if (data.name !== undefined && !String(data.name).trim()) throw badRequest("El nombre no puede quedar vacío");
+    if (data.surname !== undefined && !String(data.surname).trim()) throw badRequest("El apellido no puede quedar vacío");
+
     em.assign(person, { ...data });
     await em.flush();
     return person;
@@ -177,6 +265,7 @@ export class PeopleService {
 
     const person = await em.findOneOrFail(Person, { email });
     if (!person.active) throw new Error("USER_DISABLED"); // un usuario deshabilitado no puede cambiar su contraseña
+    if (person.anonymous) throw new Error("ANONYMOUS_ACCOUNT"); // un paciente anónimo no tiene cuenta
 
     person.password = await bcrypt.hash(newPassword, 10);
     await em.flush();

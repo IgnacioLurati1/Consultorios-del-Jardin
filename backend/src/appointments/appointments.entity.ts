@@ -1,6 +1,7 @@
 import { Entity, Property, PrimaryKey, ManyToOne, Rel, Unique } from "@mikro-orm/core";
 import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
+import { Recurrence } from "../recurrences/recurrences.entity.js";
 
 @Entity()
 @Unique({ properties: ["date", "initialHour", "professional", "state"] })
@@ -42,4 +43,16 @@ export class Appointment {
 
   @Property({ default: "not sent" })
   reminderSent: "not sent" | "sent" = "not sent";
+
+  // Sobreturno: el profesional lo mete fuera de sus módulos de atención, eligiendo
+  // el horario a mano. Un turno normal tiene que caer justo en un módulo suyo y durar
+  // lo que dure ese módulo.
+  @Property({ default: false })
+  overbooked: boolean = false;
+
+  // Si salió de un turno repetible, apunta a la configuración que lo generó (o que se
+  // creó a partir de él). Cancelar o editar el turno no toca la configuración, y
+  // apagar la configuración no toca los turnos ya creados.
+  @ManyToOne(() => Recurrence, { nullable: true })
+  recurrence?: Rel<Recurrence> | null;
 }

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
+import { sendError } from "../shared/errors.js";
 
 dotenv.config();
 
@@ -39,10 +40,16 @@ const peopleService = new PeopleService();
 // El refresh token vive solo en esta cookie httpOnly: el JS de la página no puede leerlo.
 // Las mismas opciones se usan para setearla y para borrarla; si no coinciden, el browser
 // no la borra en el logout.
+//
+// Dev local sobre http://localhost: el front pega a /api a través del proxy de Vite, así que
+// las requests son same-origin y alcanza con "lax". La combinación secure + sameSite "none"
+// es para un front en otro dominio por HTTPS, y sobre http local no funciona parejo entre
+// browsers. Si algún día hay deploy con dominios separados, vuelve a ser
+// { secure: true, sameSite: "none" }.
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: true,
-  sameSite: "none",
+  secure: false,
+  sameSite: "lax",
 } as const;
 
 async function findAll(req: Request, res: Response) {
@@ -106,10 +113,21 @@ async function findOne(req: Request, res: Response) {
   }
 }
 
+// Consulta pública que usa el registro para avisar en el primer paso, en vez de
+// dejar que el usuario complete todo y choque contra un 409 al final.
+async function checkEmailAvailability(req: Request, res: Response) {
+  try {
+    const available = await peopleService.isEmailAvailable(req.params.email);
+    res.status(200).json({ available });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 async function add(req: Request, res: Response) {
   try {
     if (!["client", "professional"].includes(req.body.sanitizedInput.type))
-      return res.status(403).json({ message: "Credenciales inválidas" });
+      return res.status(403).json({ message: "El tipo de cuenta no es válido" });
 
     const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
@@ -120,31 +138,82 @@ async function add(req: Request, res: Response) {
 
     res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token }); // return person data and token
   } catch (error: any) {
-    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
-      return res.status(409).json({ message: "La persona ya existe" });
-    }
-    res.status(500).json({ message: error.message });
+    sendError(res, error, { duplicate: "Ya hay una cuenta registrada con ese email" });
   }
 }
 
 async function update(req: RequestWithUser, res: Response) {
   try {
-    // if (!(req.user.email == req.params.email)) return res.status(401).json({ message: "Credenciales inválidas" });
-    delete req.body.sanitizedInput.email, req.body.sanitizedInput.password; // no se permite cambiar emails ni contraseñas
+    const target = await peopleService.findPersonOrNull(req.params.email);
+    if (!target) return res.status(404).json({ message: "No encontramos a esa persona" });
 
-    const person = await peopleService.updatePerson(req.body.sanitizedInput, req.params.email);
+    const isSelf = req.user.email === target.email;
+    const isAdmin = req.user.type === "admin";
+    // Un paciente anónimo no tiene cuenta: no puede mantener sus propios datos al día.
+    // Por eso el profesional que lo cargó puede corregirlos. Ojo que la condición incluye
+    // `anonymous`: en cuanto la persona se registra, la cuenta pasa a ser suya y nadie
+    // más la edita.
+    const ownsAnonymousPatient =
+      req.user.type === "professional" && target.anonymous && target.createdBy === req.user.email;
 
-    if (!person) {
-      return res.status(401).json({ message: "Credenciales inválidas" });
-    }
+    if (!isAdmin && !isSelf && !ownsAnonymousPatient)
+      return res.status(403).json({ message: "No podés modificar los datos de otra persona" });
+
+    const changes = { ...req.body.sanitizedInput };
+
+    // El email es la PK y no se cambia. La contraseña tiene su propio endpoint, que la
+    // hashea. Ojo: antes esto era un solo `delete a, b`, y el operador coma hacía que solo
+    // se borrara el email; la contraseña seguía pasando (y se guardaba sin hashear).
+    delete changes.email;
+    delete changes.password;
+    // El tipo se define en el alta y el baneo tiene su endpoint (toggleState). Además
+    // sanitizePersonInput mete `active: true` por defecto, así que sin este delete
+    // cualquier edición de datos reactivaba a un usuario deshabilitado.
+    delete changes.type;
+    delete changes.active;
+
+    const person = await peopleService.updatePerson(changes, req.params.email);
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
     res.status(200).json({ message: "Persona actualizada con éxito!", data: safeData });
   } catch (error: any) {
-    if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
-      return res.status(409).json({ message: "La persona ya existe" });
-    }
-    res.status(500).json({ message: error.message });
+    sendError(res, error, { duplicate: "Ya existe una persona con esos datos", missing: "No encontramos a esa persona" });
+  }
+}
+
+// Alta de un profesional hecha por el admin. A diferencia del registro público, no
+// emite tokens ni toca la cookie de sesión: el que está logueado sigue siendo el admin.
+async function addProfessional(req: RequestWithUser, res: Response) {
+  try {
+    const person = await peopleService.createPerson({ ...req.body.sanitizedInput, type: "professional" });
+    const safeData = { ...person, password: undefined };
+    res.status(201).json({ message: "Profesional registrado con éxito!", data: safeData });
+  } catch (error: any) {
+    sendError(res, error, { duplicate: "Ya hay una cuenta registrada con ese email" });
+  }
+}
+
+// Alta de un paciente anónimo (dummy). Solo un profesional puede cargarlo:
+// sirve para anotar a alguien que todavía no tiene cuenta.
+async function addAnonymousPatient(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
+
+    const { email, name, surname, docType, docNumber, phoneNumber } = req.body.sanitizedInput;
+    const person = await peopleService.createAnonymousPatient({
+      email,
+      name,
+      surname,
+      docType,
+      docNumber,
+      phoneNumber,
+      createdBy: req.user.email,
+    });
+
+    const safeData = { ...person, password: undefined };
+    res.status(201).json({ message: "Paciente creado con éxito!", data: safeData });
+  } catch (error: any) {
+    sendError(res, error, { duplicate: "Ya existe una persona con ese email" });
   }
 }
 
@@ -168,6 +237,11 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
     const person = await peopleService.findPersonOrNull(email);
 
     if (!person) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
+
+    // Un paciente anónimo no tiene contraseña: no puede iniciar sesión.
+    if (person.anonymous || !person.password) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
@@ -216,6 +290,7 @@ async function changePassword(req: Request, res: Response) {
     res.status(200).json({ message: "Contraseña cambiada con exita" });
   } catch (error: any) {
     if (error.message === "USER_DISABLED") return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+    if (error.message === "ANONYMOUS_ACCOUNT") return res.status(403).json({ message: "Esta persona no tiene cuenta", code: "ANONYMOUS_ACCOUNT" });
     res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
   }
 }
@@ -224,6 +299,7 @@ async function sendPasswordMail(req: RequestWithUser, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email); //Revisamos que exista
     if (!person.active) return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+    if (person.anonymous) return res.status(403).json({ message: "Esta persona no tiene cuenta", code: "ANONYMOUS_ACCOUNT" });
     await peopleService.sendPasswordMail(person.email);
     res.status(200).json({ Message: "Mail enviado!" });
   } catch (error: any) {
@@ -246,4 +322,7 @@ export {
   findAllNoAdmin,
   findProfesionalByOffice,
   findAllPerTypeActive,
+  addAnonymousPatient,
+  addProfessional,
+  checkEmailAvailability,
 };

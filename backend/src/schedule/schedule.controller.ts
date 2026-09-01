@@ -69,8 +69,28 @@ async function findByEmail(req: Request, res: Response) {
   }
 }
 
-async function add(req: Request, res: Response) {
+async function findByRoom(req: Request, res: Response) {
   try {
+    const idRoom = Number.parseInt(req.params.idRoom);
+    const schedules = await scheduleService.findSchedulesByRoom(idRoom);
+    res.status(200).json({ message: "Horarios de la sala encontrados", data: schedules });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// Un profesional solo puede tocar sus propios horarios; el admin, los de cualquiera.
+function ownsSchedule(req: RequestWithUser): boolean {
+  if (req.user?.type === "admin") return true;
+  return req.user?.type === "professional" && req.body.sanitizedInput.person === req.user.email;
+}
+
+async function add(req: RequestWithUser, res: Response) {
+  try {
+    // Para un profesional el horario es siempre suyo, sin importar lo que mande el body.
+    if (req.user?.type === "professional") req.body.sanitizedInput.person = req.user.email;
+    if (!ownsSchedule(req)) return res.status(403).json({ message: "No podés modificar horarios de otro profesional" });
+
     const schedule = await scheduleService.createSchedule(req.body.sanitizedInput);
     res.status(201).json({ message: "Horario creado", data: schedule });
   } catch (error: any) {
@@ -81,9 +101,13 @@ async function add(req: Request, res: Response) {
   }
 }
 
-async function update(req: Request, res: Response) {
+async function update(req: RequestWithUser, res: Response) {
   try {
     delete req.body.sanitizedInput.active; // no se puede cambiar el estado con este endpoint
+
+    if (req.user?.type === "professional") req.body.sanitizedInput.person = req.user.email;
+    if (!ownsSchedule(req)) return res.status(403).json({ message: "No podés modificar horarios de otro profesional" });
+
     const schedule = await scheduleService.updateSchedule(req.body.sanitizedInput);
     res.status(200).json({ message: "Horario actualizado", data: schedule });
   } catch (error: any) {
@@ -94,11 +118,14 @@ async function update(req: Request, res: Response) {
   }
 }
 
-async function remove(req: Request, res: Response) {
+async function remove(req: RequestWithUser, res: Response) {
   try {
     const day = req.params.day;
     const initialHour = req.params.initialHour;
     const person = req.params.person;
+
+    if (req.user?.type === "professional" && person !== req.user.email)
+      return res.status(403).json({ message: "No podés eliminar horarios de otro profesional" });
     await scheduleService.removeSchedule(day, initialHour, person);
     res.status(200).json({ message: "Horario eliminado" });
   } catch (error: any) {
@@ -118,4 +145,4 @@ async function toggleScheduleState(req: Request, res: Response) {
   }
 }
 */
-export { sanitizeScheduleInput, findAll, findOne, add, update, remove, findByEmail, findByProfesionalLogged };
+export { sanitizeScheduleInput, findAll, findOne, add, update, remove, findByEmail, findByProfesionalLogged, findByRoom };

@@ -16,4 +16,16 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiadas solicitudes, intentá más tarde.' },
 });
 
-export { generalLimiter, authLimiter };
+// Consultas de solo lectura sin sesión (¿este email ya tiene cuenta?). Es más
+// permisivo que authLimiter porque el registro lo llama mientras se escribe, pero
+// sigue estando acotado: si no, sería una forma cómoda de averiguar qué emails
+// están registrados.
+const lookupLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas consultas, intentá más tarde.' },
+});
+
+export { generalLimiter, authLimiter, lookupLimiter };

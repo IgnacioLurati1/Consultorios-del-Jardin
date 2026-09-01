@@ -17,18 +17,21 @@ import refreshToken from "./config/refreshToken.js";
 import cookieParser from "cookie-parser";
 import { appointmentRouter } from "./appointments/appointments.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
+import { startRecurrenceJob } from "./jobs/recurrence.job.js";
+import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { setupSwagger } from './config/swagger.js';
 import { authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
 
 const app = express();
-app.set("trust proxy", 1); //Evita la ip del proxy
 
-
+// Sin deploy: el proyecto corre solo en local.
+// Nota: no se setea "trust proxy". Sin un proxy adelante, confiar en X-Forwarded-For
+// permitiría falsear la IP y esquivar el rate limiter. Si algún día se despliega
+// detrás de un proxy, hay que volver a poner app.set("trust proxy", 1).
 const allowedOrigins = [
-  "https://dsw-autogestora-de-turnos.vercel.app", // Tu URL de producción
-  "http://localhost:5173",                      
-  "http://localhost:3000"                        
+  "http://localhost:5173", // Vite (front)
+  "http://localhost:3000"  // el propio backend (Swagger)
 ];
 
 app.use(cors({
@@ -71,6 +74,7 @@ app.use("/api/tokenStatus", authLimiter, verifyToken, (req: Request, res: Respon
 });
 app.use("/api/refreshToken",authLimiter, refreshToken);
 app.use("/api/appointments", verifyToken, appointmentRouter);
+app.use("/api/recurrences", verifyToken, recurrenceRouter);
 
 app.use((_, res) => {
   return res.status(404).send({ message: "Resource not found" });
@@ -81,6 +85,7 @@ if (!isProduction){
 }
 
 startReminderJob();
+startRecurrenceJob();
 
 app.listen(3000, () => {
   console.log("Server runnning on http://localhost:3000/");

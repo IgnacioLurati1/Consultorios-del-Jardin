@@ -7,6 +7,8 @@ import {
   update,
   loginWithEmailAndPassword,
   logOut,
+  addAnonymousPatient,
+  addProfessional,
   remove,
   toggleState,
   changePassword,
@@ -14,10 +16,11 @@ import {
   findAllPerType,
   findAllNoAdmin,
   findProfesionalByOffice,
-  findAllPerTypeActive
+  findAllPerTypeActive,
+  checkEmailAvailability
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
-import { authLimiter } from "../config/rateLimiter.js";
+import { authLimiter, lookupLimiter } from "../config/rateLimiter.js";
 
 export const personRouter = Router();
 
@@ -196,6 +199,33 @@ personRouter.get("/professionals/office/:officeId/:speciality?", verifyToken, fi
 
 /**
  * @swagger
+ * /api/people/available/{email}:
+ *   get:
+ *     summary: Saber si un email está libre para registrarse
+ *     description: Público. Un paciente anónimo no ocupa el email; registrarse con él lo convierte en cuenta real.
+ *     tags: [People]
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resultado de la consulta
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available: { type: boolean }
+ *       429:
+ *         description: Demasiadas consultas
+ */
+personRouter.get("/available/:email", lookupLimiter, checkEmailAvailability);
+
+/**
+ * @swagger
  * /api/people/{email}:
  *   get:
  *     summary: Obtener persona por email
@@ -310,6 +340,62 @@ personRouter.post("/login",authLimiter, sanitizePersonInput, loginWithEmailAndPa
  *         description: Error del servidor
  */
 personRouter.post("/logout", logOut);
+
+/**
+ * @swagger
+ * /api/people/anonymous:
+ *   post:
+ *     summary: Crear un paciente anónimo (sin cuenta). Solo profesionales
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, name, surname]
+ *             properties:
+ *               email:       { type: string, example: paciente@mail.com }
+ *               name:        { type: string, example: Marta }
+ *               surname:     { type: string, example: Gómez }
+ *               docType:     { type: string, example: DNI }
+ *               docNumber:   { type: string, example: '30999999' }
+ *               phoneNumber: { type: string, example: '3419999999' }
+ *     responses:
+ *       201:
+ *         description: Paciente anónimo creado
+ *       403:
+ *         description: Solo un profesional puede cargar pacientes anónimos
+ *       409:
+ *         description: Ya existe una persona con ese email
+ */
+personRouter.post("/anonymous", verifyToken, sanitizePersonInput, addAnonymousPatient);
+
+/**
+ * @swagger
+ * /api/people/professional:
+ *   post:
+ *     summary: Registrar un profesional. Solo admin, no devuelve token
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PersonInput'
+ *     responses:
+ *       201:
+ *         description: Profesional registrado
+ *       403:
+ *         description: Acceso denegado
+ *       409:
+ *         description: Ya existe una cuenta con ese email
+ */
+personRouter.post("/professional", verifyToken, verifyAdmin, sanitizePersonInput, addProfessional);
 
 /**
  * @swagger

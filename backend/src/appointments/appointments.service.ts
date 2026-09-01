@@ -1,3 +1,4 @@
+import type { FilterQuery } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { Appointment } from "./appointments.entity.js";
 import { PeopleService } from "../people/people.service.js";
@@ -11,8 +12,14 @@ import {groqClient, GROQ_CONFIG} from "../config/groq.js";
 import {buildSecretaryPrompt} from "../prompts/secretary.js";
 import {SECRETARY_TOOLS} from "./secretary.tools.js";
 import Groq from "groq-sdk";
+import { badRequest, conflict, notFound } from "../shared/errors.js";
 
 const em = orm.em;
+
+// Estados "vivos" de un turno. Cancelar escribe un ISO timestamp en `state`
+// (para que el unique index deje volver a sacar turno en la misma franja),
+// así que un estado que no esté en esta lista es un turno cancelado.
+export const ACTIVE_APPOINTMENT_STATES = ["pending", "accepted", "assisted", "missed"];
 
 type SimpleMessage = { role: "user" | "assistant"; content: string };
 interface SecretaryResponse {
@@ -53,12 +60,12 @@ export class AppointmentService {
     };
   }
 
-  async findPatientAppointmentsByEmail(patientEmail: string, page = 0): Promise<Appointment[]> {
+  async findPatientAppointmentsByEmail(patientEmail: string, page = 0, includeCancelled = false): Promise<Appointment[]> {
     const limit = 15;
     const offset = page * limit;
     return await em.find(
       Appointment,
-      { patient: { email: patientEmail } },
+      { patient: { email: patientEmail }, ...(includeCancelled ? {} : { state: { $in: ACTIVE_APPOINTMENT_STATES } }) },
       {
         populate: ["room.office", "professional", "patient"],
         limit,
@@ -104,14 +111,77 @@ export class AppointmentService {
     );
   }
 
-  async findProfessionalAppointmentsByEmail(professionalEmail: string, page = 0): Promise<Appointment[]> {
+  async findProfessionalAppointmentsByEmail(professionalEmail: string, page = 0, includeCancelled = false): Promise<Appointment[]> {
     const limit = 15;
     const offset = page * limit;
     return await em.find(
       Appointment,
-      { professional: { email: professionalEmail } },
-      { populate: ["room.office", "patient"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
+      { professional: { email: professionalEmail }, ...(includeCancelled ? {} : { state: { $in: ACTIVE_APPOINTMENT_STATES } }) },
+      { populate: ["room.office", "patient", "recurrence"], limit, offset, orderBy: { date: "DESC", initialHour: "DESC" } }
     );
+  }
+
+  // Turnos de un profesional entre dos fechas. Lo usa la vista de grilla semanal,
+  // donde paginar de a 15 no sirve: hace falta la semana completa.
+  async findProfessionalAppointmentsInRange(
+    professionalEmail: string,
+    from: Date,
+    to: Date,
+    includeCancelled = false
+  ): Promise<Appointment[]> {
+    return await em.find(
+      Appointment,
+      {
+        professional: { email: professionalEmail },
+        date: { $gte: from, $lte: to },
+        ...(includeCancelled ? {} : { state: { $in: ACTIVE_APPOINTMENT_STATES } }),
+      },
+      { populate: ["room.office", "patient", "recurrence"], orderBy: { date: "ASC", initialHour: "ASC" } }
+    );
+  }
+
+  // Vista de solo lectura para el admin: horarios, estado y paciente, SIN las observaciones
+  // clínicas. El recorte se hace acá y no en el front para que el dato no viaje.
+  async findProfessionalAppointmentsForAdmin(
+    professionalEmail: string,
+    page = 0,
+    includePast = false,
+    kind: "all" | "normal" | "overbooked" = "all"
+  ) {
+    const limit = 15;
+    const offset = page * limit;
+
+    // Por defecto el admin ve lo que viene, del turno mas cercano en adelante: lo
+    // pasado ya no se controla. Si pide ver los pasados se muestra todo, y ahi
+    // conviene el orden inverso para que arriba quede lo mas reciente.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const where: FilterQuery<Appointment> = {
+      professional: { email: professionalEmail },
+      ...(includePast ? {} : { date: { $gte: today } }),
+      ...(kind === "all" ? {} : { overbooked: kind === "overbooked" }),
+    };
+
+    const appointments = await em.find(Appointment, where, {
+      populate: ["room.office", "patient"],
+      limit,
+      offset,
+      orderBy: includePast
+        ? { date: "DESC" as const, initialHour: "DESC" as const }
+        : { date: "ASC" as const, initialHour: "ASC" as const },
+    });
+
+    return appointments.map((a) => ({
+      numAppointment: a.numAppointment,
+      date: a.date,
+      initialHour: a.initialHour,
+      finalHour: a.finalHour,
+      state: a.state,
+      overbooked: a.overbooked,
+      patient: a.patient ? { email: a.patient.email, name: a.patient.name, surname: a.patient.surname } : null,
+      room: { idRoom: a.room.idRoom, description: a.room.description },
+    }));
   }
 
   async findPendingProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
@@ -122,13 +192,8 @@ export class AppointmentService {
     );
   }
 
-  checkHoursOverlapAndFormat(initialHour: string, finalHour: string): boolean {
-    if (!this.scheduleService.isValidHourFormat(initialHour) || !this.scheduleService.isValidHourFormat(finalHour)) return false;
-    return initialHour < finalHour;
-  }
-
   async deleteAppointment(num: number, professionalEmail: string) {
-    const appointment = await em.findOneOrFail(
+    const appointment = await em.findOne(
       Appointment,
       {
         numAppointment: num,
@@ -138,6 +203,8 @@ export class AppointmentService {
       { populate: ["patient"] }
     );
 
+    if (!appointment) throw notFound("Ese turno no existe, ya no está pendiente o no es tuyo");
+
     await this.sendAppointmentRejectedEmails(appointment);
     em.remove(appointment);
     await em.flush();
@@ -145,35 +212,63 @@ export class AppointmentService {
   }
 
   async updateAppointment(num: number, professionalEmail: string, data: Partial<Appointment>) {
-    const appointment = await em.findOneOrFail(
+    const appointment = await em.findOne(
       Appointment,
       {
         numAppointment: num,
-        state: "accepted",
+        // Se puede editar cualquier turno vivo, no solo los aceptados: por ejemplo
+        // ponerle el valor a uno pendiente, o a uno ya asistido.
+        state: { $in: ACTIVE_APPOINTMENT_STATES },
         professional: { email: professionalEmail },
       },
       { populate: ["patient"] }
     );
 
-    if (!data.initialHour || !data.finalHour) throw new Error("Debe proporcionar initialHour y finalHour");
+    if (!appointment) throw notFound("Ese turno no existe, ya fue cancelado o no es tuyo");
 
-    if (!this.checkHoursOverlapAndFormat(data.initialHour, data.finalHour))
-      throw new Error("El formato de las horas es inválido o la hora inicial es mayor o igual a la final");
+    // Solo se toca lo que efectivamente vino. Si se le pasa una clave con undefined,
+    // em.assign explota ("You must pass a non-undefined value...").
+    const changes = Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as Partial<Appointment>;
 
-    if (appointment.patient) {
-      if (await this.checkPatientAppointmentOverlap(data.initialHour, data.finalHour, appointment.patient.email, data.date || appointment.date))
-        throw new Error("El paciente ya tiene una cita en este horario");
+    if (Object.keys(changes).length === 0) throw badRequest("No hay cambios para aplicar");
+
+    if (changes.value !== undefined && changes.value < 0) throw badRequest("El valor del turno no puede ser negativo");
+
+    // Solo se revalidan horarios (y se avisa por mail) si realmente cambió la franja.
+    // Cambiarle el valor a un turno no tiene por qué mandarle un mail al paciente.
+    const sameHour = (a?: string, b?: string) => (a ?? "").slice(0, 5) === (b ?? "").slice(0, 5);
+    const sameDay = (a?: Date, b?: Date) => new Date(a as Date).toDateString() === new Date(b as Date).toDateString();
+
+    const scheduleChanged =
+      (changes.initialHour !== undefined && !sameHour(changes.initialHour, appointment.initialHour)) ||
+      (changes.finalHour !== undefined && !sameHour(changes.finalHour, appointment.finalHour)) ||
+      (changes.date !== undefined && !sameDay(changes.date, appointment.date));
+
+    if (scheduleChanged) {
+      const initialHour = (changes.initialHour ?? appointment.initialHour).slice(0, 5);
+      const finalHour = (changes.finalHour ?? appointment.finalHour).slice(0, 5);
+      const date = changes.date ?? appointment.date;
+
+      if (!this.scheduleService.isValidHourFormat(initialHour) || !this.scheduleService.isValidHourFormat(finalHour))
+        throw badRequest("El horario tiene que estar en formato HH:MM");
+
+      if (initialHour >= finalHour) throw badRequest("La hora de inicio tiene que ser anterior a la de fin");
+
+      if (appointment.patient) {
+        if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, appointment.patient.email, date, undefined, num))
+          throw conflict("El paciente ya tiene otro turno que se superpone con ese horario");
+      }
+
+      if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, undefined, num))
+        throw conflict("Ya tenés otro turno que se superpone con ese horario");
     }
 
-    if (await this.checkProfessionalAppointmentOverlap(data.initialHour, data.finalHour, professionalEmail, data.date || appointment.date))
-      throw new Error("Usted ya tiene un turno en este horario!");
-
-    if (data.value !== undefined && data.value < 0) throw new Error("El valor del turno no puede ser negativo");
-
-    em.assign(appointment, data);
+    em.assign(appointment, changes);
     await em.flush();
-    await this.sendAppointmentUpdatedEmails(appointment);
-    return appointment; // Not used for now
+
+    if (scheduleChanged) await this.sendAppointmentUpdatedEmails(appointment);
+
+    return appointment;
   }
 
   isValidDate(date: Date): boolean {
@@ -182,6 +277,18 @@ export class AppointmentService {
     today.setHours(0, 0, 0, 0);
     inputDate.setHours(0, 0, 0, 0);
     return !isNaN(inputDate.getTime()) && inputDate >= today;
+  }
+
+  // Separa los dos motivos por los que una fecha puede no servir, para poder decirle al
+  // usuario cual de los dos le paso. Un turno de hoy mas tarde sigue siendo valido.
+  private assertBookableDate(date: Date) {
+    if (Number.isNaN(new Date(date).getTime())) throw badRequest("La fecha del turno no es válida");
+    if (!this.isValidDate(date)) throw badRequest("No se puede sacar un turno en una fecha que ya pasó");
+  }
+
+  // Chequeos de horario compartidos por el alta de paciente y la del profesional.
+  private assertValidHour(hour: string, label: string) {
+    if (!this.scheduleService.isValidHourFormat(hour)) throw badRequest(`${label} tiene que estar en formato HH:MM`);
   }
 
   // Un turno tiene como mucho un paciente, así que devuelve 0 o 1 elemento.
@@ -201,14 +308,17 @@ export class AppointmentService {
     finalHour: string,
     patientEmail: string,
     date: Date,
-    emT?: EntityManager
+    emT?: EntityManager,
+    excludeNumAppointment?: number
   ): Promise<Appointment | null> {
     const appointment = await (emT || em).findOne(Appointment, {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
-      state: { $in: ["pending", "accepted", "assisted"] },
+      state: { $in: ACTIVE_APPOINTMENT_STATES },
       patient: { email: patientEmail },
+      // Al editar un turno, no tiene que chocar consigo mismo
+      ...(excludeNumAppointment ? { numAppointment: { $ne: excludeNumAppointment } } : {}),
     });
     return appointment;
   }
@@ -218,36 +328,40 @@ export class AppointmentService {
     finalHour: string,
     professionalEmail: string,
     date: Date,
-    emT?: EntityManager
+    emT?: EntityManager,
+    excludeNumAppointment?: number
   ): Promise<Appointment | null> {
     const appointment = await (emT || em).findOne(Appointment, {
       date,
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
-      state: { $in: ["pending", "accepted", "assisted"] },
+      state: { $in: ACTIVE_APPOINTMENT_STATES },
       professional: { email: professionalEmail },
+      // Al editar un turno, no tiene que chocar consigo mismo
+      ...(excludeNumAppointment ? { numAppointment: { $ne: excludeNumAppointment } } : {}),
     });
     return appointment;
   }
 
   // Estados que el profesional puede setear a mano. La cancelación tiene su propio endpoint.
+  // "missed" es el "No vino": el turno pasó y el paciente no se presentó.
   async checkAppointmentStateFormat(state: string): Promise<boolean> {
-    const validStates = ["pending", "accepted", "assisted"];
-    return validStates.includes(state);
+    return ACTIVE_APPOINTMENT_STATES.includes(state);
   }
 
   async updateDiagnostic(num: number, patientEmail: string, professionalEmail: string, data: Partial<Appointment>) {
-    const appointment = await em.findOneOrFail(
+    const appointment = await em.findOne(
       Appointment,
       { numAppointment: num, professional: { email: professionalEmail } },
       { populate: ["patient"] }
     );
 
-    if (patientEmail && appointment.patient?.email !== patientEmail) throw new Error("El paciente no corresponde a este turno");
+    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    if (patientEmail && appointment.patient?.email !== patientEmail) throw badRequest("El paciente no corresponde a este turno");
 
     if (data.state !== undefined) {
       if (!(await this.checkAppointmentStateFormat(data.state)))
-        throw new Error("Estado del turno inválido. Para cancelar usá el endpoint de cancelación");
+        throw badRequest("Ese estado no es válido. Para cancelar el turno usá el botón de cancelar");
       appointment.state = data.state;
     }
     if (data.observations !== undefined) {
@@ -270,13 +384,14 @@ export class AppointmentService {
   }
 
   async addObservation(num: number, professionalEmail: string, observations: string, patientEmail: string) {
-    const appointment = await em.findOneOrFail(
+    const appointment = await em.findOne(
       Appointment,
       { numAppointment: num, professional: { email: professionalEmail } },
       { populate: ["patient"] }
     );
 
-    if (patientEmail && appointment.patient?.email !== patientEmail) throw new Error("El paciente no corresponde a este turno");
+    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    if (patientEmail && appointment.patient?.email !== patientEmail) throw badRequest("El paciente no corresponde a este turno");
 
     appointment.observations = observations;
     await em.flush();
@@ -284,7 +399,7 @@ export class AppointmentService {
   }
 
   async acceptAppointment(num: number, professionalEmail: string) {
-    const appointment = await em.findOneOrFail(
+    const appointment = await em.findOne(
       Appointment,
       {
         numAppointment: num,
@@ -294,6 +409,8 @@ export class AppointmentService {
       { populate: ["patient"] }
     );
 
+    if (!appointment) throw notFound("Ese turno no está pendiente de confirmación o no es tuyo");
+
     appointment.state = "accepted";
     await em.flush();
     await this.sendAppointmentAcceptedEmails(appointment);
@@ -301,7 +418,7 @@ export class AppointmentService {
   }
 
   async cancelAppointment(num: number, email: string, type: "professional" | "client") {
-    const appointment = await em.findOneOrFail(
+    const appointment = await em.findOne(
       Appointment,
       {
         numAppointment: num,
@@ -310,14 +427,17 @@ export class AppointmentService {
       { populate: ["patient", "professional"] }
     );
 
-    if (appointment.state === "assisted") throw new Error("No puede cancelar un turno asistido");
+    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+
+    if (appointment.state === "assisted") throw badRequest("No se puede cancelar un turno que ya figura como asistido");
+    if (appointment.state === "missed") throw badRequest("No se puede cancelar un turno marcado como 'No vino'");
 
     if (appointment.state === "pending") {
       await this.deleteAppointment(num, appointment.professional.email);
       return appointment;
     }
 
-    if (appointment.state !== "accepted") throw new Error("El turno ya fue cancelado");
+    if (appointment.state !== "accepted") throw badRequest("Ese turno ya estaba cancelado");
 
     appointment.state = new Date().toISOString();
     await em.flush();
@@ -336,9 +456,8 @@ export class AppointmentService {
     officeId: number
   ): Promise<Partial<Appointment>> {
     const refreshed = await em.transactional(async (em) => {
-      const isValid = this.scheduleService.isValidHourFormat(initialHour) && this.isValidDate(date);
-
-      if (!isValid) throw new Error("Información de turno inválida");
+      this.assertValidHour(initialHour, "La hora de inicio");
+      this.assertBookableDate(date);
 
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
       const appointment: Appointment = await engine.validateAndCreateAppointment(
@@ -379,16 +498,17 @@ export class AppointmentService {
     idRoom: number,
     value: number,
     professionalEmail: string,
-    patientEmail?: string
+    patientEmail?: string,
+    overbooked = false
   ): Promise<Partial<Appointment>> {
     return await em.transactional(async (em) => {
-      const isValid =
-        this.scheduleService.isValidHourFormat(initialHour) &&
-        this.isValidDate(date) &&
-        initialHour < finalHour &&
-        value >= 0;
+      this.assertValidHour(initialHour, "La hora de inicio");
+      this.assertValidHour(finalHour, "La hora de fin");
+      this.assertBookableDate(date);
 
-      if (!isValid) throw new Error("Información de turno inválida");
+      if (initialHour >= finalHour) throw badRequest("La hora de inicio tiene que ser anterior a la de fin");
+      if (!(value >= 0)) throw badRequest("El valor del turno tiene que ser un número mayor o igual a cero");
+      if (!idRoom) throw badRequest("Tenés que elegir una sala para el turno");
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
       const appointment = await engine.validateAndCreateProfessionalAppointment(
         date,
@@ -397,7 +517,8 @@ export class AppointmentService {
         idRoom,
         value,
         professionalEmail,
-        patientEmail
+        patientEmail,
+        overbooked
       );
 
       await em.flush();
@@ -407,19 +528,20 @@ export class AppointmentService {
         initialHour: appointment.initialHour,
         finalHour: appointment.finalHour,
         value: appointment.value,
+        overbooked: appointment.overbooked,
         professionalEmail: appointment.professional.email,
         room: appointment.room,
-      };
+      } as Partial<Appointment>;
     });
   }
 
   async addPatientToAppointment(numAppointment: number, patientEmail: string, professionalEmail: string) {
     const appointment = await this.findUniqueProfessionalAppointment(professionalEmail, numAppointment);
 
-    if (appointment.patient) throw new Error("El turno ya tiene un paciente!");
+    if (appointment.patient) throw conflict("Ese turno ya tiene un paciente asignado");
 
     if (await this.checkPatientAppointmentOverlap(appointment.initialHour, appointment.finalHour, patientEmail, appointment.date))
-      throw new Error("El paciente ya tiene una cita en este horario");
+      throw conflict("El paciente ya tiene otro turno que se superpone con ese horario");
 
     appointment.patient = await this.peopleService.findPersonByEmail(patientEmail);
 

@@ -5,6 +5,7 @@ import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
 import { Office } from "../offices/offices.entity.js";
 import { EntityManager } from "@mikro-orm/mysql";
+import { badRequest, notFound } from "../shared/errors.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -27,6 +28,11 @@ export class ScheduleService {
 
   isValidHourRange(initialHour: string, finalHour: string): boolean {
     return initialHour < finalHour;
+  }
+
+  // El profesional elige la duración de sus módulos, pero solo entre estas tres.
+  isValidDuration(duration: number): boolean {
+    return [30, 45, 60].includes(Number(duration));
   }
 
   async isOverlappingSchedule(day: string, initialHour: string, finalHour: string, person: Person): Promise<boolean> {
@@ -55,7 +61,7 @@ export class ScheduleService {
     const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ["office"] });
 
     if (!selectedRoom || !selectedRoom.office) {
-      throw new Error("Office not found for the given room");
+      throw notFound("No encontramos el consultorio de esa sala");
     }
 
     return initialHour < selectedRoom.office.openingTime || finalHour > selectedRoom.office.closingTime;
@@ -80,7 +86,7 @@ export class ScheduleService {
   }
 
   async findScheduleByHourRange(initialHour: string, day: string, person: Person, office: Office, emT?: EntityManager): Promise<Schedule> {
-    return await (emT || em).findOneOrFail(
+    const schedule = await (emT || em).findOne(
       Schedule,
       {
         initialHour: { $lte: initialHour },
@@ -91,6 +97,35 @@ export class ScheduleService {
       },
       { populate: ["room"] }
     );
+
+    // Sin este chequeo salia el NotFoundError de MikroORM, en ingles y con el criterio
+    // de busqueda adentro. El caso real es simple: el profesional no atiende ahi.
+    if (!schedule) throw notFound(`El profesional no atiende los ${day} a las ${initialHour} en ese consultorio`);
+
+    return schedule;
+  }
+
+  /**
+   * Módulo del profesional que cubre esa hora de ese día, si existe. Lo usa el alta de
+   * turnos para saber si el horario elegido cae dentro de su atención habitual.
+   */
+  async findScheduleForSlot(personEmail: string, day: string, initialHour: string, emT?: EntityManager): Promise<Schedule | null> {
+    return await (emT || em).findOne(
+      Schedule,
+      {
+        person: { email: personEmail },
+        day,
+        initialHour: { $lte: initialHour },
+        finalHour: { $gt: initialHour },
+      },
+      { populate: ["room"] }
+    );
+  }
+
+  // Todos los horarios de una sala, sin importar el profesional. Lo usa el panel de
+  // admin para ver en qué franjas está ocupada una sala.
+  async findSchedulesByRoom(idRoom: number): Promise<Schedule[]> {
+    return await em.find(Schedule, { room: { idRoom } }, { populate: ["room", "person"] });
   }
 
   async findScheduleByRoomAndDay(day: string, room: Room): Promise<Schedule[]> {
@@ -112,6 +147,10 @@ export class ScheduleService {
 
     if (!isValid) {
       throw new Error("Invalid schedule data");
+    }
+
+    if (!this.isValidDuration(data.duration as number)) {
+      throw new Error("La duración del turno debe ser 30, 45 o 60 minutos");
     }
     //Validaciones de solapamiento y horario laboral en paralelo
     const [overlapping, existingInRoom, outOfHours] = await Promise.all([
@@ -139,9 +178,17 @@ export class ScheduleService {
   }
 
   async updateSchedule(data: Partial<Schedule>): Promise<Schedule> {
-    const schedule = await em.findOneOrFail(Schedule, { day: data.day, initialHour: data.initialHour, person: data.person as Person });
+    const schedule = await em.findOneOrFail(
+      Schedule,
+      { day: data.day, initialHour: data.initialHour, person: data.person as Person },
+      { populate: ["room", "person"] }
+    );
 
     if (!schedule) throw new Error("Schedule not found");
+
+    if (data.duration !== undefined && !this.isValidDuration(data.duration)) {
+      throw new Error("La duración del turno debe ser 30, 45 o 60 minutos");
+    }
 
     em.assign(schedule, data);
     await em.flush();

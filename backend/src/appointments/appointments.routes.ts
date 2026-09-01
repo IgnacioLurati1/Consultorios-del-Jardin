@@ -4,6 +4,8 @@ import {
   getPatientAppointments,
   getDiagnostic,
   getProfessionalAppointments,
+  getProfessionalAppointmentsInRange,
+  getAppointmentsByProfessional,
   getAppointmentDiagnostics,
   createPatientAppointment,
   getPendingAppointments,
@@ -118,6 +120,71 @@ appointmentRouter.get("/professional/:page", getProfessionalAppointments);
  *         description: Error del servidor
  */
 appointmentRouter.get("/pending", getPendingAppointments);
+
+/**
+ * @swagger
+ * /api/appointments/professional-range:
+ *   get:
+ *     summary: Turnos del profesional logueado entre dos fechas (grilla semanal)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         required: true
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: to
+ *         required: true
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: includeCancelled
+ *         schema: { type: boolean }
+ *         description: Por defecto los turnos cancelados no se devuelven
+ *     responses:
+ *       200:
+ *         description: Turnos del rango
+ *       400:
+ *         description: Faltan from/to o son inválidos
+ */
+// Ojo: no puede ser "/professional/range" porque "/professional/:page" se registra antes
+// y capturaría "range" como número de página.
+appointmentRouter.get("/professional-range", getProfessionalAppointmentsInRange);
+
+/**
+ * @swagger
+ * /api/appointments/by-professional/{email}/{page}:
+ *   get:
+ *     summary: Turnos de un profesional (solo admin, solo lectura, sin diagnósticos)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: page
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: includePast
+ *         description: Si es "true" tambien devuelve los turnos ya pasados
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Turnos del profesional
+ *       403:
+ *         description: Solo el admin puede consultar esta vista
+ *       500:
+ *         description: Error del servidor
+ */
+appointmentRouter.get("/by-professional/:email/:page", getAppointmentsByProfessional);
 
 /**
  * @swagger

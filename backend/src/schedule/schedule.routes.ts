@@ -7,7 +7,8 @@ import {
   update,
   remove,
   findByEmail,
-  findByProfesionalLogged
+  findByProfesionalLogged,
+  findByRoom
 } from './schedule.controller.js';
 import { verifyAdmin } from '../config/middlewares.js';
 
@@ -126,6 +127,30 @@ scheduleRouter.get('/by-email/:email', findByEmail);
  *         description: Error del servidor
  */
 scheduleRouter.get('/by-day-hour/:day/:initialHour', findOne);
+
+/**
+ * @swagger
+ * /api/schedules/by-room/{idRoom}:
+ *   get:
+ *     summary: Obtener todos los horarios de una sala (de cualquier profesional)
+ *     tags: [Schedules]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: idRoom
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Horarios de la sala
+ *       401:
+ *         description: Token ausente, inválido o expirado
+ *       500:
+ *         description: Error del servidor
+ */
+scheduleRouter.get('/by-room/:idRoom', findByRoom);
 
 /**
  * @swagger
