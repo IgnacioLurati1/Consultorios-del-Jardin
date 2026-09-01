@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
 import { sendError } from "../shared/errors.js";
-import { isMobileClient } from "../config/clients.js";
+import { clientChannel, isMobileClient } from "../config/clients.js";
 
 dotenv.config();
 
@@ -148,6 +148,11 @@ async function add(req: Request, res: Response) {
     const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
+    // Para el panel de números: quién entra por la app y quién por la página. No se
+    // espera, y si falla no se entera nadie: no es parte de iniciar sesión.
+    const channel = clientChannel(req);
+    if (channel) void peopleService.recordAccess(person.email, channel);
+
     const session = deliverRefreshToken(req, res, refreshToken);
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
@@ -271,6 +276,11 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
     }
 
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
+
+    // Para el panel de números: quién entra por la app y quién por la página. No se
+    // espera, y si falla no se entera nadie: no es parte de iniciar sesión.
+    const channel = clientChannel(req);
+    if (channel) void peopleService.recordAccess(person.email, channel);
 
     const session = deliverRefreshToken(req, res, refreshToken);
 

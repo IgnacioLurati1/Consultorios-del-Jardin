@@ -33,7 +33,9 @@ analyticsRouter.get("/me", getMyAnalytics);
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Números del consultorio y listado de profesionales
+ *         description: >
+ *           Números del consultorio, listado de profesionales y `channels`, que cuenta por
+ *           dónde entra la gente (solo app, solo página, o las dos).
  *       403:
  *         description: Solo para el administrador
  */

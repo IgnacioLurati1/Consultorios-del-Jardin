@@ -2,9 +2,12 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { isPersonActive } from "./middlewares.js";
-import { REFRESH_TOKEN_HEADER } from "./clients.js";
+import { clientChannel, REFRESH_TOKEN_HEADER } from "./clients.js";
+import { PeopleService } from "../people/people.service.js";
 
 dotenv.config();
+
+const peopleService = new PeopleService();
 
 interface AuthRequest extends Request {
   cookies: {
@@ -47,6 +50,11 @@ export default function refreshToken(req: AuthRequest, res: Response) {
       console.error("Error verificando el estado del usuario:", error);
       return res.status(500).json({ message: "No se pudo verificar el estado del usuario" });
     }
+
+    // Una sesión dura treinta días: si solo se contaran los logins, el panel diría que
+    // casi nadie usa la app. Renovar el token es lo más cerca que estamos de "la abrió".
+    const channel = clientChannel(req);
+    if (channel) void peopleService.recordAccess(decoded.email, channel);
 
     const token = jwt.sign({ email: decoded.email, type: decoded.type }, process.env.JWT_SECRET as jwt.Secret, { expiresIn: "15m" });
 

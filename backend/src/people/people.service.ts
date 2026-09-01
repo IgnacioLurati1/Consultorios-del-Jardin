@@ -8,6 +8,8 @@ import { Schedule } from "../schedule/schedules.entity.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, note, paragraph, title } from "../config/mailTemplate.js";
 import { badRequest, conflict } from "../shared/errors.js";
+import type { ClientChannel } from "../config/clients.js";
+import { startOfDay } from "../shared/dates.js";
 
 dotenv.config();
 
@@ -241,6 +243,38 @@ export class PeopleService {
     });
 
     return { token, refreshToken };
+  }
+
+  /**
+   * Deja la marca de que esta persona entró hoy por este canal.
+   *
+   * Se llama al iniciar sesión y al renovar el token. El segundo es el que importa: una
+   * sesión dura treinta días, así que contar solo los logins diría que casi nadie usa la
+   * app. Renovar el token es lo más cerca que estamos de "la abrió".
+   *
+   * Solo escribe cuando cambia el día. El token se renueva cada quince minutos y la
+   * fecha se usa para contar personas, no visitas: una fila por persona y por día alcanza
+   * y saca del medio un UPDATE por request.
+   *
+   * Nunca hace fallar lo que la llamó. Es un dato de color para el panel de números; si
+   * el UPDATE se cae, el login tiene que seguir andando igual.
+   */
+  async recordAccess(email: string, channel: ClientChannel): Promise<void> {
+    try {
+      const person = await em.findOne(Person, { email });
+      if (!person) return;
+
+      const field = channel === "app" ? "lastAppAccess" : "lastWebAccess";
+      const previous = person[field];
+      const now = new Date();
+
+      if (previous && startOfDay(previous).getTime() === startOfDay(now).getTime()) return;
+
+      person[field] = now;
+      await em.flush();
+    } catch (error) {
+      console.error("No se pudo registrar el acceso:", error);
+    }
   }
 
   async updatePerson(data: Partial<Person>, email: string) {

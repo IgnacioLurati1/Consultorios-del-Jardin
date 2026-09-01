@@ -53,4 +53,19 @@ export class Person {
   // corregirle los datos mientras la persona siga sin cuenta propia.
   @Property({ nullable: true })
   createdBy?: string | null;
+
+  // Desde dónde entró por última vez, un campo por canal.
+  //
+  // Se escriben al iniciar sesión y al renovar el token, que son los dos momentos en que
+  // el cliente se identifica. Tener las dos fechas por separado es lo que deja contar
+  // quién usa solo la app, quién solo la página y quién las dos: con un solo campo
+  // "último canal" el que alterna se contaría siempre en uno solo.
+  //
+  // hidden: son de uso interno, para el panel de números. No tienen por qué viajar
+  // pegadas a la persona cada vez que un endpoint devuelve una.
+  @Property({ nullable: true, hidden: true })
+  lastWebAccess?: Date | null;
+
+  @Property({ nullable: true, hidden: true })
+  lastAppAccess?: Date | null;
 }

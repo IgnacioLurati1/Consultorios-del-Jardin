@@ -348,6 +348,9 @@ export class AnalyticsService {
 
     return {
       headcount,
+      // Va acá y no en su propio endpoint porque se lee en la misma pantalla: pedir dos
+      // veces para dibujar una sola vista solo agrega un estado de carga más.
+      channels: await this.accessChannels(),
       professionals: professionals
         .map((p) => ({ email: p.email, name: p.name, surname: p.surname, speciality: p.speciality ?? null }))
         .sort((a, b) => a.surname.localeCompare(b.surname)),
@@ -367,6 +370,67 @@ export class AnalyticsService {
           sharedPatients: sharedPatients(subset),
         };
       }),
+    };
+  }
+
+  /**
+   * Por dónde entra la gente: la app, la página, o las dos.
+   *
+   * Cada persona tiene una marca por canal, que se escribe al iniciar sesión y al
+   * renovar el token. Son dos campos y no uno con "el último canal" justamente para
+   * poder contar a los que usan los dos: con un solo campo, el que alterna caería
+   * siempre del lado de la última vez y las dos cifras darían menos de lo que son.
+   *
+   * "Sin registro" no quiere decir que la persona no entre nunca. Quiere decir que no
+   * volvió a entrar desde que el sistema empezó a anotarlo, y por eso va `desde`: sin
+   * saber desde cuándo se mide, los números no se pueden leer.
+   */
+  async accessChannels() {
+    // Los anónimos los carga un profesional y no tienen contraseña: no pueden entrar,
+    // así que contarlos como "sin registro" ensuciaría el número sin decir nada.
+    const people = await em.find(Person, { anonymous: false, active: true });
+    const accounts = people.filter((person) => !!person.password);
+
+    let since: Date | null = null;
+    const roles = new Map<string, { role: string; onlyApp: number; onlyWeb: number; both: number; unknown: number }>();
+
+    let onlyApp = 0;
+    let onlyWeb = 0;
+    let both = 0;
+    let unknown = 0;
+
+    for (const person of accounts) {
+      const app = person.lastAppAccess ?? null;
+      const web = person.lastWebAccess ?? null;
+
+      for (const mark of [app, web]) {
+        if (mark && (!since || mark < since)) since = mark;
+      }
+
+      const bucket = app && web ? "both" : app ? "onlyApp" : web ? "onlyWeb" : "unknown";
+
+      if (bucket === "both") both++;
+      else if (bucket === "onlyApp") onlyApp++;
+      else if (bucket === "onlyWeb") onlyWeb++;
+      else unknown++;
+
+      if (!roles.has(person.type)) roles.set(person.type, { role: person.type, onlyApp: 0, onlyWeb: 0, both: 0, unknown: 0 });
+      roles.get(person.type)![bucket]++;
+    }
+
+    return {
+      accounts: accounts.length,
+      /** Personas que entraron por lo menos una vez desde que se mide. */
+      withAccess: accounts.length - unknown,
+      onlyApp,
+      onlyWeb,
+      both,
+      unknown,
+      /** Totales por canal, contando dos veces a quien usa los dos. Es lo que se lee como "cuántos usan la app". */
+      app: onlyApp + both,
+      web: onlyWeb + both,
+      since,
+      byRole: Array.from(roles.values()).sort((a, b) => a.role.localeCompare(b.role)),
     };
   }
 

@@ -17,6 +17,24 @@ export const MOBILE_CLIENT_HEADER = "x-client";
 export const REFRESH_TOKEN_HEADER = "x-refresh-token";
 
 export function isMobileClient(req: Request): boolean {
+  return clientChannel(req) === "app";
+}
+
+/**
+ * Por cuál de los dos clientes entró.
+ *
+ * Los dos se declaran en el mismo header. `null` es todo lo demás —Swagger, un curl, un
+ * test— y no se cuenta como acceso de nadie: para las estadísticas es mejor no tener el
+ * dato que inventarlo.
+ */
+export type ClientChannel = "app" | "web";
+
+export function clientChannel(req: Request): ClientChannel | null {
   const client = req.headers[MOBILE_CLIENT_HEADER];
-  return typeof client === "string" && client.toLowerCase() === "mobile";
+  if (typeof client !== "string") return null;
+
+  const value = client.toLowerCase();
+  if (value === "mobile") return "app";
+  if (value === "web") return "web";
+  return null;
 }
