@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { MonthPoint } from "../api/analytics";
 import { AppText } from "../components/Text";
-import { compactNumber, money } from "../lib/dates";
+import { compactNumber, money, monthTag } from "../lib/dates";
 import { radius, space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 
@@ -88,8 +88,10 @@ export function MonthBars({
             accessibilityLabel={`${month.label}: ${format(value)}`}
             style={styles.barRow}
           >
+            {/* "sep 26" y no "septiembre 2026": el nombre entero no entra al lado de
+                una barra y termina cortado a la mitad. */}
             <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.barLabel}>
-              {month.label}
+              {monthTag(month.key)}
             </AppText>
 
             <View style={[styles.barTrack, { backgroundColor: colors.sunken }]}>
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
   },
   bars: { borderWidth: 1, borderRadius: radius.lg, padding: space.lg, gap: space.md },
   barRow: { flexDirection: "row", alignItems: "center", gap: space.md },
-  barLabel: { width: 64 },
+  barLabel: { width: 52 },
   rankLabel: { width: 110 },
   barTrack: { flex: 1, height: 8, borderRadius: radius.full, overflow: "hidden" },
   barFill: { height: 8, borderRadius: radius.full },

@@ -100,7 +100,9 @@ export function Row({ title, subtitle, value, icon, onPress, last, right, destru
 
       {right}
 
-      {onPress && !right ? <FontAwesome6 name="chevron-right" size={13} color={colors.muted} /> : null}
+      {/* La flecha promete "esto te lleva a otro lado". Una acción destructiva no
+          lleva a ningún lado: abre una confirmación. */}
+      {onPress && !right && !destructive ? <FontAwesome6 name="chevron-right" size={13} color={colors.muted} /> : null}
     </View>
   );
 

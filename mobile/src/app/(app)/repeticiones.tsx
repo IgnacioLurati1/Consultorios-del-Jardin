@@ -14,7 +14,7 @@ import { Group, Note, Row, Section } from "../../components/Surfaces";
 import { AppText } from "../../components/Text";
 import { Choice } from "../../components/Choice";
 import { DateField } from "../../features/DateField";
-import { addDays, hourRange, numericDate, relativeDay } from "../../lib/dates";
+import { addDays, hourRange, numericDate, relativeDay, sentenceCase } from "../../lib/dates";
 import { DAY_LABELS } from "../../lib/specialities";
 import { useAsync } from "../../lib/useAsync";
 import { space } from "../../theme/tokens";
@@ -85,7 +85,7 @@ export default function RecurrencesScreen() {
                 {recurrence.upcoming.slice(0, 3).map((appointment, index) => (
                   <Row
                     key={appointment.numAppointment}
-                    title={relativeDay(appointment.date)}
+                    title={sentenceCase(relativeDay(appointment.date))}
                     subtitle="Ya está creado"
                     icon="calendar-check"
                     last={index === Math.min(recurrence.upcoming.length, 3) - 1}

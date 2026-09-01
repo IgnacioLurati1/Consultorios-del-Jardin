@@ -19,7 +19,7 @@ import { ErrorState, Loading } from "../../../components/States";
 import { Group, Note, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { fullName, isUpcoming, stateOf } from "../../../lib/appointments";
-import { hourRange, longDate, money, numericDate } from "../../../lib/dates";
+import { hourRange, longDate, money, numericDate, sentenceCase } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { space } from "../../../theme/tokens";
@@ -101,8 +101,8 @@ export default function AppointmentScreen() {
     <>
       <Screen bottomSpace={space.lg}>
         <View style={styles.head}>
-          <AppText variant="display" style={styles.day}>
-            {longDate(appointment.date)}
+          <AppText variant="display">
+            {sentenceCase(longDate(appointment.date))}
           </AppText>
 
           <AppText variant="title" tone="green">
@@ -262,7 +262,6 @@ export default function AppointmentScreen() {
 
 const styles = StyleSheet.create({
   head: { gap: space.xs, paddingTop: space.lg },
-  day: { textTransform: "capitalize" },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
   actions: { gap: space.md },
   spaced: { marginTop: space.md },

@@ -13,7 +13,7 @@ import { DataState, EmptyState, SkeletonList } from "../../../components/States"
 import { Group, Note, Row } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { errorMessage } from "../../../api/client";
-import { addDays, hhmm, hourRange, longDate, relativeDay, toISODate } from "../../../lib/dates";
+import { addDays, hhmm, hourRange, longDate, relativeDay, sentenceCase, toISODate } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { radius, space, TOUCH } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
@@ -125,7 +125,7 @@ export default function SlotsScreen() {
             {days.map(({ day, slots }) => (
               <View key={day}>
                 <AppText variant="subtitle" style={styles.dayTitle}>
-                  {relativeDay(day)}
+                  {sentenceCase(relativeDay(day))}
                 </AppText>
 
                 <View style={styles.slots}>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   lead: { marginTop: space.lg },
   skeleton: { marginTop: space.lg },
   days: { marginTop: space.xl, gap: space.xl },
-  dayTitle: { textTransform: "capitalize", marginBottom: space.md },
+  dayTitle: { marginBottom: space.md },
   slots: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   slot: {
     minWidth: 78,

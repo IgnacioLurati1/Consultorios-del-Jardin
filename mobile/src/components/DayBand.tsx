@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { longDate } from "../lib/dates";
+import { longDate, sentenceCase } from "../lib/dates";
 import { palette, radius, SCREEN_PADDING, space, TOUCH } from "../theme/tokens";
 import { AppText } from "./Text";
 
@@ -43,8 +43,8 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
         ) : null}
       </View>
 
-      <AppText variant="display" tone="cream" style={styles.date}>
-        {longDate(new Date())}
+      <AppText variant="display" tone="cream">
+        {sentenceCase(longDate(new Date()))}
       </AppText>
 
       {children}
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(254, 250, 224, 0.12)",
   },
-  date: { textTransform: "capitalize" },
   headline: { color: "rgba(254, 250, 224, 0.82)" },
   pressed: { opacity: 0.6 },
 });

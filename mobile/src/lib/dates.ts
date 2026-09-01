@@ -24,14 +24,35 @@ function format(value: string | Date, options: Intl.DateTimeFormatOptions): stri
   return new Intl.DateTimeFormat("es-AR", { timeZone: TZ, ...options }).format(date);
 }
 
-/** "jueves 4 de septiembre" */
+/**
+ * "jueves 4 de septiembre".
+ *
+ * El formateador del sistema mete una coma despues del dia de la semana ("jueves, 4 de
+ * septiembre"), que en castellano no va en esta construccion.
+ */
 export function longDate(value: string | Date): string {
-  return format(value, { weekday: "long", day: "numeric", month: "long" });
+  return format(value, { weekday: "long", day: "numeric", month: "long" }).replace(",", "");
+}
+
+/**
+ * Mayuscula solo en la primera letra. No sirve textTransform: "capitalize", que la pone
+ * en todas las palabras y deja "Martes 1 De Septiembre".
+ */
+export function sentenceCase(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+/** "sep 26": el mes como etiqueta de una barra, donde el nombre entero no entra. */
+export function monthTag(key: string): string {
+  const [year, month] = key.split("-");
+  const names = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const name = names[Number(month) - 1];
+  return name ? `${name} ${year.slice(2)}` : key;
 }
 
 /** "jue 4 sep" */
 export function shortDate(value: string | Date): string {
-  return format(value, { weekday: "short", day: "numeric", month: "short" });
+  return format(value, { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
 }
 
 /** "04/09/2026" */
@@ -75,6 +96,15 @@ export function addDays(date: Date, days: number): Date {
 export function mondayOf(date: Date): Date {
   const fromMonday = (date.getDay() + 6) % 7;
   return addDays(date, -fromMonday);
+}
+
+/**
+ * El dia dicho como corresponde dentro de una frase: "hoy", "mañana" o "el jueves 4 de
+ * septiembre". Sirve para no terminar escribiendo "el hoy".
+ */
+export function onDay(value: string | Date): string {
+  const day = relativeDay(value);
+  return day === "hoy" || day === "mañana" ? day : `el ${day}`;
 }
 
 /** "hoy", "mañana", o el día escrito, para encabezar una lista de turnos. */

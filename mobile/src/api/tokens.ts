@@ -1,10 +1,10 @@
-import * as SecureStore from "expo-secure-store";
+import { secureStorage } from "./secureStorage";
 import { jwtDecode } from "jwt-decode";
 
 /**
- * Los dos tokens de la sesión, guardados en el llavero del sistema (Keychain en iOS,
- * Keystore en Android). Es el equivalente en la app de la cookie httpOnly de la web:
- * otra app no puede leerlos y no quedan escritos en texto plano en el disco.
+ * Los dos tokens de la sesión, guardados donde el sistema los proteja (ver
+ * secureStorage). Es el equivalente en la app de la cookie httpOnly de la web: otra
+ * aplicación no puede leerlos y no quedan escritos en texto plano en el disco.
  *
  * Además se cachean en memoria porque el interceptor de axios corre en cada request y
  * leer del llavero cada vez es ir a un módulo nativo por nada.
@@ -34,10 +34,7 @@ export function getRefreshToken(): string | null {
 
 /** Levanta lo guardado al abrir la app. Devuelve si había una sesión. */
 export async function loadTokens(): Promise<boolean> {
-  const [access, refresh] = await Promise.all([
-    SecureStore.getItemAsync(ACCESS_KEY),
-    SecureStore.getItemAsync(REFRESH_KEY),
-  ]);
+  const [access, refresh] = await Promise.all([secureStorage.get(ACCESS_KEY), secureStorage.get(REFRESH_KEY)]);
 
   accessToken = access;
   refreshToken = refresh;
@@ -49,18 +46,18 @@ export async function loadTokens(): Promise<boolean> {
 
 export async function saveTokens(access: string, refresh?: string | null): Promise<void> {
   accessToken = access;
-  await SecureStore.setItemAsync(ACCESS_KEY, access);
+  await secureStorage.set(ACCESS_KEY, access);
 
   if (refresh) {
     refreshToken = refresh;
-    await SecureStore.setItemAsync(REFRESH_KEY, refresh);
+    await secureStorage.set(REFRESH_KEY, refresh);
   }
 }
 
 export async function clearTokens(): Promise<void> {
   accessToken = null;
   refreshToken = null;
-  await Promise.all([SecureStore.deleteItemAsync(ACCESS_KEY), SecureStore.deleteItemAsync(REFRESH_KEY)]);
+  await Promise.all([secureStorage.remove(ACCESS_KEY), secureStorage.remove(REFRESH_KEY)]);
 }
 
 /** Quién es el que está usando la app, según el token. Null si no se puede leer. */

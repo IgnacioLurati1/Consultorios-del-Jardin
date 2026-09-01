@@ -16,6 +16,18 @@ function backendError(err: any): never {
   throw new Error(backendMsg);
 }
 
+/**
+ * Los pacientes del profesional logueado: los que alguna vez tuvieron turno con el. Un
+ * turno cancelado no cuenta como vinculo, asi que alguien cuyo unico turno se dio de
+ * baja no figura.
+ */
+export function findMyPatients(): Promise<Person[]> {
+  return api
+    .get("/appointments/my-patients")
+    .then((response) => response.data.data)
+    .catch(backendError);
+}
+
 // Se usa la variante "active" porque /people/type/:tipo es solo para admin,
 // y esta pantalla la usa el profesional.
 export function findAllPatients(): Promise<Person[]> {

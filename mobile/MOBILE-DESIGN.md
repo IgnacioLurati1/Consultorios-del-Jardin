@@ -13,8 +13,9 @@ misma app**:
 - **Profesional**: la usa todos los días. Quiere ver su agenda rápido y cerrar turnos.
 - **Admin**: administra el catálogo y controla lo que se da. Es la audiencia más chica.
 
-Plataformas: Android e iOS de primera. Web no está soportada (`expo-secure-store` no
-existe ahí y la sesión no arrancaría).
+Plataformas: Android e iOS de primera. El navegador corre solo como herramienta de
+trabajo, para mirar las pantallas sin el teléfono a mano (ver el README); no es un
+destino de la app.
 
 Identidad heredada de la web: el verde del consultorio, el papel claro, y Fraunces como
 firma tipográfica.
@@ -73,7 +74,8 @@ src/app/
     nuevo-turno      alta desde el profesional (modal)
     nuevo-paciente   paciente sin cuenta (modal)
     mis-datos
-    numeros          los del profesional
+    mis-numeros      los del profesional (se llama distinto que la pestaña del
+                     admin: (tabs) es un grupo transparente y "numeros" chocaría)
     contacto
     asistente        el chat (modal)
     admin/           control · alta-profesional · provincias · localidades ·
@@ -109,6 +111,19 @@ Voseo rioplatense, igual que los mails y el asistente: "tenés", "podés", "fija
 
 Los errores dicen qué pasó y qué hacer, y son los que manda el backend cuando los manda:
 ya vienen escritos para leerse. Las pantallas vacías ofrecen la acción que las llena.
+
+## Detalles que ya se corrigieron y conviene no volver a romper
+
+- **Las fechas no llevan coma**: el formateador del sistema escribe "martes, 1 de
+  septiembre"; en castellano va sin coma. Lo saca `longDate`.
+- **La mayúscula va solo en la primera letra**: `textTransform: "capitalize"` la pone en
+  todas las palabras y deja "Martes 1 De Septiembre". Para eso está `sentenceCase`.
+- **"el hoy" no existe**: cuando el día entra en una frase se usa `onDay`, que devuelve
+  "hoy", "mañana" o "el jueves 4 de septiembre".
+- **Una acción destructiva no lleva flecha**: la flecha promete que lleva a otra
+  pantalla, y cerrar sesión abre una confirmación.
+- **Si el estado vacío ya ofrece la acción, no se repite abajo**: dos botones iguales en
+  la misma pantalla se leen como un error.
 
 ## Lo que no está hecho
 

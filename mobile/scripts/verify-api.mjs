@@ -169,7 +169,8 @@ async function run() {
     await check("mis turnos", "/appointments/professional/0", { token }, isArray);
     await check("agenda del día", `/appointments/professional-range?from=${hoy}&to=${hoy}&includeCancelled=true`, { token }, isArray);
     await check("mis horarios", `/schedules/by-email/${encodeURIComponent(email)}`, { token }, isArray);
-    await check("pacientes", "/people/type/active/client", { token }, isArray);
+    await check("todos los pacientes", "/people/type/active/client", { token }, isArray);
+    await check("mis pacientes", "/appointments/my-patients", { token }, isArray);
     await check("consultorios activos", "/rooms/active", { token }, isArray);
     await check("mis números", "/analytics/me", { token }, has("professional", "recent", "total", "months"));
     await check("repeticiones", "/recurrences", { token }, isArray);
@@ -213,6 +214,10 @@ async function run() {
   console.log("\nPermisos");
 
   if (sessions.client) {
+    const noPatients = await call("/appointments/my-patients", { token: sessions.client.token });
+    if (noPatients.status === 403) ok("un paciente no ve la lista de pacientes de nadie");
+    else bad("mis pacientes", `un paciente recibió HTTP ${noPatients.status}`);
+
     const denied = await call("/analytics/office", { token: sessions.client.token });
     if (denied.status === 403 || denied.status === 401) ok("un paciente no ve los números del consultorio", `HTTP ${denied.status}`);
     else bad("números del consultorio", `un paciente recibió HTTP ${denied.status}`);

@@ -1,5 +1,5 @@
 import api from "./client";
-import { Appointment, Slot } from "./types";
+import { Appointment, Person, Slot } from "./types";
 
 /** Un turno solo, por su número. Es lo que abre la pantalla de detalle. */
 export async function findAppointment(numAppointment: number): Promise<Appointment> {
@@ -24,6 +24,15 @@ export async function myProfessionalAppointments(page = 0, includeCancelled = fa
 /** Los del profesional entre dos fechas (YYYY-MM-DD). Es lo que pide la agenda del día. */
 export async function professionalRange(from: string, to: string, includeCancelled = false): Promise<Appointment[]> {
   const { data } = await api.get("/appointments/professional-range", { params: { from, to, includeCancelled } });
+  return data.data;
+}
+
+/**
+ * Los pacientes del profesional logueado: los que alguna vez tuvieron turno con él. Un
+ * turno cancelado no cuenta como vínculo.
+ */
+export async function myPatients(): Promise<Person[]> {
+  const { data } = await api.get("/appointments/my-patients");
   return data.data;
 }
 

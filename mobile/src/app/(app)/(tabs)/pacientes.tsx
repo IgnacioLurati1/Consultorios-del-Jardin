@@ -3,10 +3,11 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { myPatients } from "../../../api/appointments";
 import { findActiveByType } from "../../../api/people";
 import { Person } from "../../../api/types";
 import { Button } from "../../../components/Button";
-import { Tag } from "../../../components/Chip";
+import { ChipRow, Tag } from "../../../components/Chip";
 import { DataState, EmptyState } from "../../../components/States";
 import { Group } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
@@ -16,23 +17,37 @@ import { useAsync } from "../../../lib/useAsync";
 import { radius, SCREEN_PADDING, space, TOUCH } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
 
+type Scope = "mine" | "all";
+
+const SCOPES: { key: Scope; label: string }[] = [
+  { key: "mine", label: "Mis pacientes" },
+  { key: "all", label: "Todos" },
+];
+
 /**
- * Los pacientes del consultorio. Incluye a los que no tienen cuenta: los carga el
- * profesional para poder darles turno, y se marcan como tales porque con ellos no se
- * puede contar con que les llegue un mail.
+ * Los pacientes. Arranca por los propios, que son los que el profesional busca casi
+ * siempre; los del consultorio entero quedan a un toque, para cuando hay que darle turno
+ * a alguien que todavia no atendio.
+ *
+ * "Mis pacientes" son los que alguna vez tuvieron turno con el: no es una lista que se
+ * arme a mano, sale de la agenda.
+ *
+ * Incluye a los que no tienen cuenta: los carga el profesional para poder darles turno, y
+ * se marcan como tales porque con ellos no se puede contar con que les llegue un mail.
  */
 export default function PatientsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
+  const [scope, setScope] = useState<Scope>("mine");
 
-  const state = useAsync(() => findActiveByType("client"), []);
+  const state = useAsync(() => (scope === "mine" ? myPatients() : findActiveByType("client")), [scope]);
 
   useFocusEffect(
     useCallback(() => {
       state.reload();
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [scope])
   );
 
   const results = useMemo(() => {
@@ -55,6 +70,10 @@ export default function PatientsScreen() {
       }
     >
       <AppText variant="display">Pacientes</AppText>
+
+      <View style={styles.filters}>
+        <ChipRow options={SCOPES} value={scope} onChange={setScope} />
+      </View>
 
       <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <FontAwesome6 name="magnifying-glass" size={15} color={colors.muted} />
@@ -85,13 +104,27 @@ export default function PatientsScreen() {
           emptyState={
             <EmptyState
               icon="user-injured"
-              title={search ? "No encontramos a nadie así" : "Todavía no hay pacientes"}
+              title={
+                search
+                  ? "No encontramos a nadie así"
+                  : scope === "mine"
+                    ? "Todavía no atendiste a nadie"
+                    : "Todavía no hay pacientes"
+              }
               description={
                 search
                   ? "Probá con el apellido o con el email."
-                  : "Podés cargar a alguien que no tiene cuenta para darle turno igual."
+                  : scope === "mine"
+                    ? "Acá van a aparecer las personas a las que les des turno. Mientras tanto, podés mirar los del consultorio."
+                    : "Podés cargar a alguien que no tiene cuenta para darle turno igual."
               }
-              action={search ? undefined : { label: "Cargar un paciente", onPress: () => router.push("/(app)/nuevo-paciente") }}
+              action={
+                search
+                  ? undefined
+                  : scope === "mine"
+                    ? { label: "Ver todos los pacientes", onPress: () => setScope("all") }
+                    : { label: "Cargar un paciente", onPress: () => router.push("/(app)/nuevo-paciente") }
+              }
             />
           }
         >
@@ -171,6 +204,7 @@ const styles = StyleSheet.create({
     minHeight: TOUCH + 4,
   },
   searchInput: { flex: 1, fontSize: 16, paddingVertical: space.md },
+  filters: { marginTop: space.md, marginHorizontal: -SCREEN_PADDING, paddingHorizontal: SCREEN_PADDING },
   list: { marginTop: space.lg },
   newButton: { marginTop: space.xl },
   row: {

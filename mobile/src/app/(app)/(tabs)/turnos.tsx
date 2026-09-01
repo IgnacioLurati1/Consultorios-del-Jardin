@@ -12,7 +12,7 @@ import { DataState, EmptyState, SkeletonList } from "../../../components/States"
 import { Group, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { isUpcoming, stateOf } from "../../../lib/appointments";
-import { addDays, longDate, relativeDay, toISODate, today } from "../../../lib/dates";
+import { addDays, longDate, onDay, relativeDay, sentenceCase, toISODate, today } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { radius, SCREEN_PADDING, space, TOUCH } from "../../../theme/tokens";
@@ -203,7 +203,7 @@ function ProfessionalAgenda() {
           ) : (
             <EmptyState
               icon="mug-hot"
-              title={`No atendés a nadie el ${relativeDay(day)}`}
+              title={`No atendés a nadie ${onDay(day)}`}
               description="No hay turnos cargados para ese día."
               action={{ label: "Cargar un turno", onPress: () => router.push("/(app)/nuevo-turno") }}
             />
@@ -224,9 +224,11 @@ function ProfessionalAgenda() {
         </Group>
       </DataState>
 
-      <Section>
-        <Button label="Cargar un turno" icon="plus" variant="secondary" block onPress={() => router.push("/(app)/nuevo-turno")} />
-      </Section>
+      {list.length > 0 ? (
+        <Section>
+          <Button label="Cargar un turno" icon="plus" variant="secondary" block onPress={() => router.push("/(app)/nuevo-turno")} />
+        </Section>
+      ) : null}
     </ScrollView>
   );
 }
@@ -250,8 +252,8 @@ function DayPicker({ day, onShift, onToday }: { day: string; onShift: (days: num
         accessibilityLabel={isToday ? longDate(day) : `${longDate(day)}. Tocá para volver a hoy`}
         style={styles.dayLabel}
       >
-        <AppText variant="subtitle" numberOfLines={1} style={styles.dayText}>
-          {relativeDay(day)}
+        <AppText variant="subtitle" numberOfLines={1}>
+          {sentenceCase(relativeDay(day))}
         </AppText>
         {!isToday ? (
           <AppText variant="caption" tone="green">
@@ -303,6 +305,5 @@ const styles = StyleSheet.create({
   },
   arrow: { width: TOUCH + 8, height: TOUCH + 4, alignItems: "center", justifyContent: "center" },
   dayLabel: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: space.sm, gap: 1 },
-  dayText: { textTransform: "capitalize" },
   pressed: { opacity: 0.6 },
 });

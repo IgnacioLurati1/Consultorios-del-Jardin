@@ -51,13 +51,18 @@ interface EmptyProps {
   description?: string;
   icon?: React.ComponentProps<typeof FontAwesome6>["name"];
   action?: { label: string; onPress: () => void };
+  /**
+   * Va adentro de una sección, no ocupando la pantalla entera. Respira menos: si no, un
+   * bloque vacío pesa más que los que sí tienen contenido.
+   */
+  compact?: boolean;
 }
 
-export function EmptyState({ title, description, icon = "leaf", action }: EmptyProps) {
+export function EmptyState({ title, description, icon = "leaf", action, compact }: EmptyProps) {
   const { colors } = useTheme();
 
   return (
-    <View style={styles.centered}>
+    <View style={[styles.centered, compact && styles.centeredCompact]}>
       <View style={[styles.badge, { backgroundColor: colors.greenSoft }]}>
         <FontAwesome6 name={icon} size={20} color={colors.green} />
       </View>
@@ -155,6 +160,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.xxxl + space.md,
     paddingHorizontal: space.lg,
   },
+  centeredCompact: { paddingVertical: space.xxl },
   centerText: { textAlign: "center" },
   badge: {
     width: 52,

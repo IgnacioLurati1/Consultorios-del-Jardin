@@ -11,7 +11,7 @@ import { DataState, EmptyState, SkeletonList } from "../../../components/States"
 import { Group, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { fullName, stateOf } from "../../../lib/appointments";
-import { hhmm, relativeDay } from "../../../lib/dates";
+import { hhmm, relativeDay, sentenceCase } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { space } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
@@ -89,7 +89,7 @@ export default function ControlScreen() {
                 {list.map((appointment, index) => (
                   <Row
                     key={appointment.numAppointment}
-                    title={`${relativeDay(appointment.date)} · ${hhmm(appointment.initialHour)}`}
+                    title={`${sentenceCase(relativeDay(appointment.date))} · ${hhmm(appointment.initialHour)}`}
                     subtitle={
                       appointment.patient
                         ? `${appointment.patient.name} ${appointment.patient.surname} · ${appointment.room.description}`

@@ -56,18 +56,31 @@ export function isUpcoming(appointment: Appointment, now = new Date()): boolean 
   return appointment.finalHour.slice(0, 5) >= `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
-/** Cómo se llama a la otra persona del turno según quién esté mirando. */
+/**
+ * Cómo se llama a la otra persona del turno, según de qué lado esté quien mira.
+ *
+ * Las relaciones que el backend no popula llegan como el email pelado en vez de un
+ * objeto, así que acá no se puede dar por sentado que haya un nombre adentro: si no lo
+ * hay, es preferible mostrar el email que "undefined undefined".
+ */
 export function counterpart(appointment: Appointment, viewerEmail: string): string {
-  const isProfessional = appointment.professional?.email === viewerEmail;
-  const other = isProfessional ? appointment.patient : appointment.professional;
+  const viewerIsProfessional = emailOf(appointment.professional) === viewerEmail;
+  const other = viewerIsProfessional ? appointment.patient : appointment.professional;
 
   if (!other) return "Sin paciente asignado";
-  return `${other.name} ${other.surname}`.trim();
+  return fullName(other) || emailOf(other) || "Sin datos";
 }
 
-export function fullName(person: { name: string; surname: string } | null | undefined): string {
+/** El email de una relación, esté populada o no. */
+function emailOf(person: unknown): string {
+  if (typeof person === "string") return person;
+  if (person && typeof person === "object" && "email" in person) return String((person as { email: string }).email);
+  return "";
+}
+
+export function fullName(person: { name?: string; surname?: string } | null | undefined): string {
   if (!person) return "";
-  return `${person.name} ${person.surname}`.trim();
+  return `${person.name ?? ""} ${person.surname ?? ""}`.trim();
 }
 
 /** Las iniciales que van en el círculo del avatar. */

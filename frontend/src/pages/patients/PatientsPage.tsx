@@ -6,7 +6,15 @@ import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { Modal } from "../../components/modal/Modal.tsx";
 import { PeopleList, PeopleSearch, PersonRow } from "../../components/peopleList/PeopleList.tsx";
-import { findAllPatients, createAnonymousPatient, updatePatient, type AnonymousPatientInput } from "./patientsService.ts";
+import {
+  findAllPatients,
+  findMyPatients,
+  createAnonymousPatient,
+  updatePatient,
+  type AnonymousPatientInput,
+} from "./patientsService.ts";
+import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts";
+import type { Appointment } from "../types.ts";
 import type { Person } from "../types.ts";
 
 const emptyForm: AnonymousPatientInput = {
@@ -24,10 +32,51 @@ const normalize = (text: string) =>
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase() ?? "";
 
+/**
+ * De quien es la lista. Arranca en los propios: es lo que el profesional busca casi
+ * siempre. Los del consultorio entero quedan a un click, para cuando hay que darle turno
+ * a alguien que todavia no atendio.
+ */
+type Scope = "mine" | "all";
+
+/** El estado del turno puede ser un ISO timestamp: eso significa cancelado. */
+function describeState(state: string): { label: string; className: string } {
+  switch (state) {
+    case "pending":
+      return { label: "A confirmar", className: "adm-badge adm-badge-amber" };
+    case "accepted":
+      return { label: "Confirmado", className: "adm-badge adm-badge-green" };
+    case "assisted":
+      return { label: "Asistió", className: "adm-badge adm-badge-grey" };
+    case "missed":
+      return { label: "No vino", className: "adm-badge adm-badge-amber" };
+    default:
+      return { label: "Cancelado", className: "adm-badge adm-badge-red" };
+  }
+}
+
+/** La fecha del turno se guarda a medianoche UTC: leerla en local la corre un día. */
+function historyDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 export function PatientsPage() {
   const [patients, setPatients] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [scope, setScope] = useState<Scope>("mine");
+  // El historial del paciente abierto: los turnos que tuvo con este profesional.
+  const [history, setHistory] = useState<Appointment[] | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Una sola ventana sirve para el alta y para la corrección: `editing` guarda a quién
   // se está editando, y en null significa que se está creando uno nuevo.
@@ -38,11 +87,24 @@ export function PatientsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    findAllPatients()
-      .then(setPatients)
-      .catch((err) => toast.error(`No pudimos cargar los pacientes: ${err.message}`))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+
+    (scope === "mine" ? findMyPatients() : findAllPatients())
+      .then((data) => {
+        if (!cancelled) setPatients(data);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(`No pudimos cargar los pacientes: ${err.message}`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scope]);
 
   const filtered = useMemo(() => {
     const term = normalize(search.trim());
@@ -62,6 +124,14 @@ export function PatientsPage() {
 
   function openPatient(patient: Person) {
     setEditing(patient);
+    setHistory(null);
+    setLoadingHistory(true);
+
+    getPatientMedicalHistory(patient.email)
+      .then(setHistory)
+      .catch(() => setHistory([]))
+      .finally(() => setLoadingHistory(false));
+
     setForm({
       email: patient.email,
       name: patient.name,
@@ -125,7 +195,11 @@ export function PatientsPage() {
     <div className="adm-page">
       <AdminHeader
         title="Pacientes"
-        subtitle="Pacientes con cuenta y pacientes anónimos cargados por vos"
+        subtitle={
+          scope === "mine"
+            ? "Las personas a las que les diste turno alguna vez"
+            : "Todos los pacientes del consultorio, con cuenta y anónimos"
+        }
         backTo="/ProfessionalHome"
         actions={
           <button type="button" className="adm-btn adm-btn-primary" onClick={openNew}>
@@ -143,13 +217,38 @@ export function PatientsPage() {
         lo que le hayas cargado.
       </p>
 
+      {/* Arranca en los propios: es lo que se busca casi siempre. Ver a todos sirve
+          cuando hay que darle turno a alguien que todavía no se atendió acá. */}
+      <div className="patients-scope" role="group" aria-label="Qué pacientes mostrar">
+        <button
+          type="button"
+          className={`adm-btn adm-btn-ghost ${scope === "mine" ? "active" : ""}`}
+          aria-pressed={scope === "mine"}
+          onClick={() => setScope("mine")}
+        >
+          Mis pacientes
+        </button>
+        <button
+          type="button"
+          className={`adm-btn adm-btn-ghost ${scope === "all" ? "active" : ""}`}
+          aria-pressed={scope === "all"}
+          onClick={() => setScope("all")}
+        >
+          Todos los pacientes
+        </button>
+      </div>
+
       <PeopleSearch value={search} onChange={setSearch} placeholder="Buscar por nombre, apellido o email" />
 
       <div className="adm-panel">
         {loading ? (
           <SkeletonList rows={6} />
         ) : patients.length === 0 ? (
-          <div className="adm-empty">Todavía no hay pacientes cargados.</div>
+          <div className="adm-empty">
+            {scope === "mine"
+              ? "Todavía no le diste turno a nadie. Acá van a aparecer los pacientes que atiendas."
+              : "Todavía no hay pacientes cargados."}
+          </div>
         ) : filtered.length === 0 ? (
           <div className="adm-empty">Ningún paciente coincide con la búsqueda.</div>
         ) : (
@@ -246,6 +345,42 @@ export function PatientsPage() {
 
           {formError && <p className="ui-alert ui-alert-error">{formError}</p>}
         </div>
+
+        {editing && (
+          <div className="ui-section patients-history">
+            <h3 className="patients-history-title">Historial con vos</h3>
+
+            {loadingHistory ? (
+              <SkeletonList rows={3} />
+            ) : !history || history.length === 0 ? (
+              <p className="adm-empty">Todavía no tuvo ningún turno con vos.</p>
+            ) : (
+              <ul className="patients-history-list">
+                {history.map((appointment) => {
+                  const state = describeState(appointment.state);
+
+                  return (
+                    <li key={appointment.numAppointment} className="patients-history-item">
+                      <div className="patients-history-when">
+                        <strong>{historyDate(appointment.date)}</strong>
+                        <span>{appointment.initialHour?.slice(0, 5)}</span>
+                      </div>
+
+                      <div className="patients-history-what">
+                        <span className={state.className}>{state.label}</span>
+                        {appointment.observations ? (
+                          <p className="patients-history-note">{appointment.observations}</p>
+                        ) : (
+                          <p className="patients-history-note patients-history-empty">Sin observaciones</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );

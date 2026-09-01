@@ -64,8 +64,30 @@ node scripts/verify-api.mjs
 Repite contra el backend real todas las llamadas que hace la app, con los tres roles, y
 avisa si alguna cambió de forma. Necesita los usuarios de demo cargados.
 
+## Mirar las pantallas sin el teléfono
+
+La app también corre en el navegador, solo para poder revisar el diseño mientras se
+trabaja:
+
+```bash
+npx expo start --web --port 8082
+node scripts/shoot.mjs shots professional     # o client, o admin
+```
+
+`shoot.mjs` entra con el usuario del rol, recorre sus pantallas y deja una foto de cada
+una a 390 puntos de ancho, que es el celular más angosto que importa.
+
+Ojo con qué prueba y qué no: en el navegador dibuja react-native-web, así que el
+teclado, los gestos y el chrome del sistema **no** son los de verdad. Sirve para mirar
+tipografía, espacios, copy y estados; no reemplaza abrirla en el teléfono.
+
+Los tokens de sesión ahí van a `localStorage` (ver `src/api/secureStorage.web.ts`), que
+es menos seguro que el llavero: por eso el navegador es una herramienta de trabajo y no
+un destino de la app.
+
 ## Qué no está soportado
 
-- **Web** (`npm run web`): `expo-secure-store` no existe en el navegador, así que no se
-  puede iniciar sesión. Para eso está la web de verdad, en `../frontend`.
+- **Web como destino real**: la sesión en el navegador queda en `localStorage`, y ni el
+  calendario del sistema ni la vibración existen ahí. Para usar la aplicación desde una
+  computadora está la web de verdad, en `../frontend`.
 - **Compilar para las tiendas**: no hay configuración de EAS ni íconos propios todavía.

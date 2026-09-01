@@ -162,3 +162,97 @@ button.people-row:focus-visible {
     justify-content: flex-start;
   }
 }
+
+/* ============================================================
+   Pacientes: el selector de qué lista se mira, y el historial
+   que se muestra al abrir a una persona.
+   ============================================================ */
+
+.patients-scope {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.patients-history {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--adm-border);
+}
+
+.patients-history-title {
+    margin: 0 0 14px;
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--adm-text);
+}
+
+.patients-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    /* El historial de un paciente viejo es largo: se desplaza solo, sin empujar
+       los botones de la ventana fuera de la pantalla. */
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.patients-history-item {
+    display: flex;
+    gap: 14px;
+    padding: 12px 14px;
+    background: var(--adm-bg);
+    border-radius: var(--adm-radius-sm);
+}
+
+.patients-history-when {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 108px;
+    font-size: 0.9rem;
+    color: var(--adm-muted);
+}
+
+.patients-history-when strong {
+    color: var(--adm-text);
+    text-transform: capitalize;
+}
+
+.patients-history-what {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+}
+
+.patients-history-note {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--adm-text);
+}
+
+.patients-history-empty {
+    color: var(--adm-muted);
+    font-style: italic;
+}
+
+@media (max-width: 520px) {
+    .patients-history-item {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .patients-history-when {
+        flex-direction: row;
+        gap: 8px;
+        min-width: 0;
+    }
+}

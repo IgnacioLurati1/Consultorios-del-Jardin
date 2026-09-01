@@ -159,6 +159,7 @@ function ProfessionalHome() {
             skeleton={<SkeletonList rows={3} height={84} />}
             emptyState={
               <EmptyState
+                compact
                 icon="mug-hot"
                 title="Hoy no atendés a nadie"
                 description="No hay turnos cargados para el día de hoy."
@@ -184,7 +185,7 @@ function ProfessionalHome() {
           <Group>
             <Row title="Horarios de atención" subtitle="Los módulos en los que atendés" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
             <Row title="Turnos que se repiten" subtitle="Los que se generan solos cada semana" icon="repeat" onPress={() => router.push("/(app)/repeticiones")} />
-            <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/numeros")} />
+            <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
             <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" last onPress={() => router.push("/(app)/nuevo-turno")} />
           </Group>
         </Section>

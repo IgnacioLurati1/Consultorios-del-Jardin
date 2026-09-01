@@ -234,7 +234,7 @@ const ROUTES: Record<string, string> = {
   "/AppointmentsList": "/(app)/(tabs)/turnos",
   "/EditProfile": "/(app)/mis-datos",
   "/Patients": "/(app)/(tabs)/pacientes",
-  "/Analytics": "/(app)/numeros",
+  "/Analytics": "/(app)/mis-numeros",
   "/scheduleProfessional": "/(app)/horarios",
   "/contacto": "/(app)/contacto",
   "/ProfessionalHome": "/(app)/(tabs)",
