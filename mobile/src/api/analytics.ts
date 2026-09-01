@@ -1,21 +1,34 @@
 import api from "./client";
 
-/** Métricas de un recorte de turnos. Todas salen de las mismas filas, así que cierran entre sí. */
-export interface Metrics {
+/** Lo que se mide de un recorte de turnos sin mirar la plata. */
+export interface Activity {
   appointments: number;
   assisted: number;
   missed: number;
   cancelled: number;
   overbooked: number;
-  /** Plata de los turnos ya marcados como asistidos. */
-  billed: number;
-  /** Plata de los que siguen en pie pero todavía no se cerraron. */
-  scheduled: number;
   patients: number;
   fromApp: number;
   fromProfessional: number;
   unknownOrigin: number;
 }
+
+/** La plata del mismo recorte. */
+export interface Billing {
+  /** Plata de los turnos ya marcados como asistidos. */
+  billed: number;
+  /** Plata de los que siguen en pie pero todavía no se cerraron. */
+  scheduled: number;
+}
+
+/** Métricas de un recorte de turnos. Todas salen de las mismas filas, así que cierran entre sí. */
+export type Metrics = Activity & Billing;
+
+/**
+ * Lo que llega de un profesional: la facturación solo cuando la mira él. Al admin el
+ * backend le saca esas dos cifras, así que acá son opcionales.
+ */
+export type ProfessionalMetrics = Activity & Partial<Billing>;
 
 export interface DayLoad {
   averagePerDay: number;
@@ -35,11 +48,19 @@ export interface RecentMonth extends Metrics, DayLoad {
   inProgress: boolean;
 }
 
-export interface ProfessionalAnalytics {
+/** Los números propios del profesional: acá la plata siempre viene. */
+export interface SelfAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
   recent: RecentMonth[];
   total: Metrics & DayLoad & { months: number };
   months: MonthPoint[];
+}
+
+export interface ProfessionalAnalytics {
+  professional: { email: string; name: string; surname: string; speciality: string | null };
+  recent: (ProfessionalMetrics & DayLoad & { key: string; label: string; inProgress: boolean })[];
+  total: ProfessionalMetrics & DayLoad & { months: number };
+  months: (ProfessionalMetrics & { key: string; label: string })[];
 }
 
 export interface OfficeMetrics extends Metrics, DayLoad {
@@ -55,7 +76,7 @@ export interface OfficeAnalytics {
   months: (MonthPoint & { sharedPatients: number })[];
 }
 
-export async function myAnalytics(): Promise<ProfessionalAnalytics> {
+export async function myAnalytics(): Promise<SelfAnalytics> {
   const { data } = await api.get("/analytics/me");
   return data.data;
 }
@@ -66,6 +87,10 @@ export async function officeAnalytics(): Promise<OfficeAnalytics> {
   return data.data;
 }
 
+/**
+ * Los números de un profesional puntual. Solo admin, y llegan sin `billed` ni `scheduled`:
+ * lo que factura cada uno es dato suyo. El total del consultorio está en `officeAnalytics`.
+ */
 export async function professionalAnalytics(email: string): Promise<ProfessionalAnalytics> {
   const { data } = await api.get(`/analytics/professional/${encodeURIComponent(email)}`);
   return data.data;

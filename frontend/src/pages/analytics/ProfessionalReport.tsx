@@ -24,11 +24,13 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
   const [monthKey, setMonthKey] = useState(recent[0].key);
   const month = recent.find((item) => item.key === monthKey) ?? recent[0];
 
-  // Sobre todos los turnos que se dieron, cancelados incluidos: es el denominador que
-  // hace que el porcentaje signifique "de cada 100 turnos que di, tantos se cayeron".
+  // La plata llega solo cuando el profesional mira lo suyo. Al admin el backend se la
+  // saca, y esa ausencia es la que decide acá: no hace falta que nadie avise quién mira.
+  const showsBilling = total.billed !== undefined;
+
   const billingColumns = months.map((month) => ({
     label: shortMonth(month.label),
-    values: [month.billed, month.scheduled],
+    values: [month.billed ?? 0, month.scheduled ?? 0],
   }));
 
   const appointmentColumns = months.map((month) => ({
@@ -48,21 +50,34 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
         actions={<MonthTabs months={recent} selected={month.key} onSelect={setMonthKey} />}
       >
         <KpiGrid>
+          {showsBilling ? (
+            <Kpi
+              lead
+              label="Cobrado"
+              value={money(month.billed ?? 0)}
+              note={
+                (month.scheduled ?? 0) > 0 ? (
+                  <>
+                    <span className="an-muted">{money(month.scheduled ?? 0)}</span> agendados sin cerrar
+                  </>
+                ) : (
+                  "de los turnos marcados como asistidos"
+                )
+              }
+            />
+          ) : (
+            <Kpi
+              lead
+              label="Turnos en pie"
+              value={month.appointments}
+              note={`${month.assisted} ya asistidos`}
+            />
+          )}
           <Kpi
-            lead
-            label="Cobrado"
-            value={money(month.billed)}
-            note={
-              month.scheduled > 0 ? (
-                <>
-                  <span className="an-muted">{money(month.scheduled)}</span> agendados sin cerrar
-                </>
-              ) : (
-                "de los turnos marcados como asistidos"
-              )
-            }
+            label="Pacientes"
+            value={month.patients}
+            note={showsBilling ? `${month.appointments} turnos en pie` : "distintos en el mes"}
           />
-          <Kpi label="Pacientes" value={month.patients} note={`${month.appointments} turnos en pie`} />
           <Kpi
             label="Cancelados o ausentes"
             value={month.cancelled + month.missed}
@@ -72,18 +87,20 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
         </KpiGrid>
       </AnalyticsSection>
 
-      <AnalyticsSection title="Facturación" scope={`Últimos ${total.months} meses cerrados`}>
-        <p className="an-note">
-          El mes en curso no entra en los gráficos hasta que termine
-        </p>
-        <StackedBars
-          bands={BILLING_BANDS}
-          columns={billingColumns}
-          format={(value) => money(value)}
-          empty="Todavía no hay meses cerrados con turnos cobrados."
-        />
-        <ChartLegend bands={BILLING_BANDS} columns={billingColumns} />
-      </AnalyticsSection>
+      {showsBilling ? (
+        <AnalyticsSection title="Facturación" scope={`Últimos ${total.months} meses cerrados`}>
+          <p className="an-note">
+            El mes en curso no entra en los gráficos hasta que termine
+          </p>
+          <StackedBars
+            bands={BILLING_BANDS}
+            columns={billingColumns}
+            format={(value) => money(value)}
+            empty="Todavía no hay meses cerrados con turnos cobrados."
+          />
+          <ChartLegend bands={BILLING_BANDS} columns={billingColumns} />
+        </AnalyticsSection>
+      ) : null}
 
       <AnalyticsSection title="Turnos por mes" scope={`Últimos ${total.months} meses cerrados`}>
         <StackedBars
@@ -97,7 +114,11 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
 
       <AnalyticsSection title="Acumulado" scope={`Últimos ${total.months} meses cerrados`}>
         <KpiGrid>
-          <Kpi lead label="Cobrado" value={money(total.billed)} note={`${total.assisted} turnos asistidos`} />
+          {showsBilling ? (
+            <Kpi lead label="Cobrado" value={money(total.billed ?? 0)} note={`${total.assisted} turnos asistidos`} />
+          ) : (
+            <Kpi lead label="Turnos asistidos" value={total.assisted} note={`${total.appointments} turnos en pie`} />
+          )}
           <Kpi label="Pacientes distintos" value={total.patients} />
           <Kpi label="Cancelados o ausentes" value={lost} note={`${lostRate}% de los ${given} turnos dados`} />
           <Kpi label="Sobreturnos" value={total.overbooked} />

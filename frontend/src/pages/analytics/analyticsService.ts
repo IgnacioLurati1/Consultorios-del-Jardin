@@ -1,23 +1,39 @@
 import api from "../../axios";
 
-/** Métricas de un recorte de turnos. Todas salen de las mismas filas, así que cierran entre sí. */
-export interface Metrics {
+/** Lo que se mide de un recorte de turnos sin mirar la plata. */
+export interface Activity {
   /** Turnos que no se cancelaron. */
   appointments: number;
   assisted: number;
   missed: number;
   cancelled: number;
   overbooked: number;
-  /** Plata de los turnos ya marcados como asistidos. */
-  billed: number;
-  /** Plata de los turnos que siguen en pie pero todavía no se cerraron. */
-  scheduled: number;
   patients: number;
   fromApp: number;
   fromProfessional: number;
   /** Turnos anteriores a que se guardara el origen: no se pueden clasificar. */
   unknownOrigin: number;
 }
+
+/** La plata del mismo recorte. */
+export interface Billing {
+  /** Plata de los turnos ya marcados como asistidos. */
+  billed: number;
+  /** Plata de los turnos que siguen en pie pero todavía no se cerraron. */
+  scheduled: number;
+}
+
+/** Métricas de un recorte de turnos. Todas salen de las mismas filas, así que cierran entre sí. */
+export type Metrics = Activity & Billing;
+
+/**
+ * Lo que llega de un profesional.
+ *
+ * La facturación viene solo cuando la mira él. El admin la recibe sin esas dos cifras,
+ * así que acá son opcionales y la pantalla se fija si están: la ausencia del dato es lo
+ * que decide si el bloque de plata se dibuja.
+ */
+export type ProfessionalMetrics = Activity & Partial<Billing>;
 
 export interface DayLoad {
   averagePerDay: number;
@@ -30,6 +46,8 @@ export interface MonthPoint extends Metrics {
   label: string;
 }
 
+export type ProfessionalMonthPoint = ProfessionalMetrics & { key: string; label: string };
+
 /** Un mes que se puede mirar en tarjetas: el que corre y el anterior. */
 export interface RecentMonth extends Metrics, DayLoad {
   key: string;
@@ -38,11 +56,14 @@ export interface RecentMonth extends Metrics, DayLoad {
   inProgress: boolean;
 }
 
+export type ProfessionalRecentMonth = ProfessionalMetrics &
+  DayLoad & { key: string; label: string; inProgress: boolean };
+
 export interface ProfessionalAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
-  recent: RecentMonth[];
-  total: Metrics & DayLoad & { months: number };
-  months: MonthPoint[];
+  recent: ProfessionalRecentMonth[];
+  total: ProfessionalMetrics & DayLoad & { months: number };
+  months: ProfessionalMonthPoint[];
 }
 
 export interface OfficeMetrics extends Metrics, DayLoad {
@@ -106,7 +127,12 @@ export function findAssistantUsage(): Promise<AssistantUsage> {
     .catch(unwrap);
 }
 
-/** Los números de un profesional puntual. Solo admin. */
+/**
+ * Los números de un profesional puntual. Solo admin.
+ *
+ * Llegan sin `billed` ni `scheduled`: lo que factura cada uno es dato suyo. El total
+ * del consultorio, que no es de nadie en particular, está en `findOfficeAnalytics`.
+ */
 export function findProfessionalAnalytics(email: string): Promise<ProfessionalAnalytics> {
   return api
     .get(`/analytics/professional/${encodeURIComponent(email)}`)
