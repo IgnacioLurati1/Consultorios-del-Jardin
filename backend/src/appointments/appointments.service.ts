@@ -408,6 +408,27 @@ export class AppointmentService {
     return appointment; // Not used for now
   }
 
+  /**
+   * Un turno solo. La web nunca lo necesitó porque abre el detalle sobre la lista que ya
+   * tiene en pantalla; la app sí, porque el detalle es una pantalla con su propia
+   * dirección y puede abrirse sin haber pasado por ninguna lista.
+   *
+   * Lo ve quien participa del turno. El admin ve cualquiera: es el que controla lo que
+   * se da en el consultorio.
+   */
+  async findAppointment(num: number, email: string, type: string) {
+    const mine: FilterQuery<Appointment> =
+      type === "admin" ? { numAppointment: num } : { numAppointment: num, $or: [{ professional: { email } }, { patient: { email } }] };
+
+    const appointment = await em.findOne(Appointment, mine, {
+      populate: ["patient", "professional", "room", "room.office", "recurrence"],
+    });
+
+    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+
+    return appointment;
+  }
+
   async cancelAppointment(num: number, email: string, type: "professional" | "client") {
     const appointment = await em.findOne(
       Appointment,

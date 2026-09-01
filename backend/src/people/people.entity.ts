@@ -21,7 +21,16 @@ export class Person {
   phoneNumber!: string;
 
   // Nullable por los pacientes anónimos: los carga el profesional y no tienen cuenta.
-  @Property({ nullable: true, unique: false })
+  //
+  // hidden saca el campo de todo lo que se serializa a JSON. Hasta acá cada endpoint se
+  // acordaba de borrarlo a mano, y los que devuelven una persona adentro de otra cosa
+  // (un turno trae al profesional y al paciente) se lo estaban llevando puesto: cualquier
+  // usuario logueado veía el hash de los demás. Un hash de bcrypt no es una contraseña,
+  // pero es material para romper offline y no tiene por qué salir del servidor.
+  //
+  // No afecta a leerlo desde el código: el login sigue haciendo bcrypt.compare contra
+  // person.password como siempre.
+  @Property({ nullable: true, unique: false, hidden: true })
   password?: string | null;
 
   @Property({ nullable: true, unique: false })

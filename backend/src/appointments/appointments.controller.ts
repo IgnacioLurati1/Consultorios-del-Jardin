@@ -261,6 +261,18 @@ async function updateDiagnostic(req: RequestWithUser, res: Response) {
   }
 }
 
+async function getAppointment(req: RequestWithUser, res: Response) {
+  try {
+    const numAppointment = Number.parseInt(req.params.numAppointment);
+    if (Number.isNaN(numAppointment)) return res.status(400).json({ message: "Ese número de turno no es válido" });
+
+    const appointment = await appointmentService.findAppointment(numAppointment, req.user.email, req.user.type);
+    res.status(200).json({ message: "Turno encontrado", data: appointment });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 async function cancelAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
@@ -320,6 +332,7 @@ async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Res
 }
 
 export {
+  getAppointment,
   getPatientAppointments,
   getDiagnostic,
   getProfessionalAppointments,

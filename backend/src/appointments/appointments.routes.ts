@@ -1,6 +1,7 @@
 import { Router } from "express";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import {
+  getAppointment,
   getPatientAppointments,
   getDiagnostic,
   getProfessionalAppointments,
@@ -600,6 +601,38 @@ appointmentRouter.patch("/:numAppointment/diagnostic", sanitizeAppointmentInput,
  *       500:
  *         description: Error del servidor
  */
+/**
+ * @swagger
+ * /api/appointments/{numAppointment}:
+ *   get:
+ *     summary: Devuelve un turno por su número
+ *     description: >
+ *       Lo ve quien participa del turno (el profesional o el paciente). El admin puede
+ *       ver cualquiera. La app lo usa para abrir el detalle de un turno sin haber pasado
+ *       por una lista.
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: numAppointment
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Turno encontrado
+ *       400:
+ *         description: El numero de turno no es valido
+ *       401:
+ *         description: Token ausente, invalido o expirado
+ *       404:
+ *         description: Ese turno no existe o no es del usuario
+ *       500:
+ *         description: Error del servidor
+ */
+appointmentRouter.get("/:numAppointment", getAppointment);
+
 appointmentRouter.put("/:numAppointment", sanitizeAppointmentInput, updateAppointment);
 appointmentRouter.patch("/:numAppointment", sanitizeAppointmentInput, updateAppointment);
 appointmentRouter.delete("/:numAppointment", deleteAppointment);
