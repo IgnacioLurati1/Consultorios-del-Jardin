@@ -1,4 +1,4 @@
-import api from "../../axios";
+import api from "./client";
 
 /** Una persona, como la manda la agenda: lo justo para nombrarla en pantalla. */
 export interface AgendaPerson {
@@ -94,65 +94,14 @@ export interface AgendaWeek {
   days: AgendaWeekDay[];
 }
 
-function unwrap(err: any): never {
-  throw new Error(err.response?.data?.message || err.message);
-}
-
 /** La agenda de un día puntual, con los horarios y los turnos juntos. Solo admin. */
-export function findAgendaDay(date: string): Promise<AgendaDay> {
-  return api
-    .get(`/agenda/day/${date}`)
-    .then((response) => response.data.data)
-    .catch(unwrap);
+export async function agendaDay(date: string): Promise<AgendaDay> {
+  const { data } = await api.get(`/agenda/day/${date}`);
+  return data.data;
 }
 
 /** Cómo viene la semana. 0 es la que corre, 1 la que viene. Solo admin. */
-export function findAgendaWeek(weeksAhead = 0): Promise<AgendaWeek> {
-  return api
-    .get("/agenda/week", { params: { weeksAhead } })
-    .then((response) => response.data.data)
-    .catch(unwrap);
-}
-
-/* ============================================================
-   Fechas de la semana. Se calculan en el cliente porque los dos
-   lados de la pantalla las necesitan: el selector de día para
-   ofrecerlas y el pedido al backend para nombrar una.
-   ============================================================ */
-
-const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-
-export function toISODate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-export function dayName(date: Date): string {
-  return DAY_NAMES[date.getDay()];
-}
-
-/**
- * Los días de la semana, de lunes a sábado.
- *
- * El domingo queda afuera porque el consultorio no atiende: mostrarlo agregaría una
- * columna vacía a algo que ya es ancho. `weeksAhead` en 1 es la semana que viene.
- */
-export function weekDays(weeksAhead = 0): { date: string; label: string; short: string; isToday: boolean }[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const monday = new Date(today);
-  monday.setDate(monday.getDate() - ((today.getDay() + 6) % 7) + weeksAhead * 7);
-
-  return Array.from({ length: 6 }, (_, offset) => {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + offset);
-
-    const name = dayName(date);
-    return {
-      date: toISODate(date),
-      label: `${name} ${date.getDate()}`,
-      short: name.slice(0, 3),
-      isToday: date.getTime() === today.getTime(),
-    };
-  });
+export async function agendaWeek(weeksAhead = 0): Promise<AgendaWeek> {
+  const { data } = await api.get("/agenda/week", { params: { weeksAhead } });
+  return data.data;
 }

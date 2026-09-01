@@ -11,6 +11,7 @@ import { BandHeadline, DayBand } from "../../../components/DayBand";
 import { DataState, EmptyState, SkeletonList } from "../../../components/States";
 import { Group, Note, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
+import { WeekSummary } from "../../../features/WeekSummary";
 import { isUpcoming, stateOf } from "../../../lib/appointments";
 import { money, today } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
@@ -240,9 +241,14 @@ function AdminHome() {
             <Row title="Usuarios" subtitle="Altas, bajas y solicitudes de profesionales" icon="users" onPress={() => router.push("/(app)/(tabs)/usuarios")} />
             <Row title="Control de turnos" subtitle="Qué está dando cada profesional" icon="eye" onPress={() => router.push("/(app)/admin/control")} />
             <Row title="Horarios" subtitle="Los módulos de atención de cada uno" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
+            <Row title="El día completo" subtitle="Quién atiende y qué turnos hay, consultorio por consultorio" icon="table-columns" onPress={() => router.push("/(app)/admin/dia")} />
             <Row title="Números del consultorio" subtitle="Facturación, pacientes y uso del asistente" icon="chart-column" last onPress={() => router.push("/(app)/(tabs)/numeros")} />
           </Group>
         </Section>
+
+        {/* Debajo de lo que el admin usa todos los días y arriba del catálogo, que casi
+            no se toca: es información para mirar de paso, no un lugar al que se entra. */}
+        <WeekSummary />
 
         <Section title="Catálogo">
           <Group>
