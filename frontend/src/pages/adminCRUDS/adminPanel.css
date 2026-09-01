@@ -451,3 +451,15 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* Hasta cuándo se repite. Sin borde punteado: no es una excepción como el sobreturno,
+   es una condición normal de la repetición. */
+.appt-tag-until {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

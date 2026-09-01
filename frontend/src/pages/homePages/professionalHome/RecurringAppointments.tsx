@@ -130,8 +130,7 @@ export function RecurringAppointments() {
                     {weekdayOf(recurrence.startDate)} · {shortHour(recurrence.initialHour)} a {shortHour(recurrence.finalHour)}
                   </span>
                   <span className="prof-repeat-meta">
-                    {FREQUENCY_LABELS[recurrence.frequency].toLowerCase()}
-                    {recurrence.endDate ? ` hasta el ${shortDate(recurrence.endDate)}` : ""} · {recurrence.room.description}
+                    {FREQUENCY_LABELS[recurrence.frequency].toLowerCase()} · {recurrence.room.description}
                     {recurrence.patient ? ` · ${recurrence.patient.surname}, ${recurrence.patient.name}` : " · sin paciente asignado"}
                   </span>
                   <span className="prof-repeat-next">
@@ -143,6 +142,10 @@ export function RecurringAppointments() {
                           .join(" · ")}`}
                   </span>
                 </div>
+
+                {/* El corte se lee de un vistazo: es lo que separa una repetición que sigue
+                    para siempre de una que termina en dos semanas. */}
+                {recurrence.endDate && <span className="appt-tag-until">hasta el {shortDate(recurrence.endDate)}</span>}
 
                 {recurrence.overbooked && <span className="appt-tag-over">Sobreturno</span>}
 
