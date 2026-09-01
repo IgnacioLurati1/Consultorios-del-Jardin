@@ -28,7 +28,7 @@ interface AuthRequest extends Request {
 function readRefreshToken(req: AuthRequest): string | undefined {
   if (req.cookies?.refreshToken) return req.cookies.refreshToken;
 
-  const fromHeader = req.headers[REFRESH_TOKEN_HEADER];
+  const fromHeader = req.headers?.[REFRESH_TOKEN_HEADER];
   return typeof fromHeader === "string" && fromHeader.length > 0 ? fromHeader : undefined;
 }
 

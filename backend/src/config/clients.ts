@@ -30,7 +30,7 @@ export function isMobileClient(req: Request): boolean {
 export type ClientChannel = "app" | "web";
 
 export function clientChannel(req: Request): ClientChannel | null {
-  const client = req.headers[MOBILE_CLIENT_HEADER];
+  const client = req.headers?.[MOBILE_CLIENT_HEADER];
   if (typeof client !== "string") return null;
 
   const value = client.toLowerCase();
