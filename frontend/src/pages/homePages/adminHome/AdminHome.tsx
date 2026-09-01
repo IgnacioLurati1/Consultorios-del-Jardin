@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList } from "react-icons/fa";
 import { FaChartColumn, FaHouse, FaMountainCity } from "react-icons/fa6";
+import { WeekSummary } from "../../agenda/WeekSummary.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import "./AdminHome.css";
 
@@ -100,6 +101,8 @@ export function AdminHome() {
           <MenuCard key={entry.title} entry={entry} />
         ))}
       </section>
+
+      <WeekSummary />
 
       <button
         type="button"

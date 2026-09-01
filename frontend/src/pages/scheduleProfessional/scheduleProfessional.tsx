@@ -19,6 +19,8 @@ import { findAllActiveCities } from "../adminCRUDS/adminCities/CityService.ts";
 import { findAllActiveOffices } from "../adminCRUDS/adminOffices/OfficeService.ts";
 import { daysSpanish } from "./scheduleTypes.ts";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
+import { DayGrid } from "../agenda/DayGrid.tsx";
+import { findAgendaDay, weekDays, type AgendaDay } from "../agenda/agendaService.ts";
 
 const openingTime = "08:00";
 const closingTime = "21:00";
@@ -39,6 +41,13 @@ export function ScheduleProfessional() {
 
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("professional");
   const [roomToFilter, setRoomToFilter] = useState<Room | undefined>(undefined);
+
+  // Modo día: la grilla se da vuelta y las columnas pasan a ser las salas.
+  const [weeksAhead, setWeeksAhead] = useState(0);
+  const [dayDate, setDayDate] = useState<string>("");
+  const [dayShows, setDayShows] = useState<"schedules" | "appointments">("schedules");
+  const [dayData, setDayData] = useState<AgendaDay | null>(null);
+  const [loadingDay, setLoadingDay] = useState(false);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [loadingProfessionals, setLoadingProfessionals] = useState(false);
@@ -93,6 +102,21 @@ export function ScheduleProfessional() {
       .catch((err) => toast.error(`Error al obtener los horarios del consultorio: ${err.message}`))
       .finally(() => setLoadingSchedules(false));
   }, [roomToFilter, viewMode]);
+
+  // El día elegido, con sus horarios y sus turnos. Vienen juntos: el botón que alterna
+  // entre las dos vistas no tiene por qué disparar otra carga.
+  useEffect(() => {
+    if (viewMode !== "day" || !dayDate) return;
+
+    setLoadingDay(true);
+    findAgendaDay(dayDate)
+      .then(setDayData)
+      .catch((err) => {
+        toast.error(`No pudimos traer ese día: ${err.message}`);
+        setDayData(null);
+      })
+      .finally(() => setLoadingDay(false));
+  }, [dayDate, viewMode]);
 
   useEffect(() => {
     findAllActiveRooms()
@@ -182,17 +206,42 @@ export function ScheduleProfessional() {
   function backToProfessional() {
     setViewMode("professional");
     setRoomToFilter(undefined);
+    setDayData(null);
+    if (!professional) setPickerOpen(true);
   }
 
   const inRoomMode = viewMode === "room" && roomToFilter;
+  const inDayMode = viewMode === "day";
 
-  const title = inRoomMode
+  const days = weekDays(weeksAhead);
+
+  /** Entra al modo día parado en el primero de la semana que se esté mirando. */
+  function showDay(date?: string) {
+    setViewMode("day");
+    setDayDate(date ?? days.find((entry) => entry.isToday)?.date ?? days[0].date);
+  }
+
+  function pickWeek(next: number) {
+    const upcoming = weekDays(next);
+    setWeeksAhead(next);
+    setDayDate(upcoming.find((entry) => entry.isToday)?.date ?? upcoming[0].date);
+  }
+
+  const title = inDayMode
+    ? dayData
+      ? `${dayData.day.charAt(0).toUpperCase() + dayData.day.slice(1)} ${Number(dayData.date.slice(8))}`
+      : "El día completo"
+    : inRoomMode
     ? `Ocupación de ${roomToFilter.description}`
     : professional
     ? `${professional.surname}, ${professional.name}`
     : "Horarios";
 
-  const subtitle = inRoomMode
+  const subtitle = inDayMode
+    ? dayShows === "schedules"
+      ? "Quién atiende ese día, consultorio por consultorio"
+      : "Todos los turnos de ese día, consultorio por consultorio"
+    : inRoomMode
     ? "Horarios de todos los profesionales en este consultorio. Solo lectura."
     : professional
     ? professional.speciality || "Agenda semanal"
@@ -273,17 +322,35 @@ export function ScheduleProfessional() {
         title={title}
         subtitle={subtitle}
         actions={
-          <>
-            {inRoomMode && professional && (
-              <button type="button" className="adm-btn adm-btn-ghost" onClick={backToProfessional}>
-                Volver a la agenda
+          inDayMode ? (
+            <>
+              <button
+                type="button"
+                className="adm-btn adm-btn-primary"
+                onClick={() => setDayShows(dayShows === "schedules" ? "appointments" : "schedules")}
+              >
+                {dayShows === "schedules" ? "Ver los turnos" : "Ver los horarios"}
               </button>
-            )}
-            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setPickerOpen(true)}>
-              {professional || inRoomMode ? "Cambiar" : "Elegir profesional o consultorio"}
-            </button>
-            {filter}
-          </>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={backToProfessional}>
+                Volver
+              </button>
+            </>
+          ) : (
+            <>
+              {inRoomMode && professional && (
+                <button type="button" className="adm-btn adm-btn-ghost" onClick={backToProfessional}>
+                  Volver a la agenda
+                </button>
+              )}
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => showDay()}>
+                Ver un día completo
+              </button>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setPickerOpen(true)}>
+                {professional || inRoomMode ? "Cambiar" : "Elegir profesional o consultorio"}
+              </button>
+              {filter}
+            </>
+          )
         }
       />
 
@@ -295,8 +362,67 @@ export function ScheduleProfessional() {
         </p>
       )}
 
+      {inDayMode && (
+        <>
+          <p className="schedule-mode-note">
+            {dayShows === "schedules"
+              ? "Una columna por consultorio, y cada franja es un módulo de atención. El color es del profesional: el mismo en todos los consultorios donde atienda ese día."
+              : "Los mismos consultorios, con los turnos que hay cargados. Los cancelados no se dibujan."}
+          </p>
+
+          <div className="dg-days">
+            <div className="adm-chips">
+              {days.map((entry) => (
+                <button
+                  key={entry.date}
+                  type="button"
+                  className={`${dayDate === entry.date ? "active" : ""} ${entry.isToday ? "dg-day-today" : ""}`}
+                  aria-pressed={dayDate === entry.date}
+                  onClick={() => setDayDate(entry.date)}
+                >
+                  {entry.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="dg-week">
+              <button
+                type="button"
+                className="adm-btn adm-btn-ghost"
+                onClick={() => pickWeek(0)}
+                disabled={weeksAhead === 0}
+              >
+                Esta semana
+              </button>
+              <button
+                type="button"
+                className="adm-btn adm-btn-ghost"
+                onClick={() => pickWeek(1)}
+                disabled={weeksAhead === 1}
+              >
+                La que viene
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <div className="schedule-container">
-        {loadingSchedules ? (
+        {inDayMode ? (
+          loadingDay || !dayData ? (
+            <SkeletonGrid />
+          ) : (
+            <>
+              <DayGrid data={dayData} mode={dayShows} />
+              {dayShows === "appointments" && dayData.cancelled > 0 && (
+                <p className="schedule-mode-note">
+                  Además hay {dayData.cancelled} {dayData.cancelled === 1 ? "turno cancelado" : "turnos cancelados"} ese día,
+                  que no se dibujan.
+                </p>
+              )}
+            </>
+          )
+        ) : loadingSchedules ? (
           <SkeletonGrid />
         ) : !professional && !inRoomMode ? (
           <div className="adm-panel">

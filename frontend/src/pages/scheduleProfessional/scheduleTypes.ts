@@ -10,8 +10,14 @@ export const daysSpanish: string[] = [
     "sabado",
 ];
 
-/** Qué se está mirando en la grilla: la agenda de un profesional o la ocupación de un consultorio. */
-export type ScheduleViewMode = "professional" | "room";
+/**
+ * Qué se está mirando en la grilla.
+ *
+ * Los tres modos contestan preguntas distintas: qué hace un profesional en la semana,
+ * quién usa un consultorio, y qué pasa en todo el edificio un día puntual. El tercero da
+ * vuelta los ejes —las columnas pasan a ser las salas— y por eso tiene su propia grilla.
+ */
+export type ScheduleViewMode = "professional" | "room" | "day";
 
 export interface columnModuleProps{
     schedules: Schedule[];

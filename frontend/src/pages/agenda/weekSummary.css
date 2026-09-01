@@ -1,0 +1,211 @@
+/* ============================================================
+   Cómo viene la semana. Una tarjeta por día, en la portada del
+   panel: no es un informe para leer, es la respuesta de todos
+   los días.
+   ============================================================ */
+
+.wk {
+  margin: 34px 0 26px;
+}
+
+.wk-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.wk-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adm-text);
+}
+
+.wk-range {
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.wk-nav {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.wk-nav .adm-btn {
+  padding: 8px 12px;
+  min-height: 0;
+}
+
+.wk-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 14px;
+}
+
+.wk-day {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px 16px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+}
+
+/* Hoy se despega del resto: en una fila de seis tarjetas iguales, encontrar la de hoy
+   es lo primero que se hace. */
+.wk-day-today {
+  border-color: var(--adm-green);
+  box-shadow: 0 0 0 1px var(--adm-green) inset, var(--adm-shadow);
+}
+
+.wk-day-quiet {
+  background: var(--adm-bg);
+  box-shadow: none;
+}
+
+.wk-day-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--adm-text);
+}
+
+.wk-today {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------- abre y cierra ---------- */
+
+.wk-edges {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.wk-edges dt {
+  color: var(--adm-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wk-edges dd {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 0;
+}
+
+.wk-edges strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Los nombres se cortan a dos líneas: cuando abren cuatro personas a la misma hora, la
+   tarjeta no puede crecer hasta empujar a las de al lado. */
+.wk-who {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--adm-muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+/* ---------- la franja más cargada ---------- */
+
+.wk-peak {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 12px;
+  text-align: left;
+  font: inherit;
+  color: var(--adm-green-dark);
+  background: var(--adm-green-soft);
+  border: none;
+  border-radius: var(--adm-radius-sm);
+  cursor: pointer;
+}
+
+.wk-peak:hover,
+.wk-peak:focus-visible {
+  filter: brightness(0.97);
+}
+
+.wk-peak-band {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-peak-note {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.wk-peak-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0 0 2px;
+  list-style: none;
+}
+
+.wk-peak-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px;
+  align-items: baseline;
+  font-size: 0.82rem;
+}
+
+.wk-peak-hour {
+  color: var(--adm-muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wk-peak-people {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.3;
+}
+
+.wk-quiet {
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.84rem;
+}
+
+.wk-counts {
+  margin: auto 0 0;
+  padding-top: 4px;
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--adm-border);
+}

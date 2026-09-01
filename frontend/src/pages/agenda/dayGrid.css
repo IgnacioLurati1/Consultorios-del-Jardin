@@ -1,0 +1,201 @@
+/* ============================================================
+   La grilla del día: una columna por sala, las horas en vertical.
+   Los bloques se posicionan por minuto y no por celda, que es lo
+   único que deja dibujar un módulo de 45 minutos donde cae.
+   ============================================================ */
+
+.dg-scroll {
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.dg {
+  display: grid;
+  min-width: 100%;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+  overflow: hidden;
+}
+
+/* La fila de nombres queda a la vista mientras se baja: con doce salas, saber en cuál
+   se está mirando es la mitad de la lectura. */
+.dg-corner,
+.dg-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 10px 12px;
+  background: var(--adm-bg);
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.dg-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 1px solid var(--adm-border);
+}
+
+.dg-head-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--adm-text);
+}
+
+.dg-head-office {
+  font-size: 0.78rem;
+  color: var(--adm-muted);
+}
+
+.dg-gutter {
+  position: relative;
+  border-right: 1px solid var(--adm-border);
+}
+
+.dg-hour {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-col {
+  position: relative;
+  border-left: 1px solid var(--adm-border);
+}
+
+.dg-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--adm-border);
+  opacity: 0.6;
+}
+
+/* ---------- los bloques ---------- */
+
+.dg-block {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  padding: 5px 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--adm-text);
+  border: 1px solid var(--adm-border);
+  border-left-width: 4px;
+  border-left-style: solid;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.dg-block-pick {
+  cursor: pointer;
+}
+
+.dg-block-pick:hover,
+.dg-block-pick:focus-visible {
+  filter: brightness(0.97);
+  box-shadow: var(--adm-shadow);
+}
+
+.dg-block-hour {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-block-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dg-block-patient {
+  font-size: 0.78rem;
+  color: var(--adm-muted);
+  line-height: 1.25;
+}
+
+.dg-block-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.dg-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--adm-bg);
+  border: 1px solid var(--adm-border);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--adm-muted);
+}
+
+/* Un sobreturno o un turno que se repite no es un estado: es de qué clase es el turno.
+   Va marcado para que no se lea como una etiqueta más. */
+.dg-tag-kind {
+  background: var(--adm-green-soft);
+  border-color: transparent;
+  color: var(--adm-green-dark);
+}
+
+.dg-empty {
+  margin: 14px 0 0;
+  text-align: center;
+  color: var(--adm-muted);
+}
+
+/* ---------- el selector de día ---------- */
+
+.dg-days {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.dg-week {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--adm-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.dg-day-today {
+  position: relative;
+}
+
+/* El punto marca hoy sin gastar una palabra: en una fila de seis chips, "hoy" escrito
+   descoloca todo lo demás. */
+.dg-day-today::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--adm-green);
+}
+
+@media print {
+  .dg-scroll {
+    overflow: visible;
+  }
+}
