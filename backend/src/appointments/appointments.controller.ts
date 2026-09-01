@@ -261,6 +261,19 @@ async function updateDiagnostic(req: RequestWithUser, res: Response) {
   }
 }
 
+/** Los pacientes que alguna vez tuvieron turno con el profesional logueado. */
+async function getMyPatients(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional")
+      return res.status(403).json({ message: "Esta lista es solo para profesionales" });
+
+    const patients = await appointmentService.findMyPatients(req.user.email);
+    res.status(200).json({ message: "Pacientes encontrados", data: patients });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 async function getAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
@@ -333,6 +346,7 @@ async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Res
 
 export {
   getAppointment,
+  getMyPatients,
   getPatientAppointments,
   getDiagnostic,
   getProfessionalAppointments,

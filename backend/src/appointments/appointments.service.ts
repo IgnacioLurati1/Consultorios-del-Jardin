@@ -74,6 +74,38 @@ export class AppointmentService {
     );
   }
 
+  /**
+   * Los pacientes del profesional: los que alguna vez tuvieron turno con él.
+   *
+   * No cuenta el turno cancelado como vínculo: si lo único que hubo entre los dos fue un
+   * turno que se dio de baja, esa persona no es su paciente. Un turno pendiente sí
+   * cuenta, porque ya está en la agenda.
+   *
+   * El estado guarda un ISO timestamp cuando se cancela, así que "no cancelado" es
+   * pertenecer a la lista de estados con nombre.
+   */
+  async findMyPatients(professionalEmail: string) {
+    const appointments = await em.find(
+      Appointment,
+      {
+        professional: { email: professionalEmail },
+        patient: { $ne: null },
+        state: { $in: ["pending", "accepted", "assisted", "missed"] },
+      },
+      { populate: ["patient"], fields: ["patient"] }
+    );
+
+    // Una persona aparece una vez por turno: acá se queda una sola.
+    const unique = new Map<string, (typeof appointments)[number]["patient"]>();
+    for (const appointment of appointments) {
+      if (appointment.patient) unique.set(appointment.patient.email, appointment.patient);
+    }
+
+    return [...unique.values()].sort((a, b) =>
+      `${a!.surname} ${a!.name}`.localeCompare(`${b!.surname} ${b!.name}`, "es")
+    );
+  }
+
   async getPatientMedicalHistory(professionalEmail: string, patientEmail: string) {
     return await em.find(
       Appointment,
@@ -127,7 +159,9 @@ export class AppointmentService {
         date: { $gte: from, $lte: to },
         ...(includeCancelled ? {} : { state: { $in: ACTIVE_APPOINTMENT_STATES } }),
       },
-      { populate: ["room.office", "patient", "recurrence"], orderBy: { date: "ASC", initialHour: "ASC" } }
+      // El profesional también se popula: sin eso la relación viaja como un email suelto
+      // y el cliente no puede distinguir de qué lado del turno está mirando.
+      { populate: ["room.office", "patient", "professional", "recurrence"], orderBy: { date: "ASC", initialHour: "ASC" } }
     );
   }
 

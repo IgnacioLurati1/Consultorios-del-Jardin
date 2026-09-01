@@ -37,6 +37,13 @@ const allowedOrigins = [
   "http://localhost:3000"  // el propio backend (Swagger)
 ];
 
+// La app móvil corre en un navegador solo mientras se la desarrolla, para poder mirar
+// las pantallas sin el teléfono a mano (`npm run web` en Frontend/mobile). En el
+// teléfono no pasa por acá: las requests nativas no mandan Origin.
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.push("http://localhost:8081", "http://localhost:8082");
+}
+
 // La app nativa no manda Origin (no es un browser), así que cae en el `!origin` de abajo
 // y CORS no la toca. Los headers sí hay que declararlos: son los que usa para mandar el
 // refresh token, que en la app no puede viajar en una cookie. Ver config/clients.ts.
