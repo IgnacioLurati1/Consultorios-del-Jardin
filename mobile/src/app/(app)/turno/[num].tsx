@@ -112,7 +112,7 @@ export default function AppointmentScreen() {
           <View style={styles.tags}>
             <StateBadge state={key} />
             {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
-            {appointment.recurrence ? <Tag label="Se repite" tone="green" /> : null}
+            {appointment.recurrence?.active ? <Tag label="Se repite" tone="green" /> : null}
           </View>
         </View>
 
@@ -141,7 +141,10 @@ export default function AppointmentScreen() {
           </Section>
         ) : null}
 
-        {appointment.recurrence ? (
+        {/* Vale `active` y no que la repetición exista: al frenarla, el turno le sigue
+            apuntando (queda como registro de lo que pasó) y con solo mirar el objeto la
+            ficha seguía diciendo que se repite. */}
+        {appointment.recurrence?.active ? (
           <Section title="Se repite">
             <Group>
               <Row
@@ -193,7 +196,7 @@ export default function AppointmentScreen() {
               <Button label="Cerrar el turno" icon="clipboard-check" block onPress={() => setCloseOpen(true)} />
             ) : null}
 
-            {isProfessional && !appointment.recurrence && key !== "cancelled" ? (
+            {isProfessional && !appointment.recurrence?.active && key !== "cancelled" ? (
               <Button label="Hacer que se repita" icon="repeat" variant="secondary" block onPress={() => setRepeatOpen(true)} />
             ) : null}
 

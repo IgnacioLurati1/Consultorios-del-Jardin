@@ -285,7 +285,10 @@ export function AppointmentDetailModal({
             <div className="ui-section">
               <h3 className="ui-section-title">Turno repetible</h3>
 
-              {appointment.recurrence ? (
+              {/* Vale `active` y no que la repetición exista: al frenarla, el turno le sigue
+                  apuntando (es el registro de lo que pasó) y con solo mirar el objeto la
+                  ficha seguía diciendo que se repetía. */}
+              {appointment.recurrence?.active ? (
                 <>
                   <p className="ui-alert ui-alert-info">
                     Este turno se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}

@@ -86,7 +86,8 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       .catch((err: any) => toast.error(err.message));
 
   const onStopRepeat = (appointment: Appointment) => {
-    if (!appointment.recurrence) return;
+    // Una repetición ya frenada sigue colgada del turno: frenarla de nuevo daría error.
+    if (!appointment.recurrence?.active) return;
 
     stopRecurrence(appointment.recurrence.idRecurrence)
       .then(() => {
