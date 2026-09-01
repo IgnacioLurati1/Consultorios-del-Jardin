@@ -4,8 +4,17 @@ import { AppText } from "../components/Text";
 import { radius, space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 
-/** Un minuto, un punto y medio. Trece horas entran en un scroll cómodo. */
-const PX_PER_MINUTE = 1.5;
+/**
+ * Dos puntos por minuto. Con menos, un turno de media hora no da para tres renglones
+ * legibles, y esta pantalla se lee todos los días.
+ */
+const PX_PER_MINUTE = 2;
+
+/**
+ * Aire arriba y abajo. Las horas van centradas sobre su línea, así que sin este margen
+ * la primera queda cortada al ras y no se puede leer a qué hora empieza el día.
+ */
+const PAD = 14;
 const COLUMN_WIDTH = 148;
 const GUTTER_WIDTH = 46;
 const HEADER_HEIGHT = 46;
@@ -82,7 +91,10 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
 
   const from = minutes(data.opening);
   const to = minutes(data.closing);
-  const height = Math.max(to - from, 60) * PX_PER_MINUTE;
+  const height = Math.max(to - from, 60) * PX_PER_MINUTE + PAD * 2;
+
+  /** Dónde cae un minuto del día dentro de la columna. */
+  const offsetOf = (value: number) => PAD + (value - from) * PX_PER_MINUTE;
 
   const marks: number[] = [];
   for (let mark = Math.ceil(from / 60) * 60; mark <= to; mark += 60) marks.push(mark);
@@ -103,7 +115,7 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
               key={mark}
               variant="caption"
               tone="muted"
-              style={[styles.hour, { top: (mark - from) * PX_PER_MINUTE - 9 }]}
+              style={[styles.hour, { top: offsetOf(mark) - 9 }]}
             >
               {String(Math.floor(mark / 60)).padStart(2, "0")}
             </AppText>
@@ -138,7 +150,7 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
                 {marks.map((mark) => (
                   <View
                     key={mark}
-                    style={[styles.line, { top: (mark - from) * PX_PER_MINUTE, backgroundColor: colors.hairline }]}
+                    style={[styles.line, { top: offsetOf(mark), backgroundColor: colors.hairline }]}
                   />
                 ))}
 
@@ -153,8 +165,8 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
                       style={[
                         styles.block,
                         {
-                          top: (minutes(item.initialHour) - from) * PX_PER_MINUTE,
-                          height: Math.max((minutes(item.finalHour) - minutes(item.initialHour)) * PX_PER_MINUTE, 26),
+                          top: offsetOf(minutes(item.initialHour)),
+                          height: Math.max((minutes(item.finalHour) - minutes(item.initialHour)) * PX_PER_MINUTE, 34),
                           left: (COLUMN_WIDTH / lanes) * lane + 2,
                           width,
                           borderColor: colors.border,

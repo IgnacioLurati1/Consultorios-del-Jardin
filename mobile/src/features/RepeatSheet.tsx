@@ -18,10 +18,13 @@ export function RepeatSheet({
   visible,
   onClose,
   onSave,
+  /** Desde el alta el turno todavía no existe, así que "empezar a repetirlo" mentiría. */
+  saveLabel = "Empezar a repetirlo",
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (frequency: RecurrenceFrequency, endDate: string | null) => void;
+  saveLabel?: string;
 }) {
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("weekly");
   const [forever, setForever] = useState(true);
@@ -68,7 +71,7 @@ export function RepeatSheet({
         </AppText>
 
         <Button
-          label="Empezar a repetirlo"
+          label={saveLabel}
           block
           disabled={missingDate}
           onPress={() => {

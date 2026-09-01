@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from "react-native";
 import { createProfessionalAppointment } from "../../api/appointments";
 import { errorMessage } from "../../api/client";
+import { createRecurrence, FREQUENCY_LABELS } from "../../api/misc";
+import { RecurrenceFrequency } from "../../api/types";
 import { findActiveRooms, schedulesOf } from "../../api/catalog";
 import { findActiveByType } from "../../api/people";
 import { Button } from "../../components/Button";
@@ -15,8 +17,9 @@ import { Loading } from "../../components/States";
 import { Note } from "../../components/Surfaces";
 import { AppText } from "../../components/Text";
 import { DateField, TimeField } from "../../features/DateField";
+import { RepeatSheet } from "../../features/RepeatSheet";
 import { fullName } from "../../lib/appointments";
-import { hhmm, today } from "../../lib/dates";
+import { hhmm, numericDate, today } from "../../lib/dates";
 import { DAYS } from "../../lib/specialities";
 import { useAsync } from "../../lib/useAsync";
 import { useUser } from "../../session/SessionProvider";
@@ -56,6 +59,11 @@ export default function NewAppointmentScreen() {
 
   const [roomSheet, setRoomSheet] = useState(false);
   const [patientSheet, setPatientSheet] = useState(false);
+
+  // Que el turno nazca repetible, sin tener que abrirlo después para marcarlo. Se elige
+  // con el mismo panel que se usa desde la ficha del turno.
+  const [repeatSheet, setRepeatSheet] = useState(false);
+  const [repeat, setRepeat] = useState<{ frequency: RecurrenceFrequency; endDate: string | null } | null>(null);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
 
@@ -127,7 +135,7 @@ export default function NewAppointmentScreen() {
     setBusy(true);
 
     try {
-      await createProfessionalAppointment({
+      const created = await createProfessionalAppointment({
         date,
         initialHour: overbooked ? initialHour! : slot!.initialHour,
         finalHour: overbooked ? finalHour! : slot!.finalHour,
@@ -137,7 +145,19 @@ export default function NewAppointmentScreen() {
         overbooked,
       });
 
-      feedback.done(patient ? "Turno cargado. Le avisamos al paciente." : "Turno cargado");
+      if (repeat && created?.numAppointment) {
+        // La repetición se pide aparte, con el mismo endpoint que usa la ficha del turno.
+        // Si falla, el turno ya está creado y sigue siendo uno común: hay que decirlo.
+        try {
+          await createRecurrence(created.numAppointment, repeat.frequency, repeat.endDate);
+          feedback.done("Turno cargado, y se va a repetir");
+        } catch (problem) {
+          feedback.done(`Turno cargado, pero no se pudo repetir: ${errorMessage(problem)}`);
+        }
+      } else {
+        feedback.done(patient ? "Turno cargado. Le avisamos al paciente." : "Turno cargado");
+      }
+
       router.back();
     } catch (problem) {
       setErrors({ date: errorMessage(problem) });
@@ -267,6 +287,18 @@ export default function NewAppointmentScreen() {
             error={errors.value}
           />
 
+          <PickerField
+            label="Que se repita"
+            value={
+              repeat
+                ? `${FREQUENCY_LABELS[repeat.frequency]}${repeat.endDate ? `, hasta el ${numericDate(repeat.endDate)}` : ", sin corte"}`
+                : null
+            }
+            placeholder="No se repite"
+            onPress={() => setRepeatSheet(true)}
+            hint={repeat ? "Tocá para cambiarlo." : "Podés hacer que se agende solo cada semana."}
+          />
+
           <Button label="Cargar el turno" onPress={save} loading={busy} block />
         </View>
       </Screen>
@@ -279,6 +311,13 @@ export default function NewAppointmentScreen() {
         selected={room}
         onSelect={setRoom}
         emptyLabel="No hay consultorios habilitados."
+      />
+
+      <RepeatSheet
+        visible={repeatSheet}
+        onClose={() => setRepeatSheet(false)}
+        onSave={(frequency, endDate) => setRepeat({ frequency, endDate })}
+        saveLabel="Listo"
       />
 
       <OptionSheet
