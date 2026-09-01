@@ -400,3 +400,30 @@
     order: 3;
   }
 }
+
+/* ── Por dónde entran ─────────────────────────────────────────────
+   Una sola barra repartida en cuatro. Acá el largo no es relativo al máximo
+   como en el ranking de arriba: los cuatro pedazos suman el total, y eso es
+   justamente lo que hay que poder leer de un vistazo. */
+.an-split {
+  display: flex;
+  height: 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: 7px;
+  background: var(--adm-bg);
+  overflow: hidden;
+}
+
+.an-split-seg {
+  display: block;
+  height: 100%;
+}
+
+.an-roles {
+  margin-top: 18px;
+}
+
+/* Misma barra, en chico, dentro de la fila de cada rol. */
+.an-roles .an-tool-bar {
+  display: flex;
+}

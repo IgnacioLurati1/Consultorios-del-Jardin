@@ -8,6 +8,7 @@ import { StackedBars, ChartLegend, type Band } from "./Charts.tsx";
 import { Kpi, KpiGrid, AnalyticsSection, MonthTabs } from "./Kpi.tsx";
 import { ProfessionalReport } from "./ProfessionalReport.tsx";
 import { AssistantUsageSection } from "./AssistantUsageSection.tsx";
+import { AccessChannelsSection } from "./AccessChannelsSection.tsx";
 import {
   decimal,
   findOfficeAnalytics,
@@ -246,6 +247,8 @@ export function OfficeAnalyticsPage() {
           </div>
         ) : null}
       </AnalyticsSection>
+
+      <AccessChannelsSection channels={data.channels} />
 
       <AssistantUsageSection />
     </div>

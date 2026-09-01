@@ -16,10 +16,16 @@ function isAuthRequest(url?: string): boolean {
   return AUTH_PATHS.some((path) => url.includes(path));
 }
 
+// El backend usa este header para dos cosas: decidir dónde devuelve el refresh token
+// (acá en una cookie httpOnly; en la app, en el cuerpo) y anotar por qué canal entró la
+// persona, que es lo que después cuenta el panel de números. Ver clients.ts en el back.
+const CLIENT_HEADER = { "X-Client": "web" } as const;
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    ...CLIENT_HEADER,
   },
 });
 
@@ -40,7 +46,10 @@ api.interceptors.response.use(
       originalRequest._retry = true; // marca este request como retry
 
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, { withCredentials: true });
+        const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, {
+          withCredentials: true,
+          headers: { ...CLIENT_HEADER },
+        });
 
         localStorage.setItem("token", data.token);
         // Reintenta **solo una vez**

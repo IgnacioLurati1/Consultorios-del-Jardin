@@ -71,8 +71,33 @@ export interface OfficeMetrics extends Metrics, DayLoad {
   topOverbooker: { email: string; name: string; count: number } | null;
 }
 
+/**
+ * Por dónde entra la gente al sistema.
+ *
+ * `app` y `web` son los totales que se leen como "cuántos usan cada cosa", y por eso
+ * cuentan dos veces a quien usa las dos. `onlyApp`, `onlyWeb` y `both` son la partición:
+ * esas tres sí suman, junto con `unknown`, la cantidad de cuentas.
+ */
+export interface AccessChannels {
+  /** Cuentas que pueden iniciar sesión. */
+  accounts: number;
+  /** Cuántas de esas entraron al menos una vez desde que se mide. */
+  withAccess: number;
+  onlyApp: number;
+  onlyWeb: number;
+  both: number;
+  /** Con cuenta, pero sin ningún acceso registrado. */
+  unknown: number;
+  app: number;
+  web: number;
+  /** Desde cuándo hay dato. Sin esto, "sin registro" no se puede interpretar. */
+  since: string | null;
+  byRole: { role: string; onlyApp: number; onlyWeb: number; both: number; unknown: number }[];
+}
+
 export interface OfficeAnalytics {
   headcount: number;
+  channels: AccessChannels;
   professionals: { email: string; name: string; surname: string; speciality: string | null }[];
   recent: (RecentMonth & { sharedPatients: number; topOverbooker: OfficeMetrics["topOverbooker"] })[];
   total: OfficeMetrics & { months: number };

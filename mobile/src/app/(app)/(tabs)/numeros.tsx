@@ -27,6 +27,11 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Administración",
 };
 
+/** "2026-08-12T..." → "12 de agosto de 2026". */
+function longDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+}
+
 /**
  * Los números del consultorio entero. Además de los turnos muestra lo que gasta el
  * asistente, que es lo único de la app que cuesta plata por uso.
@@ -58,7 +63,7 @@ export default function OfficeNumbersScreen() {
     );
   }
 
-  const { recent, total, months, headcount } = office.data;
+  const { recent, total, months, headcount, channels } = office.data;
   const current = recent.find((month) => month.inProgress) ?? recent[0];
   const spend = assistant.data;
 
@@ -144,6 +149,37 @@ export default function OfficeNumbersScreen() {
           <Row title="Los pidió el paciente" value={String(total.fromApp)} />
           <Row title="Los cargó el profesional" value={String(total.fromProfessional)} last />
         </Group>
+      </Section>
+
+      <Section title="Por dónde entran">
+        <Pair
+          items={[
+            { label: "Usan la app", value: String(channels.app) },
+            { label: "Usan la página", value: String(channels.web) },
+          ]}
+        />
+
+        <View style={styles.spaced}>
+          <Group>
+            <Row title="Solo la app" value={String(channels.onlyApp)} />
+            <Row title="Solo la página" value={String(channels.onlyWeb)} />
+            <Row title="Las dos" value={String(channels.both)} />
+            <Row
+              title="Sin registro"
+              subtitle="No entraron desde que se mide"
+              value={String(channels.unknown)}
+              last
+            />
+          </Group>
+        </View>
+
+        <View style={styles.spaced}>
+          <Note>
+            {channels.since
+              ? `Se anota cada vez que alguien inicia sesión o vuelve a entrar, desde el ${longDate(channels.since)}. Sobre ${channels.accounts} cuentas.`
+              : `Todavía no entró nadie desde que se empezó a medir. Son ${channels.accounts} cuentas.`}
+          </Note>
+        </View>
       </Section>
 
       <Section title="Profesionales">
