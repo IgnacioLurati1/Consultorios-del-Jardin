@@ -63,9 +63,12 @@ export class Person {
   //
   // hidden: son de uso interno, para el panel de números. No tienen por qué viajar
   // pegadas a la persona cada vez que un endpoint devuelve una.
-  @Property({ nullable: true, hidden: true })
+  // `type` explícito: sobre una propiedad opcional el decorador no puede leer que es una
+  // fecha (el tipo en runtime queda en Object) y la columna sale varchar. Guardar una
+  // fecha como texto compara mal en cuanto haya que preguntar "¿entró este mes?".
+  @Property({ nullable: true, type: "datetime", hidden: true })
   lastWebAccess?: Date | null;
 
-  @Property({ nullable: true, hidden: true })
+  @Property({ nullable: true, type: "datetime", hidden: true })
   lastAppAccess?: Date | null;
 }

@@ -21,8 +21,8 @@ agendaRouter.use(verifyAdmin);
  *     description: >
  *       Por cada día: a qué hora abre y cierra el consultorio (y quién), la franja de una
  *       hora con más turnos solapados con el detalle de esos turnos, y cuántos pacientes y
- *       profesionales van a pasar. La apertura sale de los horarios de atención y las
- *       cantidades de los turnos: son dos preguntas distintas.
+ *       profesionales van a pasar. La apertura mira los módulos de atención y los turnos
+ *       juntos: un sobreturno temprano también obliga a abrir.
  *     tags: [Agenda]
  *     security:
  *       - bearerAuth: []

@@ -101,10 +101,19 @@ export class AgendaService {
     const active = schedules.filter((schedule) => schedule.person.active);
     const live = appointments.filter((appointment) => !isCancelled(appointment.state));
 
+    // La grilla se dibuja entre estas dos horas, así que tienen que cubrir todo lo que
+    // haya. El horario de la sucursal no alcanza: un sobreturno se carga a mano y puede
+    // caer antes de que abra. Si la ventana no lo incluye, el bloque se dibuja fuera del
+    // área y desaparece de la pantalla sin avisar.
+    const edges = [...active, ...live];
+    const opening = edges.reduce((earliest, item) => (hour(item.initialHour) < earliest ? hour(item.initialHour) : earliest), hours.opening);
+    const closing = edges.reduce((latest, item) => (hour(item.finalHour) > latest ? hour(item.finalHour) : latest), hours.closing);
+
     return {
       date: toISODate(date),
       day: dayName(date),
-      ...hours,
+      opening,
+      closing,
       rooms: rooms.map((room) => ({
         idRoom: room.idRoom!,
         description: room.description,
@@ -141,10 +150,10 @@ export class AgendaService {
    * Contesta las tres preguntas que se hacen mirando un edificio: a qué hora hay que
    * abrir y cerrar, cuándo va a estar lleno, y cuánta gente va a pasar.
    *
-   * La apertura y el cierre salen de los horarios de atención (quién dijo que viene) y
-   * las dos cantidades salen de los turnos (quién tiene algo que hacer). No es una
-   * inconsistencia: son dos preguntas distintas, y mezclarlas daría "abre 8" los días en
-   * que ese profesional no tiene ni un turno.
+   * La apertura y el cierre miran los horarios de atención y los turnos juntos. Con solo
+   * los horarios, un día con un sobreturno a las ocho decía "abre 14:00" y abajo listaba
+   * turnos de la mañana: el que abre la puerta necesita la hora a la que hay alguien
+   * adentro, venga de un módulo o de un turno metido a mano.
    */
   async forWeek(weeksAhead = 0) {
     const monday = addDays(mondayOf(startOfDay(new Date())), weeksAhead * 7);
@@ -176,8 +185,8 @@ export class AgendaService {
         date: toISODate(date),
         day: dayName(date),
         isToday: date.getTime() === today.getTime(),
-        earliest: this.edge(daySchedules, "initialHour", "min"),
-        latest: this.edge(daySchedules, "finalHour", "max"),
+        earliest: this.edge(daySchedules, dayAppointments, "initialHour", "min"),
+        latest: this.edge(daySchedules, dayAppointments, "finalHour", "max"),
         peak: this.peakHour(dayAppointments),
         patients: new Set(dayAppointments.map((a) => a.patient?.email).filter(Boolean)).size,
         professionals: new Set(dayAppointments.map((a) => a.professional.email)).size,
@@ -191,19 +200,34 @@ export class AgendaService {
   /**
    * La punta del día: quién abre y quién cierra.
    *
+   * Mira los módulos de atención y los turnos por igual. Un sobreturno cae fuera de los
+   * módulos por definición, y si es el primero del día es el que manda a qué hora hay que
+   * abrir: lo que se pregunta es cuándo hay alguien adentro, no qué declaró cada uno.
+   *
    * Devuelve a todos los que empatan en esa hora, no al primero que aparece. Es el dato
    * que hace falta cuando hay que pedirle a alguien que abra: si son tres, son tres.
    */
-  private edge(schedules: Schedule[], field: "initialHour" | "finalHour", pick: "min" | "max") {
-    if (schedules.length === 0) return null;
+  private edge(
+    schedules: Schedule[],
+    appointments: Appointment[],
+    field: "initialHour" | "finalHour",
+    pick: "min" | "max"
+  ) {
+    const entries = [
+      ...schedules.map((schedule) => ({ hour: hour(schedule[field]), person: schedule.person })),
+      ...appointments.map((appointment) => ({ hour: hour(appointment[field]), person: appointment.professional })),
+    ];
 
-    const hours = schedules.map((schedule) => hour(schedule[field]));
-    const edge = pick === "min" ? hours.reduce((a, b) => (b < a ? b : a)) : hours.reduce((a, b) => (b > a ? b : a));
+    if (entries.length === 0) return null;
+
+    const edge = entries
+      .map((entry) => entry.hour)
+      .reduce((a, b) => (pick === "min" ? (b < a ? b : a) : b > a ? b : a));
 
     // Un profesional con dos módulos ese día no tiene por qué aparecer dos veces.
     const people = new Map<string, ReturnType<typeof personView>>();
-    for (const schedule of schedules) {
-      if (hour(schedule[field]) === edge) people.set(schedule.person.email, personView(schedule.person));
+    for (const entry of entries) {
+      if (entry.hour === edge) people.set(entry.person.email, personView(entry.person));
     }
 
     return { hour: edge, professionals: Array.from(people.values()) };
