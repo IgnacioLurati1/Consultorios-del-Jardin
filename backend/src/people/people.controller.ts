@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
 import { sendError } from "../shared/errors.js";
+import { isMobileClient } from "../config/clients.js";
 
 dotenv.config();
 
@@ -51,6 +52,21 @@ const REFRESH_COOKIE_OPTIONS = {
   secure: false,
   sameSite: "lax",
 } as const;
+
+/**
+ * Entrega el refresh token por la vía que le sirve a cada cliente: cookie para el
+ * navegador, cuerpo de la respuesta para la app, que lo guarda en el llavero del
+ * sistema. Devuelve lo que hay que sumarle al JSON.
+ *
+ * Uno solo de los dos caminos se usa por request: al navegador no se le manda el token
+ * en el cuerpo, donde cualquier script de la página podría leerlo.
+ */
+function deliverRefreshToken(req: Request, res: Response, refreshToken: string): Record<string, string> {
+  if (isMobileClient(req)) return { refreshToken };
+
+  res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+  return {};
+}
 
 async function findAll(req: Request, res: Response) {
   try {
@@ -132,11 +148,11 @@ async function add(req: Request, res: Response) {
     const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
-    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+    const session = deliverRefreshToken(req, res, refreshToken);
 
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
 
-    res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token }); // return person data and token
+    res.status(201).json({ message: "Persona creada con éxito!", data: safeData, token, ...session }); // return person data and token
   } catch (error: any) {
     sendError(res, error, { duplicate: "Ya hay una cuenta registrada con ese email" });
   }
@@ -256,9 +272,9 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
 
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
-    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+    const session = deliverRefreshToken(req, res, refreshToken);
 
-    res.status(200).json({ message: "Login exitoso", token });
+    res.status(200).json({ message: "Login exitoso", token, ...session });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

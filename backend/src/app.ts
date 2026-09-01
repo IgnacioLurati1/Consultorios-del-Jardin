@@ -37,6 +37,11 @@ const allowedOrigins = [
   "http://localhost:3000"  // el propio backend (Swagger)
 ];
 
+// La app nativa no manda Origin (no es un browser), así que cae en el `!origin` de abajo
+// y CORS no la toca. Los headers sí hay que declararlos: son los que usa para mandar el
+// refresh token, que en la app no puede viajar en una cookie. Ver config/clients.ts.
+const allowedHeaders = ["Content-Type", "Authorization", "Cookie", "X-Client", "X-Refresh-Token"];
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -47,7 +52,7 @@ app.use(cors({
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
+  allowedHeaders
 }));
 
 app.options('*', cors());
