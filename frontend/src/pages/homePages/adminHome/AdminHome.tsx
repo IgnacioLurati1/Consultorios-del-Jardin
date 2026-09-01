@@ -74,7 +74,7 @@ function MenuCard({ entry }: { entry: MenuEntry }) {
   const Icon = entry.icon;
 
   return (
-    <Link className="adm-card" to={entry.link}>
+    <Link className="adm-card adm-enter" to={entry.link}>
       <span className="adm-card-icon">
         <Icon />
       </span>
@@ -96,7 +96,7 @@ export function AdminHome() {
         </div>
       </header>
 
-      <section className="adm-card-grid">
+      <section className="adm-card-grid adm-stagger">
         {mainEntries.map((entry) => (
           <MenuCard key={entry.title} entry={entry} />
         ))}
@@ -119,7 +119,7 @@ export function AdminHome() {
 
       <div id="adm-catalog" className={`adm-collapsible ${catalogOpen ? "open" : ""}`}>
         <div>
-          <div className="adm-collapsible-inner adm-card-grid">
+          <div className="adm-collapsible-inner adm-card-grid adm-stagger">
             {catalogEntries.map((entry) => (
               <MenuCard key={entry.title} entry={entry} />
             ))}

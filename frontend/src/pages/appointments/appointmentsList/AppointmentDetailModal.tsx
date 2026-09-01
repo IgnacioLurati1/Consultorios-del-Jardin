@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Appointment, Person, RecurrenceFrequency, Room } from "../../types.ts";
-import { FREQUENCY_LABELS } from "../recurrencesService.ts";
+import { RepeatFields } from "./RepeatFields.tsx";
 import { appointmentDate, describeState, formatDayLabel, isCancelled, shortHour } from "../appointmentTypes.ts";
 import { getPatientMedicalHistory } from "../appointmentsService.ts";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton.tsx";
@@ -305,56 +305,15 @@ export function AppointmentDetailModal({
                 </>
               ) : (
                 <>
-                  <label className="ui-field">
-                    <span>Repetir este turno</span>
-                    <select value={frequency} onChange={(e) => setFrequency(e.target.value as RecurrenceFrequency)}>
-                      {(Object.keys(FREQUENCY_LABELS) as RecurrenceFrequency[]).map((key) => (
-                        <option key={key} value={key}>
-                          {FREQUENCY_LABELS[key]}
-                        </option>
-                      ))}
-                    </select>
-                    <small>Mismo horario, mismo consultorio y mismo paciente, hasta cuatro semanas para adelante.</small>
-                  </label>
-
-                  <div className="ui-field">
-                    <span>¿Hasta cuándo?</span>
-                    <div className="ui-choice-row">
-                      <label className="ui-choice">
-                        <input
-                          type="radio"
-                          name="repeat-end"
-                          checked={repeatForever}
-                          onChange={() => setRepeatForever(true)}
-                        />
-                        <span>Sin fecha de corte</span>
-                      </label>
-                      <label className="ui-choice">
-                        <input
-                          type="radio"
-                          name="repeat-end"
-                          checked={!repeatForever}
-                          onChange={() => setRepeatForever(false)}
-                        />
-                        <span>Hasta una fecha</span>
-                      </label>
-                    </div>
-
-                    {!repeatForever && (
-                      <input
-                        type="date"
-                        value={repeatUntil}
-                        min={appointment.date?.slice(0, 10)}
-                        onChange={(e) => setRepeatUntil(e.target.value)}
-                      />
-                    )}
-
-                    <small>
-                      {repeatForever
-                        ? "Se repite hasta que la frenes a mano."
-                        : "Ese día es el último en el que se puede crear un turno."}
-                    </small>
-                  </div>
+                  <RepeatFields
+                    frequency={frequency}
+                    onFrequency={setFrequency}
+                    forever={repeatForever}
+                    onForever={setRepeatForever}
+                    until={repeatUntil}
+                    onUntil={setRepeatUntil}
+                    minDate={appointment.date?.slice(0, 10)}
+                  />
 
                   <div className="ui-section-actions">
                     <button

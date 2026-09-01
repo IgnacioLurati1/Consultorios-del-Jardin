@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaArrowUpRightFromSquare, FaCalendarCheck, FaBolt } from "react-icons/fa6";
-import type { Person, Room, Schedule } from "../../types.ts";
+import type { Person, RecurrenceFrequency, Room, Schedule } from "../../types.ts";
 import { toISODate } from "../appointmentTypes.ts";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { RepeatFields } from "./RepeatFields.tsx";
 
 type Mode = "regular" | "overbooked";
 
@@ -22,6 +23,8 @@ interface NewAppointmentModalProps {
     value: number;
     patientEmail?: string;
     overbooked: boolean;
+    /** Si viene, el turno queda marcado como repetible apenas se crea. */
+    repeat: { frequency: RecurrenceFrequency; endDate: string | null } | null;
   }) => Promise<void>;
 }
 
@@ -103,6 +106,11 @@ const emptyForm = {
   room: "",
   value: "",
   patientEmail: "",
+  /** Que el turno se repita solo, sin tener que abrirlo después para marcarlo. */
+  repeat: false,
+  frequency: "weekly" as RecurrenceFrequency,
+  repeatForever: true,
+  repeatUntil: "",
 };
 
 /**
@@ -147,6 +155,10 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
     if (form.value && Number(form.value) < 0) return "El valor no puede ser negativo";
 
+    if (form.repeat && !form.repeatForever && !form.repeatUntil) return "Elegí hasta qué día se repite";
+    if (form.repeat && !form.repeatForever && form.repeatUntil < form.date)
+      return "La fecha de corte no puede ser anterior al turno";
+
     if (mode === "regular") {
       if (!selectedSlot) return "Elegí uno de los turnos disponibles";
       return null;
@@ -177,6 +189,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
         value: Number(form.value || 0),
         patientEmail: form.patientEmail || undefined,
         overbooked: mode === "overbooked",
+        repeat: form.repeat ? { frequency: form.frequency, endDate: form.repeatForever ? null : form.repeatUntil } : null,
       });
       onClose();
     } catch (err: any) {
@@ -310,6 +323,32 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
           </select>
           <small>Podés dejar la franja reservada y asignar al paciente más adelante.</small>
         </label>
+
+      </div>
+
+      <div className="ui-section">
+        <label className="ui-choice">
+          <input
+            type="checkbox"
+            checked={form.repeat}
+            onChange={(e) => setForm({ ...form, repeat: e.target.checked })}
+          />
+          <span>Que se repita</span>
+        </label>
+
+        {form.repeat && (
+          <RepeatFields
+            label="Cada cuánto"
+            name="new-repeat-end"
+            frequency={form.frequency}
+            onFrequency={(frequency) => setForm({ ...form, frequency })}
+            forever={form.repeatForever}
+            onForever={(repeatForever) => setForm({ ...form, repeatForever })}
+            until={form.repeatUntil}
+            onUntil={(repeatUntil) => setForm({ ...form, repeatUntil })}
+            minDate={form.date}
+          />
+        )}
 
         {error && <p className="ui-alert ui-alert-error">{error}</p>}
       </div>

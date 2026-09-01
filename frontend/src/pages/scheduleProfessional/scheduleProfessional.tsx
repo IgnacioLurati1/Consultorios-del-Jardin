@@ -403,17 +403,20 @@ export function ScheduleProfessional() {
 
       <div className="schedule-container">
         {inDayMode ? (
-          loadingDay || !dayData ? (
+          // El esqueleto es para la primera carga. Después se sigue viendo el día anterior,
+          // apagado, hasta que llega el nuevo: cambiar de día no tiene por qué vaciar la
+          // pantalla y hacer saltar todo lo que hay abajo.
+          !dayData ? (
             <SkeletonGrid />
           ) : (
-            <>
+            <div key={`${dayData.date}-${dayShows}`} className={`adm-enter ${loadingDay ? "adm-swapping" : ""}`}>
               <DayGrid data={dayData} mode={dayShows} />
               {dayShows === "appointments" && dayData.cancelled > 0 && (
                 <p className="schedule-mode-note">
                   {dayData.cancelled} {dayData.cancelled === 1 ? "turno cancelado" : "turnos cancelados"} no se dibujan.
                 </p>
               )}
-            </>
+            </div>
           )
         ) : loadingSchedules ? (
           <SkeletonGrid />

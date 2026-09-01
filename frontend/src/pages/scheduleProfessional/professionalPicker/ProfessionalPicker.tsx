@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaMagnifyingGlass, FaTableColumns, FaXmark } from "react-icons/fa6";
+import { FaChevronRight, FaMagnifyingGlass, FaTableColumns, FaXmark } from "react-icons/fa6";
 import type { Person, Room } from "../../types.ts";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import "./professionalPicker.css";
@@ -204,13 +204,18 @@ export function ProfessionalPicker({
         </div>
 
         {onSelectDay && (
-          <button type="button" className="picker-day" onClick={onSelectDay}>
-            <FaTableColumns />
-            <span>
-              <strong>Ver un día completo</strong>
-              <small>Todos los profesionales, consultorio por consultorio</small>
-            </span>
-          </button>
+          <div className="picker-foot">
+            <button type="button" className="picker-day" onClick={onSelectDay}>
+              <span className="picker-day-icon">
+                <FaTableColumns />
+              </span>
+              <span className="picker-day-text">
+                <strong>Ver un día completo</strong>
+                <small>Todos los profesionales, consultorio por consultorio</small>
+              </span>
+              <FaChevronRight className="picker-day-go" aria-hidden="true" />
+            </button>
+          </div>
         )}
       </div>
     </div>

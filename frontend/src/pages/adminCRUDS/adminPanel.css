@@ -463,3 +463,47 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ── Movimiento ───────────────────────────────────────────────────
+   Lo justo para que un cambio de contenido se lea como un cambio y no
+   como un parpadeo. Dos piezas: lo que entra aparece, y lo que se está
+   por reemplazar se apaga en lugar de desaparecer de golpe. */
+
+@keyframes adm-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.adm-enter {
+  animation: adm-enter 0.22s ease-out backwards;
+}
+
+/* Mientras llega lo nuevo se sigue viendo lo viejo, apagado. Cambiar de día no tiene
+   por qué vaciar la pantalla: el esqueleto es para la primera carga, no para cada toque. */
+.adm-swapping {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+/* Entrada escalonada de una grilla de tarjetas. Se corta en la sexta: más allá el
+   escalonado se siente lento en vez de vivo. */
+.adm-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.adm-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.adm-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.adm-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.adm-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.adm-stagger > *:nth-child(n + 6) { animation-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-enter,
+  .adm-stagger > * {
+    animation: none;
+  }
+
+  .adm-swapping {
+    transition: none;
+  }
+}

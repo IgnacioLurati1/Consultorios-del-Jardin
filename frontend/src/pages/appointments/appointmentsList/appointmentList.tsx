@@ -8,7 +8,8 @@ import { AppointmentCard } from "./AppointmentCard.tsx";
 import { AppointmentWeekGrid } from "./AppointmentWeekGrid.tsx";
 import { AppointmentDetailModal } from "./AppointmentDetailModal.tsx";
 import { NewAppointmentModal } from "./NewAppointmentModal.tsx";
-import type { Appointment, Person, Schedule } from "../../types.ts";
+import type { Appointment, Person, RecurrenceFrequency, Schedule } from "../../types.ts";
+import { createRecurrence } from "../recurrencesService.ts";
 import {
   addDays,
   appointmentDate,
@@ -153,9 +154,27 @@ export function AppointmentsList() {
     value: number;
     patientEmail?: string;
     overbooked: boolean;
+    repeat: { frequency: RecurrenceFrequency; endDate: string | null } | null;
   }) {
-    await createProfessionalAppointment(data);
-    toast.success(data.overbooked ? "Sobreturno creado" : "Turno creado");
+    const created = await createProfessionalAppointment(data);
+    const label = data.overbooked ? "Sobreturno" : "Turno";
+
+    if (!data.repeat || !created?.numAppointment) {
+      toast.success(`${label} creado`);
+      loadAppointments();
+      return;
+    }
+
+    // La repetición se pide aparte, con el mismo endpoint que usa la ficha del turno: las
+    // reglas de qué se puede repetir viven en un solo lugar. Si falla, el turno ya está
+    // creado y sigue siendo un turno común; hay que decirlo, no tragárselo.
+    try {
+      const { created: extra } = await createRecurrence(created.numAppointment, data.repeat.frequency, data.repeat.endDate);
+      toast.success(extra > 0 ? `${label} creado, y ${extra} más agendados` : `${label} creado, se va a repetir`);
+    } catch (err: any) {
+      toast.warning(`${label} creado, pero no se pudo configurar la repetición: ${err.message}`);
+    }
+
     loadAppointments();
   }
 

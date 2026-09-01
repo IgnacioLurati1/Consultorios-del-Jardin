@@ -31,16 +31,20 @@ function names(edge: AgendaEdge): string {
 export function WeekSummary() {
   const [weeksAhead, setWeeksAhead] = useState(0);
   const [data, setData] = useState<AgendaWeek | null>(null);
+  const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [openPeak, setOpenPeak] = useState<string | null>(null);
 
+  // La semana anterior se sigue viendo, apagada, hasta que llega la nueva. Vaciar y
+  // volver a llenar hacía saltar media pantalla en cada toque de la flecha.
   useEffect(() => {
     let current = true;
 
-    setData(null);
+    setLoading(true);
     findAgendaWeek(weeksAhead)
       .then((week) => current && setData(week))
-      .catch(() => current && setFailed(true));
+      .catch(() => current && setFailed(true))
+      .finally(() => current && setLoading(false));
 
     return () => {
       current = false;
@@ -88,7 +92,7 @@ export function WeekSummary() {
           <SkeletonLine width="70%" height={18} />
         </div>
       ) : (
-        <div className="wk-days">
+        <div key={data.from} className={`wk-days adm-stagger ${loading ? "adm-swapping" : ""}`}>
           {/* El domingo solo aparece si ese día pasa algo: en general es una tarjeta vacía. */}
           {data.days
             .filter((day) => day.day !== "domingo" || day.appointments > 0 || day.earliest)

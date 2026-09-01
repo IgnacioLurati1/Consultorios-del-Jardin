@@ -10,6 +10,7 @@
 }
 
 .dg {
+  box-sizing: border-box;
   display: grid;
   min-width: 100%;
   background: var(--adm-surface);
@@ -41,12 +42,12 @@
 
 .dg-head-name {
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 1rem;
   color: var(--adm-text);
 }
 
 .dg-head-office {
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   color: var(--adm-muted);
 }
 
@@ -59,7 +60,7 @@
   position: absolute;
   right: 8px;
   transform: translateY(-50%);
-  font-size: 0.76rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--adm-muted);
   font-variant-numeric: tabular-nums;
@@ -90,7 +91,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 4px 7px;
+  padding: 5px 9px;
   text-align: left;
   font: inherit;
   color: var(--adm-text);
@@ -121,7 +122,7 @@
 }
 
 .dg-block-hour {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--adm-muted);
   font-variant-numeric: tabular-nums;
@@ -129,20 +130,20 @@
 
 .dg-block-meta {
   overflow: hidden;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   color: var(--adm-muted);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .dg-block-name {
-  font-size: 0.79rem;
+  font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .dg-block-patient {
-  font-size: 0.73rem;
+  font-size: 0.84rem;
   color: var(--adm-muted);
   line-height: 1.25;
 }

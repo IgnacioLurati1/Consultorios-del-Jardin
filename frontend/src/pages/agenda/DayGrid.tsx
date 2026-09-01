@@ -2,8 +2,19 @@ import { useMemo } from "react";
 import type { AgendaAppointment, AgendaDay, AgendaSchedule } from "./agendaService.ts";
 import "./dayGrid.css";
 
-/** Alto de la grilla: un minuto, un píxel y medio. Trece horas entran en una pantalla larga. */
-const PX_PER_MINUTE = 1.5;
+/**
+ * Alto de la grilla: dos píxeles por minuto. Con menos, un turno de media hora no da
+ * para tres renglones legibles, y esta pantalla la usa gente que necesita leerla.
+ */
+const PX_PER_MINUTE = 2;
+
+/**
+ * Aire arriba y abajo de la primera y la última hora.
+ *
+ * Las etiquetas van centradas sobre su línea, así que sin este margen la de arriba queda
+ * cortada al ras del borde y no se puede leer a qué hora empieza el día.
+ */
+const PAD = 14;
 
 /**
  * Un color por profesional, estable entre las dos vistas y entre las salas.
@@ -81,7 +92,10 @@ interface DayGridProps {
 export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
   const from = minutes(data.opening);
   const to = minutes(data.closing);
-  const height = Math.max(to - from, 60) * PX_PER_MINUTE;
+  const height = Math.max(to - from, 60) * PX_PER_MINUTE + PAD * 2;
+
+  /** Dónde cae un minuto del día dentro de la columna. */
+  const offsetOf = (value: number) => PAD + (value - from) * PX_PER_MINUTE;
 
   const hours = useMemo(() => {
     const marks: number[] = [];
@@ -121,7 +135,7 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
 
         <div className="dg-gutter" style={{ height }}>
           {hours.map((mark) => (
-            <span key={mark} className="dg-hour" style={{ top: (mark - from) * PX_PER_MINUTE }}>
+            <span key={mark} className="dg-hour" style={{ top: offsetOf(mark) }}>
               {String(Math.floor(mark / 60)).padStart(2, "0")}:00
             </span>
           ))}
@@ -130,12 +144,12 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
         {data.rooms.map((room) => (
           <div key={room.idRoom} className="dg-col" style={{ height }}>
             {hours.map((mark) => (
-              <span key={mark} className="dg-line" style={{ top: (mark - from) * PX_PER_MINUTE }} />
+              <span key={mark} className="dg-line" style={{ top: offsetOf(mark) }} />
             ))}
 
             {(byRoom.get(room.idRoom) ?? []).map(({ item, lane, lanes }) => {
-              const top = (minutes(item.initialHour) - from) * PX_PER_MINUTE;
-              const size = Math.max((minutes(item.finalHour) - minutes(item.initialHour)) * PX_PER_MINUTE, 22);
+              const top = offsetOf(minutes(item.initialHour));
+              const size = Math.max((minutes(item.finalHour) - minutes(item.initialHour)) * PX_PER_MINUTE, 30);
               const color = colorFor(item.professional.email);
               const width = `calc(${100 / lanes}% - 4px)`;
               const left = `calc(${(100 / lanes) * lane}% + 2px)`;

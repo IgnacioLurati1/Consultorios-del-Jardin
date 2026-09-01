@@ -48,6 +48,7 @@
 }
 
 .wk-day {
+  animation: adm-enter 0.22s ease-out backwards;
   display: flex;
   flex-direction: column;
   gap: 10px;
