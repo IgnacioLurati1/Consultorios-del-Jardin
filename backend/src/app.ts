@@ -20,6 +20,7 @@ import { startReminderJob } from "./jobs/reminder.job.js";
 import { startRecurrenceJob } from "./jobs/recurrence.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { analyticsRouter } from "./analytics/analytics.routes.js";
+import { agendaRouter } from "./agenda/agenda.routes.js";
 import { contactRouter } from "./contact/contact.routes.js";
 import { assistantRouter } from "./assistant/assistant.routes.js";
 import { setupSwagger } from './config/swagger.js';
@@ -91,6 +92,7 @@ app.use("/api/refreshToken",authLimiter, refreshToken);
 app.use("/api/appointments", verifyToken, appointmentRouter);
 app.use("/api/recurrences", verifyToken, recurrenceRouter);
 app.use("/api/analytics", verifyToken, analyticsRouter);
+app.use("/api/agenda", verifyToken, agendaRouter);
 app.use("/api/assistant", verifyToken, assistantRouter);
 // Sin verifyToken a propósito: cualquiera tiene que poder escribirle al consultorio.
 app.use("/api/contact", contactRouter);
