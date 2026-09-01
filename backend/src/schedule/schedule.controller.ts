@@ -73,7 +73,7 @@ async function findByRoom(req: Request, res: Response) {
   try {
     const idRoom = Number.parseInt(req.params.idRoom);
     const schedules = await scheduleService.findSchedulesByRoom(idRoom);
-    res.status(200).json({ message: "Horarios de la sala encontrados", data: schedules });
+    res.status(200).json({ message: "Horarios del consultorio encontrados", data: schedules });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

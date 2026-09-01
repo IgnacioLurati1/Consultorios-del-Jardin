@@ -46,6 +46,13 @@ recurrenceRouter.get("/", getRecurrences);
  *               frequency:
  *                 type: string
  *                 enum: [weekly, biweekly]
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *                 description: >
+ *                   Último día en el que se puede crear un turno de la repetición.
+ *                   Omitirlo o mandarlo en null repite sin fecha de corte.
  *     responses:
  *       201:
  *         description: Repetición creada, con cuántos turnos generó
@@ -73,6 +80,29 @@ recurrenceRouter.post("/", createRecurrence);
  *         required: true
  *         schema:
  *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               frequency:
+ *                 type: string
+ *                 enum: [weekly, biweekly]
+ *               value:
+ *                 type: number
+ *               idRoom:
+ *                 type: integer
+ *               patientEmail:
+ *                 type: string
+ *                 nullable: true
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *                 description: >
+ *                   Fecha de corte. En null la repetición vuelve a no tener fin.
+ *                   Adelantarla no borra turnos ya creados.
  *     responses:
  *       200:
  *         description: Repetición actualizada

@@ -4,9 +4,9 @@ import { EntityManager, RequiredEntityData } from "@mikro-orm/core";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import sgMail from "@sendgrid/mail";
 import { Schedule } from "../schedule/schedules.entity.js";
-import MailService from "../config/sendGrid.js";
+import MailService from "../config/mailer.js";
+import { button, escapeHtml, note, paragraph, title } from "../config/mailTemplate.js";
 import { badRequest, conflict } from "../shared/errors.js";
 
 dotenv.config();
@@ -213,17 +213,21 @@ export class PeopleService {
   }
 
   private async sendWelcomeEmail(person: Person) {
-    const htmlContent = `<div style="font-family: Arial, Helvetica, sans-serif; color: #333; background: #f5f7fb; padding: 24px;">
-      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-        <h1 style="margin: 0 0 8px; color: #0b62ff;">¡Bienvenido${person.name ? " " + person.name : ""}!</h1>
-        <p style="margin: 0 0 16px;">Gracias por registrarte en <strong>Consultorios Jardín</strong>. Nos alegra que te hayas sumado.</p>
-        <p style="margin: 0 0 20px;">Con tu cuenta podrás gestionar turnos, ver profesionales y mucho más desde una sola plataforma.</p>
-        <a href="${process.env.BASE_URL || "#"}" style="display: inline-block; text-decoration: none; background: #0b62ff; color: #fff; padding: 10px 16px; border-radius: 6px;">Ir al sitio web</a>
-        <hr style="border: none; border-top: 1px solid #eef2ff; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #777; margin: 0;">Si no solicitaste esta cuenta, simplemente ignora este correo.</p>
-      </div>
-      </div>`;
-    const message = await this.mailService.createMessage(person.email, "Bienvenido a Consultorios Jardín", htmlContent);
+    const name = person.name ? `, ${escapeHtml(person.name)}` : "";
+
+    const htmlContent = [
+      title(`Bienvenido/a${name}`),
+      paragraph("Tu cuenta ya está lista. Desde ahora podés pedir turno con cualquiera de nuestros profesionales, ver los horarios que tienen libres y cancelar sin llamar por teléfono."),
+      paragraph("Cuando pidas un turno te vamos a escribir a este mismo mail: primero para avisarte que el profesional lo confirmó, y después el día anterior como recordatorio."),
+      button("Pedir mi primer turno", `${process.env.BASE_URL ?? ""}/Appointment`),
+      note("Si no fuiste vos quien creó esta cuenta, ignorá este mensaje y no vamos a volver a escribirte."),
+    ].join("");
+
+    const message = await this.mailService.createMessage(
+      person.email,
+      "Bienvenido/a a Consultorios del Jardín",
+      htmlContent
+    );
     await this.mailService.sendMail(message);
   }
 
@@ -284,25 +288,25 @@ export class PeopleService {
   }
 
   async sendPasswordMail(email: string) {
-    sgMail.setApiKey(process.env.SENDGRID_KEY as any);
-
     const changeToken = jwt.sign({ email }, process.env.CHANGE_SECRET as jwt.Secret, { expiresIn: "30m" });
     const url = `${process.env.BASE_URL}/reset-password?token=${changeToken}`;
-    const fromMail = process.env.MAIL as string;
 
-    const msg = {
-      to: email,
-      from: fromMail,
-      replyTo: fromMail,
-      subject: "Recuperar contraseña",
-      html: `
-          <h3>Hola!</h3>
-          <p>Para restablecer tu contraseña hacé click en el siguiente enlace:</p>
-          <a href="${url}">${url}</a>
-          <p>Este link expira en 30 minutos.</p>`,
-    };
+    // Un botón y, abajo, el link en texto: hay clientes de correo que no muestran el
+    // botón, y pegar la dirección a mano tiene que seguir siendo posible.
+    const htmlContent = [
+      title("Cambiá tu contraseña"),
+      paragraph("Pediste una contraseña nueva para tu cuenta. Tocá el botón y elegí una:"),
+      button("Elegir contraseña nueva", url),
+      note(
+        `¿No funciona el botón? Copiá esta dirección en el navegador:<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
+      ),
+      note(
+        "El link vence en 30 minutos y sirve una sola vez. Si no pediste cambiarla, ignorá este mensaje: tu contraseña sigue siendo la de siempre."
+      ),
+    ].join("");
 
-    await sgMail.send(msg);
+    const msg = await this.mailService.createMessage(email, "Cambiá tu contraseña", htmlContent);
+    await this.mailService.sendMail(msg);
   }
 
   async toggleState(email: string) {

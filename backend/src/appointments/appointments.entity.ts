@@ -50,6 +50,12 @@ export class Appointment {
   @Property({ default: false })
   overbooked: boolean = false;
 
+  // Quién dio de alta el turno: el paciente desde la app o el profesional a mano.
+  // Es nullable porque los turnos anteriores a esta columna no se pueden clasificar
+  // con certeza: en analytics se cuentan aparte, como "sin dato".
+  @Property({ nullable: true })
+  origin?: "patient" | "professional" | null;
+
   // Si salió de un turno repetible, apunta a la configuración que lo generó (o que se
   // creó a partir de él). Cancelar o editar el turno no toca la configuración, y
   // apagar la configuración no toca los turnos ya creados.

@@ -89,7 +89,7 @@ async function toggleOfficeState(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idOffice);
     const office = await officeService.toggleOfficeState(id);
-    res.status(200).json({ message: "Consultorio y salas actualizadas", data: office });
+    res.status(200).json({ message: "Sucursal y consultorios actualizados", data: office });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

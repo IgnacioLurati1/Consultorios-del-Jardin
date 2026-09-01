@@ -6,6 +6,7 @@ import { AppointmentService, ACTIVE_APPOINTMENT_STATES } from "../appointments/a
 import { RoomService } from "../rooms/rooms.service.js";
 import { PeopleService } from "../people/people.service.js";
 import { badRequest, conflict, notFound } from "../shared/errors.js";
+import { addDays, startOfDay } from "../shared/dates.js";
 
 const em = orm.em;
 
@@ -23,39 +24,25 @@ const FREQUENCIES: RecurrenceFrequency[] = ["weekly", "biweekly"];
 /** Cada cuántos días cae el siguiente turno. */
 const stepOf = (frequency: RecurrenceFrequency): number => (frequency === "weekly" ? 7 : 14);
 
-/**
- * Devuelve el día de calendario que representa una fecha, como medianoche local.
- *
- * Las columnas DATE son asimétricas: al leerlas vuelven como medianoche UTC, pero al
- * escribirlas se usan los componentes locales. Con UTC-3 eso corre un día para atrás,
- * y un turno semanal terminaba cayendo seis días después en vez de siete.
- */
-const startOfDay = (value: Date | string): Date => {
-  if (typeof value === "string") {
-    const [year, month, day] = value.slice(0, 10).split("-").map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  const parsed = new Date(value);
-  const isUtcMidnight =
-    parsed.getUTCHours() === 0 &&
-    parsed.getUTCMinutes() === 0 &&
-    parsed.getUTCSeconds() === 0 &&
-    parsed.getUTCMilliseconds() === 0;
-
-  return isUtcMidnight
-    ? new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate())
-    : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-};
-
-const addDays = (date: Date, days: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-};
-
 export function describeFrequency(frequency: RecurrenceFrequency): string {
   return frequency === "weekly" ? "todas las semanas" : "cada dos semanas";
+}
+
+/**
+ * Interpreta la fecha de corte que llega de afuera.
+ *
+ * Vacío, null o cadena vacía significan "sin fecha de corte": es la opción por defecto
+ * y la que hay que poder elegir sin escribir nada. Una fecha anterior al primer turno
+ * no es una repetición corta, es un error de carga.
+ */
+function parseEndDate(value: Date | string | null | undefined, startDate: Date): Date | null {
+  if (value === undefined || value === null || value === "") return null;
+
+  const parsed = startOfDay(value);
+  if (Number.isNaN(parsed.getTime())) throw badRequest("La fecha de fin no es válida");
+  if (parsed < startDate) throw badRequest("La fecha de fin tiene que ser posterior al primer turno");
+
+  return parsed;
 }
 
 export class RecurrenceService {
@@ -67,7 +54,13 @@ export class RecurrenceService {
    * Marca un turno existente como repetible y deja creados los que entran en el horizonte.
    * El turno original queda igual: solo se le anota de qué repetición forma parte.
    */
-  async createFromAppointment(numAppointment: number, professionalEmail: string, frequency: RecurrenceFrequency) {
+  async createFromAppointment(
+    numAppointment: number,
+    professionalEmail: string,
+    frequency: RecurrenceFrequency,
+    /** Hasta cuándo repetir. Sin esto la repetición no tiene fecha de corte. */
+    endDate?: Date | string | null
+  ) {
     if (!FREQUENCIES.includes(frequency)) throw badRequest("La repetición tiene que ser semanal o quincenal");
 
     const appointment = await em.findOne(
@@ -94,6 +87,7 @@ export class RecurrenceService {
       overbooked: appointment.overbooked,
       startDate: startOfDay(appointment.date),
       lastGeneratedDate: startOfDay(appointment.date),
+      endDate: parseEndDate(endDate, startOfDay(appointment.date)),
       active: true,
       stoppedAt: null,
     });
@@ -122,7 +116,10 @@ export class RecurrenceService {
     // El horizonte se cuenta desde el turno que la originó mientras ese turno esté en el
     // futuro, y desde hoy una vez que pasó. Así una repetición que arranca dentro de tres
     // semanas igual nace con sus cuatro turnos, y después se va corriendo sola.
-    const target = addDays(start > today ? start : today, HORIZON_DAYS);
+    const horizon = addDays(start > today ? start : today, HORIZON_DAYS);
+    // La fecha de corte manda sobre el horizonte: nunca se genera más allá de ella.
+    const end = recurrence.endDate ? startOfDay(recurrence.endDate) : null;
+    const target = end && end < horizon ? end : horizon;
 
     let cursor = startOfDay(recurrence.lastGeneratedDate);
     let created = 0;
@@ -156,10 +153,18 @@ export class RecurrenceService {
         observations: null,
         reminderSent: "not sent",
         overbooked: recurrence.overbooked,
+        origin: "professional",
         recurrence,
       });
 
       created++;
+    }
+
+    // Si ya no queda nada por crear antes del corte, la repetición se apaga sola: así el
+    // job de todos los días deja de mirarla y en la pantalla figura como terminada.
+    if (end && addDays(cursor, step) > end) {
+      recurrence.active = false;
+      recurrence.stoppedAt = new Date();
     }
 
     await em.flush();
@@ -233,6 +238,7 @@ export class RecurrenceService {
           value: recurrence.value,
           overbooked: recurrence.overbooked,
           startDate: recurrence.startDate,
+          endDate: recurrence.endDate ?? null,
           patient: recurrence.patient
             ? { email: recurrence.patient.email, name: recurrence.patient.name, surname: recurrence.patient.surname }
             : null,
@@ -264,10 +270,21 @@ export class RecurrenceService {
   async update(
     idRecurrence: number,
     professionalEmail: string,
-    data: { frequency?: RecurrenceFrequency; value?: number; idRoom?: number; patientEmail?: string | null }
+    data: {
+      frequency?: RecurrenceFrequency;
+      value?: number;
+      idRoom?: number;
+      patientEmail?: string | null;
+      endDate?: Date | string | null;
+    }
   ) {
     const recurrence = await this.findOwn(idRecurrence, professionalEmail);
-    if (!recurrence.active) throw badRequest("Esa repetición está frenada: no queda nada por generar");
+
+    // Una repetición que se apagó sola al llegar a su fecha de corte se puede reabrir
+    // corriendo esa fecha: es lo que va a querer hacer quien puso "hasta fin de agosto"
+    // y en agosto decide seguir. La que se frenó a mano no vuelve por acá.
+    const finished = !recurrence.active && !!recurrence.endDate;
+    if (!recurrence.active && !finished) throw badRequest("Esa repetición está frenada: no queda nada por generar");
 
     if (data.frequency !== undefined) {
       if (!FREQUENCIES.includes(data.frequency)) throw badRequest("La repetición tiene que ser semanal o quincenal");
@@ -281,7 +298,7 @@ export class RecurrenceService {
 
     if (data.idRoom !== undefined) {
       const room = await this.roomService.findRoomById(data.idRoom);
-      if (!room.active) throw badRequest("La sala que elegiste está dada de baja");
+      if (!room.active) throw badRequest("El consultorio que elegiste está dado de baja");
       recurrence.room = room;
     }
 
@@ -289,7 +306,26 @@ export class RecurrenceService {
       recurrence.patient = data.patientEmail ? await this.peopleService.findPersonByEmail(data.patientEmail) : null;
     }
 
+    if (data.endDate !== undefined) {
+      // Adelantar el corte no borra turnos ya creados: la repetición deja de generar de
+      // acá en adelante, y lo que sobre se cancela a mano como cualquier otro turno.
+      recurrence.endDate = parseEndDate(data.endDate, startOfDay(recurrence.startDate));
+
+      const today = startOfDay(new Date());
+      const stillRuns = !recurrence.endDate || recurrence.endDate >= today;
+
+      if (finished && stillRuns) {
+        recurrence.active = true;
+        recurrence.stoppedAt = null;
+      }
+    }
+
     await em.flush();
+
+    // Correr el corte para adelante tiene que volver a llenar el horizonte en el momento,
+    // sin esperar a que pase el job de la madrugada.
+    if (recurrence.active && (data.endDate !== undefined || data.frequency !== undefined)) await this.generate(recurrence);
+
     return recurrence;
   }
 

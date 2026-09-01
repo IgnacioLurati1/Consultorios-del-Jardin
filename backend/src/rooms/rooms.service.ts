@@ -63,7 +63,7 @@ export class RoomService {
     const error = await this.validateRoomInput(data);
 
     if (error) {
-      throw new Error("Error al crear sala, datos inválidos");
+      throw new Error("Error al crear el consultorio, datos inválidos");
     }
 
     const room = em.create(Room, data);
@@ -76,7 +76,7 @@ export class RoomService {
     const error = await this.validateRoomInput(data);
 
     if (error) {
-      throw new Error("Error al modificar sala, datos inválidos");
+      throw new Error("Error al modificar el consultorio, datos inválidos");
     }
 
     const room = await em.findOneOrFail(Room, { idRoom: id });
@@ -86,7 +86,7 @@ export class RoomService {
       await em.flush();
       return await em.findOneOrFail(Room, { idRoom: id }, { populate: ["office.city"] });
     } else {
-      throw new Error("Sala desactivada, active primero antes de modificar");
+      throw new Error("Consultorio desactivado, activalo primero antes de modificar");
     }
   }
 

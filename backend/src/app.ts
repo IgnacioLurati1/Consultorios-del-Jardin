@@ -19,6 +19,9 @@ import { appointmentRouter } from "./appointments/appointments.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
 import { startRecurrenceJob } from "./jobs/recurrence.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
+import { analyticsRouter } from "./analytics/analytics.routes.js";
+import { contactRouter } from "./contact/contact.routes.js";
+import { assistantRouter } from "./assistant/assistant.routes.js";
 import { setupSwagger } from './config/swagger.js';
 import { authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
@@ -75,6 +78,10 @@ app.use("/api/tokenStatus", authLimiter, verifyToken, (req: Request, res: Respon
 app.use("/api/refreshToken",authLimiter, refreshToken);
 app.use("/api/appointments", verifyToken, appointmentRouter);
 app.use("/api/recurrences", verifyToken, recurrenceRouter);
+app.use("/api/analytics", verifyToken, analyticsRouter);
+app.use("/api/assistant", verifyToken, assistantRouter);
+// Sin verifyToken a propósito: cualquiera tiene que poder escribirle al consultorio.
+app.use("/api/contact", contactRouter);
 
 app.use((_, res) => {
   return res.status(404).send({ message: "Resource not found" });
@@ -90,3 +97,4 @@ startRecurrenceJob();
 app.listen(3000, () => {
   console.log("Server runnning on http://localhost:3000/");
 });
+

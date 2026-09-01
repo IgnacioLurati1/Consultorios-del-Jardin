@@ -17,7 +17,7 @@ Sistema de autogestión de turnos médicos. Permite a pacientes sacar turnos con
 | Express 4 | Framework HTTP |
 | MikroORM 6 + MySQL | ORM y base de datos |
 | JWT | Autenticación |
-| SendGrid | Notificaciones por email |
+| Brevo | Notificaciones por email |
 | Groq SDK (llama-3.3-70b) | Asistente virtual IA |
 | node-cron | Recordatorios automáticos |
 
@@ -34,7 +34,7 @@ Crear un archivo `.env` en `backend/` con:
 
 ```env
 GROQ_API_KEY=
-SENDGRID_API_KEY=
+BREVO_KEY=
 JWT_SECRET=
 DB_HOST=
 DB_PORT=
@@ -87,7 +87,7 @@ backend/src/
 ├── rooms/                 # Salas
 ├── schedule/              # Horarios de profesionales
 ├── cities/ + provinces/   # Geografía
-├── config/                # Groq, SendGrid, JWT middleware
+├── config/                # Groq, Brevo, JWT middleware
 ├── prompts/               # Prompts para la IA
 └── jobs/                  # Cron jobs (recordatorios)
 ```

@@ -319,20 +319,6 @@ async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Res
   }
 }
 
-async function generateSecretaryResponse(req: RequestWithUser, res: Response) {
-  try {
-    if (req.user.type !== "client") return res.status(403).json({ message: "Solo los pacientes pueden usar el asistente virtual" });
-
-    const { message: userMessage, history = [] } = req.body.sanitizedInput;
-
-    const response = await appointmentService.generateSecretaryResponse(req.user.email, userMessage, history);
-
-    res.status(200).json({ message: "Respuesta generada", data: response });
-  } catch (error: any) {
-    sendError(res, error);
-  }
-}
-
 export {
   getPatientAppointments,
   getDiagnostic,
@@ -354,5 +340,4 @@ export {
   getAvailableAppointmentsForPatient,
   getPersonalMedicalHistory,
   getPatientMedicalHistory,
-  generateSecretaryResponse,
 };

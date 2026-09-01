@@ -28,4 +28,15 @@ const lookupLimiter = rateLimit({
   message: { error: 'Demasiadas consultas, intentá más tarde.' },
 });
 
-export { generalLimiter, authLimiter, lookupLimiter };
+// Formulario de contacto. Cada envío dispara mails de verdad, así que es la ruta
+// pública más cara de abusar: se permiten unas pocas consultas por hora y IP, que es
+// bastante más de lo que manda alguien que realmente quiere escribirnos.
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // ventana de 1 hora
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Ya enviaste varias consultas. Esperá un rato antes de mandar otra.' },
+});
+
+export { generalLimiter, authLimiter, lookupLimiter, contactLimiter };

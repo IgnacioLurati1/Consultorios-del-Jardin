@@ -66,7 +66,7 @@ export class AppointmentEngine {
 
     const room = await this.roomService.findRoomById(idRoom, this.em);
 
-    if (!room.active) throw badRequest("La sala que elegiste está dada de baja");
+    if (!room.active) throw badRequest("El consultorio que elegiste está dado de baja");
 
     const appointment = this.em.create(Appointment, {
       date,
@@ -80,6 +80,7 @@ export class AppointmentEngine {
       observations: null,
       reminderSent: "not sent",
       overbooked,
+      origin: "professional",
     });
 
     return appointment;
@@ -98,7 +99,7 @@ export class AppointmentEngine {
       throw badRequest(`No atendés los ${day} a las ${initialHour}. Si querés darlo igual, marcalo como sobreturno.`);
 
     if (String(schedule.room.idRoom) !== String(idRoom))
-      throw badRequest(`Los ${day} a las ${initialHour} atendés en ${schedule.room.description}: elegí esa sala o marcalo como sobreturno.`);
+      throw badRequest(`Los ${day} a las ${initialHour} atendés en ${schedule.room.description}: elegí ese consultorio o marcalo como sobreturno.`);
 
     if (await this.appointmentService.checkAppointmentDurationFormat(initialHour, schedule.initialHour, schedule.duration))
       throw badRequest(
@@ -124,6 +125,11 @@ export class AppointmentEngine {
     const professional = await this.peopleService.findPersonByEmail(professionalEmail, this.em);
 
     if (professional.type !== "professional") throw badRequest("La persona elegida no es un profesional");
+
+    // El profesional puede sacar turno como paciente, pero no consigo mismo: estaría
+    // ocupando su propio módulo con un turno que no atiende nadie. La pantalla ya no lo
+    // ofrece; esto es lo que lo hace cierto.
+    if (professional.email === patientEmail) throw badRequest("No podés sacar un turno con vos mismo");
     const office = await this.officeService.findOficeById(officeId, this.em);
 
     if (!office.active) throw badRequest("El consultorio que elegiste está dado de baja");
@@ -159,7 +165,7 @@ export class AppointmentEngine {
 
     const room = schedule.room;
 
-    if (!room.active) throw badRequest("La sala asignada a ese horario está dada de baja");
+    if (!room.active) throw badRequest("El consultorio asignado a ese horario está dado de baja");
 
     if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
       throw conflict("Ese horario ya está ocupado. Elegí otro");
@@ -177,6 +183,7 @@ export class AppointmentEngine {
       reminderSent: "not sent",
       // El paciente solo puede sacar turno en las franjas que el profesional publica.
       overbooked: false,
+      origin: "patient",
     });
 
     return appointment;

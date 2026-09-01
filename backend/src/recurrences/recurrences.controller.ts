@@ -28,7 +28,12 @@ async function createRecurrence(req: RequestWithUser, res: Response) {
     const numAppointment = Number.parseInt(req.body.numAppointment);
     if (Number.isNaN(numAppointment)) return res.status(400).json({ message: "Falta el turno que se quiere repetir" });
 
-    const result = await recurrenceService.createFromAppointment(numAppointment, req.user.email, req.body.frequency);
+    const result = await recurrenceService.createFromAppointment(
+      numAppointment,
+      req.user.email,
+      req.body.frequency,
+      req.body.endDate
+    );
 
     res.status(201).json({
       message: "Turno repetible creado",
@@ -42,13 +47,14 @@ async function createRecurrence(req: RequestWithUser, res: Response) {
 async function updateRecurrence(req: RequestWithUser, res: Response) {
   try {
     const idRecurrence = Number.parseInt(req.params.idRecurrence);
-    const { frequency, value, idRoom, patientEmail } = req.body;
+    const { frequency, value, idRoom, patientEmail, endDate } = req.body;
 
     const recurrence = await recurrenceService.update(idRecurrence, req.user.email, {
       frequency,
       value: value === undefined ? undefined : Number(value),
       idRoom: idRoom === undefined ? undefined : Number(idRoom),
       patientEmail,
+      endDate,
     });
 
     res.status(200).json({ message: "Repetición actualizada", data: { idRecurrence: recurrence.idRecurrence } });

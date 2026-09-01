@@ -52,6 +52,12 @@ export class Recurrence {
   @Property({ nullable: false, type: "date" })
   lastGeneratedDate!: Date;
 
+  // Último día en el que se puede crear un turno de esta repetición. En null se repite
+  // sin fecha de corte, que es lo que hace falta para un paciente de tratamiento largo.
+  // Cuando la generación pasa esta fecha, la repetición se frena sola.
+  @Property({ nullable: true, type: "date" })
+  endDate?: Date | null;
+
   // Apagarla corta la generación de acá en adelante y no toca ningún turno ya creado.
   @Property({ default: true })
   active: boolean = true;

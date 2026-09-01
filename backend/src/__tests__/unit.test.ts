@@ -28,8 +28,8 @@ vi.mock("../shared/db/orm.js", () => ({
   syncSchema: vi.fn(),
 }));
 
-// Mock de sendGrid para evitar que se intente enviar mails
-vi.mock("../config/sendGrid.js", () => ({
+// Mock del envío de mails para que los tests no manden nada de verdad
+vi.mock("../config/mailer.js", () => ({
   default: class MailServiceMock {
     createMessage = vi.fn();
     sendMail = vi.fn();

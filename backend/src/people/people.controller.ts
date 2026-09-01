@@ -291,19 +291,39 @@ async function changePassword(req: Request, res: Response) {
   } catch (error: any) {
     if (error.message === "USER_DISABLED") return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
     if (error.message === "ANONYMOUS_ACCOUNT") return res.status(403).json({ message: "Esta persona no tiene cuenta", code: "ANONYMOUS_ACCOUNT" });
+    // El link vencido es el final más común de este circuito: decirlo con todas las
+    // letras evita que alguien reintente cinco veces creyendo que falla la contraseña.
+    if (error.message === "Token expirado")
+      return res
+        .status(401)
+        .json({ message: "El link venció o ya se usó. Pedí uno nuevo desde \"¿Olvidaste tu contraseña?\"", code: "RESET_TOKEN_INVALID" });
     res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
   }
 }
 
+/**
+ * Pedido del mail para recuperar la contraseña.
+ *
+ * Si el email no tiene cuenta se responde igual que si la tuviera: contestar distinto
+ * convierte a esta ruta en una forma cómoda de averiguar qué direcciones están
+ * registradas. Antes tiraba un 500, que además de filtrar el dato quedaba en pantalla
+ * como si se hubiera roto algo.
+ */
 async function sendPasswordMail(req: RequestWithUser, res: Response) {
+  const sent = { message: "Si hay una cuenta con ese email, te mandamos el link" };
+
   try {
-    const person = await peopleService.findPersonByEmail(req.params.email); //Revisamos que exista
+    const person = await peopleService.findPersonByEmail(req.params.email);
     if (!person.active) return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
     if (person.anonymous) return res.status(403).json({ message: "Esta persona no tiene cuenta", code: "ANONYMOUS_ACCOUNT" });
+
     await peopleService.sendPasswordMail(person.email);
-    res.status(200).json({ Message: "Mail enviado!" });
+    return res.status(200).json(sent);
   } catch (error: any) {
-    res.status(500).json({ Message: "Ups! Algo salió mal" });
+    if (error?.name === "NotFoundError") return res.status(200).json(sent);
+
+    console.error("Error mandando el mail de recuperación:", error);
+    return res.status(500).json({ message: "No pudimos mandar el mail. Probá de nuevo en un rato" });
   }
 }
 export {

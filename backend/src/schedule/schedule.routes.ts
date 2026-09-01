@@ -132,7 +132,7 @@ scheduleRouter.get('/by-day-hour/:day/:initialHour', findOne);
  * @swagger
  * /api/schedules/by-room/{idRoom}:
  *   get:
- *     summary: Obtener todos los horarios de una sala (de cualquier profesional)
+ *     summary: Obtener todos los horarios de un consultorio (de cualquier profesional)
  *     tags: [Schedules]
  *     security:
  *       - bearerAuth: []
@@ -144,7 +144,7 @@ scheduleRouter.get('/by-day-hour/:day/:initialHour', findOne);
  *           type: integer
  *     responses:
  *       200:
- *         description: Horarios de la sala
+ *         description: Horarios del consultorio
  *       401:
  *         description: Token ausente, inválido o expirado
  *       500:

@@ -61,7 +61,7 @@ export class ScheduleService {
     const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ["office"] });
 
     if (!selectedRoom || !selectedRoom.office) {
-      throw notFound("No encontramos el consultorio de esa sala");
+      throw notFound("No encontramos la sucursal de ese consultorio");
     }
 
     return initialHour < selectedRoom.office.openingTime || finalHour > selectedRoom.office.closingTime;
@@ -122,15 +122,15 @@ export class ScheduleService {
     );
   }
 
-  // Todos los horarios de una sala, sin importar el profesional. Lo usa el panel de
-  // admin para ver en qué franjas está ocupada una sala.
+  // Todos los horarios de un consultorio, sin importar el profesional. Lo usa el panel de
+  // admin para ver en qué franjas está ocupado un consultorio.
   async findSchedulesByRoom(idRoom: number): Promise<Schedule[]> {
     return await em.find(Schedule, { room: { idRoom } }, { populate: ["room", "person"] });
   }
 
   async findScheduleByRoomAndDay(day: string, room: Room): Promise<Schedule[]> {
     return await em.find(Schedule, { day, room });
-  } // Metodo para buscar horarios por sala y día
+  } // Metodo para buscar horarios por consultorio y día
 
   async findSchedulesByProfessionalAndOffice(professional: Person, office: Office, emT?: EntityManager): Promise<Schedule[]> {
     return await (emT || em).find(Schedule, { person: professional, room: { office } }, { populate: ["room"] });
@@ -164,7 +164,7 @@ export class ScheduleService {
     }
 
     if (existingInRoom) {
-      throw new Error("La sala ya está ocupada en ese horario");
+      throw new Error("Ese consultorio ya está ocupado en ese horario");
     }
 
     if (outOfHours) {

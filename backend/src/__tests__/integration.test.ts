@@ -29,15 +29,11 @@ vi.mock("../shared/db/orm.js", () => ({
   syncSchema: vi.fn(),
 }));
 
-vi.mock("../config/sendGrid.js", () => ({
+vi.mock("../config/mailer.js", () => ({
   default: class MailServiceMock {
     createMessage = vi.fn().mockResolvedValue({});
     sendMail = vi.fn().mockResolvedValue(undefined);
   },
-}));
-
-vi.mock("@sendgrid/mail", () => ({
-  default: { setApiKey: vi.fn(), send: vi.fn() },
 }));
 
 // Variables de entorno para JWT
@@ -78,7 +74,7 @@ const mockOffice = {
 
 const mockRoom = {
   idRoom: 1,
-  description: "Sala 1",
+  description: "Consultorio 1",
   office: mockOffice,
   active: true,
 };
@@ -256,7 +252,7 @@ describe("Integración: Flujo completo de creación y aceptación de turno", () 
     expect(foundAppointment.room.office.city.province.nameProvince).toBe("Santa Fe");
     expect(foundAppointment.room.office.city.nameCity).toBe("Rosario");
     expect(foundAppointment.room.office.description).toBe("Consultorio Central");
-    expect(foundAppointment.room.description).toBe("Sala 1");
+    expect(foundAppointment.room.description).toBe("Consultorio 1");
   });
 });
 
