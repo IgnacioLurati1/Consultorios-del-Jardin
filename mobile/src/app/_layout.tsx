@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FeedbackProvider } from "../components/Feedback";
+import { AlertsProvider } from "../session/AlertsProvider";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { useTheme } from "../theme/useTheme";
 
@@ -51,7 +52,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <SessionProvider>
           <FeedbackProvider>
-            <Root />
+            {/* Adentro de la sesión porque solo tiene sentido para el profesional que ya
+                entró, y afuera de las pantallas porque los avisos se reprograman aunque
+                no se esté mirando ninguna. */}
+            <AlertsProvider>
+              <Root />
+            </AlertsProvider>
           </FeedbackProvider>
         </SessionProvider>
       </SafeAreaProvider>

@@ -2,6 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import api, { setSessionLostHandler } from "../api/client";
 import { login as loginRequest, signUp as signUpRequest, SignUpInput } from "../api/people";
 import { clearTokens, currentUser, loadTokens, Role, saveTokens } from "../api/tokens";
+import { clearAlerts } from "../lib/alerts";
 
 export interface Session {
   email: string;
@@ -37,6 +38,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch {
       // Cerrar sesión no puede depender de que haya señal.
     }
+
+    // Los avisos de turno son de la agenda de quien estaba adentro: si quedaran
+    // programados, al teléfono le seguiría sonando el turno de otro.
+    await clearAlerts().catch(() => {});
 
     await clearTokens();
     setSession(null);

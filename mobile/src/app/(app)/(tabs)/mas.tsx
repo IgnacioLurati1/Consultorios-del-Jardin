@@ -42,7 +42,8 @@ export default function MoreScreen() {
             <Row title="Horarios de atención" subtitle="Los módulos en los que atendés" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
             <Row title="Turnos que se repiten" subtitle="Los que se generan solos" icon="repeat" onPress={() => router.push("/(app)/repeticiones")} />
             <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
-            <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" last onPress={() => router.push("/(app)/nuevo-turno")} />
+            <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" onPress={() => router.push("/(app)/nuevo-turno")} />
+            <Row title="Avisos de turno" subtitle="El aviso de cinco minutos antes" icon="bell" last onPress={() => router.push("/(app)/avisos")} />
           </Group>
         </Section>
       ) : null}

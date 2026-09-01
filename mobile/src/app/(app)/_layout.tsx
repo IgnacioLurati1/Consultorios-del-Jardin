@@ -35,6 +35,7 @@ export default function AppLayout() {
       <Stack.Screen name="horarios" options={{ title: "Horarios de atención" }} />
       <Stack.Screen name="repeticiones" options={{ title: "Turnos que se repiten" }} />
       <Stack.Screen name="mis-datos" options={{ title: "Mis datos" }} />
+      <Stack.Screen name="avisos" options={{ title: "Avisos de turno" }} />
       <Stack.Screen name="contacto" options={{ title: "Escribinos" }} />
       {/* Se llama distinto que la pestaña del admin a proposito: (tabs) es un grupo
           transparente para el router, asi que dos archivos "numeros" resolverian a la
