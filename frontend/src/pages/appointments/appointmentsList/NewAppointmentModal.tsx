@@ -108,7 +108,7 @@ const emptyForm = {
 /**
  * Alta de un turno desde el profesional (autogestión). Dos formas de darlo:
  * el turno normal, que cae en uno de sus módulos y dura lo que dure ese módulo,
- * y el sobreturno, donde elige día, horario y sala a mano.
+ * y el sobreturno, donde elige día, horario y consultorio a mano.
  * El paciente es opcional: se puede reservar la franja y asignarlo después.
  */
 export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedules, onCreate }: NewAppointmentModalProps) {
@@ -155,7 +155,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.initialHour) || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.finalHour))
       return "Las horas tienen que tener formato HH:MM";
     if (form.initialHour >= form.finalHour) return "La hora de inicio tiene que ser anterior a la de fin";
-    if (!form.room) return "Elegí una sala";
+    if (!form.room) return "Elegí un consultorio";
 
     return null;
   }
@@ -194,7 +194,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
       subtitle={
         mode === "regular"
           ? "Dentro de tus horarios de atención. Queda confirmado directamente"
-          : "Fuera de tus horarios: elegís día, hora y sala a mano"
+          : "Fuera de tus horarios: elegís día, hora y consultorio a mano"
       }
       footer={
         <>
@@ -264,7 +264,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             </div>
 
             <label className="ui-field">
-              <span>Sala</span>
+              <span>Consultorio</span>
               <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })}>
                 <option value="">Elegí una sala…</option>
                 {rooms.map((room) => (

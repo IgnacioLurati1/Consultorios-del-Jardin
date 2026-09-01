@@ -82,8 +82,8 @@ export function ScheduleModal({
     }
 
     if (!city) newErrors.city = "Elegí una localidad";
-    if (!office) newErrors.office = "Elegí un consultorio";
-    if (!room) newErrors.room = "Elegí una sala";
+    if (!office) newErrors.office = "Elegí una sucursal";
+    if (!room) newErrors.room = "Elegí un consultorio";
     if (!newScheduleData.duration) newErrors.duration = "Elegí la duración de los turnos";
 
     setErrors(newErrors);
@@ -143,7 +143,7 @@ export function ScheduleModal({
               </strong>
             </div>
             <div className="ui-detail-row">
-              <span>Sala</span>
+              <span>Consultorio</span>
               <strong>{schedule.room.description}</strong>
             </div>
             {!onUpdateDuration && (
@@ -302,7 +302,7 @@ export function ScheduleModal({
         </label>
 
         <label className="ui-field">
-          <span>Consultorio</span>
+          <span>Sucursal</span>
           <select
             value={office?.idOffice || ""}
             disabled={!city}
@@ -312,7 +312,7 @@ export function ScheduleModal({
               setNewScheduleData({ ...newScheduleData, room: "" });
             }}
           >
-            <option value="">{city ? "Elegí un consultorio…" : "Elegí primero la localidad"}</option>
+            <option value="">{city ? "Elegí una sucursal…" : "Elegí primero la localidad"}</option>
             {filteredOffices.map((o) => (
               <option key={o.idOffice} value={o.idOffice}>
                 {o.description}
@@ -323,7 +323,7 @@ export function ScheduleModal({
         </label>
 
         <label className="ui-field">
-          <span>Sala</span>
+          <span>Consultorio</span>
           <select
             value={room?.idRoom || ""}
             disabled={!office}

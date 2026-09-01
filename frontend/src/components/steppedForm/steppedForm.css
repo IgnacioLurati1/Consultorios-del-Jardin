@@ -17,6 +17,7 @@
     flex-direction: column;
     gap: 22px;
     width: min(560px, 100%);
+    box-sizing: border-box;
     padding: 32px 30px 28px;
     background: var(--adm-surface);
     border: 1px solid var(--adm-border);

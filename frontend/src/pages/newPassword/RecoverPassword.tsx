@@ -1,71 +1,114 @@
-import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
-import { Toasts } from "../../components/toast/Toasts.tsx";
-import { Link } from "react-router-dom";
-import "./RecoverPassword.css";
-import Logo from "../../assets/LogoRecortado.png";
-import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import api from "../../axios.ts";
-import { toast } from "react-toastify"
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { FaEnvelopeCircleCheck } from "react-icons/fa6";
+import { Toasts } from "../../components/toast/Toasts.tsx";
+import api from "../../axios.ts";
+import Logo from "../../assets/LogoRecortado.png";
+import "./passwordPages.css";
 
-async function sendEmail(email: string) {
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  api.post(`people/${email}/passwordMail`)
-  .then(_ => {
-    toast.success("Te mandamos un email, revisá tu bandeja de entrada")
-  })
-  .catch(error => {
-    toast.error(error.message)
-  })
-}
-
+/**
+ * Primer paso para recuperar la contraseña: pedir el mail con el link.
+ *
+ * El backend contesta lo mismo exista o no la cuenta, así que esta pantalla tampoco
+ * dice si el email estaba registrado: si lo dijera, sería una forma cómoda de
+ * averiguar quién tiene cuenta acá.
+ */
 export function RecoverPassword() {
-
   const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setEmail(e.target.value);
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+
+    const clean = email.trim();
+    if (!clean) return setError("Escribí tu email");
+    if (!EMAIL_REGEX.test(clean)) return setError("Ese email no parece válido. Revisá que tenga @ y un punto");
+
+    setError(null);
+    setSending(true);
+
+    api
+      .post(`people/${encodeURIComponent(clean)}/passwordMail`)
+      .then(() => setSentTo(clean))
+      .catch((err) => setError(err.response?.data?.message || "No pudimos mandar el mail. Probá de nuevo en un rato"))
+      .finally(() => setSending(false));
+  }
+
+  if (sentTo) {
+    return (
+      <div className="pw-page">
+        <div className="pw-card">
+          <div className="pw-result">
+            <span className="pw-result-icon">
+              <FaEnvelopeCircleCheck />
+            </span>
+            <h1 className="pw-result-title">Revisá tu correo</h1>
+            <p className="pw-result-text">
+              Si hay una cuenta con <span className="pw-result-mail">{sentTo}</span>, te llega un link para elegir una
+              contraseña nueva. Vence en 30 minutos.
+            </p>
+            <p className="pw-result-text">¿No lo ves? Fijate en correo no deseado antes de pedir otro.</p>
+
+            <div className="pw-result-actions">
+              <Link className="adm-btn adm-btn-primary" to="/Login">
+                Volver a iniciar sesión
+              </Link>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setSentTo(null)}>
+                Usar otro email
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Toasts />
+      </div>
+    );
   }
 
   return (
-    <div className="recoverPassword-container">
-      <div className="recoverPassword-title">
-        <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
-        <h1 className="title-text">Recuperar contraseña</h1>
-      </div>
-
-      <div className="recoverPassword-body">
-        <div className="recoverPassword-upper">
-          <DataInput label="Ingrese su email para recuperar contraseña" type="email" value={email} onChange={handleChange} />
+    <div className="pw-page">
+      {/* noValidate: los mensajes los damos nosotros, no el globito del navegador. */}
+      <form className="pw-card" onSubmit={submit} noValidate>
+        <div className="pw-head">
+          <img src={Logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <h1 className="pw-title">¿Olvidaste tu contraseña?</h1>
+          <p className="pw-subtitle">Escribí tu email y te mandamos un link para elegir una nueva.</p>
         </div>
 
-        <hr className="divider" />
+        <div className="pw-body">
+          <label className="ui-field">
+            <span>Email</span>
+            <div className="pw-input-wrap">
+              <input
+                autoFocus
+                type="email"
+                autoComplete="username"
+                placeholder="vos@mail.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+              />
+            </div>
+          </label>
 
-        <div className="recoverPassword-body-middle">
-          <p className="no-account">
-            ¿Ya tenés cuenta?{" "}
-            <Link to="/Login" className="register-link">
-              Volver a iniciar sesión
-            </Link>
-          </p>
+          {error && <p className="ui-alert ui-alert-error">{error}</p>}
         </div>
 
-        <div className="recoverPassword-lower">
-          <div className="recoverPassword-logo-consultorios">
-            <img src={Logo} alt="Logo" />
-          </div>
+        <button type="submit" className="adm-btn adm-btn-primary pw-submit" disabled={sending}>
+          {sending ? "Mandando…" : "Mandarme el link"}
+        </button>
 
-          <div className="recoverPassword-button-container">
-            <button
-              className="recoverPassword-button"
-              onClick={() => sendEmail(email)}
-            >
-              Enviar instrucciones
-            </button>
-          </div>
-        </div>
-      </div>
+        <p className="pw-foot">
+          ¿Te acordaste? <Link to="/Login">Volver a iniciar sesión</Link>
+        </p>
+      </form>
+
       <Toasts />
     </div>
   );

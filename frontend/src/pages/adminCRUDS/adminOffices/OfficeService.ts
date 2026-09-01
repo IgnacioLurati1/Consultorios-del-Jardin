@@ -27,7 +27,7 @@ export function findAllActiveOffices(): Promise<Office[]>{
 
 export function createOffice(newDescription: string, newOpeningTime: string, newClosingTime: string, cityId: string): Promise<Office | undefined>{
     if(!newDescription.trim() || !newOpeningTime || !newClosingTime || !cityId){
-        throw new Error('Se necesitan todos los campos compleatados para crear una sala');
+        throw new Error('Se necesitan todos los campos completos para crear una sucursal');
     }
 
     return api.post('/offices',{
@@ -61,7 +61,7 @@ export function removeOffice(id: string): Promise<boolean> {
 
 export function updateOffice(id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, cityId: string, active: boolean): Promise<Office | void | undefined>{
     if(!newDescription.trim() || !newOpeningTime || !newClosingTime || !cityId){
-        throw new Error('Se necesitan todos los campos compleatados para modificar una sala');
+        throw new Error('Se necesitan todos los campos completos para modificar una sucursal');
     }
 
     if(active){

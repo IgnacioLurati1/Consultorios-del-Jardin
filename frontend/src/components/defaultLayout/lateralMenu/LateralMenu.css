@@ -39,8 +39,8 @@
 .lateral-menu-close {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   flex-shrink: 0;
   padding: 0;
   border: none;

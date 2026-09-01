@@ -1,0 +1,303 @@
+/* ============================================================
+   Contacto. El formulario por pasos es el mismo del registro; acá
+   se lo saca de su pantalla centrada y se lo pone en una columna,
+   con los datos del consultorio al costado.
+   ============================================================ */
+
+.contact-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 330px);
+    align-items: start;
+    gap: 28px;
+}
+
+/* El formulario trae su propio centrado a pantalla completa: acá manda la grilla. */
+.contact-page .sf-page {
+    display: block;
+    min-height: 0;
+    padding: 0;
+}
+
+.contact-page .sf-card {
+    width: 100%;
+}
+
+.contact-page .sf-head {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.contact-page .sf-foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.contact-page .sf-foot svg {
+    flex-shrink: 0;
+}
+
+/* ---------- motivos ---------- */
+
+.contact-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.contact-reason {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 15px 18px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface);
+    color: var(--adm-text);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.contact-reason:hover {
+    border-color: var(--adm-green);
+    background: var(--adm-green-soft);
+}
+
+.contact-reason.active {
+    border-color: var(--adm-green);
+    background: var(--adm-green-soft);
+    box-shadow: inset 3px 0 0 var(--adm-green);
+}
+
+.contact-reason-label {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.contact-reason.active .contact-reason-label {
+    color: var(--adm-green-dark);
+}
+
+.contact-reason-hint {
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: var(--adm-muted);
+}
+
+/* ---------- mensaje ---------- */
+
+.contact-count.low {
+    color: var(--adm-warn);
+}
+
+/* Fuera de la vista pero dentro del formulario: un bot que completa todo lo llena,
+   una persona no lo ve nunca. No se usa display:none porque muchos bots lo detectan. */
+.contact-trap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* ---------- confirmación ---------- */
+
+.contact-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 54px 32px 48px;
+    text-align: center;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: 18px;
+    box-shadow: 0 16px 44px rgba(16, 24, 40, 0.1);
+}
+
+.contact-done-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--adm-green-soft);
+    color: var(--adm-green);
+    font-size: 2rem;
+}
+
+.contact-done-title {
+    margin: 6px 0 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.contact-done-text {
+    max-width: 44ch;
+    margin: 0;
+    color: var(--adm-muted);
+    line-height: 1.55;
+}
+
+.contact-done-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.contact-done-actions .adm-btn {
+    text-decoration: none;
+}
+
+/* ---------- datos del consultorio ---------- */
+
+.contact-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.contact-office-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.contact-office-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--adm-border);
+}
+
+.contact-office-list li:last-child {
+    border-bottom: none;
+}
+
+.contact-office-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+}
+
+.contact-office-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--adm-muted);
+}
+
+.contact-office-value {
+    display: block;
+    margin-top: 2px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+/* El mail es el dato más largo de la columna y partido al medio no se puede copiar
+   de un vistazo: entra entero con un cuerpo un poco menor. */
+.contact-office-value.small {
+    font-size: 0.92rem;
+}
+
+.contact-office-value a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--adm-border);
+}
+
+.contact-office-value a:hover {
+    color: var(--adm-green-dark);
+    border-color: var(--adm-green);
+}
+
+/* Atajos para lo que no hace falta preguntar. Van como filas de ancho completo y no
+   como botones sueltos: en una columna angosta dos botones se acomodan uno abajo del
+   otro igual, pero desalineados y con aire raro alrededor. */
+.contact-shortcut {
+    padding: 20px 22px 14px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    background: var(--adm-green-soft);
+}
+
+.contact-shortcut p {
+    margin: 0;
+    font-weight: 700;
+    color: var(--adm-green-dark);
+}
+
+.contact-shortcut-text {
+    margin-top: 6px !important;
+    font-size: 0.95rem;
+    font-weight: 400 !important;
+    line-height: 1.5;
+    color: var(--adm-text);
+}
+
+.contact-shortcut-actions {
+    display: flex;
+    flex-direction: column;
+    margin-top: 14px;
+}
+
+.contact-shortcut-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid rgba(47, 94, 70, 0.16);
+    color: var(--adm-green-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.contact-shortcut-link svg {
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.contact-shortcut-link:hover svg {
+    opacity: 1;
+    transform: translateX(3px);
+}
+
+.contact-shortcut-link:focus-visible {
+    outline: 2px solid var(--adm-green);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .contact-shortcut-link svg {
+        transition: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .contact-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Los datos del consultorio pasan abajo: primero se escribe, después se consulta. */
+    .contact-aside {
+        order: 2;
+    }
+}

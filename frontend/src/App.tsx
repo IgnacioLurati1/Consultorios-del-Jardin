@@ -23,17 +23,25 @@ import { BookAppointment } from "./pages/appointments/booking/BookAppointment.ts
 import { AppointmentsList } from "./pages/appointments/appointmentsList/appointmentList.tsx";
 import { ControlPanel } from "./pages/adminControl/ControlPanel.tsx";
 import { PatientsPage } from "./pages/patients/PatientsPage.tsx";
+import { AnalyticsPage } from "./pages/analytics/AnalyticsPage.tsx";
+import { OfficeAnalyticsPage } from "./pages/analytics/OfficeAnalyticsPage.tsx";
+import { ContactPage } from "./pages/contact/ContactPage.tsx";
+import { ErrorPage } from "./pages/errorPage/ErrorPage.tsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: (
     <Layout />),
+    // Cualquier error que reviente adentro sube hasta acá: se muestra la pantalla propia
+    // en vez del cartel técnico que trae React Router.
+    errorElement: <ErrorPage />,
     children: [
       // Public Routes
       { index: true, element: <Home /> },
       { path: "/Register", element: <Register /> },
       { path: "/Login", element: <Login /> },
+      { path: "/contacto", element: <ContactPage /> },
       { path: "/EditProfile", element: (<PrivateRoutes allowedTypes={["admin","professional","client"]}>
             <AuthWatcher>
               <EditProfile />
@@ -58,6 +66,7 @@ const router = createBrowserRouter([
           { path: "RoomsAdmin", element: <RoomsAdmin /> },
           { path: "UsersAdmin", element: <UsersAdmin/>},
           { path: "Control", element: <ControlPanel/>},
+          { path: "Analytics", element: <OfficeAnalyticsPage/>},
           { path: "RegisterProfAdmin", element: <RegisterProf/>},
         ],
       },
@@ -79,6 +88,16 @@ const router = createBrowserRouter([
           <PrivateRoutes allowedTypes={["admin", "professional"]}>
             <AuthWatcher>
               <ScheduleProfessional />
+            </AuthWatcher>
+          </PrivateRoutes>
+        ),
+      },
+      {
+        path: "/Analytics",
+        element: (
+          <PrivateRoutes allowedTypes={["professional"]}>
+            <AuthWatcher>
+              <AnalyticsPage />
             </AuthWatcher>
           </PrivateRoutes>
         ),

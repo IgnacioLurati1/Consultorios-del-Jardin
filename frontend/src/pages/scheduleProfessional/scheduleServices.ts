@@ -12,7 +12,7 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
     });
 }
 
-// Todos los horarios de una sala, de cualquier profesional. Sirve para ver en qué
+// Todos los horarios de un consultorio, de cualquier profesional. Sirve para ver en qué
 // franjas está ocupada y dónde entra un profesional nuevo.
 export function findRoomSchedules(idRoom: string | number): Promise<Schedule[]>{
     if(!idRoom) return Promise.resolve([])
@@ -90,22 +90,22 @@ export function updateSchedule(updatedSchedule: { day: string; initialHour: stri
             allowedType: newSchedule.allowedType
         })
         .then(updated => {
-            toast.success(`Sala modificada con éxito`);
+            toast.success(`Consultorio modificado con éxito`);
             return updated.data.data
         })
         .catch(err =>{
             const backendMsg = err.response?.data?.message || err.message;
-            toast.error(`Error al crear sala: ${backendMsg}`);
+            toast.error(`Error al crear consultorio: ${backendMsg}`);
         });
     }
     else{
 
         return api.patch(`/rooms/${updatedRoom.idRoom}/toggle-state`)
         .then(()=>{
-            toast.success(`Sala reactivada con éxito`);
+            toast.success(`Consultorio reactivado con éxito`);
         })
         .catch(err => {
-            toast.error(`Error al modificar sala: ${err.message}`);
+            toast.error(`Error al modificar consultorio: ${err.message}`);
         });
     };
 }

@@ -67,7 +67,7 @@ export function updateAppointmentRecord(
 }
 
 /**
- * Modifica el turno en sí (fecha, horario, sala, valor). Acepta cambios parciales:
+ * Modifica el turno en sí (fecha, horario, consultorio, valor). Acepta cambios parciales:
  * lo que no se manda, queda como estaba.
  */
 export function updateAppointment(

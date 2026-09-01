@@ -46,6 +46,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    /* 44px de alto: es lo que ocupa un dedo. Con menos, en el celular se falla el toque
+       y se termina abriendo cualquier otra cosa. */
+    min-height: 44px;
     margin-right: auto;
     min-width: 0;
     color: #fefae0;

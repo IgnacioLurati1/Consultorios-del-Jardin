@@ -1,19 +1,192 @@
-import "./Hero.css";
-import homeImg from "../../../../assets/HomePhotos/home.jpg";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { FaArrowRight, FaCheck, FaLeaf } from "react-icons/fa6";
+import type { Session } from "../Home";
 
-export function Hero() {
+interface HeroProps {
+  session: Session;
+}
+
+interface Pitch {
+  eyebrow: string;
+  title: string;
+  lead: string;
+  primary: { label: string; to: string };
+  secondary: { label: string; to: string };
+}
+
+/**
+ * Lo que la portada le dice a cada uno. El paciente que llega de afuera necesita
+ * entender qué es esto; el que ya tiene cuenta necesita el camino corto a lo suyo,
+ * y no que le vuelvan a explicar el consultorio.
+ */
+function pitchFor({ type, firstName }: Session): Pitch {
+  const hello = firstName ? `Hola, ${firstName}` : "Hola de nuevo";
+
+  switch (type) {
+    case "client":
+      return {
+        eyebrow: hello,
+        title: "Tu próximo turno empieza acá.",
+        lead: "Elegí profesional, mirá los horarios que quedan libres y confirmá. Te llega el recordatorio por mail.",
+        primary: { label: "Pedir un turno", to: "/Appointment" },
+        secondary: { label: "Ver mis turnos", to: "/AppointmentsList" },
+      };
+    case "professional":
+      return {
+        eyebrow: hello,
+        title: "Tu día, ordenado antes de empezar.",
+        lead: "Los turnos de hoy, tu agenda semanal, tus pacientes y los números del mes, en un solo lugar.",
+        primary: { label: "Ir a mi panel", to: "/ProfessionalHome" },
+        secondary: { label: "Ver mis turnos", to: "/AppointmentsList" },
+      };
+    case "admin":
+      return {
+        eyebrow: hello,
+        title: "El consultorio, de un vistazo.",
+        lead: "Horarios y consultorios, altas de usuarios, control de turnos y los números de cada profesional.",
+        primary: { label: "Panel de administración", to: "/AdminHome" },
+        secondary: { label: "Números del consultorio", to: "/AdminHome/Analytics" },
+      };
+    default:
+      return {
+        eyebrow: "Consultorios del Jardín",
+        title: "Pedí tu turno cuando puedas, no cuando atienden.",
+        lead: "Cuatro especialidades en un mismo lugar. Elegís con qué profesional te atendés, ves los horarios que tiene libres y confirmás desde el celular, sin llamar por teléfono.",
+        primary: { label: "Crear mi cuenta", to: "/Register" },
+        secondary: { label: "Ya tengo cuenta", to: "/Login" },
+      };
+  }
+}
+
+const FACTS = ["4 especialidades", "Elegís tu profesional", "Recordatorio por mail"];
+
+export function Hero({ session }: HeroProps) {
+  const pitch = pitchFor(session);
+
   return (
-    <div
-      className="home-container"
-      style={{ backgroundImage: `url(${homeImg})` }}
-    >
-      <div className="text-container">
-        <div className="text-blur-bg" />
-        <h1 className="titleHome">Consultorios del Jardín</h1>
-        <p className="subtitleHome">
-          Nuestros mejores lugares para los mejores profesionales
-        </p>
+    <section className="home-hero">
+      <div className="home-hero-inner">
+        <div className="home-hero-copy">
+          <p className="home-eyebrow">
+            <FaLeaf aria-hidden="true" />
+            {pitch.eyebrow}
+          </p>
+
+          <h1 className="home-title">{pitch.title}</h1>
+          <p className="home-lead">{pitch.lead}</p>
+
+          <div className="home-actions">
+            <Link className="home-btn home-btn-primary" to={pitch.primary.to}>
+              {pitch.primary.label}
+              <FaArrowRight aria-hidden="true" />
+            </Link>
+            <Link className="home-btn home-btn-ghost" to={pitch.secondary.to}>
+              {pitch.secondary.label}
+            </Link>
+          </div>
+
+          <ul className="home-facts">
+            {FACTS.map((fact) => (
+              <li key={fact}>{fact}</li>
+            ))}
+          </ul>
+        </div>
+
+        <AgendaPreview />
       </div>
+    </section>
+  );
+}
+
+interface Slot {
+  hour: string;
+  taken: boolean;
+}
+
+const SLOTS: Slot[] = [
+  { hour: "08:30", taken: true },
+  { hour: "09:30", taken: false },
+  { hour: "10:30", taken: true },
+  { hour: "11:30", taken: false },
+  { hour: "15:00", taken: false },
+];
+
+/** La franja que se "reserva" sola al final de la animación. */
+const PICKED = 3;
+
+/** El próximo día hábil: la muestra no puede quedar fechada en un lunes de otro año. */
+function nextWeekday(): string {
+  const day = new Date();
+  day.setDate(day.getDate() + 1);
+  while (day.getDay() === 0 || day.getDay() === 6) day.setDate(day.getDate() + 1);
+
+  return day.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+}
+
+/**
+ * La pieza central de la portada: en vez de una foto, la agenda misma escribiéndose
+ * franja por franja hasta que una queda tomada. Es lo único que hace la aplicación y
+ * se entiende sin leer una palabra.
+ *
+ * No son datos reales: es una muestra fija con la fecha del próximo día hábil.
+ */
+function AgendaPreview() {
+  const reduced =
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  const [booked, setBooked] = useState(!!reduced);
+
+  useEffect(() => {
+    if (reduced) return;
+
+    // Después de que entró la última franja: primero se lee la agenda, después se ve
+    // que una se ocupa.
+    const timer = window.setTimeout(() => setBooked(true), 400 + SLOTS.length * 130 + 700);
+    return () => window.clearTimeout(timer);
+  }, [reduced]);
+
+  return (
+    <div className={`home-agenda ${reduced ? "is-static" : ""}`} aria-hidden="true">
+      <div className="home-agenda-card">
+        <header className="home-agenda-head">
+          <div>
+            <span className="home-agenda-day">{nextWeekday()}</span>
+            {/* Sin nombre propio: es una muestra y no tiene que confundirse con la
+                agenda real de nadie. */}
+            <span className="home-agenda-who">Psicología · Consultorio 2</span>
+          </div>
+          <span className="home-agenda-tag">Ejemplo</span>
+        </header>
+
+        <ul className="home-agenda-list">
+          {SLOTS.map((slot, index) => {
+            const mine = booked && index === PICKED;
+            const free = !slot.taken && !mine;
+
+            return (
+              <li
+                key={slot.hour}
+                className={`home-slot ${slot.taken ? "is-taken" : ""} ${mine ? "is-mine" : ""}`}
+                style={{ animationDelay: `${400 + index * 130}ms` }}
+              >
+                <span className="home-slot-hour">{slot.hour}</span>
+                <span className="home-slot-state">
+                  {slot.taken && "Ocupado"}
+                  {free && "Libre"}
+                  {mine && (
+                    <>
+                      <FaCheck /> Tu turno
+                    </>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <p className="home-agenda-caption">Así se eligen los horarios: los libres se ven, se tocan y quedan tomados.</p>
     </div>
   );
 }

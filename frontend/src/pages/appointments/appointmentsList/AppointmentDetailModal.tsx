@@ -14,10 +14,10 @@ interface AppointmentDetailModalProps {
   onCancel: (appointment: Appointment) => void;
   onSaveRecord: (appointment: Appointment, data: { state?: string; observations?: string }) => void;
   onAddPatient: (appointment: Appointment, patientEmail: string) => void;
-  /** Modifica el turno en sí: fecha, horario, sala y valor. */
+  /** Modifica el turno en sí: fecha, horario, consultorio y valor. */
   onUpdate: (appointment: Appointment, data: { date?: string; initialHour?: string; finalHour?: string; room?: string; value?: number }) => void;
-  /** Marca este turno como repetible (semanal o quincenal). */
-  onRepeat: (appointment: Appointment, frequency: RecurrenceFrequency) => void;
+  /** Marca este turno como repetible (semanal o quincenal), con o sin fecha de corte. */
+  onRepeat: (appointment: Appointment, frequency: RecurrenceFrequency, endDate: string | null) => void;
   /** Frena la generación automática. No toca los turnos ya creados. */
   onStopRepeat: (appointment: Appointment) => void;
   patients: Person[];
@@ -49,6 +49,10 @@ export function AppointmentDetailModal({
   // obligaba a borrar el cero de adelante.
   const [edit, setEdit] = useState({ date: "", initialHour: "", finalHour: "", room: "", value: "" });
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("weekly");
+  // Sin fecha de corte es lo más común (un paciente de tratamiento largo), así que es
+  // lo que viene puesto: poner una fecha es la decisión, no lo contrario.
+  const [repeatForever, setRepeatForever] = useState(true);
+  const [repeatUntil, setRepeatUntil] = useState("");
 
   const isProfessional = user.type === "professional";
 
@@ -61,6 +65,8 @@ export function AppointmentDetailModal({
     setPatientToAdd("");
     setEditing(false);
     setFrequency(appointment.recurrence?.frequency ?? "weekly");
+    setRepeatForever(!appointment.recurrence?.endDate);
+    setRepeatUntil(appointment.recurrence?.endDate?.slice(0, 10) ?? "");
     setEdit({
       date: appointment.date?.slice(0, 10) ?? "",
       initialHour: appointment.initialHour?.slice(0, 5) ?? "",
@@ -73,6 +79,8 @@ export function AppointmentDetailModal({
   if (!appointment) return null;
 
   const cancelled = isCancelled(appointment.state);
+  // Todavía sin confirmar: el backend lo borra, no lo marca como cancelado.
+  const pendingYet = appointment.state === "pending";
   const badge = describeState(appointment.state);
   const date = appointmentDate(appointment.date);
   const isPast = date.getTime() < new Date().setHours(0, 0, 0, 0);
@@ -122,8 +130,19 @@ export function AppointmentDetailModal({
         </button>
       )}
       {!cancelled && appointment.state !== "assisted" && (
-        <button type="button" className="adm-btn adm-btn-danger" onClick={() => onCancel(appointment)}>
-          Cancelar turno
+        <button
+          type="button"
+          className="adm-btn adm-btn-danger"
+          onClick={() => onCancel(appointment)}
+          title={
+            pendingYet
+              ? "El turno todavía no está confirmado: se borra y el horario queda libre."
+              : "El turno queda cancelado y en el historial."
+          }
+        >
+          {/* Un turno pendiente no se cancela: se borra. Decirle "cancelar" a las dos
+              cosas hacía pensar que quedaba registro de este también. */}
+          {pendingYet ? "Eliminar turno" : "Cancelar turno"}
         </button>
       )}
       <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
@@ -159,7 +178,7 @@ export function AppointmentDetailModal({
           </div>
 
           <label className="ui-field">
-            <span>Sala</span>
+            <span>Consultorio</span>
             <select value={edit.room} onChange={(e) => setEdit({ ...edit, room: e.target.value })}>
               {rooms.map((room) => (
                 <option key={room.idRoom} value={room.idRoom}>
@@ -221,7 +240,7 @@ export function AppointmentDetailModal({
                 </strong>
               </div>
               <div className="ui-detail-row">
-                <span>Sala</span>
+                <span>Consultorio</span>
                 <strong>
                   {appointment.room?.description}
                   {appointment.room?.office?.description ? ` · ${appointment.room.office.description}` : ""}
@@ -269,7 +288,8 @@ export function AppointmentDetailModal({
               {appointment.recurrence ? (
                 <>
                   <p className="ui-alert ui-alert-info">
-                    Este turno se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}. El
+                    Este turno se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}
+                    {appointment.recurrence.endDate ? ` hasta el ${new Date(`${appointment.recurrence.endDate.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR")}` : ", sin fecha de corte"}. El
                     sistema deja creados los de las próximas cuatro semanas y va agregando los que siguen.
                   </p>
 
@@ -291,11 +311,55 @@ export function AppointmentDetailModal({
                         </option>
                       ))}
                     </select>
-                    <small>Mismo horario, misma sala y mismo paciente, hasta cuatro semanas para adelante.</small>
+                    <small>Mismo horario, mismo consultorio y mismo paciente, hasta cuatro semanas para adelante.</small>
                   </label>
 
+                  <div className="ui-field">
+                    <span>¿Hasta cuándo?</span>
+                    <div className="ui-choice-row">
+                      <label className="ui-choice">
+                        <input
+                          type="radio"
+                          name="repeat-end"
+                          checked={repeatForever}
+                          onChange={() => setRepeatForever(true)}
+                        />
+                        <span>Sin fecha de corte</span>
+                      </label>
+                      <label className="ui-choice">
+                        <input
+                          type="radio"
+                          name="repeat-end"
+                          checked={!repeatForever}
+                          onChange={() => setRepeatForever(false)}
+                        />
+                        <span>Hasta una fecha</span>
+                      </label>
+                    </div>
+
+                    {!repeatForever && (
+                      <input
+                        type="date"
+                        value={repeatUntil}
+                        min={appointment.date?.slice(0, 10)}
+                        onChange={(e) => setRepeatUntil(e.target.value)}
+                      />
+                    )}
+
+                    <small>
+                      {repeatForever
+                        ? "Se repite hasta que la frenes a mano."
+                        : "Ese día es el último en el que se puede crear un turno."}
+                    </small>
+                  </div>
+
                   <div className="ui-section-actions">
-                    <button type="button" className="adm-btn adm-btn-primary" onClick={() => onRepeat(appointment, frequency)}>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-primary"
+                      disabled={!repeatForever && !repeatUntil}
+                      onClick={() => onRepeat(appointment, frequency, repeatForever ? null : repeatUntil)}
+                    >
                       Repetir turno
                     </button>
                   </div>

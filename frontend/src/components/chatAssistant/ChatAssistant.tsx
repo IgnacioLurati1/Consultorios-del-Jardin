@@ -1,41 +1,56 @@
 import { useState, useEffect, useRef } from "react";
-import { FaXmark, FaCommentDots, FaPaperPlane, FaRobot } from "react-icons/fa6";
+import { useNavigate } from "react-router-dom";
+import { FaXmark, FaCommentDots, FaPaperPlane, FaRobot, FaArrowRight } from "react-icons/fa6";
 import { getDecodedToken } from "../../pages/commonServices";
 import { useAuth } from "../../context/AuthContext";
-import { sendMessageToSecretary } from "./chatAssistantService";
-import type { ChatMessage } from "./chatAssistantService";
+import { sendMessageToAssistant } from "./chatAssistantService";
+import type { ChatLink, ChatMessage } from "./chatAssistantService";
 import "./ChatAssistant.css";
 
-type DisplayMessage = ChatMessage & { isAction?: boolean };
+// Los botones de pantalla llegan junto con la respuesta, así que van pegados al mensaje
+// que los ofreció y no sueltos al final de la conversación.
+type DisplayMessage = ChatMessage & { isAction?: boolean; links?: ChatLink[] };
 
 const MAX_HISTORY = 20;
 
-function detectAction(text: string): boolean {
-    const lower = text.toLowerCase();
-    const hasAppointmentRef = lower.includes("turno") || lower.includes("cita");
-    const hasActionVerb = ["creado", "cancelado", "agendado", "reservado", "registrado"].some(
-        kw => lower.includes(kw)
-    );
-    return hasAppointmentRef && hasActionVerb;
-}
+/** Lo que puede hacer el asistente según quién esté logueado. */
+const GREETINGS: Record<string, string[]> = {
+    client: [
+        "Puedo mostrarte tus turnos, buscarte profesionales y sacarte uno nuevo.",
+        "Probá con: “¿qué turnos tengo?” o “quiero un turno de nutrición”.",
+    ],
+    professional: [
+        "Puedo mostrarte tu agenda, confirmar o rechazar turnos pendientes y darte tus números.",
+        "Probá con: “¿qué tengo mañana?” o “¿cómo vengo este mes?”.",
+    ],
+    admin: [
+        "Puedo darte los números del consultorio, decirte quién está dando sobreturnos y llevarte a cada pantalla del panel.",
+        "Probá con: “¿quién hace sobreturnos esta semana?” o “necesito cambiar una provincia”.",
+    ],
+};
 
-// Wrapper: subscribes to AuthContext so it re-renders on login/logout,
-// and only shows the widget for "client" users.
+const ROLES = ["client", "professional", "admin"];
+
+// Se suscribe a AuthContext para volver a dibujarse al entrar y salir de la sesión.
+// El asistente atiende a los tres roles, con herramientas distintas para cada uno.
 export function ChatAssistant() {
     const { token } = useAuth();
     if (!token) return null;
     const decoded = getDecodedToken();
-    if (!decoded || decoded.type !== "client") return null;
-    return <ChatAssistantWidget />;
+    if (!decoded || !ROLES.includes(decoded.type)) return null;
+    return <ChatAssistantWidget role={decoded.type} />;
 }
 
-function ChatAssistantWidget() {
+function ChatAssistantWidget({ role }: { role: string }) {
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [history, setHistory] = useState<DisplayMessage[]>([]);
     const [pendingMessage, setPendingMessage] = useState<string | null>(null);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [rateLimitSeconds, setRateLimitSeconds] = useState(0);
+    // Lo que quedó esperando confirmación. Viaja de vuelta con el mensaje siguiente.
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -69,14 +84,26 @@ function ChatAssistantWidget() {
         setIsLoading(true);
 
         try {
-            const { answer, newHistory } = await sendMessageToSecretary(trimmed, historyPayload);
-            const isAction = detectAction(answer);
-            setHistory(newHistory.map((msg: any) => ({
-            ...msg,
-            isAction: msg.role === "assistant" && msg.content === answer ? isAction : false
+            const { newHistory, links, changed, pendingAction: next } = await sendMessageToAssistant(
+                trimmed,
+                historyPayload,
+                pendingAction
+            );
+
+            setPendingAction(next);
+
+            // Los botones y la marca de "hecho" son de la última respuesta, no de todas
+            // las que dijeron algo parecido antes.
+            const lastIndex = newHistory.length - 1;
+            setHistory(newHistory.map((msg: ChatMessage, index: number) => ({
+                ...msg,
+                isAction: index === lastIndex && msg.role === "assistant" && changed,
+                links: index === lastIndex && msg.role === "assistant" ? links : undefined,
             })));
         } catch (err: any) {
             const status = err?.response?.status;
+            setPendingAction(null);
+
             if (status === 429) {
                 setRateLimitSeconds(60);
                 setHistory(prev => [
@@ -119,7 +146,7 @@ function ChatAssistantWidget() {
                     <div className="chat-assistant-header">
                         <div className="chat-assistant-header-title">
                             <FaRobot className="chat-assistant-header-icon" />
-                            <span>Asistente de Turnos</span>
+                            <span>Asistente</span>
                         </div>
                         <button
                             className="chat-assistant-close-btn"
@@ -134,8 +161,10 @@ function ChatAssistantWidget() {
                         {history.length === 0 && !pendingMessage && (
                             <div className="chat-assistant-welcome">
                                 <FaRobot className="chat-assistant-welcome-icon" />
-                                <p>¡Hola! Soy tu asistente virtual de turnos.</p>
-                                <p>Puedo ayudarte a consultar disponibilidad de turnos y recordarte los tuyos</p>
+                                <p>¡Hola! Soy el asistente del consultorio.</p>
+                                {(GREETINGS[role] ?? GREETINGS.client).map(line => (
+                                    <p key={line}>{line}</p>
+                                ))}
                             </div>
                         )}
 
@@ -149,11 +178,26 @@ function ChatAssistantWidget() {
                                     <div className={`chat-message-bubble${msg.isAction ? " chat-message-bubble--action" : ""}`}>
                                         {msg.isAction && (
                                             <div className="chat-message-action-badge">
-                                                ✓ Acción realizada en el sistema
+                                                ✓ Listo, quedó hecho
                                             </div>
                                         )}
                                         {msg.content}
                                     </div>
+
+                                    {msg.links?.map(link => (
+                                        <button
+                                            key={link.path}
+                                            type="button"
+                                            className="chat-message-link"
+                                            onClick={() => {
+                                                setIsOpen(false);
+                                                navigate(link.path);
+                                            }}
+                                        >
+                                            {link.label}
+                                            <FaArrowRight />
+                                        </button>
+                                    ))}
                                 </div>
                             ))
                         }
@@ -210,7 +254,7 @@ function ChatAssistantWidget() {
             <button
                 className={`chat-assistant-fab${isOpen ? " chat-assistant-fab--active" : ""}`}
                 onClick={() => setIsOpen(o => !o)}
-                aria-label="Abrir asistente de turnos"
+                aria-label="Abrir el asistente"
             >
                 {isOpen ? <FaXmark /> : <FaCommentDots />}
             </button>

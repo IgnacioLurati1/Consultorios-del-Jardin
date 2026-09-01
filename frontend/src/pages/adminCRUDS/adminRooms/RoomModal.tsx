@@ -25,14 +25,14 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
 
   if (!visible || (type === "edit" && !room)) return null;
 
-  // Sin consultorios habilitados no hay dónde poner la sala.
+  // Sin sucursales habilitadas no hay dónde poner el consultorio.
   if (offices.length === 0) {
     return (
       <Modal
         open
         onClose={onClose}
         size="sm"
-        title={editing ? "Editar sala" : "Nueva sala"}
+        title={editing ? "Editar consultorio" : "Nuevo consultorio"}
         footer={
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
             Cerrar
@@ -40,7 +40,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         }
       >
         <p className="ui-alert ui-alert-error">
-          No hay ningún consultorio habilitado. Creá o reactivá uno antes de {editing ? "editar" : "crear"} salas.
+          No hay ninguna sucursal habilitada. Creá o reactivá una antes de {editing ? "editar" : "crear"} consultorios.
         </p>
       </Modal>
     );
@@ -53,7 +53,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         onClose={onClose}
         size="sm"
         title={room!.description}
-        subtitle={`${room!.office.description} · consultorio dado de baja`}
+        subtitle={`${room!.office.description} · sucursal dada de baja`}
         footer={
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
             Cerrar
@@ -61,7 +61,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         }
       >
         <p className="ui-alert ui-alert-error">
-          Esta sala no se puede modificar porque el consultorio al que pertenece está dado de baja. Reactivalo primero.
+          Este consultorio no se puede modificar porque la sucursal a la que pertenece está dada de baja. Reactivala primero.
         </p>
       </Modal>
     );
@@ -72,7 +72,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
   function submit() {
     const newErrors: typeof errors = {};
     if (!roomData.description.trim()) newErrors.description = "La descripción es obligatoria";
-    if (!roomData.office) newErrors.office = "Elegí un consultorio";
+    if (!roomData.office) newErrors.office = "Elegí una sucursal";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -88,19 +88,19 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         onClose={onClose}
         size="sm"
         title={room!.description}
-        subtitle={`${room!.office.description} · sala dada de baja`}
+        subtitle={`${room!.office.description} · consultorio dado de baja`}
         footer={
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
               Cerrar
             </button>
             <button type="button" className="adm-btn adm-btn-primary" autoFocus onClick={() => onEdit(roomData, false)}>
-              Reactivar sala
+              Reactivar consultorio
             </button>
           </>
         }
       >
-        <p className="ui-alert ui-alert-info">Mientras esté dada de baja no se pueden dar turnos ni cargar horarios en esta sala.</p>
+        <p className="ui-alert ui-alert-info">Mientras esté dado de baja no se pueden dar turnos ni cargar horarios en este consultorio.</p>
       </Modal>
     );
   }
@@ -110,8 +110,8 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
       open
       onClose={onClose}
       size="sm"
-      title={editing ? "Editar sala" : "Nueva sala"}
-      subtitle={editing ? room!.description : "Dentro de un consultorio"}
+      title={editing ? "Editar consultorio" : "Nuevo consultorio"}
+      subtitle={editing ? room!.description : "Dentro de una sucursal"}
       footer={
         <>
           {editing && (
@@ -131,7 +131,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
-            {editing ? "Guardar cambios" : "Crear sala"}
+            {editing ? "Guardar cambios" : "Crear consultorio"}
           </button>
         </>
       }
@@ -142,14 +142,14 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
           <input
             autoFocus
             value={roomData.description}
-            placeholder="Sala 1"
+            placeholder="Consultorio 1"
             onChange={(e) => setRoomData({ ...roomData, description: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && submit()}
           />
           {errors.description && <small className="ui-hint">{errors.description}</small>}
         </label>
 
-        {/* La localidad no se guarda: solo acota la lista de consultorios. */}
+        {/* La localidad no se guarda: solo acota la lista de sucursales. */}
         <label className="ui-field">
           <span>Localidad</span>
           <select
@@ -169,9 +169,9 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         </label>
 
         <label className="ui-field">
-          <span>Consultorio</span>
+          <span>Sucursal</span>
           <select value={roomData.office} disabled={!city} onChange={(e) => setRoomData({ ...roomData, office: e.target.value })}>
-            <option value="">{city ? "Elegí un consultorio…" : "Elegí primero la localidad"}</option>
+            <option value="">{city ? "Elegí una sucursal…" : "Elegí primero la localidad"}</option>
             {filteredOffices.map((office) => (
               <option key={office.idOffice} value={office.idOffice}>
                 {office.description}

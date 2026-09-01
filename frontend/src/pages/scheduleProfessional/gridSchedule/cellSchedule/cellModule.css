@@ -95,7 +95,7 @@
   -webkit-box-orient: vertical;
 }
 
-/* ---------- modo sala: solo lectura ---------- */
+/* ---------- modo consultorio: solo lectura ---------- */
 
 .hourly-module.read-only {
   cursor: default;

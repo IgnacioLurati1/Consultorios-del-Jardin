@@ -1,54 +1,139 @@
-.not-found-container{
+/* ============================================================
+   404. Un cartel de error es igual de útil que las salidas que
+   ofrece, así que el peso está ahí: el número decora, la lista
+   de accesos es la que resuelve.
+   ============================================================ */
 
-    color: #142f17; 
+.nf-page {
+    display: grid;
+    place-items: center;
+    min-height: calc(100vh - 66px);
+    padding: 40px 20px 60px;
+    box-sizing: border-box;
+    color: var(--adm-text);
+}
+
+.nf-card {
+    width: min(560px, 100%);
+    box-sizing: border-box;
+    padding: 40px 34px 32px;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: 18px;
+    box-shadow: 0 16px 44px rgba(16, 24, 40, 0.1);
+}
+
+.nf-code {
+    margin: 0;
+    font-family: "Fraunces", "Ubuntu", Georgia, serif;
+    font-variation-settings: "SOFT" 40, "WONK" 1;
+    font-size: 4.6rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: #b7d2c2;
+}
+
+.nf-title {
+    margin: 6px 0 0;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.nf-text {
+    margin: 12px 0 0;
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--adm-muted);
+}
+
+.nf-path {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 18px 0 0;
+    padding: 8px 14px;
+    max-width: 100%;
+    box-sizing: border-box;
+    border: 1px dashed var(--adm-border);
+    border-radius: 999px;
+    color: var(--adm-muted);
+    font-size: 0.9rem;
+}
+
+.nf-path svg {
+    flex-shrink: 0;
+    color: var(--adm-green);
+}
+
+.nf-path code {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nf-links {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    height: 90vh;
-    font-size: 3vh;
+    gap: 8px;
+    margin: 26px 0 0;
+    padding: 22px 0 0;
+    border-top: 1px solid var(--adm-border);
+    list-style: none;
 }
 
-.not-found-image{
-    width: 20vw;
-    max-width: 600px;
-    height: auto;
-    min-width: 320px;
-}
-
-.not-found-title{
-    margin-top:0;
-}
-
-.not-found-link{
-    margin-top: 5vh;
-}
-
-.not-found-button{
-    margin-top: 5vh;
+.nf-link {
     display: flex;
-    text-decoration: none;
     align-items: center;
-    justify-content: center;
-    color:#FEFAE0;
-    width: 12vw;
-    min-width: 200px;
-    height: 6vh;
-    font-weight: bold;
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 2.4vh;
-    background-color: #3a7656 ;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 16px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    color: var(--adm-text);
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.not-found-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.nf-link:hover {
+    background: var(--adm-green-soft);
+    border-color: var(--adm-green);
 }
-.not-found-button:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+.nf-link svg {
+    flex-shrink: 0;
+    color: var(--adm-green);
+    opacity: 0.45;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.nf-link:hover svg {
+    opacity: 1;
+    transform: translateX(3px);
+}
+
+.nf-link:focus-visible {
+    outline: 2px solid var(--adm-green);
+    outline-offset: 2px;
+}
+
+.nf-link-label {
+    display: block;
+    font-weight: 700;
+}
+
+.nf-link-desc {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: var(--adm-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nf-link svg {
+        transition: none;
+    }
 }

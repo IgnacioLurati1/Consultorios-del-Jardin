@@ -22,6 +22,8 @@ interface SteppedFormProps {
   steps: FormStep[];
   submitLabel: string;
   submitting?: boolean;
+  /** Qué dice el botón mientras se envía. Por defecto habla de crear, que es el caso más común. */
+  submittingLabel?: string;
   /** Error que devolvió el servidor. Se muestra sin cambiar de paso. */
   serverError?: string | null;
   onSubmit: () => void;
@@ -41,6 +43,7 @@ export function SteppedForm({
   steps,
   submitLabel,
   submitting = false,
+  submittingLabel = "Creando…",
   serverError,
   onSubmit,
   footerNote,
@@ -182,7 +185,7 @@ export function SteppedForm({
 
           <button type="submit" className="adm-btn adm-btn-primary sf-submit" disabled={busy}>
             {submitting ? (
-              "Creando…"
+              submittingLabel
             ) : checking ? (
               "Revisando…"
             ) : isLast ? (

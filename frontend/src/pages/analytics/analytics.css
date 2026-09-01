@@ -1,0 +1,402 @@
+/* ============================================================
+   Panel de números. Tarjetas arriba, gráficos abajo, y todo
+   pensado para que el "Exportar a PDF" (que es imprimir) salga
+   igual de legible en papel que en pantalla.
+   ============================================================ */
+
+.an-section {
+  margin-bottom: 34px;
+}
+
+.an-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.an-section-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adm-text);
+}
+
+/* Qué recorte se está mirando. Va al lado del título porque cambia de bloque en bloque. */
+.an-section-scope {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Los chips de mes van pegados al título, no al borde: el "scope" es el que se
+   alinea a la derecha. Y en el PDF se imprime solo el mes elegido. */
+.an-months {
+  margin-right: auto;
+}
+
+.an-months button {
+  min-height: 40px;
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+@media print {
+  .an-months button:not(.active) {
+    display: none;
+  }
+
+  .an-months button.active {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--adm-muted);
+    font-size: 0.95rem;
+  }
+}
+
+.an-note {
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  background: var(--adm-green-soft);
+  border-radius: var(--adm-radius-sm);
+  color: var(--adm-green-dark);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.an-muted {
+  color: var(--adm-muted);
+}
+
+/* ---------- tarjetas ---------- */
+
+/* Tope de cuatro columnas: con seis u ocho tarjetas, auto-fit dejaba una sola
+   colgando en la última fila. */
+.an-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 1100px) {
+  .an-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.an-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+}
+
+/* La tarjeta que manda del bloque: siempre la plata. */
+.an-kpi-lead {
+  border-left: 4px solid var(--adm-green);
+}
+
+.an-kpi-label {
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.an-kpi-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--adm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.an-kpi-lead .an-kpi-value {
+  color: var(--adm-green-dark);
+}
+
+.an-kpi-note {
+  color: var(--adm-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+/* ---------- gráficos ---------- */
+
+/* En celular doce meses no entran a lo ancho: el gráfico se scrollea solo. */
+.an-chart-wrap {
+  overflow-x: auto;
+}
+
+.an-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 12px 6px 4px;
+  box-sizing: border-box;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+}
+
+.an-chart-empty {
+  padding: 46px 20px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  text-align: center;
+  color: var(--adm-muted);
+}
+
+.an-grid {
+  stroke: var(--adm-border);
+  stroke-width: 1;
+}
+
+.an-baseline {
+  stroke: #cbd5e1;
+  stroke-width: 1.5;
+}
+
+.an-axis {
+  fill: #64748b;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.an-reference {
+  stroke: var(--adm-green-dark);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+/* La etiqueta cae sobre las barras cuando el promedio queda en el medio del gráfico:
+   el contorno blanco la despega del fondo sin taparlo con una caja. */
+.an-reference-label {
+  fill: var(--adm-green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  stroke: #fff;
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+.an-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+}
+
+.an-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.an-legend-swatch {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+/* ---------- profesional puntual ---------- */
+
+.an-picker {
+  position: relative;
+  max-width: 460px;
+  margin-bottom: 22px;
+}
+
+.an-picker-hint {
+  display: none;
+}
+
+.an-detail {
+  padding: 22px;
+  background: #fafbfc;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+}
+
+.an-detail-title {
+  margin: 0 0 22px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* El bloque anidado ya vive dentro de una caja: sin esto queda un escalón de aire. */
+.an-detail .an-section:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================
+   Impresión: es el "Exportar a PDF".
+   ============================================================ */
+
+@media print {
+  /* Fuera todo lo que no es el informe: navbar, menú, chat, toasts y la botonera
+     de la cabecera (el botón de exportar no va dentro del PDF que genera). */
+  .app-header,
+  .lateral-menu,
+  .lateral-menu-backdrop,
+  .Toastify,
+  .adm-toolbar,
+  .an-picker,
+  .chat-assistant-panel,
+  .chat-assistant-fab {
+    display: none !important;
+  }
+
+  .adm-page {
+    width: 100%;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  .adm-header {
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+  }
+
+  .adm-title {
+    font-size: 1.6rem;
+  }
+
+  /* Un bloque no se parte entre dos hojas. */
+  .an-section {
+    break-inside: avoid;
+    margin-bottom: 22px;
+  }
+
+  .an-chart-wrap {
+    overflow: visible;
+  }
+
+  .an-kpi,
+  .an-chart,
+  .an-chart-empty {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .an-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .an-kpi-value {
+    font-size: 1.3rem;
+  }
+
+  .an-detail {
+    background: transparent;
+    padding: 0;
+    border: none;
+  }
+
+  /* Los fondos de las barras se imprimen; sin esto salen en blanco. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+@media (max-width: 640px) {
+  .an-kpi-value {
+    font-size: 1.6rem;
+  }
+
+  .an-chart {
+    min-width: 620px;
+  }
+}
+
+/* ── Ranking de funciones del asistente ───────────────────────────
+   Una barra por función. El largo es relativo a la más usada: lo que importa
+   es cuál se lleva la mayor parte, no el número exacto. */
+/* El ranking va adentro de una tarjeta como el resto del panel: suelto sobre el fondo
+   parecía que se había caído de algún lado. */
+.an-tools-panel {
+  margin-top: 18px;
+  padding: 18px 20px 20px;
+}
+
+.an-tools-title {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+}
+
+.an-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.an-tool {
+  display: grid;
+  grid-template-columns: minmax(120px, 190px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: var(--adm-text);
+}
+
+.an-tool-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--adm-bg);
+  border: 1px solid var(--adm-border);
+  overflow: hidden;
+}
+
+.an-tool-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--adm-green);
+}
+
+.an-tool-count {
+  min-width: 3ch;
+  text-align: right;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .an-tool {
+    grid-template-columns: 1fr auto;
+  }
+
+  .an-tool-bar {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}

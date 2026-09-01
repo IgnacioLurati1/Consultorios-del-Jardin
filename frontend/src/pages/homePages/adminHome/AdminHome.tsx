@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList } from "react-icons/fa";
-import { FaHouse, FaMountainCity } from "react-icons/fa6";
+import { FaChartColumn, FaHouse, FaMountainCity } from "react-icons/fa6";
 import "../../adminCRUDS/adminPanel.css";
 import "./AdminHome.css";
 
@@ -17,7 +17,7 @@ const mainEntries: MenuEntry[] = [
   {
     icon: FaCalendarAlt,
     title: "Horarios",
-    description: "Agenda semanal de cada profesional y ocupación de las salas.",
+    description: "Agenda semanal de cada profesional y ocupación de los consultorios.",
     link: "/scheduleProfessional",
   },
   {
@@ -31,6 +31,12 @@ const mainEntries: MenuEntry[] = [
     title: "Control",
     description: "Consultar los turnos de un profesional, solo lectura.",
     link: "/AdminHome/Control",
+  },
+  {
+    icon: FaChartColumn,
+    title: "Números",
+    description: "Facturación y carga del consultorio, y los números de cada profesional.",
+    link: "/AdminHome/Analytics",
   },
 ];
 
@@ -51,14 +57,14 @@ const catalogEntries: MenuEntry[] = [
   },
   {
     icon: FaHouse,
-    title: "Consultorios",
+    title: "Sucursales",
     description: "Sedes, con su horario de apertura y cierre.",
     link: "/AdminHome/OfficesAdmin",
   },
   {
     icon: FaDoorOpen,
-    title: "Salas",
-    description: "Salas de atención dentro de cada consultorio.",
+    title: "Consultorios",
+    description: "Consultorios de atención dentro de cada sucursal.",
     link: "/AdminHome/RoomsAdmin",
   },
 ];

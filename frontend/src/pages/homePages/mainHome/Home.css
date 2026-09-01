@@ -1,19 +1,849 @@
-.fade-in-section {
+/* ============================================================
+   Portada pública.
+   Es la única pantalla que ve alguien sin cuenta, así que es la
+   única que se permite tipografía de display, fondo oscuro y
+   animación de entrada. De la barra para adentro manda el
+   sistema del panel: los verdes y el crema son los mismos.
+   ============================================================ */
+
+.home {
+  /* Verde muy oscuro para el hero: deja respirar al crema de la marca sin pelearse
+     con el verde de la barra de arriba. */
+  --home-ink: #12211a;
+  --home-green: var(--adm-green, #3b7658);
+  --home-green-dark: var(--adm-green-dark, #2f5e46);
+  --home-green-light: #7fb494;
+  --home-cream: #fefae0;
+  --home-paper: var(--adm-bg, #f1f4f6);
+  --home-surface: var(--adm-surface, #ffffff);
+  --home-text: var(--adm-text, #1f2a33);
+  --home-muted: var(--adm-muted, #64748b);
+  --home-border: var(--adm-border, #e2e8f0);
+  --home-display: "Fraunces", "Ubuntu", Georgia, serif;
+
+  background: var(--home-paper);
+  color: var(--home-text);
+}
+
+/* La cursiva orgánica de Fraunces es la firma tipográfica: se usa solo en títulos
+   y nunca en texto corrido. */
+.home-title,
+.home-section-title,
+.home-agenda-day,
+.home-footer-name {
+  font-family: var(--home-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* ---------- hero ---------- */
+
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(52px, 8vw, 104px) 22px clamp(64px, 9vw, 116px);
+  background:
+    radial-gradient(900px 520px at 88% -12%, rgba(93, 127, 63, 0.42), transparent 62%),
+    radial-gradient(760px 520px at -6% 104%, rgba(47, 111, 107, 0.34), transparent 60%),
+    var(--home-ink);
+  color: var(--home-cream);
+}
+
+/* Trama diagonal muy tenue: le saca el plano al fondo sin que se lea como textura. */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    118deg,
+    rgba(254, 250, 224, 0.05) 0 1px,
+    transparent 1px 26px
+  );
+  pointer-events: none;
+}
+
+.home-hero-inner {
+  position: relative;
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
+  align-items: center;
+  gap: clamp(36px, 6vw, 80px);
+}
+
+.home-hero-copy > * {
+  animation: home-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.home-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 20px;
+  padding: 7px 15px 7px 12px;
+  border: 1px solid rgba(254, 250, 224, 0.28);
+  border-radius: 999px;
+  background: rgba(254, 250, 224, 0.08);
+  font-size: 0.93rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  animation-delay: 0.04s;
+}
+
+.home-eyebrow svg {
+  color: var(--home-green-light);
+}
+
+.home-title {
+  margin: 0;
+  font-size: clamp(2.5rem, 5.4vw, 4.1rem);
+  line-height: 1.03;
+  color: #fff;
+  text-wrap: balance;
+  animation-delay: 0.1s;
+}
+
+.home-lead {
+  max-width: 46ch;
+  margin: 22px 0 0;
+  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
+  line-height: 1.62;
+  color: rgba(254, 250, 224, 0.82);
+  animation-delay: 0.18s;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 34px;
+  animation-delay: 0.26s;
+}
+
+.home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 26px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.home-btn:hover {
+  transform: translateY(-2px);
+}
+
+.home-btn-primary {
+  background: var(--home-cream);
+  color: #16261e;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.home-btn-primary:hover {
+  background: #fff;
+}
+
+.home-btn-primary svg {
+  transition: transform 0.16s ease;
+}
+
+.home-btn-primary:hover svg {
+  transform: translateX(3px);
+}
+
+.home-btn-ghost {
+  border-color: rgba(254, 250, 224, 0.4);
+  color: var(--home-cream);
+}
+
+.home-btn-ghost:hover {
+  background: rgba(254, 250, 224, 0.12);
+  border-color: var(--home-cream);
+}
+
+/* Mismo botón, pero sobre fondo claro. */
+.home-btn-outline {
+  border-color: var(--home-green);
+  color: var(--home-green-dark);
+  background: transparent;
+}
+
+.home-btn-outline:hover {
+  background: var(--adm-green-soft, #e8f1ec);
+}
+
+.home-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  margin: 38px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.95rem;
+  color: rgba(254, 250, 224, 0.7);
+  animation-delay: 0.34s;
+}
+
+.home-facts li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-facts li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--home-green-light);
+}
+
+/* ---------- la agenda de muestra ---------- */
+
+.home-agenda {
+  animation: home-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
+}
+
+.home-agenda-card {
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--home-surface);
+  color: var(--home-text);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38);
+}
+
+.home-agenda-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--home-border);
+  margin-bottom: 8px;
+}
+
+.home-agenda-day {
+  display: block;
+  font-size: 1.24rem;
+  color: var(--home-text);
+}
+
+/* Solo la inicial: el día viene en minúscula del locale. */
+.home-agenda-day::first-letter {
+  text-transform: uppercase;
+}
+
+.home-agenda-who {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.92rem;
+  color: var(--home-muted);
+}
+
+.home-agenda-tag {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--home-border);
+  color: var(--home-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-agenda-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 14px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  animation: home-slot-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+.home-slot-hour {
+  font-variant-numeric: tabular-nums;
+  color: var(--home-green-dark);
+}
+
+.home-slot-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  color: var(--home-green-dark);
+}
+
+.home-slot.is-taken {
+  background: #f6f8f9;
+}
+
+.home-slot.is-taken .home-slot-hour,
+.home-slot.is-taken .home-slot-state {
+  color: var(--home-muted);
+  font-weight: 400;
+}
+
+.home-slot.is-mine {
+  background: var(--home-green);
+  border-color: var(--home-green-dark);
+  box-shadow: 0 8px 20px rgba(59, 118, 88, 0.32);
+}
+
+.home-slot.is-mine .home-slot-hour,
+.home-slot.is-mine .home-slot-state {
+  color: #fff;
+}
+
+.home-agenda-caption {
+  max-width: 34ch;
+  margin: 18px auto 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  color: rgba(254, 250, 224, 0.6);
+}
+
+/* ---------- secciones claras ---------- */
+
+.home-section {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: clamp(48px, 6vw, 74px) 22px;
+  box-sizing: border-box;
   opacity: 0;
-  transform: translateY(30px) scale(0.95);
-  transition: opacity 1.25s ease-out, transform 1.25s ease-out; 
+  transform: translateY(26px);
+  transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.fade-in-section.is-visible {
+.home-section.is-visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: none;
 }
 
-.logout-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #ccc;
-    border-top: 4px solid var(--button-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+.home-section-head {
+  max-width: 62ch;
+  margin-bottom: 40px;
+}
+
+.home-kicker {
+  margin: 0 0 12px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--home-green);
+}
+
+.home-section-title {
+  margin: 0;
+  font-size: clamp(1.85rem, 3.2vw, 2.6rem);
+  line-height: 1.14;
+  color: var(--home-text);
+}
+
+.home-section-lead {
+  margin: 16px 0 0;
+  font-size: 1.08rem;
+  line-height: 1.6;
+  color: var(--home-muted);
+}
+
+/* ---------- especialidades ---------- */
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  gap: 22px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--home-border);
+  border-radius: 16px;
+  background: var(--home-surface);
+  color: var(--home-text);
+  text-decoration: none;
+  box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.home-section.is-visible .home-card {
+  animation: home-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) backwards;
+}
+
+.home-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--tint);
+  box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
+}
+
+/* Marcador de foto. Cuando lleguen las imágenes reales, este bloque se reemplaza por
+   un <img> con el mismo aspecto y el resto de la tarjeta no cambia. */
+.home-photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  color: #fff;
+  font-size: 2.5rem;
+  background:
+    radial-gradient(120% 100% at 25% 12%, rgba(255, 255, 255, 0.26), transparent 58%),
+    var(--tint, #3b7658);
+}
+
+.home-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.11) 0 2px,
+    transparent 2px 12px
+  );
+}
+
+.home-photo svg {
+  position: relative;
+  transition: transform 0.25s ease;
+}
+
+.home-card:hover .home-photo svg {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+.home-photo-tag {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  padding: 22px 22px 24px;
+}
+
+.home-card-title {
+  font-size: 1.24rem;
+  font-weight: 700;
+}
+
+.home-card-desc {
+  flex: 1;
+  font-size: 0.99rem;
+  line-height: 1.5;
+  color: var(--home-muted);
+}
+
+.home-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--tint, var(--home-green-dark));
+}
+
+.home-card-cta svg {
+  transition: transform 0.18s ease;
+}
+
+.home-card:hover .home-card-cta svg {
+  transform: translateX(4px);
+}
+
+/* ---------- accesos de la persona logueada ---------- */
+
+.home-access-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.home-access {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 26px 24px;
+  border: 1px solid var(--home-border);
+  border-radius: 14px;
+  background: var(--home-surface);
+  color: var(--home-text);
+  text-decoration: none;
+  box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.home-section.is-visible .home-access,
+.home-section.is-visible .home-step {
+  animation: home-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) backwards;
+}
+
+.home-access:hover {
+  transform: translateY(-3px);
+  border-color: var(--home-green);
+  box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
+}
+
+.home-access-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 13px;
+  background: var(--adm-green-soft, #e8f1ec);
+  color: var(--home-green-dark);
+  font-size: 1.45rem;
+}
+
+.home-access-title {
+  font-size: 1.16rem;
+  font-weight: 700;
+}
+
+.home-access-desc {
+  font-size: 0.97rem;
+  line-height: 1.45;
+  color: var(--home-muted);
+}
+
+.home-access-arrow {
+  position: absolute;
+  top: 26px;
+  right: 24px;
+  color: var(--home-green);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.home-access:hover .home-access-arrow {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- tres pasos, para quien no tiene cuenta ---------- */
+
+.home-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.home-step {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 28px 24px;
+  border-radius: 14px;
+  border: 1px solid var(--home-border);
+  background: var(--home-surface);
+}
+
+.home-step-number {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--home-green);
+  color: #fff;
+  font-family: var(--home-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.home-step-title {
+  font-size: 1.14rem;
+  font-weight: 700;
+}
+
+.home-step-desc {
+  font-size: 0.97rem;
+  line-height: 1.5;
+  color: var(--home-muted);
+}
+
+.home-join {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin-top: 32px;
+  padding: 28px 30px;
+  border-radius: 16px;
+  border: 1px solid var(--adm-green-soft, #e8f1ec);
+  background: var(--adm-green-soft, #e8f1ec);
+}
+
+.home-join-text {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  font-size: 1.04rem;
+  font-weight: 600;
+  color: var(--home-green-dark);
+}
+
+.home-join .home-actions {
+  margin-top: 0;
+  animation: none;
+}
+
+/* ---------- pie ---------- */
+
+.home-footer {
+  padding: clamp(44px, 6vw, 68px) 22px 28px;
+  background: var(--home-ink);
+  color: rgba(254, 250, 224, 0.72);
+}
+
+.home-footer-inner {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 34px;
+}
+
+.home-footer-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.home-footer-logo {
+  width: 40px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.home-footer-name {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--home-cream);
+}
+
+.home-footer-claim {
+  margin: 6px 0 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.home-footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.95rem;
+}
+
+.home-footer-contact li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.home-footer-contact svg {
+  flex-shrink: 0;
+  color: var(--home-green-light);
+}
+
+.home-footer-contact a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.home-footer-contact a:hover {
+  color: var(--home-cream);
+  border-color: var(--home-green-light);
+}
+
+.home-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.home-footer-links a {
+  width: fit-content;
+  color: rgba(254, 250, 224, 0.72);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.home-footer-links a:hover {
+  color: var(--home-cream);
+  border-color: var(--home-green-light);
+}
+
+.home-footer-legal {
+  width: min(1240px, 100%);
+  margin: 34px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(254, 250, 224, 0.14);
+  font-size: 0.86rem;
+  color: rgba(254, 250, 224, 0.45);
+}
+
+/* ---------- foco visible, en los dos fondos ---------- */
+
+.home a:focus-visible,
+.home button:focus-visible {
+  outline: 2px solid var(--home-green-light);
+  outline-offset: 3px;
+}
+
+.home-section a:focus-visible {
+  outline-color: var(--home-green);
+}
+
+/* ---------- animaciones ---------- */
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes home-slot-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+/* ---------- pantallas chicas ---------- */
+
+@media (max-width: 940px) {
+  .home-hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-agenda {
+    max-width: 460px;
+    width: 100%;
+  }
+
+  .home-agenda-caption {
+    text-align: left;
+    margin-left: 0;
+  }
+}
+
+/* En pantallas angostas la tarjeta se acuesta: cuatro fotos de 4:3 apiladas hacían
+   una página tres veces más larga de lo necesario. */
+@media (max-width: 620px) {
+  .home-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .home-photo {
+    width: 108px;
+    flex-shrink: 0;
+    aspect-ratio: auto;
+    font-size: 1.9rem;
+  }
+
+  .home-photo-tag {
+    right: 6px;
+    bottom: 6px;
+    font-size: 0.62rem;
+  }
+
+  .home-card-body {
+    padding: 18px 18px 20px;
+  }
+
+  .home-card-title {
+    font-size: 1.12rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .home-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-btn {
+    justify-content: center;
+  }
+
+  .home-join {
+    padding: 24px 20px;
+  }
+}
+
+/* ---------- sin animación ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-copy > *,
+  .home-agenda,
+  .home-slot,
+  .home-section.is-visible .home-card,
+  .home-section.is-visible .home-access,
+  .home-section.is-visible .home-step {
+    animation: none;
+  }
+
+  .home-section {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .home-btn:hover,
+  .home-card:hover,
+  .home-access:hover {
+    transform: none;
+  }
 }

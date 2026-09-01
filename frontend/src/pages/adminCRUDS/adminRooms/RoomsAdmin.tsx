@@ -56,7 +56,7 @@ export function RoomsAdmin() {
         })
         .catch(err => {
             setLoading(false);
-            toast.error(`Error cargando consultorios: ${err.message}`);    
+            toast.error(`Error cargando sucursales: ${err.message}`);    
         });
     }, []);
 
@@ -77,9 +77,9 @@ export function RoomsAdmin() {
                 data.sort((a: Room, b: Room) => {
                     function weight(room: Room) {
                     if (room.office.active) {
-                        return room.active ? 1 : 2;  // oficina activa: sala activa=1, sala inactiva=2
+                        return room.active ? 1 : 2;  // sucursal activa: consultorio activo=1, consultorio inactivo=2
                     } else {
-                        return room.active ? 3 : 4;  // oficina inactiva: sala activa=3, sala inactiva=4
+                        return room.active ? 3 : 4;  // sucursal inactiva: consultorio activo=3, consultorio inactivo=4
                     }
                     }
                     return weight(a) - weight(b);
@@ -87,7 +87,7 @@ export function RoomsAdmin() {
                 );
         })
         .catch(err => {   
-            toast.error(`Error cargando salas: ${err.message}`)});
+            toast.error(`Error cargando consultorios: ${err.message}`)});
     }, []);
 
     useEffect(() => {
@@ -102,11 +102,11 @@ export function RoomsAdmin() {
         const createdRoom = await createRoom(newRoom)
         if(createdRoom){
             setRooms([createdRoom, ...rooms]);
-            toast.success(`Sala creada con éxito`);
+            toast.success(`Consultorio creado con éxito`);
             setModalVisible(false);
         }
     } catch (error:any){
-        toast.error(`Error al crear la Sala: ${error.message}`);
+        toast.error(`Error al crear el consultorio: ${error.message}`);
     }
 }
 
@@ -114,11 +114,11 @@ export function RoomsAdmin() {
         try{
     if (await removeRoom(id)){
         setRooms(rooms.map(room => room.idRoom !== id ? room : { ...room, active: false }));
-        toast.success(`Sala eliminada con éxito`);
+        toast.success(`Consultorio eliminado con éxito`);
         setModalVisible(false);
         }
     } catch (error:any){
-        toast.error(`Error al eliminar la Sala: ${error.message}`);
+        toast.error(`Error al eliminar el consultorio: ${error.message}`);
     }
 }
 
@@ -127,29 +127,29 @@ export function RoomsAdmin() {
         const updatedRoomFromBackend = await updateRoom(updatedRoom, active);
         if(active && updatedRoomFromBackend){
             setRooms(rooms.map(room => room.idRoom === updatedRoomFromBackend.idRoom ? updatedRoomFromBackend : room));
-            toast.success(`Sala modificada con éxito`);
+            toast.success(`Consultorio modificado con éxito`);
             setModalVisible(false);
             setEditData(null);
         }else if(!active){
             setRooms(rooms.map(room => room.idRoom !== updatedRoom.idRoom ? room : { ...room, active: true }));
-            toast.success(`Sala reactivada con éxito`);
+            toast.success(`Consultorio reactivado con éxito`);
             setModalVisible(false);
             setEditData(null);
         }
     } catch (error:any){
-        toast.error(`Error al modificar la Sala: ${error.message}`);
+        toast.error(`Error al modificar el consultorio: ${error.message}`);
     }
 }
 
     return (
         <div className="admin-home">
 
-            <AdminHeader title="Salas" subtitle="Salas de atención dentro de cada consultorio" />
+            <AdminHeader title="Consultorios" subtitle="Consultorios de atención dentro de cada sucursal" />
             <Toasts />
-            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una sala" />
+            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de un consultorio" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 {rooms.length === 0 && !loading ? (
-                    <div className= "no-content"> No hay salas cargadas </div>
+                    <div className= "no-content"> No hay consultorios cargados </div>
                 ): !loading && (
                 <ul className = "crud-list">
                     {filteredRooms.map(room => (
@@ -166,7 +166,7 @@ export function RoomsAdmin() {
                 </ul>)}   
             </div>
             <div>
-                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyRoom);setModalType("create")}}><strong>Agregar sala</strong><FaPlus /></button>
+                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyRoom);setModalType("create")}}><strong>Agregar consultorio</strong><FaPlus /></button>
             </div>
             <RoomModal visible={modalVisible} room={editData} offices={offices} cities={cities} onClose={()=> setModalVisible(false)} onEdit={EditRoom} onDelete={deleteRoom} onCreate={addRoom} type = {modalType}/>
         </div>

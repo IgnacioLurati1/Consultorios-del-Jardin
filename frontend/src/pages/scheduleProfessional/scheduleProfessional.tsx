@@ -83,32 +83,32 @@ export function ScheduleProfessional() {
       .finally(() => setLoadingSchedules(false));
   }, [professional, viewMode]);
 
-  // Ocupación de la sala: todos los profesionales que la usan
+  // Ocupación del consultorio: todos los profesionales que la usan
   useEffect(() => {
     if (viewMode !== "room" || !roomToFilter) return;
 
     setLoadingSchedules(true);
     findRoomSchedules(roomToFilter.idRoom)
       .then((data) => setSchedules(data))
-      .catch((err) => toast.error(`Error al obtener los horarios de la sala: ${err.message}`))
+      .catch((err) => toast.error(`Error al obtener los horarios del consultorio: ${err.message}`))
       .finally(() => setLoadingSchedules(false));
   }, [roomToFilter, viewMode]);
 
   useEffect(() => {
     findAllActiveRooms()
       .then(setRooms)
-      .catch((err) => toast.error(`Error cargando salas: ${err.message}`));
+      .catch((err) => toast.error(`Error cargando consultorios: ${err.message}`));
 
     findAllActiveOffices()
       .then(setOffices)
-      .catch((err) => toast.error(`Error cargando consultorios: ${err.message}`));
+      .catch((err) => toast.error(`Error cargando sucursales: ${err.message}`));
 
     findAllActiveCities()
       .then(setCities)
       .catch((err) => toast.error(`Error cargando ciudades: ${err.message}`));
   }, []);
 
-  // En modo profesional la sala solo acota lo que ya se trajo.
+  // En modo profesional el consultorio solo acota lo que ya se trajo.
   const visibleSchedules =
     viewMode === "professional" && roomToFilter
       ? schedules.filter((s) => String(s.room.idRoom) === String(roomToFilter.idRoom))
@@ -172,7 +172,7 @@ export function ScheduleProfessional() {
     setViewMode("room");
   }
 
-  // Desde la ventana previa se puede arrancar por sala, sin profesional elegido.
+  // Desde la ventana previa se puede arrancar por consultorio, sin profesional elegido.
   function selectRoomFromPicker(room: Room) {
     setRoomToFilter(room);
     setViewMode("room");
@@ -193,10 +193,10 @@ export function ScheduleProfessional() {
     : "Horarios";
 
   const subtitle = inRoomMode
-    ? "Horarios de todos los profesionales en esta sala. Solo lectura."
+    ? "Horarios de todos los profesionales en este consultorio. Solo lectura."
     : professional
     ? professional.speciality || "Agenda semanal"
-    : "Elegí un profesional o una sala para empezar";
+    : "Elegí un profesional o un consultorio para empezar";
 
   const filter = (
     <GridFilter
@@ -280,7 +280,7 @@ export function ScheduleProfessional() {
               </button>
             )}
             <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setPickerOpen(true)}>
-              {professional || inRoomMode ? "Cambiar" : "Elegir profesional o sala"}
+              {professional || inRoomMode ? "Cambiar" : "Elegir profesional o consultorio"}
             </button>
             {filter}
           </>
@@ -291,7 +291,7 @@ export function ScheduleProfessional() {
 
       {inRoomMode && (
         <p className="schedule-mode-note">
-          Estás viendo la sala completa. Las franjas muestran qué profesional la ocupa; desde acá no se crean ni se borran horarios.
+          Estás viendo el consultorio completo. Las franjas muestran qué profesional lo ocupa; desde acá no se crean ni se borran horarios.
         </p>
       )}
 
@@ -301,10 +301,10 @@ export function ScheduleProfessional() {
         ) : !professional && !inRoomMode ? (
           <div className="adm-panel">
             <div className="adm-empty">
-              Elegí un profesional para ver su agenda, o una sala para ver su ocupación.
+              Elegí un profesional para ver su agenda, o un consultorio para ver su ocupación.
               <br />
               <button type="button" className="adm-btn adm-btn-primary" style={{ marginTop: 16 }} onClick={() => setPickerOpen(true)}>
-                Elegir profesional o sala
+                Elegir profesional o consultorio
               </button>
             </div>
           </div>

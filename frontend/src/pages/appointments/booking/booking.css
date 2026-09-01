@@ -227,3 +227,8 @@
     animation: none;
   }
 }
+
+/* Aviso de que el turno es para el propio profesional, no para un paciente suyo. */
+.booking-self-note {
+    margin: 0 0 18px;
+}

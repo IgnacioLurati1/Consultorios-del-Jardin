@@ -49,16 +49,36 @@
     padding: 0;
 }
 
+/* Cada fila abre la ficha del turno, así que es un boton: se llega con el teclado
+   y se ve que es clickeable. */
 .prof-today-item {
     display: flex;
     align-items: center;
     gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
     padding: 15px 22px;
+    border: none;
     border-bottom: 1px solid var(--adm-border);
+    background: transparent;
     color: var(--adm-text);
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease;
 }
 
-.prof-today-item:last-child {
+.prof-today-item:hover {
+    background: #fafbfc;
+}
+
+.prof-today-item:focus-visible {
+    outline: 2px solid var(--adm-green);
+    outline-offset: -2px;
+}
+
+.prof-today-list li:last-child .prof-today-item {
     border-bottom: none;
 }
 

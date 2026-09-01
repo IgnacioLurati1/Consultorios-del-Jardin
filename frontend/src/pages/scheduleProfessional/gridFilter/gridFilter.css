@@ -198,7 +198,7 @@
   }
 }
   
-/* ---- filtro simplificado: solo salas ----
+/* ---- filtro simplificado: solo consultorios ----
    El disparador es un boton mas de la cabecera: mismo alto, mismo borde y mismo
    verde que los .adm-btn-ghost que tiene al lado. Antes llevaba un box-shadow
    gris de 10px que lo dejaba encendido al lado del resto. */

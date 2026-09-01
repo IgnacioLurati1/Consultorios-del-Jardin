@@ -179,7 +179,7 @@ export function ControlPanel() {
                 <th>Fecha</th>
                 <th>Horario</th>
                 <th>Paciente</th>
-                <th>Sala</th>
+                <th>Consultorio</th>
                 <th>Tipo</th>
                 <th>Estado</th>
               </tr>

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaChevronDown, FaMagnifyingGlass } from "react-icons/fa6";
 import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
+import { getDecodedToken } from "../../commonServices";
 import { findProfessionalsOfficeSpecialty } from "../../adminCRUDS/adminUsers/usersService.ts";
 import { SPECIALITIES, sameSpeciality } from "../../specialities.ts";
 import type { Office, Person } from "../../types.ts";
@@ -22,14 +24,26 @@ const normalize = (text: string) =>
  * nombre, se toca un profesional y sus horarios aparecen abajo. Cambiar de profesional
  * cambia solo esa parte, así comparar agendas no obliga a ir y volver.
  *
- * No se pide el consultorio: hay uno solo y se resuelve solo.
+ * No se pide la sucursal: hay una sola y se resuelve sola.
+ *
+ * El profesional también entra acá: se atiende como cualquier otro paciente. Lo único que
+ * no puede es elegirse a sí mismo, así que no aparece en su propia lista.
  */
 export function BookAppointment() {
+  // De la sesión, no de un dato que venga de la pantalla: es lo que decide a quién se
+  // saca de la lista.
+  const me = getDecodedToken();
+  const bookingForSelf = me?.type === "professional";
   const [office, setOffice] = useState<Office | undefined>(undefined);
   const [professionals, setProfessionals] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [speciality, setSpeciality] = useState<string>("");
+  // La portada linkea cada especialidad acá: si viene en la URL, el filtro arranca puesto.
+  const [params] = useSearchParams();
+  const asked = params.get("especialidad") ?? "";
+  const [speciality, setSpeciality] = useState<string>(
+    SPECIALITIES.find((item) => sameSpeciality(item, asked)) ?? ""
+  );
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Person | undefined>(undefined);
 
@@ -50,7 +64,7 @@ export function BookAppointment() {
           return;
         }
 
-        // Se piden los profesionales del consultorio, no todos: los que no tienen
+        // Se piden los profesionales de la sucursal, no todos: los que no tienen
         // horarios cargados no pueden dar turnos y solo ensucian el listado.
         const data = await findProfessionalsOfficeSpecialty(String(only.idOffice));
         if (!cancelled) setProfessionals(data);
@@ -69,6 +83,9 @@ export function BookAppointment() {
     const term = normalize(search.trim());
 
     return professionals.filter((professional) => {
+      // Un profesional no se da turno a sí mismo: se ocuparía su propio módulo y el
+      // turno no existiría para nadie.
+      if (bookingForSelf && professional.email === me?.email) return false;
       if (speciality && !sameSpeciality(professional.speciality ?? "", speciality)) return false;
       if (!term) return true;
 
@@ -78,7 +95,7 @@ export function BookAppointment() {
         normalize(professional.speciality ?? "").includes(term)
       );
     });
-  }, [professionals, speciality, search]);
+  }, [professionals, speciality, search, bookingForSelf, me?.email]);
 
   // Si el profesional elegido queda fuera del filtro, sus horarios ya no vienen al caso.
   useEffect(() => {
@@ -106,12 +123,23 @@ export function BookAppointment() {
     <div className="adm-page">
       <AdminHeader
         title="Pedir un turno"
-        subtitle="Elegí una especialidad o buscá a tu profesional"
-        backTo="/"
-        backLabel="Inicio"
+        subtitle={
+          bookingForSelf
+            ? "Elegí con qué colega te querés atender"
+            : "Elegí una especialidad o buscá a tu profesional"
+        }
+        backTo={bookingForSelf ? "/ProfessionalHome" : "/"}
+        backLabel={bookingForSelf ? "Mi panel" : "Inicio"}
       />
 
       <Toasts />
+
+      {bookingForSelf && (
+        <p className="ui-alert ui-alert-info booking-self-note">
+          Este turno es para vos como paciente. No figurás en la lista porque no podés
+          atenderte a vos mismo.
+        </p>
+      )}
 
       <div className="adm-filters">
         <div className="adm-chips" role="group" aria-label="Especialidad">
@@ -145,7 +173,7 @@ export function BookAppointment() {
         {loading ? (
           <SkeletonList rows={4} />
         ) : !office ? (
-          <div className="adm-empty">Todavía no hay un consultorio habilitado para dar turnos.</div>
+          <div className="adm-empty">Todavía no hay una sucursal habilitada para dar turnos.</div>
         ) : professionals.length === 0 ? (
           <div className="adm-empty">Todavía no hay profesionales con horarios de atención cargados.</div>
         ) : results.length === 0 ? (

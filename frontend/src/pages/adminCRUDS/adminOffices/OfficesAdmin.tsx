@@ -61,7 +61,7 @@ export function OfficesAdmin() {
             setLoading(false); 
               })
         .catch(err => {
-            toast.error(`Error al cargar consultorios: ${err.message}`);
+            toast.error(`Error al cargar sucursales: ${err.message}`);
             setLoading(false);
         });
     }, []);
@@ -107,7 +107,7 @@ export function OfficesAdmin() {
     const createdOffice = await createOffice( description, openingTime, closingTime, city)
     if(createdOffice){
       setOffices([createdOffice, ...offices]);
-      toast.success(`Consultorio creado con éxito`);
+      toast.success(`Sucursal creada con éxito`);
       setModalVisible(false);
     }
   }
@@ -116,11 +116,11 @@ export function OfficesAdmin() {
     try{
     if(await removeOffice(id)){
       setOffices(offices.map(office => office.idOffice !== id? office: {...office, active:false}));
-      toast.success(`Consultorio eliminado con éxito`);
+      toast.success(`Sucursal eliminada con éxito`);
       setModalVisible(false);
     }
   } catch (error:any){
-    toast.error(`Error al eliminar el consultorio: ${error.message}`);
+    toast.error(`Error al eliminar la sucursal: ${error.message}`);
   }
 }
 
@@ -128,29 +128,29 @@ export function OfficesAdmin() {
     try{
     const updatedOffice = await updateOffice(id, description, openingTime, closingTime, cityId, active);
     if(active && updatedOffice){
-      toast.success(`Consultorio modificado con éxito`);
+      toast.success(`Sucursal modificada con éxito`);
       setModalVisible(false);
       setOffices(offices.map(office => office. idOffice !== id? office: updatedOffice));
     } 
       else if(!active){
       setOffices(offices.map(office => office.idOffice !== id? office: {...office, active: true}));
-      toast.success(`Consultorio reactivado con éxito`);
+      toast.success(`Sucursal reactivada con éxito`);
       setModalVisible(false);
     }
   } catch (error:any){
-    toast.error(`Error al modificar el consultorio: ${error.message}`);
+    toast.error(`Error al modificar la sucursal: ${error.message}`);
   }
 }
     
   return (
         <div className="admin-home">
 
-            <AdminHeader title="Consultorios" subtitle="Sedes, con su horario de apertura y cierre" />
+            <AdminHeader title="Sucursales" subtitle="Sedes, con su horario de apertura y cierre" />
             <Toasts />
-            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de un consultorio" />
+            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de una sucursal" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
               {(!loading && offices.length === 0) ? (
-                    <div className= "no-content"> No hay consultorios cargados </div>
+                    <div className= "no-content"> No hay sucursales cargadas </div>
                 ): !loading && (
                 <ul className = "crud-list">
                     {filteredOffices.map(office => (
@@ -167,7 +167,7 @@ export function OfficesAdmin() {
                 </ul>)}   
             </div>
             <div>
-                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyOffice);setModalType("create")}}><strong>Agregar Consultorio</strong><FaPlus /></button>
+                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyOffice);setModalType("create")}}><strong>Agregar Sucursal</strong><FaPlus /></button>
             </div>
             <OfficeModal visible={modalVisible} office={editData} provinces={provinces} cities={cities} onClose={()=> setModalVisible(false)} onEdit={editOffice} onDelete={deleteOffice} onCreate={addOffice} action = {modalType}/>
         </div>

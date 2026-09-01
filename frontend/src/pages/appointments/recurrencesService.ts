@@ -22,10 +22,12 @@ export function findRecurrences(): Promise<Recurrence[]> {
 /** Marca un turno ya existente como repetible. Devuelve cuántos turnos dejó creados. */
 export function createRecurrence(
   numAppointment: number,
-  frequency: RecurrenceFrequency
+  frequency: RecurrenceFrequency,
+  /** Último día en que se crea un turno. null repite sin fecha de corte. */
+  endDate: string | null
 ): Promise<{ idRecurrence: number; created: number; skipped: number }> {
   return api
-    .post("/recurrences", { numAppointment, frequency })
+    .post("/recurrences", { numAppointment, frequency, endDate })
     .then((response) => response.data.data)
     .catch(unwrap);
 }
@@ -33,7 +35,13 @@ export function createRecurrence(
 /** Cambia la configuración. Solo afecta a los turnos que todavía no se generaron. */
 export function updateRecurrence(
   idRecurrence: number,
-  data: { frequency?: RecurrenceFrequency; value?: number; idRoom?: number; patientEmail?: string | null }
+  data: {
+    frequency?: RecurrenceFrequency;
+    value?: number;
+    idRoom?: number;
+    patientEmail?: string | null;
+    endDate?: string | null;
+  }
 ): Promise<void> {
   return api
     .patch(`/recurrences/${idRecurrence}`, data)

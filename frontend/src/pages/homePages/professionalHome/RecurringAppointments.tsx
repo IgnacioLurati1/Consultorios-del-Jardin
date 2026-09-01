@@ -11,6 +11,11 @@ import type { Recurrence, RecurrenceFrequency, Room } from "../../types";
 const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 /** Los turnos repetibles caen siempre el mismo día: el de la fecha que los originó. */
+/** "12/11" alcanza: el año se sobreentiende y el renglón ya viene cargado. */
+function shortDate(value: string): string {
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+}
+
 function weekdayOf(startDate: string): string {
   return DAY_NAMES[appointmentDate(startDate).getDay()];
 }
@@ -25,7 +30,13 @@ export function RecurringAppointments() {
   const [recurrences, setRecurrences] = useState<Recurrence[] | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [editing, setEditing] = useState<Recurrence | undefined>(undefined);
-  const [form, setForm] = useState({ frequency: "weekly" as RecurrenceFrequency, value: "", room: "" });
+  const [form, setForm] = useState({
+    frequency: "weekly" as RecurrenceFrequency,
+    value: "",
+    room: "",
+    forever: true,
+    endDate: "",
+  });
   const [saving, setSaving] = useState(false);
 
   function load() {
@@ -51,6 +62,8 @@ export function RecurringAppointments() {
       frequency: recurrence.frequency,
       value: recurrence.value ? String(recurrence.value) : "",
       room: String(recurrence.room.idRoom),
+      forever: !recurrence.endDate,
+      endDate: recurrence.endDate?.slice(0, 10) ?? "",
     });
   }
 
@@ -62,6 +75,7 @@ export function RecurringAppointments() {
       frequency: form.frequency,
       value: Number(form.value || 0),
       idRoom: Number(form.room),
+      endDate: form.forever ? null : form.endDate,
     })
       .then(() => {
         toast.success("Listo: los próximos turnos se van a generar así");
@@ -116,7 +130,8 @@ export function RecurringAppointments() {
                     {weekdayOf(recurrence.startDate)} · {shortHour(recurrence.initialHour)} a {shortHour(recurrence.finalHour)}
                   </span>
                   <span className="prof-repeat-meta">
-                    {FREQUENCY_LABELS[recurrence.frequency].toLowerCase()} · {recurrence.room.description}
+                    {FREQUENCY_LABELS[recurrence.frequency].toLowerCase()}
+                    {recurrence.endDate ? ` hasta el ${shortDate(recurrence.endDate)}` : ""} · {recurrence.room.description}
                     {recurrence.patient ? ` · ${recurrence.patient.surname}, ${recurrence.patient.name}` : " · sin paciente asignado"}
                   </span>
                   <span className="prof-repeat-next">
@@ -153,7 +168,12 @@ export function RecurringAppointments() {
             <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setEditing(undefined)}>
               Cerrar
             </button>
-            <button type="button" className="adm-btn adm-btn-primary" disabled={saving} onClick={save}>
+            <button
+              type="button"
+              className="adm-btn adm-btn-primary"
+              disabled={saving || (!form.forever && !form.endDate)}
+              onClick={save}
+            >
               Guardar
             </button>
           </>
@@ -179,8 +199,47 @@ export function RecurringAppointments() {
             </select>
           </label>
 
+          <div className="ui-field">
+            <span>¿Hasta cuándo?</span>
+            <div className="ui-choice-row">
+              <label className="ui-choice">
+                <input
+                  type="radio"
+                  name="recurrence-end"
+                  checked={form.forever}
+                  onChange={() => setForm({ ...form, forever: true })}
+                />
+                <span>Sin fecha de corte</span>
+              </label>
+              <label className="ui-choice">
+                <input
+                  type="radio"
+                  name="recurrence-end"
+                  checked={!form.forever}
+                  onChange={() => setForm({ ...form, forever: false })}
+                />
+                <span>Hasta una fecha</span>
+              </label>
+            </div>
+
+            {!form.forever && (
+              <input
+                type="date"
+                value={form.endDate}
+                min={editing?.startDate?.slice(0, 10)}
+                onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+              />
+            )}
+
+            <small>
+              {form.forever
+                ? "Se repite hasta que la frenes a mano."
+                : "Adelantar la fecha no borra los turnos ya creados: esos se cancelan desde la agenda."}
+            </small>
+          </div>
+
           <label className="ui-field">
-            <span>Sala</span>
+            <span>Consultorio</span>
             <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })}>
               {rooms.map((room) => (
                 <option key={room.idRoom} value={room.idRoom}>

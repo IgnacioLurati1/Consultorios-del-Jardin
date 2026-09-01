@@ -8,7 +8,7 @@ import { AppointmentCard } from "./AppointmentCard.tsx";
 import { AppointmentWeekGrid } from "./AppointmentWeekGrid.tsx";
 import { AppointmentDetailModal } from "./AppointmentDetailModal.tsx";
 import { NewAppointmentModal } from "./NewAppointmentModal.tsx";
-import type { Appointment, Person, RecurrenceFrequency, Room, Schedule } from "../../types.ts";
+import type { Appointment, Person, Schedule } from "../../types.ts";
 import {
   addDays,
   appointmentDate,
@@ -18,20 +18,13 @@ import {
   toISODate,
 } from "../appointmentTypes.ts";
 import {
-  acceptAppointment,
-  addPatientToAppointment,
-  cancelAppointmentService,
   findPatientAppointments,
   findProfessionalAppointments,
   findProfessionalAppointmentsInRange,
-  updateAppointmentRecord,
-  updateAppointment,
   createProfessionalAppointment,
 } from "../appointmentsService.ts";
-import { findAllPatients } from "../../patients/patientsService.ts";
-import { findAllActiveRooms } from "../../adminCRUDS/adminRooms/RoomService.ts";
+import { useAppointmentActions } from "../useAppointmentActions.ts";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
-import { createRecurrence, stopRecurrence } from "../recurrencesService.ts";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
 import "../../adminCRUDS/adminPanel.css";
 import "./appointmentList.css";
@@ -41,8 +34,6 @@ type ViewMode = "list" | "grid";
 export function AppointmentsList() {
   const [person, setPerson] = useState<Person | undefined>(undefined);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<Person[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [newModalOpen, setNewModalOpen] = useState(false);
 
@@ -54,7 +45,6 @@ export function AppointmentsList() {
   const [monday, setMonday] = useState<Date>(() => startOfWeek(new Date()));
 
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Appointment | undefined>(undefined);
   const [hasMore, setHasMore] = useState(false);
 
   const isProfessional = person?.type === "professional";
@@ -75,18 +65,10 @@ export function AppointmentsList() {
       .catch((err) => toast.error(`Error al cargar los datos: ${err.message}`));
   }, []);
 
-  // El profesional necesita la lista de pacientes para poder asignar uno a un turno vacío,
-  // las salas para el sobreturno y sus horarios para ofrecer los turnos normales.
+  // Los horarios son para ofrecer turnos normales en el alta; los pacientes y los consultorios
+  // los trae useAppointmentActions, que es quien los necesita.
   useEffect(() => {
     if (!isProfessional || !person) return;
-
-    findAllPatients()
-      .then(setPatients)
-      .catch(() => setPatients([]));
-
-    findAllActiveRooms()
-      .then(setRooms)
-      .catch(() => setRooms([]));
 
     findProfessionalSchedules(person.email)
       .then(setSchedules)
@@ -159,58 +141,9 @@ export function AppointmentsList() {
     return ordered;
   }, [appointments]);
 
+  const { open, patients, rooms, detailProps } = useAppointmentActions(person, loadAppointments);
+
   /* ---------- acciones ---------- */
-
-  function refreshAfter(action: Promise<unknown>, successMessage: string) {
-    action
-      .then(() => {
-        toast.success(successMessage);
-        setSelected(undefined);
-        loadAppointments();
-      })
-      .catch((err: any) => toast.error(err.message));
-  }
-
-  const handleAccept = (appointment: Appointment) =>
-    refreshAfter(acceptAppointment(appointment.numAppointment), "Turno aceptado");
-
-  const handleCancel = (appointment: Appointment) =>
-    refreshAfter(cancelAppointmentService(appointment.numAppointment), "Turno cancelado");
-
-  const handleSaveRecord = (appointment: Appointment, data: { state?: string; observations?: string }) =>
-    refreshAfter(
-      updateAppointmentRecord(appointment.numAppointment, { ...data, patientEmail: appointment.patient?.email }),
-      "Registro guardado"
-    );
-
-  const handleAddPatient = (appointment: Appointment, patientEmail: string) =>
-    refreshAfter(addPatientToAppointment(appointment.numAppointment, patientEmail), "Paciente asignado");
-
-  const handleUpdate = (
-    appointment: Appointment,
-    data: { date?: string; initialHour?: string; finalHour?: string; room?: string; value?: number }
-  ) => refreshAfter(updateAppointment(appointment.numAppointment, data), "Turno actualizado");
-
-  const handleRepeat = (appointment: Appointment, frequency: RecurrenceFrequency) =>
-    createRecurrence(appointment.numAppointment, frequency)
-      .then(({ created }) => {
-        toast.success(created > 0 ? `Turno repetible creado: ${created} turnos más agendados` : "Turno repetible creado");
-        setSelected(undefined);
-        loadAppointments();
-      })
-      .catch((err: any) => toast.error(err.message));
-
-  const handleStopRepeat = (appointment: Appointment) => {
-    if (!appointment.recurrence) return;
-
-    stopRecurrence(appointment.recurrence.idRecurrence)
-      .then(() => {
-        toast.success("Se frenó la repetición. Los turnos ya creados siguen en pie.");
-        setSelected(undefined);
-        loadAppointments();
-      })
-      .catch((err: any) => toast.error(err.message));
-  };
 
   async function handleCreate(data: {
     date: string;
@@ -318,7 +251,7 @@ export function AppointmentsList() {
           </div>
         )
       ) : effectiveMode === "grid" && person ? (
-        <AppointmentWeekGrid appointments={appointments} monday={monday} user={person} onOpen={setSelected} />
+        <AppointmentWeekGrid appointments={appointments} monday={monday} user={person} onOpen={open} />
       ) : appointments.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">
@@ -340,7 +273,7 @@ export function AppointmentsList() {
                         key={appointment.numAppointment}
                         appointment={appointment}
                         user={person}
-                        onOpen={setSelected}
+                        onOpen={open}
                       />
                     ))}
                   </div>
@@ -366,22 +299,7 @@ export function AppointmentsList() {
         </div>
       )}
 
-      {person && (
-        <AppointmentDetailModal
-          appointment={selected}
-          user={person}
-          patients={patients}
-          onClose={() => setSelected(undefined)}
-          onAccept={handleAccept}
-          onCancel={handleCancel}
-          onSaveRecord={handleSaveRecord}
-          onAddPatient={handleAddPatient}
-          onUpdate={handleUpdate}
-          onRepeat={handleRepeat}
-          onStopRepeat={handleStopRepeat}
-          rooms={rooms}
-        />
-      )}
+      {person && <AppointmentDetailModal user={person} {...detailProps} />}
 
       {isProfessional && (
         <NewAppointmentModal

@@ -25,7 +25,7 @@ export function findAllActiveRooms(): Promise<Room[]>{
 
 export function createRoom(newRoom: { description: string; office: string }): Promise<Room | undefined>{
     if (!newRoom.description.trim() || !newRoom.office) {
-        throw new Error('Se necesitan los campos necesarios para crear una sala');
+        throw new Error('Se necesitan los campos necesarios para crear un consultorio');
     }
 
     return api.post('/Rooms', {
@@ -57,7 +57,7 @@ export function removeRoom(id: string): Promise<boolean>{
 
 export function updateRoom(updatedRoom: { idRoom: string; description: string; office: string} , active: boolean):Promise<Room | undefined | void>{
     if(!updatedRoom.description.trim() || !updatedRoom.office){
-        throw new Error('Se necesitan los campos necesarios para modificar una sala');
+        throw new Error('Se necesitan los campos necesarios para modificar un consultorio');
     }
 
     if(active){

@@ -14,6 +14,9 @@ const menuItems = [
   { faviconName: "appointments", title: "Mis turnos", path: "/AppointmentsList", userType: "client" },
   { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "client" },
   { faviconName: "appointments", title: "Turnos", path: "/AppointmentsList", userType: "professional" },
+  // El profesional también se atiende: pide turno como cualquier otro paciente,
+  // con la única diferencia de que no puede elegirse a sí mismo.
+  { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "professional" },
   { faviconName: "calendar", title: "Horarios", path: "/scheduleProfessional", userType: "professional" },
   { faviconName: "phone", title: "Contacto", path: "/contacto", userType: "all" },
 ];

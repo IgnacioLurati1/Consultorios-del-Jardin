@@ -73,7 +73,9 @@
 
 @media (max-width: 900px) {
     .profile-layout {
-        grid-template-columns: 1fr;
+        /* minmax(0, 1fr) y no 1fr: con "1fr" la columna nunca baja del ancho mínimo de
+           su contenido, y en un celular eso empuja la página entera para el costado. */
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .profile-card {

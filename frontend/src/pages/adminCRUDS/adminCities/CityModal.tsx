@@ -102,7 +102,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
         }
       >
         <p className="ui-alert ui-alert-info">
-          Mientras esté dada de baja no se pueden crear consultorios en esta localidad.
+          Mientras esté dada de baja no se pueden crear sucursales en esta localidad.
         </p>
       </Modal>
     );
@@ -114,7 +114,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
       onClose={onClose}
       size="sm"
       title={editing ? "Editar localidad" : "Nueva localidad"}
-      subtitle={editing ? city!.nameCity : "Se usa para ubicar los consultorios"}
+      subtitle={editing ? city!.nameCity : "Se usa para ubicar las sucursales"}
       footer={
         <>
           {editing && (

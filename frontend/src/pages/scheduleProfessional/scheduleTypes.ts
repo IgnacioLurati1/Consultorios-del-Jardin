@@ -10,7 +10,7 @@ export const daysSpanish: string[] = [
     "sabado",
 ];
 
-/** Qué se está mirando en la grilla: la agenda de un profesional o la ocupación de una sala. */
+/** Qué se está mirando en la grilla: la agenda de un profesional o la ocupación de un consultorio. */
 export type ScheduleViewMode = "professional" | "room";
 
 export interface columnModuleProps{
@@ -21,9 +21,9 @@ export interface columnModuleProps{
     setScheduleModalOpen: (isOpen: boolean) => void; // Función para abrir el modal
     setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
     setSelectedKey: (key: string|undefined) => void; //Función para seleccionar la key del horario
-    /** En modo sala interesa quién ocupa la franja, no en qué sala es. */
+    /** En modo consultorio interesa quién ocupa la franja, no en qué consultorio es. */
     showProfessional?: boolean;
-    /** En modo sala no se crean horarios: no hay un profesional al que asignárselos. */
+    /** En modo consultorio no se crean horarios: no hay un profesional al que asignárselos. */
     readOnly?: boolean;
 }
 
@@ -62,6 +62,6 @@ export interface GridFilterProps{
   selectedRoom: Room | undefined;
   onSelectRoom: (room: Room) => void;
   onClearRoom: () => void;
-  /** Pasa a modo sala: trae los horarios de todos los profesionales en esa sala. */
+  /** Pasa a modo consultorio: trae los horarios de todos los profesionales en ese consultorio. */
   onShowRoomOccupancy: () => void;
 }

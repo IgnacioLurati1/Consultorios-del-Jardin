@@ -8,9 +8,9 @@ import "./gridFilter.css";
  * Filtro de la grilla de horarios.
  *
  * Ya no busca profesionales (eso pasó a la ventana previa) ni filtra por consultorio.
- * Queda una sola dimensión: la sala. Y tiene dos usos según el modo:
- *  - modo profesional: acota la agenda del profesional a una sala.
- *  - modo sala: muestra la ocupación completa de esa sala, de todos los profesionales,
+ * Queda una sola dimensión: el consultorio. Y tiene dos usos según el modo:
+ *  - modo profesional: acota la agenda del profesional a un consultorio.
+ *  - modo consultorio: muestra la ocupación completa de ese consultorio, de todos los profesionales,
  *    para ver dónde entra un profesional nuevo.
  */
 export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClearRoom, onShowRoomOccupancy }: GridFilterProps) {
@@ -32,7 +32,7 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
   return (
     <div className="filter-container">
       <button type="button" className="filter-selector" onClick={() => setOpen(!open)} aria-expanded={open}>
-        {selectedRoom ? `Sala: ${selectedRoom.description}` : "Filtrar por sala"}
+        {selectedRoom ? `Consultorio: ${selectedRoom.description}` : "Filtrar por consultorio"}
         <FaAngleDown className={open ? "icon rotated" : "icon"} />
       </button>
 
@@ -40,14 +40,14 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
         {selectedRoom && (
           <button type="button" className="delete-filters" onClick={onClearRoom}>
             <FaXmark />
-            Quitar filtro de sala
+            Quitar filtro de consultorio
           </button>
         )}
 
         <div className="filter-option">
           <input
             className="filter-input"
-            placeholder="Buscar sala"
+            placeholder="Buscar consultorio"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -55,7 +55,7 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
 
           <ul className="filter-list active">
             {filteredRooms.length === 0 ? (
-              <li className="filter-list-empty">No hay salas para mostrar</li>
+              <li className="filter-list-empty">No hay consultorios para mostrar</li>
             ) : (
               filteredRooms.map((room) => (
                 <li key={room.idRoom}>
@@ -77,7 +77,7 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
 
         {selectedRoom && viewMode === "professional" && (
           <button type="button" className="filter-occupancy" onClick={() => { onShowRoomOccupancy(); setOpen(false); }}>
-            Ver ocupación completa de la sala
+            Ver ocupación completa del consultorio
           </button>
         )}
       </div>

@@ -11,7 +11,7 @@ interface ProfessionalPickerProps {
   onSelect: (professional: Person) => void;
   /** Sin nada elegido todavía no hay nada atrás, así que no se puede cerrar. */
   onClose?: () => void;
-  /** Si se pasan salas, la ventana ofrece además arrancar por sala. */
+  /** Si se pasan consultorios, la ventana ofrece además arrancar por consultorio. */
   rooms?: Room[];
   onSelectRoom?: (room: Room) => void;
 }
@@ -25,7 +25,7 @@ const normalize = (text: string) =>
 /**
  * Ventana previa de la pantalla de horarios.
  *
- * Se puede entrar por profesional (para ver su agenda) o por sala (para ver su
+ * Se puede entrar por profesional (para ver su agenda) o por consultorio (para ver su
  * ocupación completa). Ninguno de los dos es obligatorio antes que el otro.
  */
 export function ProfessionalPicker({
@@ -81,7 +81,7 @@ export function ProfessionalPicker({
         className={`picker-window ${offersRooms ? "picker-window-wide" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Elegir profesional o sala"
+        aria-label="Elegir profesional o consultorio"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="picker-head">
@@ -89,7 +89,7 @@ export function ProfessionalPicker({
             <h2 className="picker-title">{offersRooms ? "¿Qué querés ver?" : "Buscar profesional"}</h2>
             <p className="picker-subtitle">
               {offersRooms
-                ? "Podés arrancar por la agenda de un profesional o por la ocupación de una sala."
+                ? "Podés arrancar por la agenda de un profesional o por la ocupación de un consultorio."
                 : "Elegí de quién querés ver la agenda semanal."}
             </p>
           </div>
@@ -158,17 +158,17 @@ export function ProfessionalPicker({
             </div>
           )}
 
-          {/* ---- columna: sala ---- */}
+          {/* ---- columna: consultorio ---- */}
           {offersRooms && (
             <section className="picker-pane">
-              <h3 className="picker-pane-title">Sala</h3>
+              <h3 className="picker-pane-title">Consultorio</h3>
 
               <div className="picker-search">
                 <FaMagnifyingGlass className="picker-search-icon" />
                 <input
                   className="picker-search-input"
                   type="text"
-                  placeholder="Nombre de la sala"
+                  placeholder="Nombre del consultorio"
                   value={roomSearch}
                   onChange={(e) => setRoomSearch(e.target.value)}
                 />
@@ -176,9 +176,9 @@ export function ProfessionalPicker({
 
               <div className="picker-results">
                 {rooms!.length === 0 ? (
-                  <div className="picker-empty">No hay salas activas cargadas.</div>
+                  <div className="picker-empty">No hay consultorios activos cargados.</div>
                 ) : filteredRooms.length === 0 ? (
-                  <div className="picker-empty">Ninguna sala coincide con “{roomSearch}”.</div>
+                  <div className="picker-empty">Ningún consultorio coincide con “{roomSearch}”.</div>
                 ) : (
                   <ul className="picker-list">
                     {filteredRooms.map((room) => (

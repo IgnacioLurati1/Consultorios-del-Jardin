@@ -1,11 +1,13 @@
 import { FaCalendarAlt, FaClipboardList, FaUserInjured } from "react-icons/fa";
-import { FaArrowRight, FaRegClock } from "react-icons/fa6";
+import { FaArrowRight, FaChartColumn, FaRegClock } from "react-icons/fa6";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { findPerson, getDecodedToken } from "../../commonServices";
 import { findProfessionalAppointmentsInRange } from "../../appointments/appointmentsService.ts";
+import { useAppointmentActions } from "../../appointments/useAppointmentActions.ts";
+import { AppointmentDetailModal } from "../../appointments/appointmentsList/AppointmentDetailModal.tsx";
 import { describeState, shortHour, toISODate } from "../../appointments/appointmentTypes.ts";
 import type { Appointment, Person } from "../../types";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton";
@@ -39,6 +41,12 @@ const entries: MenuEntry[] = [
     description: "Pacientes con cuenta y pacientes anónimos cargados por vos.",
     link: "/Patients",
   },
+  {
+    icon: FaChartColumn,
+    title: "Números",
+    description: "Facturación, pacientes y carga de la agenda, mes a mes.",
+    link: "/Analytics",
+  },
 ];
 
 export function ProfessionalHome() {
@@ -63,13 +71,19 @@ export function ProfessionalHome() {
   }, []);
 
   // Agenda del día: se pide el rango de un solo día, sin los cancelados.
-  useEffect(() => {
+  function loadToday() {
     const iso = toISODate(new Date());
 
     findProfessionalAppointmentsInRange(iso, iso)
       .then((data) => setToday([...data].sort((a, b) => a.initialHour.localeCompare(b.initialHour))))
       .catch(() => setToday([]));
-  }, []);
+  }
+
+  useEffect(loadToday, []);
+
+  // Tocar un turno de hoy abre la misma ficha que en la lista de turnos: se acepta, se
+  // cancela, se carga el registro y se repite igual que allá.
+  const { open, detailProps } = useAppointmentActions(professional, loadToday);
 
   const dayLabel = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -135,21 +149,23 @@ export function ProfessionalHome() {
                 const state = describeState(appointment.state);
 
                 return (
-                  <li className="prof-today-item" key={appointment.numAppointment}>
-                    <span className="prof-today-hour">
-                      <FaRegClock aria-hidden="true" />
-                      {shortHour(appointment.initialHour)}
-                    </span>
-                    <span className="prof-today-person">
-                      {appointment.patient ? (
-                        `${appointment.patient.surname}, ${appointment.patient.name}`
-                      ) : (
-                        <span className="prof-today-free">Sin paciente asignado</span>
-                      )}
-                    </span>
-                    <span className="prof-today-room">{appointment.room?.description}</span>
-                    {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
-                    <span className={state.className}>{state.label}</span>
+                  <li key={appointment.numAppointment}>
+                    <button type="button" className="prof-today-item" onClick={() => open(appointment)}>
+                      <span className="prof-today-hour">
+                        <FaRegClock aria-hidden="true" />
+                        {shortHour(appointment.initialHour)}
+                      </span>
+                      <span className="prof-today-person">
+                        {appointment.patient ? (
+                          `${appointment.patient.surname}, ${appointment.patient.name}`
+                        ) : (
+                          <span className="prof-today-free">Sin paciente asignado</span>
+                        )}
+                      </span>
+                      <span className="prof-today-room">{appointment.room?.description}</span>
+                      {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                      <span className={state.className}>{state.label}</span>
+                    </button>
                   </li>
                 );
               })}
@@ -159,6 +175,8 @@ export function ProfessionalHome() {
       </section>
 
       <RecurringAppointments />
+
+      {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
 
       <Toasts />
     </div>

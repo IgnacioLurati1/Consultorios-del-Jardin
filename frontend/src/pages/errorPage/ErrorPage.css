@@ -1,0 +1,152 @@
+/* ============================================================
+   Error grave del front. La única decisión de estilo que
+   importa: no parecer una alarma. Nada de rojo ni de stack
+   trace a la vista, mismo papel que el resto de la app y el
+   detalle técnico plegado.
+   ============================================================ */
+
+.er-page {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: 40px 20px 60px;
+    box-sizing: border-box;
+    background: var(--adm-bg, #f1f4f6);
+    color: var(--adm-text, #1f2a33);
+    font-family: "Ubuntu", system-ui, sans-serif;
+}
+
+.er-card {
+    width: min(520px, 100%);
+    box-sizing: border-box;
+    padding: 36px 34px 30px;
+    background: var(--adm-surface, #ffffff);
+    border: 1px solid var(--adm-border, #e2e8f0);
+    border-radius: 18px;
+    box-shadow: 0 16px 44px rgba(16, 24, 40, 0.1);
+}
+
+.er-badge {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--adm-green-soft, #e8f1ec);
+    color: var(--adm-green, #3b7658);
+    font-size: 1.35rem;
+}
+
+.er-title {
+    margin: 20px 0 0;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.er-text {
+    margin: 12px 0 0;
+    font-size: 1.02rem;
+    line-height: 1.6;
+    color: var(--adm-muted, #64748b);
+}
+
+.er-text-quiet {
+    margin-top: 8px;
+    font-size: 0.95rem;
+}
+
+.er-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 26px 0 0;
+}
+
+.er-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 20px;
+    border: 1px solid var(--adm-border, #e2e8f0);
+    border-radius: var(--adm-radius-sm, 8px);
+    background: var(--adm-surface, #ffffff);
+    color: var(--adm-text, #1f2a33);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.er-btn:hover {
+    background: var(--adm-green-soft, #e8f1ec);
+    border-color: var(--adm-green, #3b7658);
+}
+
+.er-btn-main {
+    background: var(--adm-green, #3b7658);
+    border-color: var(--adm-green, #3b7658);
+    color: #ffffff;
+}
+
+.er-btn-main:hover {
+    background: var(--adm-green-dark, #2f5e46);
+    border-color: var(--adm-green-dark, #2f5e46);
+}
+
+.er-btn:focus-visible {
+    outline: 2px solid var(--adm-green, #3b7658);
+    outline-offset: 2px;
+}
+
+.er-detail {
+    margin: 26px 0 0;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--adm-border, #e2e8f0);
+    font-size: 0.9rem;
+    color: var(--adm-muted, #64748b);
+}
+
+.er-detail summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.er-detail summary:focus-visible {
+    outline: 2px solid var(--adm-green, #3b7658);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.er-detail code {
+    display: block;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--adm-bg, #f1f4f6);
+    border-radius: var(--adm-radius-sm, 8px);
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--adm-text, #1f2a33);
+    overflow-wrap: anywhere;
+}
+
+.er-detail-note {
+    margin: 10px 0 0;
+}
+
+.er-detail-note a {
+    color: var(--adm-green-dark, #2f5e46);
+}
+
+@media (max-width: 480px) {
+    .er-card {
+        padding: 28px 22px 26px;
+    }
+
+    .er-btn {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+}

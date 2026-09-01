@@ -85,6 +85,8 @@ export interface Recurrence {
     overbooked: boolean;
     /** Fecha del turno que la originó: define el día de la semana. */
     startDate: string;
+    /** Último día en que se puede crear un turno. En null se repite sin fecha de corte. */
+    endDate: string | null;
     patient: { email: string; name: string; surname: string } | null;
     room: { idRoom: number; description: string };
     /** Los próximos turnos ya generados. */
@@ -103,7 +105,12 @@ export interface Appointment {
     /** Sobreturno: el profesional lo dio fuera de sus módulos de atención. */
     overbooked?: boolean;
     /** Si salió de un turno repetible, la configuración que lo generó. */
-    recurrence?: { idRecurrence: number; frequency: RecurrenceFrequency; active: boolean } | null;
+    recurrence?: {
+        idRecurrence: number;
+        frequency: RecurrenceFrequency;
+        active: boolean;
+        endDate?: string | null;
+    } | null;
     professional: Person;
     /** Un turno tiene como mucho un paciente. Puede no tener ninguno todavía. */
     patient?: Person | null;

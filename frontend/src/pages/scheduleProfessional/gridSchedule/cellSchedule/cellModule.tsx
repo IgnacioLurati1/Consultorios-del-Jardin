@@ -4,7 +4,7 @@ import "./cellModule.css"
 export function CellModule({cellKey,schedule,height,setScheduleModalOpen,setSelectedSchedule, setSelectedKey, showProfessional, readOnly}:cellModuleProps){
 
     const handleClick = () => {
-        if (readOnly) return; // en modo sala no se abre el modal de alta/baja
+        if (readOnly) return; // en modo consultorio no se abre el modal de alta/baja
         setScheduleModalOpen(true);
         setSelectedSchedule(schedule);
         setSelectedKey(cellKey)

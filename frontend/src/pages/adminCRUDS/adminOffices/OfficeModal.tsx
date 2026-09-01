@@ -64,7 +64,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
     else onCreate(form.description.trim(), form.openingTime, form.closingTime, form.city);
   }
 
-  // Un consultorio dado de baja solo se puede reactivar.
+  // Una sucursal dada de baja solo se puede reactivar.
   if (editing && !office.active) {
     return (
       <Modal
@@ -72,7 +72,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
         onClose={onClose}
         size="sm"
         title={office.description}
-        subtitle="Consultorio dado de baja"
+        subtitle="Sucursal dada de baja"
         footer={
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
@@ -86,7 +86,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
                 onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, false)
               }
             >
-              Reactivar consultorio
+              Reactivar sucursal
             </button>
           </>
         }
@@ -106,7 +106,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
               </strong>
             </div>
           </div>
-          <p className="ui-alert ui-alert-info">Mientras esté dado de baja no se pueden dar turnos en sus salas.</p>
+          <p className="ui-alert ui-alert-info">Mientras esté dada de baja no se pueden dar turnos en sus consultorios.</p>
         </div>
       </Modal>
     );
@@ -116,7 +116,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
     <Modal
       open
       onClose={onClose}
-      title={editing ? "Editar consultorio" : "Nuevo consultorio"}
+      title={editing ? "Editar sucursal" : "Nueva sucursal"}
       subtitle={editing ? office.description : "Dónde atienden los profesionales"}
       footer={
         <>
@@ -130,7 +130,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
-            {editing ? "Guardar cambios" : "Crear consultorio"}
+            {editing ? "Guardar cambios" : "Crear sucursal"}
           </button>
         </>
       }
@@ -141,7 +141,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
           <input
             autoFocus
             value={form.description}
-            placeholder="Consultorio Centro"
+            placeholder="Sucursal Centro"
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </label>
