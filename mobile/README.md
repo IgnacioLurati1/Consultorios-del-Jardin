@@ -15,6 +15,11 @@ npm start
 Y escanear el código QR con **Expo Go** desde el teléfono. El teléfono y la computadora
 tienen que estar en la misma red.
 
+El proyecto está en el **SDK 54**, que es el que corre el Expo Go de Play Store en el
+teléfono con el que se probó. Expo Go solo ejecuta una versión de SDK: si algún día tira
+"incompatible SDK version", hay que alinear el proyecto con la que diga la pantalla de
+inicio de Expo Go (`npm install expo@~<version>.0.0` y después `npx expo install --fix`).
+
 El backend tiene que estar corriendo aparte:
 
 ```bash
