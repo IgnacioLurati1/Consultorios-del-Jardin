@@ -1,41 +1,122 @@
-import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen} from "react-icons/fa";
-import HomeCard from "../HomeCard";
-import {NavZone} from "../../../components/navZone/NavZone";
-import "./AdminHome.css";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList } from "react-icons/fa";
 import { FaHouse, FaMountainCity } from "react-icons/fa6";
+import "../../adminCRUDS/adminPanel.css";
+import "./AdminHome.css";
+
+interface MenuEntry {
+  icon: React.ComponentType;
+  title: string;
+  description: string;
+  link: string;
+}
+
+// Lo que el admin usa todos los días.
+const mainEntries: MenuEntry[] = [
+  {
+    icon: FaCalendarAlt,
+    title: "Horarios",
+    description: "Agenda semanal de cada profesional y ocupación de las salas.",
+    link: "/scheduleProfessional",
+  },
+  {
+    icon: FaUser,
+    title: "Usuarios",
+    description: "Pacientes y profesionales: alta, edición y habilitación.",
+    link: "/AdminHome/UsersAdmin",
+  },
+  {
+    icon: FaClipboardList,
+    title: "Control",
+    description: "Consultar los turnos de un profesional, solo lectura.",
+    link: "/AdminHome/Control",
+  },
+];
+
+// Datos de catálogo: se cargan una vez y casi no se tocan, así que quedan
+// detrás del "+" para no competir con lo de arriba.
+const catalogEntries: MenuEntry[] = [
+  {
+    icon: FaMountainCity,
+    title: "Provincias",
+    description: "Provincias disponibles en el sistema.",
+    link: "/AdminHome/ProvincesAdmin",
+  },
+  {
+    icon: FaCity,
+    title: "Localidades",
+    description: "Localidades asociadas a cada provincia.",
+    link: "/AdminHome/CitiesAdmin",
+  },
+  {
+    icon: FaHouse,
+    title: "Consultorios",
+    description: "Sedes, con su horario de apertura y cierre.",
+    link: "/AdminHome/OfficesAdmin",
+  },
+  {
+    icon: FaDoorOpen,
+    title: "Salas",
+    description: "Salas de atención dentro de cada consultorio.",
+    link: "/AdminHome/RoomsAdmin",
+  },
+];
+
+function MenuCard({ entry }: { entry: MenuEntry }) {
+  const Icon = entry.icon;
+
+  return (
+    <Link className="adm-card" to={entry.link}>
+      <span className="adm-card-icon">
+        <Icon />
+      </span>
+      <span className="adm-card-title">{entry.title}</span>
+      <span className="adm-card-desc">{entry.description}</span>
+    </Link>
+  );
+}
 
 export function AdminHome() {
+  const [catalogOpen, setCatalogOpen] = useState(false);
+
   return (
-    <div className="admin-home-container-whole">
-
-        <div className="nav-zone-container">
-          <NavZone title="Menu Administrador" />
+    <div className="adm-page">
+      <header className="adm-header">
+        <div className="adm-header-titles">
+          <h1 className="adm-title">Panel de administración</h1>
+          <p className="adm-subtitle">Consultorios Jardín</p>
         </div>
-        
+      </header>
+
+      <section className="adm-card-grid">
+        {mainEntries.map((entry) => (
+          <MenuCard key={entry.title} entry={entry} />
+        ))}
+      </section>
+
+      <button
+        type="button"
+        className={`adm-section-toggle ${catalogOpen ? "open" : ""}`}
+        onClick={() => setCatalogOpen((open) => !open)}
+        aria-expanded={catalogOpen}
+        aria-controls="adm-catalog"
+      >
+        <span className="adm-plus">
+          <FaPlus />
+        </span>
+        {catalogOpen ? "Ocultar datos generales" : "Datos generales"}
+      </button>
+
+      <div id="adm-catalog" className={`adm-collapsible ${catalogOpen ? "open" : ""}`}>
         <div>
-          <div className="admin-cards-container">
-            <div className="admin-card">
-                <HomeCard icon={FaMountainCity} title="Provincias" link="ProvincesAdmin" />
-            </div>
-            <div className="admin-card">
-                <HomeCard icon={FaCity} title="Localidades" link="CitiesAdmin" />
-            </div>
-            <div className="admin-card">
-            <HomeCard icon={FaHouse} title="Consultorios" link="OfficesAdmin" />
-            </div>
-            <div className="admin-card">
-            <HomeCard icon={FaDoorOpen} title="Salas" link="RoomsAdmin" />
-            </div>
-            <div className="admin-card">
-            <HomeCard icon={FaCalendarAlt} title="Horarios" link="/scheduleProfessional" />
-            </div>
-            <div className="admin-card">
-            <HomeCard icon={FaUser} title="Usuarios" link="usersAdmin" />
-            </div>
+          <div className="adm-collapsible-inner adm-card-grid">
+            {catalogEntries.map((entry) => (
+              <MenuCard key={entry.title} entry={entry} />
+            ))}
           </div>
-
         </div>
-    
+      </div>
     </div>
   );
 }

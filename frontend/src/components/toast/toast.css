@@ -1,0 +1,133 @@
+/* ============================================================
+   Aviso (toast). Toma la estética del panel: superficie blanca,
+   borde suave y una franja de color a la izquierda que dice de un
+   vistazo si salió bien o mal, igual que los cartelitos de estado.
+   ============================================================ */
+
+:root {
+  --toastify-toast-width: 400px;
+  --toastify-toast-min-height: 0;
+  --toastify-toast-padding: 0;
+  --toastify-toast-bd-radius: var(--adm-radius, 12px);
+  --toastify-toast-shadow: 0 12px 32px rgba(16, 24, 40, 0.16);
+  --toastify-font-family: inherit;
+  --toastify-color-progress-bgo: 0;
+}
+
+/* Contenedor: antes tenía font-size en vw, así que el texto crecía con la
+   pantalla y en un monitor ancho tapaba media pantalla. */
+.Toastify__toast-container {
+  width: min(var(--toastify-toast-width), calc(100vw - 32px));
+  padding: 0;
+}
+
+.Toastify__toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 15px 16px 15px 17px;
+  background: var(--adm-surface, #fff);
+  border: 1px solid var(--adm-border, #e2e8f0);
+  border-left: 4px solid var(--toast-accent, var(--adm-muted, #64748b));
+  border-radius: var(--adm-radius, 12px);
+  color: var(--adm-text, #1f2a33);
+  font-family: inherit;
+  font-size: 0.97rem;
+  line-height: 1.45;
+  cursor: default;
+}
+
+.Toastify__toast-body {
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* El ícono va en una pastilla del color del estado, como los badges del panel. */
+.Toastify__toast-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-inline-end: 0;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--toast-icon-bg, transparent);
+  color: var(--toast-accent);
+}
+
+.Toastify__toast-icon svg {
+  width: 15px;
+  height: 15px;
+  fill: var(--toast-accent);
+}
+
+.Toastify__close-button {
+  align-self: flex-start;
+  margin-top: 3px;
+  color: var(--adm-muted, #64748b);
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.Toastify__close-button:hover,
+.Toastify__close-button:focus-visible {
+  opacity: 1;
+}
+
+.Toastify__progress-bar {
+  height: 3px;
+  background: var(--toast-accent);
+  opacity: 0.55;
+}
+
+/* ---------- colores por tipo ---------- */
+
+.Toastify__toast--success {
+  --toast-accent: var(--adm-green, #3b7658);
+  --toast-icon-bg: var(--adm-green-soft, #e8f1ec);
+}
+
+.Toastify__toast--error {
+  --toast-accent: var(--adm-danger, #c0392b);
+  --toast-icon-bg: var(--adm-danger-soft, #fdecea);
+}
+
+.Toastify__toast--warning {
+  --toast-accent: var(--adm-warn, #b7791f);
+  --toast-icon-bg: #fdf3e0;
+}
+
+.Toastify__toast--info,
+.Toastify__toast--default {
+  --toast-accent: #3b5576;
+  --toast-icon-bg: #e8eef7;
+}
+
+/* Clase que quedó puesta a mano en varias pantallas. Se deja para que esas
+   pantallas hereden el mismo look sin tocar cada una. */
+.toast-container {
+  position: fixed !important;
+  font-size: inherit;
+}
+
+@media (max-width: 640px) {
+  .Toastify__toast-container {
+    width: 100vw;
+    padding: 0 12px;
+  }
+
+  .Toastify__toast {
+    font-size: 0.95rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Toastify__toast {
+    animation-duration: 0.01ms !important;
+  }
+}

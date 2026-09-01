@@ -1,7 +1,23 @@
 import axios from "axios";
 
+// Sin deploy: el back siempre corre en localhost:3000 y el front le pega a /api
+// a través del proxy de Vite (ver vite.config.ts). Al ser same-origin, la cookie
+// httpOnly del refresh token viaja sola.
+const API_BASE_URL = "/api";
+
+// Endpoints donde un 401 significa "los datos están mal", no "se venció la sesión".
+// Sin esta lista, un login fallido disparaba el refresh, el refresh también fallaba
+// y terminaba en window.location.href = "/login": la página se recargaba y el usuario
+// veía el formulario en blanco, sin el mensaje de error.
+const AUTH_PATHS = ["/people/login", "/people/logout", "/people/changePassword", "/refreshToken"];
+
+function isAuthRequest(url?: string): boolean {
+  if (!url) return false;
+  return AUTH_PATHS.some((path) => url.includes(path));
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -20,22 +36,19 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest(originalRequest?.url)) {
       originalRequest._retry = true; // marca este request como retry
 
       try {
-        const { data } = await axios.get(
-          `${import.meta.env.VITE_API_URL}/refreshToken`, 
-          { withCredentials: true }
-        );
+        const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, { withCredentials: true });
 
         localStorage.setItem("token", data.token);
         // Reintenta **solo una vez**
-        originalRequest.headers.Authorization = `Bearer ${data.token}`;  //Actualiza el header del request original
+        originalRequest.headers.Authorization = `Bearer ${data.token}`; //Actualiza el header del request original
         return api(originalRequest);
       } catch (refreshError) {
         try {
-          await axios.post(`${import.meta.env.VITE_API_URL}/logout`, {}, { withCredentials: true });
+          await axios.post(`${API_BASE_URL}/people/logout`, {}, { withCredentials: true });
         } catch (logoutError) {
           console.error("Error cerrando sesión:", logoutError);
         } finally {

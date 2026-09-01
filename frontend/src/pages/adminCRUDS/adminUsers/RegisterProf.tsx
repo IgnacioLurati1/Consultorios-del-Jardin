@@ -1,148 +1,186 @@
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faGreaterThan} from '@fortawesome/free-solid-svg-icons'
-import '../../register/Register.css'
-import Logo from '../../../assets/Logo.png';
 import { useState } from "react";
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { DataInput } from '../../../components/inputs/standardTextInput/DataInput';
-import { DataInputPassword } from '../../../components/inputs/passwordInput/DataInputPassword';
-import { DataInputSelector } from '../../../components/inputs/selectorInput/DataInputSelector';
-import { registerProfessional } from './usersService';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa6";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
+import { SteppedForm, type FormStep } from "../../../components/steppedForm/SteppedForm.tsx";
+import { registerProfessional } from "./usersService";
+import Logo from "../../../assets/LogoRecortado.png";
+import {
+  DOC_TYPES,
+  MIN_PASSWORD,
+  emptyRegisterForm,
+  validateAccountAsync,
+  validateContact,
+  validatePersonalData,
+  type RegisterForm,
+} from "../../register/registerFields.ts";
+import { SPECIALITIES } from "../../specialities.ts";
 
 export function RegisterProf() {
-    const navigate = useNavigate();
-    const [activo, setPage] = useState(false);
-    const [showButton, setShowButton] = useState(true);
-    
-    const changePage = () => {
-        setPage(!activo);
-    }
+  const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
-        name: '',
-        surname: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        phoneNumber: '',
-        docType: '',
-        docNumber: '',
-        speciality: ''
-    });
+  const [form, setForm] = useState<RegisterForm>(emptyRegisterForm);
+  const [showPassword, setShowPassword] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-    const handleChange = (field: string, value: string) => {
-            setFormData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        };
-    
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        toast.dismiss();
+  const set = (field: keyof RegisterForm, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setServerError(null);
+  };
 
-        if (formData.password !== formData.confirmPassword) {
-            toast.error("Las contraseñas no coinciden", {
-                className: "feedBack-box error"})
-                return;
-        }
-        // Validaciones mínimas (También se tiene que hacer en el backend)
-            if (!formData.email || !formData.name || !formData.surname || !formData.password || !formData.confirmPassword || 
-                !formData.phoneNumber || !formData.docType || !formData.docNumber) {
-                toast.error("Complete todos los campos requeridos", {
-                    className: "feedBack-box error"})
-                    return;
-            }
+  function handleSubmit() {
+    toast.dismiss();
+    setSending(true);
 
-        
-        
-        registerProfessional({
-            name: formData.name,
-            surname: formData.surname,
-            email: formData.email,
-            docType: formData.docType,
-            docNumber: formData.docNumber,
-            phoneNumber: formData.phoneNumber,
-            password: formData.password,
-            speciality: formData.speciality,
-            type: "professional",
-            active:true
-        })
-            .then(() => {
-            toast.success("Usuario registrado con éxito", {
-            className: "feedBack-box success",});
-            setShowButton(false);
-            navigate("/")
-            window.scrollTo(0, 0);
+    registerProfessional({
+      name: form.name.trim(),
+      surname: form.surname.trim(),
+      email: form.email.trim(),
+      docType: form.docType,
+      docNumber: form.docNumber.trim(),
+      phoneNumber: form.phoneNumber.replace(/\D/g, ""),
+      password: form.password,
+      speciality: form.speciality.trim(),
+    })
+      .then(() => {
+        toast.success("Profesional registrado");
+        navigate("/AdminHome/UsersAdmin");
+        window.scrollTo(0, 0);
+      })
+      .catch((err: Error) => {
+        setServerError(err.message || "No pudimos registrar al profesional");
+        setSending(false);
+      });
+  }
 
-            })
-            .catch((err: Error) => {
-                toast.error(err.message || "Error al registrar usuario", {
-                className: "feedBack-box error",
-            });
-        });
+  const steps: FormStep[] = [
+    {
+      id: "cuenta",
+      title: "Cuenta",
+      hint: "Con estos datos el profesional va a entrar a la app. Después puede cambiar la contraseña desde su perfil.",
+      validate: () => validateAccountAsync(form),
+      content: (
+        <>
+          <label className="ui-field">
+            <span>Email</span>
+            <input type="email" placeholder="profesional@mail.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
+          </label>
 
-};
-
-               
-    return (
-    <div className="user-register-container">
-
-        <div className='register-title'>
-            <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
-            <h1 className='title-text'>Registro de Profesional</h1>
-        </div>
-        <form className="register-form" onSubmit={handleSubmit}>
-            <div className='register-body'>
-                <div className='register-body-left'>
-                    <div className={activo? "shown":"not-shown"}>
-                        <div className='register-namesurname'>
-                        <DataInput label="Nombre" type="text" value={formData.name} onChange={(e) => handleChange('name', e.target.value)}/>
-                        <DataInput label="Apellido" type="text" value={formData.surname} onChange={(e) => handleChange('surname', e.target.value)}/>
-                    </div>
-                    </div>
-                    <div className={activo? "not-shown":"shown"}>
-                        <DataInput label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)}/>
-                        <DataInputPassword label="Contraseña" value={formData.password} onChange={(e) => handleChange('password', e.target.value)}/>
-                        <DataInputPassword label="Confirmar contraseña" value={formData.confirmPassword} onChange={(e) => handleChange('confirmPassword', e.target.value)}/>
-                    </div>
-                    <div className={activo? "shown":"not-shown"}>
-                        <DataInput label="Teléfono" type="text" value={formData.phoneNumber} onChange={(e) => handleChange('phoneNumber', e.target.value)}/>
-                        <div className='document-dataInput'>
-                            <div className='tipoDoc'>
-                            <DataInputSelector label="Tipo documento" type="selector"
-                            options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}
-                            value={formData.docType} onChange={(e) => handleChange('docType', e.target.value)}/>
-                            </div>
-                            <div className='nroDoc'>
-                                <DataInput label="Nro. documento" type="text"value={formData.docNumber} onChange={(e) => handleChange('docNumber', e.target.value)}/>    
-                            </div>
-                        </div>
-                        <div className='speciality'>
-                            <DataInput label="Especialidad" type="text" value={formData.speciality} onChange={(e) => handleChange('speciality', e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div className='register-body-right professional-buttons'>
-                    <div className='logo-consultorios'><img src={Logo} alt="Logo"/></div>
-                    <button type="button" className={activo? 'register-button next shown': 'register-button next not-shown'} onClick={changePage}>Volver</button>
-                    {showButton
-                    ? <button type="submit" className={activo ? "register-button registerBut shown" : "register-button registerBut not-shown"} >Registrar</button>
-                    : <div className="register-spinner"></div>}
-                    <button type="button" className={activo? "register-button next not-shown":"register-button next shown"} onClick={changePage}>Siguiente</button>
-                </div>
-                    <ToastContainer 
-                        closeOnClick={false}
-                        draggable={false}
-                    />
+          <label className="ui-field">
+            <span>Contraseña</span>
+            <div className="sf-input-wrap">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+              />
+              <button
+                type="button"
+                className="sf-input-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar" : "Mostrar"}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
-        </form>
-    </div>
+            <small>Al menos {MIN_PASSWORD} caracteres.</small>
+          </label>
+
+          <label className="ui-field">
+            <span>Repetir contraseña</span>
+            <input
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              value={form.confirmPassword}
+              onChange={(e) => set("confirmPassword", e.target.value)}
+            />
+          </label>
+        </>
+      ),
+    },
+    {
+      id: "datos",
+      title: "Datos",
+      hint: "Es el nombre que van a ver los pacientes al pedir un turno.",
+      validate: () => validatePersonalData(form),
+      content: (
+        <div className="ui-field-row">
+          <label className="ui-field">
+            <span>Nombre</span>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} />
+          </label>
+          <label className="ui-field">
+            <span>Apellido</span>
+            <input value={form.surname} onChange={(e) => set("surname", e.target.value)} />
+          </label>
+        </div>
+      ),
+    },
+    {
+      id: "contacto",
+      title: "Contacto",
+      hint: "Los horarios de atención se cargan después, desde la grilla de horarios.",
+      validate: () => validateContact(form, { requireSpeciality: true }),
+      content: (
+        <>
+          <label className="ui-field">
+            <span>Especialidad</span>
+            {/* Lista fija: es la misma con la que el paciente filtra al buscar turno,
+                así que escribirla a mano solo abre la puerta a que no coincidan. */}
+            <select value={form.speciality} onChange={(e) => set("speciality", e.target.value)}>
+              <option value="">Elegí una…</option>
+              {SPECIALITIES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="ui-field">
+            <span>Teléfono</span>
+            <input placeholder="3411234567" value={form.phoneNumber} onChange={(e) => set("phoneNumber", e.target.value)} />
+          </label>
+
+          <div className="ui-field-row">
+            <label className="ui-field">
+              <span>Tipo de documento</span>
+              <select value={form.docType} onChange={(e) => set("docType", e.target.value)}>
+                <option value="">Elegí uno…</option>
+                {DOC_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ui-field">
+              <span>Número de documento</span>
+              <input value={form.docNumber} onChange={(e) => set("docNumber", e.target.value)} />
+            </label>
+          </div>
+        </>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <SteppedForm
+        title="Registrar profesional"
+        subtitle="Queda habilitado para atender apenas se guarda"
+        logo={Logo}
+        steps={steps}
+        submitLabel="Registrar profesional"
+        submitting={sending}
+        serverError={serverError}
+        onSubmit={handleSubmit}
+        footerNote={<Link to="/AdminHome/UsersAdmin">Volver al listado de usuarios</Link>}
+      />
+      <Toasts />
+    </>
   );
 }
-
-                
-                

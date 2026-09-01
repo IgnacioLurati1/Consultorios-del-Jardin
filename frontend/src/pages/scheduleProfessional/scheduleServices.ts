@@ -12,8 +12,21 @@ export function findProfessionalSchedules(professionalEmail: string): Promise<Sc
     });
 }
 
-export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, room:String, personEmail:string, allowedType: string, duration: number}): Promise<Schedule | undefined>{
-    if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.room || !newSchedule.personEmail || !newSchedule.allowedType.trim() || !newSchedule.duration) {
+// Todos los horarios de una sala, de cualquier profesional. Sirve para ver en qué
+// franjas está ocupada y dónde entra un profesional nuevo.
+export function findRoomSchedules(idRoom: string | number): Promise<Schedule[]>{
+    if(!idRoom) return Promise.resolve([])
+
+    return api.get(`/schedules/by-room/${idRoom}`)
+    .then(response => response.data.data)
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
+}
+
+export function createSchedule(newSchedule: { day: string; initialHour: string; finalHour: string, room:String, personEmail:string, duration: number}): Promise<Schedule | undefined>{
+    if (!newSchedule.day.trim() || !newSchedule.initialHour.trim() || !newSchedule.finalHour.trim() || !newSchedule.room || !newSchedule.personEmail || !newSchedule.duration) {
         throw new Error('Se necesitan los campos necesarios para crear un horario');
     }
 
@@ -23,7 +36,6 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
         finalHour: newSchedule.finalHour,
         room: newSchedule.room,
         person: newSchedule.personEmail,
-        allowedType: newSchedule.allowedType,
         duration: newSchedule.duration,
         active:true
     })
@@ -34,6 +46,17 @@ export function createSchedule(newSchedule: { day: string; initialHour: string; 
         const backendMsg = err.response?.data?.message || err.message;
         throw new Error(backendMsg);
     })
+}
+
+// Solo cambia la duración de los turnos de un módulo. El backend valida que sea
+// 30, 45 o 60 y que el horario sea del profesional logueado.
+export function updateScheduleDuration(day: string, initialHour: string, personEmail: string, duration: number): Promise<Schedule>{
+    return api.patch('/schedules', { day, initialHour, person: personEmail, duration })
+    .then(res => res.data.data)
+    .catch(err => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
 }
 
 export function removeSchedule(professionalEmail: string, day: string, initialHour:string): Promise<boolean>{

@@ -1,0 +1,96 @@
+/* Pantalla de datos de la persona logueada: ficha a la izquierda, formulario
+   a la derecha. Usa las piezas compartidas (ui-field, adm-panel). */
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 30px 24px;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    box-shadow: var(--adm-shadow);
+    text-align: center;
+}
+
+.profile-avatar {
+    display: grid;
+    place-items: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: var(--adm-green);
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.profile-card-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--adm-text);
+}
+
+.profile-card-mail {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--adm-muted);
+    font-size: 0.9rem;
+}
+
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 24px;
+}
+
+.profile-form-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.profile-error {
+    margin: 0;
+}
+
+.profile-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid var(--adm-border);
+}
+
+@media (max-width: 900px) {
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-card {
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 20px;
+    }
+
+    .profile-avatar {
+        width: 58px;
+        height: 58px;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .profile-actions .adm-btn {
+        width: 100%;
+    }
+}

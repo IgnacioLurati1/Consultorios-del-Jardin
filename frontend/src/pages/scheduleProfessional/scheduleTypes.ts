@@ -10,6 +10,9 @@ export const daysSpanish: string[] = [
     "sabado",
 ];
 
+/** Qué se está mirando en la grilla: la agenda de un profesional o la ocupación de una sala. */
+export type ScheduleViewMode = "professional" | "room";
+
 export interface columnModuleProps{
     schedules: Schedule[];
     daysSpanish: string[];
@@ -18,6 +21,10 @@ export interface columnModuleProps{
     setScheduleModalOpen: (isOpen: boolean) => void; // Función para abrir el modal
     setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
     setSelectedKey: (key: string|undefined) => void; //Función para seleccionar la key del horario
+    /** En modo sala interesa quién ocupa la franja, no en qué sala es. */
+    showProfessional?: boolean;
+    /** En modo sala no se crean horarios: no hay un profesional al que asignárselos. */
+    readOnly?: boolean;
 }
 
 export interface cellModuleProps{
@@ -28,6 +35,8 @@ export interface cellModuleProps{
     setSelectedSchedule: (schedule: Schedule | undefined) => void; // Función para seleccionar el horario
     setSelectedKey: (cellKey: string) => void; //Función para seleccionar la key del horario
     className?: string;
+    showProfessional?: boolean;
+    readOnly?: boolean;
 }
 
 export interface scheduleModalProps {
@@ -40,16 +49,19 @@ export interface scheduleModalProps {
     rooms: Room[];
     offices: Office[];
     cities: City[];
-    onCreate: ((newSchedule: { day: string; initialHour: string; finalHour: string, room: string, personEmail:string, allowedType: string, duration: number}) => void) | null;
+    onCreate: ((newSchedule: { day: string; initialHour: string; finalHour: string, room: string, personEmail:string, duration: number}) => void) | null;
     onDelete: ((professionalEmail: string, day: string, initialHour:string) => void )| null;
     isProfessional: boolean;
+    /** El profesional puede cambiar la duración de sus propios módulos. */
+    onUpdateDuration?: ((day: string, initialHour: string, personEmail: string, duration: number) => void) | null;
 }
 
 export interface GridFilterProps{
-  setProfessional: (profesionals: Person | undefined) => void;
-  professionals?: Person[];
-  schedules?: Schedule[];
-  offices?: Office[];
-  setOfficeToFilter: (office: Office|undefined) => void;
-  setRoomToFilter: (room: Room|undefined)=> void;
+  rooms: Room[];
+  viewMode: ScheduleViewMode;
+  selectedRoom: Room | undefined;
+  onSelectRoom: (room: Room) => void;
+  onClearRoom: () => void;
+  /** Pasa a modo sala: trae los horarios de todos los profesionales en esa sala. */
+  onShowRoomOccupancy: () => void;
 }

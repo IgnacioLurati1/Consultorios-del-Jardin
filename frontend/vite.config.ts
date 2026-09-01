@@ -20,5 +20,8 @@ export default defineConfig({
     environment: 'jsdom',         // Simula el navegador
     setupFiles: './src/setupTests.ts', // Archivo de configuración inicial
     css: true,
+    // testsE2E son specs de Playwright: si vitest los levanta, explotan con
+    // "Playwright Test did not expect test() to be called here".
+    exclude: ['node_modules/**', 'dist/**', 'testsE2E/**'],
   },
 });

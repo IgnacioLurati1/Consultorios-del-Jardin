@@ -1,14 +1,24 @@
+@import "../../adminCRUDS/adminPanel.css";
+
+/* ============================================================
+   Grilla semanal de horarios.
+   Cada columna es un día; adentro van las franjas ocupadas y los
+   huecos libres. En escritorio se ven las seis columnas juntas;
+   en mobile cada día se pliega.
+   ============================================================ */
+
 .schedule {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  background: #F3F7F8;
-  color: black;
+  gap: 1px;
   width: 100%;
-  border: 1px solid #000;
-  gap: 0;
   box-sizing: border-box;
-  border-collapse: collapse;
-  margin-bottom: 5vh;
+  background: var(--adm-border, #e2e8f0); /* pinta las líneas divisorias */
+  border: 1px solid var(--adm-border, #e2e8f0);
+  border-radius: var(--adm-radius, 12px);
+  box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
+  overflow: hidden;
+  margin-bottom: 40px;
 }
 
 .day-column {
@@ -16,26 +26,28 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  border-right: 1px solid #000;
   box-sizing: border-box;
-}
-
-.day-column:last-child {
-  border-right: none;
+  background: var(--adm-surface, #fff);
 }
 
 .day-title {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-weight: bold;
-  font-size: 2em;
-  background: #F3F7F8;
-  height: 2em;
   width: 100%;
-  border-bottom: 1px solid #000;
+  padding: 14px 8px;
   box-sizing: border-box;
-  cursor: pointer;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--adm-border, #e2e8f0);
+  color: var(--adm-muted, #64748b);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: default;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .day-cells {
@@ -43,6 +55,9 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
+  padding: 8px 8px 12px;
+  box-sizing: border-box;
+  gap: 2px;
 }
 
 .show-more-icon {
@@ -57,36 +72,39 @@
 @media (max-width: 768px) {
   .schedule {
     grid-template-columns: 1fr;
-    gap: 2vh;
+    gap: 12px;
     border: none;
     background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
     margin-bottom: 10vh;
   }
 
   .day-title {
-    box-sizing: border-box;
-    font-size: 1.5em;
-    height: 3em;
+    font-size: 1rem;
+    padding: 16px 18px;
     justify-content: space-between;
-    padding: 0 5vw;
+    letter-spacing: 0.04em;
     cursor: pointer;
+    position: static;
   }
 
   .day-column {
     width: 100%;
-    border: 1px solid #000;
-    border-radius: 8px;
+    border: 1px solid var(--adm-border, #e2e8f0);
+    border-radius: var(--adm-radius, 12px);
+    box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
     overflow: hidden;
-    background: #F3F7F8;
   }
 
   .show-more-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2em;
+    font-size: 1em;
     cursor: pointer;
-    color: #000;
+    color: var(--adm-muted, #64748b);
     transition: transform 0.3s ease;
   }
 
@@ -109,6 +127,6 @@
   .day-cells.expanded .hourly-module:last-child,
   .day-cells.expanded .last-empty {
     display: flex;
-    min-height: 44px;
+    min-height: 48px;
   }
 }

@@ -1,54 +1,184 @@
+/* Agenda del día, debajo de las tarjetas del menú del profesional. */
 
-.professional-home-container-whole {
-    width: 90vw;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
+.prof-today {
+    margin-top: 40px;
 }
 
-.nav-zone-container .navZone {
-    height: 70%;
-    width: 90%;
-    margin-left: 40px;
-}
-
-.professional-cards-container {
+.prof-today-head {
     display: flex;
-    
-    align-items: center;
-    justify-content: center;
-    margin-top: 5vh;
-    gap:10px
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
 }
-.professional-card{
-    height: 40vh;
-    width: 300px;
+
+.prof-today-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--adm-text);
+}
+
+.prof-today-date {
+    margin: 2px 0 0;
+    color: var(--adm-muted);
+    font-size: 0.98rem;
+}
+
+/* Solo la inicial: capitalize dejaba "Lunes, 31 De Agosto". */
+.prof-today-date::first-letter {
+    text-transform: uppercase;
+}
+
+.prof-today-head .adm-btn {
+    text-decoration: none;
+}
+
+.prof-today-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 22px;
+}
+
+.prof-today-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.prof-today-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 15px 22px;
+    border-bottom: 1px solid var(--adm-border);
+    color: var(--adm-text);
+}
+
+.prof-today-item:last-child {
+    border-bottom: none;
+}
+
+.prof-today-hour {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 92px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--adm-green-dark);
+}
+
+.prof-today-person {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.prof-today-free {
+    font-weight: 400;
+    color: var(--adm-muted);
+}
+
+.prof-today-room {
+    flex-shrink: 0;
+    color: var(--adm-muted);
+    font-size: 0.92rem;
 }
 
 @media (max-width: 768px) {
-    .professional-home-container-whole {
-        flex-direction: column;
-        height: auto;
+    .prof-today-item {
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        padding: 14px 16px;
     }
 
-    .professional-home-container {
-        min-width: 100%;
-        gap: 20px;
+    .prof-today-person {
+        flex-basis: 100%;
+        order: 3;
     }
 
-    .nav-zone-container .navZone {
-        width: 90%;
-        margin-left: 5%;
-        height: 10vh;
+    .prof-today-room {
+        display: none;
     }
+}
 
-    .professional-cards-container {
-        grid-template-columns: repeat(2, 1fr);
-        font-size: 10px;
-    }
-    .professional-card{
-        height: 30vh;  
-        width: 100%;    
-        min-width: unset; 
-    }
+/* ---------- turnos repetibles ----------
+   Misma caja que la agenda del dia; lo que cambia es que cada fila es una receta
+   (dia y hora fijos) y no un turno concreto. */
+
+.prof-repeat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.prof-repeat-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.prof-repeat-list li:last-child {
+  border-bottom: none;
+}
+
+.prof-repeat-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.prof-repeat-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.prof-repeat-when {
+  font-weight: 700;
+}
+
+/* capitalize dejaba "Lunes · 10:00 A 12:00": va en mayuscula solo el arranque. */
+.prof-repeat-when::first-letter {
+  text-transform: uppercase;
+}
+
+.prof-repeat-meta {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+}
+
+.prof-repeat-next {
+  color: var(--adm-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .prof-repeat-item {
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    padding: 14px 16px;
+  }
+
+  .prof-repeat-item .adm-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

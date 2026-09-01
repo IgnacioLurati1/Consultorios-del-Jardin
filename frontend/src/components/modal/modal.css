@@ -1,0 +1,339 @@
+/* ============================================================
+   Ventana modal. Una sola forma para todas las de la app:
+   cabecera fija, cuerpo que scrollea y botonera abajo siempre a la vista.
+   El detalle que la identifica es el filo verde superior, del mismo verde
+   que el resto del panel.
+   ============================================================ */
+
+.ui-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 24, 40, 0.5);
+  backdrop-filter: blur(3px);
+  animation: ui-modal-fade 0.16s ease-out;
+}
+
+.ui-modal {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(640px, 100%);
+  max-height: min(88vh, 900px);
+  overflow: hidden;
+  background: var(--adm-surface, #fff);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(16, 24, 40, 0.24);
+  color: var(--adm-text, #1f2a33);
+  font-size: 1rem;
+  animation: ui-modal-rise 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* El filo de arriba: la única licencia decorativa, y sirve para reconocer
+   la ventana como parte del panel. */
+.ui-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--adm-green, #3b7658), #6fa588);
+}
+
+.ui-modal-sm {
+  width: min(460px, 100%);
+}
+
+.ui-modal-lg {
+  width: min(820px, 100%);
+}
+
+@keyframes ui-modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-modal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+/* ---------- cabecera ---------- */
+
+.ui-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--adm-border, #e2e8f0);
+}
+
+.ui-modal-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ui-modal-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adm-text, #1f2a33);
+}
+
+.ui-modal-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--adm-muted, #64748b);
+}
+
+.ui-modal-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--adm-muted, #64748b);
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ui-modal-close:hover {
+  background: var(--adm-bg, #f1f4f6);
+  color: var(--adm-text, #1f2a33);
+}
+
+/* ---------- cuerpo ---------- */
+
+.ui-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 22px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ui-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  border-top: 1px solid var(--adm-border, #e2e8f0);
+  background: #fafbfc;
+}
+
+/* ---------- piezas de formulario reutilizables ---------- */
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--adm-muted, #64748b);
+}
+
+.ui-field > input,
+.ui-field > select,
+.ui-field > textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid var(--adm-border, #e2e8f0);
+  border-radius: var(--adm-radius-sm, 8px);
+  background: #fff;
+  color: var(--adm-text, #1f2a33);
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 400;
+  transition: border-color 0.15s ease;
+}
+
+.ui-field > textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.ui-field > input:focus,
+.ui-field > select:focus,
+.ui-field > textarea:focus {
+  outline: 2px solid var(--adm-green, #3b7658);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.ui-field > input:disabled,
+.ui-field > select:disabled {
+  background: var(--adm-bg, #f1f4f6);
+  color: var(--adm-muted, #64748b);
+}
+
+.ui-field small {
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--adm-muted, #64748b);
+  line-height: 1.45;
+}
+
+.ui-field-row {
+  display: flex;
+  gap: 14px;
+}
+
+/* ---------- bloques dentro del cuerpo ---------- */
+
+.ui-section {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-top: 20px;
+  border-top: 1px solid var(--adm-border, #e2e8f0);
+}
+
+.ui-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.ui-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ui-section-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-muted, #64748b);
+}
+
+.ui-section-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Ficha de datos: etiqueta a la izquierda, valor a la derecha. */
+.ui-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ui-detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--adm-border, #e2e8f0);
+  font-size: 0.98rem;
+}
+
+.ui-detail-row:last-child {
+  border-bottom: none;
+}
+
+.ui-detail-row > span:first-child {
+  color: var(--adm-muted, #64748b);
+  flex-shrink: 0;
+}
+
+.ui-detail-row > :last-child {
+  text-align: right;
+  min-width: 0;
+}
+
+.ui-detail-empty {
+  color: var(--adm-muted, #64748b);
+  font-weight: 400;
+}
+
+/* ---------- mensajes ---------- */
+
+.ui-alert {
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: var(--adm-radius-sm, 8px);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.ui-alert-error {
+  background: var(--adm-danger-soft, #fdecea);
+  color: var(--adm-danger, #c0392b);
+}
+
+.ui-alert-info {
+  background: var(--adm-green-soft, #e8f1ec);
+  color: var(--adm-green-dark, #2f5e46);
+}
+
+.ui-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--adm-warn, #b7791f);
+}
+
+@media (max-width: 640px) {
+  .ui-modal-overlay {
+    padding: 0;
+    place-items: end stretch;
+  }
+
+  .ui-modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .ui-modal-head {
+    padding: 18px 18px 14px;
+  }
+
+  .ui-modal-body {
+    padding: 18px;
+  }
+
+  .ui-modal-foot {
+    padding: 14px 18px;
+    flex-direction: column-reverse;
+  }
+
+  .ui-modal-foot .adm-btn {
+    width: 100%;
+  }
+
+  .ui-field-row {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-overlay,
+  .ui-modal {
+    animation: none;
+  }
+}

@@ -1,247 +1,186 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
-import "./Register.css";
-import Logo from "../../assets/LogoRecortado.png";
 import { useState } from "react";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
-import { DataInputPassword } from "../../components/inputs/passwordInput/DataInputPassword";
-import { DataInputSelector } from "../../components/inputs/selectorInput/DataInputSelector";
-import api from "../../axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa6";
+import { Toasts } from "../../components/toast/Toasts.tsx";
+import { SteppedForm, type FormStep } from "../../components/steppedForm/SteppedForm.tsx";
 import { useAuth } from "../../context/AuthContext";
-import ReCaptcha from "../../components/reCaptcha.tsx";
-
-
+import api from "../../axios";
+import Logo from "../../assets/LogoRecortado.png";
+import {
+  DOC_TYPES,
+  MIN_PASSWORD,
+  emptyRegisterForm,
+  validateAccountAsync,
+  validateContact,
+  validatePersonalData,
+  type RegisterForm,
+} from "./registerFields.ts";
 
 export function Register() {
   const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
-    email: "",
-    contraseña: "",
-    confirmarContraseña: "",
-    telefono: "",
-    tipoDocumento: "",
-    nroDocumento: "",
-  });
-
   const navigate = useNavigate();
-  const [showButton, setShowButton] = useState(true);
-  const [captchaOk, setCaptchaOk] = useState(false);
 
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const [form, setForm] = useState<RegisterForm>(emptyRegisterForm);
+  const [showPassword, setShowPassword] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const set = (field: keyof RegisterForm, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setServerError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  function handleSubmit() {
     toast.dismiss();
-
-    if (formData.contraseña !== formData.confirmarContraseña) {
-      toast.error("Las contraseñas no coinciden", {
-        className: "feedBack-box error",
-      });
-      return;
-    }
-
-    if (!captchaOk) {
-      toast.error("Por favor, completá el captcha", {
-        className: "feedBack-box error",
-      });
-      return;
-    }
-
-    // Validaciones mínimas (También se tiene que hacer en el backend)
-    if (
-      !formData.email ||
-      !formData.nombre ||
-      !formData.apellido ||
-      !formData.contraseña ||
-      !formData.confirmarContraseña ||
-      !formData.telefono ||
-      !formData.tipoDocumento ||
-      !formData.nroDocumento
-    ) {
-      toast.error("Complete todos los campos requeridos", {
-        className: "feedBack-box error",
-      });
-      return;
-    }
+    setSending(true);
 
     api
       .post(
         "/people",
         {
-          name: formData.nombre,
-          surname: formData.apellido,
-          email: formData.email,
-          docType: formData.tipoDocumento,
-          docNumber: formData.nroDocumento,
-          phoneNumber: formData.telefono,
-          password: formData.contraseña,
+          name: form.name.trim(),
+          surname: form.surname.trim(),
+          email: form.email.trim(),
+          docType: form.docType,
+          docNumber: form.docNumber.trim(),
+          phoneNumber: form.phoneNumber.replace(/\D/g, ""),
+          password: form.password,
           type: "client",
         },
-        {
-          withCredentials: true, // sin esto, no se envía ni se recibe la cookie
-        }
+        { withCredentials: true } // sin esto no se recibe la cookie del refresh token
       )
       .then((response) => {
-        if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
-          toast.success("Usuario registrado con éxito", {
-            className: "feedBack-box success",});
-            setShowButton(false);
-            
-            api
-              .post(
-                "/people/login",
-                {
-                  email: formData.email,
-                  password: formData.contraseña,
-                },
-                {
-                  withCredentials: true, // sin esto, no se envía ni se recibe la cookie
-                }
-              )
-              .then((response) => {
-                if (response.data.token) {
-                  localStorage.setItem("token", response.data.token);
-
-                  login(response.data.token);
-            
-                  navigate("/")
-                  window.scrollTo(0, 0);
-                  
-                }
-              })
-              .catch((error) => {
-                console.error("Login error:", error);
-                toast.error("Error en el inicio de sesión", {
-                  className: "feedBack-box error",
-                });
-              });
+        // El alta ya devuelve el token de sesión: no hace falta un login aparte.
+        if (!response.data.token) {
+          navigate("/Login");
+          return;
         }
+
+        login(response.data.token);
+        toast.success("¡Listo! Ya tenés cuenta");
+        navigate("/");
+        window.scrollTo(0, 0);
       })
       .catch((error) => {
-        console.error("Error:", error);
-        const backendMsg = error.response?.data?.message || error.message || "Error al registrar usuario";
-        toast.error(backendMsg, {
-          className: "feedBack-box error",
-        });
+        const backendMsg = error.response?.data?.message || error.message || "No pudimos crear tu cuenta";
+        setServerError(backendMsg);
+        setSending(false);
       });
-  };
+  }
 
-  const [activo, setPage] = useState(false);
+  const steps: FormStep[] = [
+    {
+      id: "cuenta",
+      title: "Cuenta",
+      hint: "Con estos datos vas a entrar a la app.",
+      validate: () => validateAccountAsync(form),
+      content: (
+        <>
+          <label className="ui-field">
+            <span>Email</span>
+            <input type="email" placeholder="vos@mail.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
+          </label>
 
-  const changePage = () => {
-    if (!activo) {
-      if (!formData.email || !formData.contraseña || !formData.confirmarContraseña) {
-        toast.error("Complete todos los campos requeridos", { className: "feedBack-box error" });
-        return;
-      }
-      if (formData.contraseña !== formData.confirmarContraseña) {
-        toast.error("Las contraseñas no coinciden", { className: "feedBack-box error" });
-        return;
-      }
-    }
-    setPage(!activo);
-  };
+          <label className="ui-field">
+            <span>Contraseña</span>
+            <div className="sf-input-wrap">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+              />
+              <button
+                type="button"
+                className="sf-input-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar" : "Mostrar"}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            <small>Al menos {MIN_PASSWORD} caracteres.</small>
+          </label>
+
+          <label className="ui-field">
+            <span>Repetir contraseña</span>
+            <input
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              value={form.confirmPassword}
+              onChange={(e) => set("confirmPassword", e.target.value)}
+            />
+          </label>
+        </>
+      ),
+    },
+    {
+      id: "datos",
+      title: "Datos",
+      hint: "Así te identifica el profesional cuando te da un turno.",
+      validate: () => validatePersonalData(form),
+      content: (
+        <div className="ui-field-row">
+          <label className="ui-field">
+            <span>Nombre</span>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} />
+          </label>
+          <label className="ui-field">
+            <span>Apellido</span>
+            <input value={form.surname} onChange={(e) => set("surname", e.target.value)} />
+          </label>
+        </div>
+      ),
+    },
+    {
+      id: "contacto",
+      title: "Contacto",
+      hint: "Lo usamos para avisarte de tus turnos.",
+      validate: () => validateContact(form),
+      content: (
+        <>
+          <label className="ui-field">
+            <span>Teléfono</span>
+            <input placeholder="3411234567" value={form.phoneNumber} onChange={(e) => set("phoneNumber", e.target.value)} />
+          </label>
+
+          <div className="ui-field-row">
+            <label className="ui-field">
+              <span>Tipo de documento</span>
+              <select value={form.docType} onChange={(e) => set("docType", e.target.value)}>
+                <option value="">Elegí uno…</option>
+                {DOC_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ui-field">
+              <span>Número de documento</span>
+              <input value={form.docNumber} onChange={(e) => set("docNumber", e.target.value)} />
+            </label>
+          </div>
+        </>
+      ),
+    },
+  ];
 
   return (
-    <div className="user-register-container">
-      <div className="register-title">
-        <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
-        <h1 className="title-text">Registro de Usuario</h1>
-      </div>
-      <form className="register-form" onSubmit={handleSubmit}>
-        <div className="register-body">
-          <div className="register-body-left">
-            <div className={activo ? "shown" : "not-shown"}>
-              <DataInput label="Nombre" type="text" value={formData.nombre} onChange={(e) => handleChange("nombre", e.target.value)} />
-              <DataInput
-                label="Apellido"
-                type="text"
-                value={formData.apellido}
-                onChange={(e) => handleChange("apellido", e.target.value)}
-              />
-            </div>
-
-            <div className={activo ? "not-shown" : "shown"}>
-              <DataInput label="Email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} />
-              <DataInputPassword
-                label="Contraseña"
-                value={formData.contraseña}
-                onChange={(e) => handleChange("contraseña", e.target.value)}
-              />
-              <DataInputPassword
-                label="Confirmar contraseña"
-                value={formData.confirmarContraseña}
-                onChange={(e) => handleChange("confirmarContraseña", e.target.value)}
-              />
-            </div>
-
-            <div className={activo ? "shown" : "not-shown"}>
-              <DataInput
-                label="Teléfono"
-                type="text"
-                value={formData.telefono}
-                onChange={(e) => handleChange("telefono", e.target.value)}
-              />
-              <div className="document-dataInput">
-                <div className="tipoDoc">
-                  <DataInputSelector
-                    label="Tipo documento"
-                    type="selector"
-                    options={["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"]}
-                    value={formData.tipoDocumento}
-                    onChange={(e) => handleChange("tipoDocumento", e.target.value)}
-                  />
-                </div>
-                <div className="nroDoc">
-                  <DataInput
-                    label="Nro. documento"
-                    type="text"
-                    value={formData.nroDocumento}
-                    onChange={(e) => handleChange("nroDocumento", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="register-body-right">
-            <div className="logo-consultorios">
-              <img src={Logo} alt="Logo" />
-            </div>
-
-            <div className="register-toast-wrapper">
-              <ToastContainer position="top-right" closeOnClick={false} draggable={false} />
-            </div>
-
-            <div className="captcha-container">
-              <ReCaptcha onChange={setCaptchaOk} />
-            </div>
-
-            <button type="button" className={activo ? "register-button next shown" : "register-button next not-shown"} onClick={changePage}>
-              Volver
-            </button>
-
-            {showButton
-            ? <button type="submit" className={activo ? "register-button registerBut shown" : "register-button registerBut not-shown"} >Registrar</button>
-            : <div className="register-spinner"></div>}
-
-            <button type="button" className={activo ? "register-button next not-shown" : "register-button next shown"} onClick={changePage}>
-              Siguiente
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
+    <>
+      <SteppedForm
+        title="Crear cuenta"
+        subtitle="Tres pasos cortos y ya podés pedir turno"
+        logo={Logo}
+        steps={steps}
+        submitLabel="Crear cuenta"
+        submitting={sending}
+        serverError={serverError}
+        onSubmit={handleSubmit}
+        footerNote={<>¿Ya tenés cuenta? <Link to="/Login">Iniciá sesión</Link></>}
+      />
+      <Toasts />
+    </>
   );
 }

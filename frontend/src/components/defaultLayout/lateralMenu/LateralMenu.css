@@ -1,84 +1,111 @@
+/* Menú lateral. Se desliza desde el borde izquierdo y ocupa todo el alto:
+   antes quedaba a 90vh y se cortaba contra la barra superior. */
+
 .lateral-menu {
   position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1101;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  width: 250px;
-  height: 90vh;
-  background-color: rgba(244, 244, 244, 0.9);
-  box-shadow: 0px 4px 10px rgba(108, 120, 142, 0.7);
+  width: min(292px, 84vw);
+  background: var(--adm-surface, #fff);
+  border-right: 1px solid var(--adm-border, #e2e8f0);
+  box-shadow: 0 0 40px rgba(16, 24, 40, 0.22);
   transform: translateX(-100%);
-  transition: transform 0.3s ease-in-out;
-  z-index: 999;
+  transition: transform 0.24s cubic-bezier(0.3, 0.8, 0.3, 1);
+  color: var(--adm-text, #1f2a33);
 }
 
 .lateral-menu.open {
   transform: translateX(0);
 }
 
-.back-button {
+.lateral-menu-head {
   display: flex;
-  position: absolute;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 14px 20px;
+  border-bottom: 1px solid var(--adm-border, #e2e8f0);
+}
+
+.lateral-menu-logo {
+  width: 150px;
+  height: auto;
+}
+
+.lateral-menu-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--adm-muted, #64748b);
+  font-size: 1.05rem;
   cursor: pointer;
-  color: black;
-  background-color: rgba(244, 244, 244, 0.8);
-  align-items: center;
-  justify-content: center;
-  font-size: x-large;
-  height: 45px;
-  width: 45px;
-  top: 50%;
-  left: 100%;
-  transform: translateY(-50%);
-  border-radius: 0px 15px 15px 0px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.lateral-menu .back-button {
-  display: none;
+.lateral-menu-close:hover {
+  background: var(--adm-bg, #f1f4f6);
+  color: var(--adm-text, #1f2a33);
 }
 
-.lateral-menu.open .back-button {
+.lateral-menu-items {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  overflow-y: auto;
+  flex: 1;
 }
 
-.back-button:hover {
-  font-size: xx-large;
-  transition: font-size 0.3s ease;
-}
-
-.menu-item {
+.lateral-menu-item {
   display: flex;
   align-items: center;
-  padding: 15px;
+  gap: 13px;
+  padding: 13px 14px;
+  border-radius: 10px;
+  color: var(--adm-text, #1f2a33);
+  font-size: 1rem;
+  font-weight: 600;
   text-decoration: none;
-  color: #333;
-  width: 100%;
-  gap: 10px;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
-.link-menu-item {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  font-size: x-large;
-  color: #333;
+.lateral-menu-item:hover {
+  background: var(--adm-green-soft, #e8f1ec);
+  color: var(--adm-green-dark, #2f5e46);
 }
 
-.menu-item:hover {
-  background-color: rgba(244, 244, 244, 0.9);
+.lateral-menu-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--adm-green-soft, #e8f1ec);
+  color: var(--adm-green-dark, #2f5e46);
+  font-size: 0.92rem;
 }
 
-.logo-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.lateral-menu-foot {
+  margin: 0;
+  padding: 16px 20px;
+  border-top: 1px solid var(--adm-border, #e2e8f0);
+  color: var(--adm-muted, #64748b);
+  font-size: 0.85rem;
 }
 
-.logo-container img{
-    width: 80%;
-    height: auto;
-    margin-top: 20px;
-    border-radius: 10px;
+@media (prefers-reduced-motion: reduce) {
+  .lateral-menu {
+    transition: none;
+  }
 }
-
-

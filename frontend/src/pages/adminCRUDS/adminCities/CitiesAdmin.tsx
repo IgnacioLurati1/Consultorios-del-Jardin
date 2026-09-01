@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { CityLabel  } from "./CityLabel";   
 import {CityModal} from "./CityModal";
 import "../../homePages/adminHome/AdminHome.css"
 import "../adminCRUDS.css";
-import { NavZone } from "../../../components/navZone/NavZone";
+import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { FaPlus } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import { findAllCities, createCity, removeCity, updateCity} from "./CityService.ts";
 import { findAllActiveProvinces} from "../adminProvinces/ProvinceService.ts"
 import type {Province, City} from "../../types.ts";
@@ -114,11 +115,8 @@ export function CitiesAdmin() {
     return (
         <div className="admin-home">
 
-            <NavZone title="Administrador de Localidades"/>
-            <ToastContainer 
-                className = {`toast-container`}
-                draggable={false}
-            />
+            <AdminHeader title="Localidades" subtitle="Localidades asociadas a cada provincia" />
+            <Toasts />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una localidad" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 {!loading && cities.length === 0 ? (

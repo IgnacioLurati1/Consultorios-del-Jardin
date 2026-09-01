@@ -1,3 +1,11 @@
+/* Estilos compartidos por toda la app. Se importan acá (y no en cada pantalla)
+   porque definen los tokens del panel y las piezas comunes: avisos, ventanas
+   modales y listados de personas. */
+@import "./pages/adminCRUDS/adminPanel.css";
+@import "./components/toast/toast.css";
+@import "./components/modal/modal.css";
+@import "./components/peopleList/peopleList.css";
+
 body {
   margin: 0;
   padding: 0;

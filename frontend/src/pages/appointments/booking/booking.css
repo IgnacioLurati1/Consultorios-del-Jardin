@@ -1,0 +1,229 @@
+/* ============================================================
+   Pedido de turno del paciente: filtros, listado de profesionales y,
+   abajo, los horarios del que esté elegido.
+   ============================================================ */
+
+/* Los filtros usan .adm-filters y .adm-chips del sistema visual. */
+
+/* ---------- buscador ---------- */
+
+.booking-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.booking-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--adm-muted);
+  pointer-events: none;
+}
+
+.booking-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px 13px 42px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  font-size: 1.03rem;
+  font-family: inherit;
+  box-shadow: var(--adm-shadow);
+}
+
+.booking-search input:focus {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -1px;
+}
+
+/* ---------- listado de profesionales ---------- */
+
+.booking-professionals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.booking-professional {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 22px;
+  border: none;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--adm-border);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.booking-professionals > li:last-child .booking-professional {
+  border-bottom: none;
+}
+
+.booking-professional:hover {
+  background: #fafbfc;
+}
+
+.booking-professional:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -2px;
+}
+
+/* El elegido queda marcado: abajo se están viendo sus horarios. */
+.booking-professional.active {
+  background: var(--adm-green-soft);
+  border-left-color: var(--adm-green);
+}
+
+.booking-professional-avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-green);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.booking-professional-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-professional-name {
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+
+.booking-professional-speciality {
+  color: var(--adm-muted);
+  font-size: 0.92rem;
+}
+
+.booking-professional-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.booking-professional-action svg {
+  transition: transform 0.2s ease;
+}
+
+.booking-professional-action svg.rotated {
+  transform: rotate(180deg);
+}
+
+.booking-professional:hover .booking-professional-action,
+.booking-professional.active .booking-professional-action {
+  background: var(--adm-green);
+  color: #fff;
+}
+
+/* ---------- horarios del profesional elegido ---------- */
+
+.booking-schedule {
+  margin-top: 28px;
+  animation: booking-schedule-in 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes booking-schedule-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+.booking-schedule-head {
+  margin-bottom: 16px;
+}
+
+.booking-schedule-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--adm-text);
+}
+
+.booking-schedule-sub {
+  margin: 3px 0 0;
+  color: var(--adm-muted);
+  font-size: 0.95rem;
+}
+
+.booking-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.booking-week {
+  color: var(--adm-text);
+  font-size: 1.02rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.booking-empty-week {
+  margin: 16px 0 0;
+  text-align: center;
+  color: var(--adm-muted);
+  font-size: 0.97rem;
+}
+
+@media (max-width: 768px) {
+  .booking-week-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .booking-week {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .booking-professional {
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    padding: 14px 16px;
+  }
+
+  .booking-professional-action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-schedule {
+    animation: none;
+  }
+}

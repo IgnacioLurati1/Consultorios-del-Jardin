@@ -1,0 +1,164 @@
+/* ============================================================
+   Listado de personas. Nació en la pantalla de pacientes del profesional
+   y ahora lo comparte el listado de usuarios del admin: misma fila,
+   mismas iniciales, mismos cartelitos.
+   ============================================================ */
+
+/* ---------- buscador ---------- */
+
+.people-search {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.people-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--adm-muted);
+  pointer-events: none;
+}
+
+.people-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px 13px 42px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  font-size: 1.03rem;
+  font-family: inherit;
+  color: var(--adm-text);
+  box-shadow: var(--adm-shadow);
+}
+
+.people-search-input:focus {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -1px;
+}
+
+/* ---------- listado ---------- */
+
+.people-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.people-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 15px 22px;
+  border: none;
+  border-bottom: 1px solid var(--adm-border);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
+.people-list > li:last-child .people-row {
+  border-bottom: none;
+}
+
+button.people-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+button.people-row:hover {
+  background: #fafbfc;
+}
+
+button.people-row:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -2px;
+}
+
+.people-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-green);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.people-avatar.green {
+  background: var(--adm-green);
+}
+
+.people-avatar.amber {
+  background: var(--adm-warn);
+}
+
+.people-avatar.grey {
+  background: #94a3b8;
+}
+
+.people-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.people-row-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.people-row-meta {
+  font-size: 0.9rem;
+  color: var(--adm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-row-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Nota explicativa arriba del listado. */
+.people-note {
+  margin: 0 0 20px;
+  padding: 13px 16px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  border-radius: var(--adm-radius-sm);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .people-row {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .people-row-text {
+    flex-basis: calc(100% - 60px);
+  }
+
+  .people-row-badges {
+    justify-content: flex-start;
+  }
+}

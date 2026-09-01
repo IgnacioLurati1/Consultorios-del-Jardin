@@ -1,29 +1,45 @@
 import { test, expect } from '@playwright/test';
 
-//Test que no se puede correr si no está activo el sistema de mails ya que no funciona correctamente el BackEnd
+// El alta real manda un mail de bienvenida: sin SendGrid configurado, el backend falla.
+// Este test se corre solo con el sistema de mails activo.
 
 test('Flujo completo de Register exitoso', async ({ page }) => {
-  // Ir a la página
-    await page.goto('http://localhost:5173/');
+  await page.goto('http://localhost:5173/');
 
-    // Prueba con 'button' primero. Si es un <Link to="..."> de React Router, usa 'link'.
-    await page.getByRole('button', { name: /Registrarse/i }).click();
+  // En la barra superior, el acceso al registro es un link.
+  await page.getByRole('link', { name: /Crear cuenta/i }).click();
 
-    await expect(page).toHaveTitle(/Consultorios de jardin/i);
-    // Llenar el formulario
-    await page.getByLabel('Nombre').fill('Nombre de Prueba');
-    await page.getByLabel('Apellido').fill('Apellido de Prueba');
-    await page.getByLabel('Email').fill('emaildeprueba@gmail.com');
-    await page.getByLabel('Contraseña').fill('userdeprueba');
-    await page.getByLabel('Confirmar contraseña').fill('userdeprueba');
+  // Paso 1: cuenta
+  await page.getByLabel('Email').fill(`prueba.${Date.now()}@demo.local`);
+  await page.getByLabel(/^Contraseña/).fill('userdeprueba');
+  await page.getByLabel('Repetir contraseña').fill('userdeprueba');
+  await page.getByRole('button', { name: /Siguiente/i }).click();
 
-    await page.getByLabel('Tipo de documento').selectOption('DNI');
-    await page.getByLabel('Número de documento').fill('12345678');
-    // Especificamos que queremos el botón que está visible dentro del form.
-    await page.locator('form').getByRole('button', { name: 'Registrar' }).click();
+  // Paso 2: datos personales
+  await page.getByLabel('Nombre').fill('Nombre de Prueba');
+  await page.getByLabel('Apellido').fill('Apellido de Prueba');
+  await page.getByRole('button', { name: /Siguiente/i }).click();
 
-    // 4. Validar el resultado
-    // Si el login es exitoso con admin, tu código de React redirige a "/adminHome".
-    // Lo correcto es esperar la URL de destino:
-    await expect(page).toHaveURL(/http:\/\/localhost:5173\//); 
+  // Paso 3: contacto
+  await page.getByLabel('Teléfono').fill('3411234567');
+  await page.getByLabel('Tipo de documento').selectOption('DNI');
+  await page.getByLabel('Número de documento').fill('12345678');
+  await page.getByRole('button', { name: /Crear cuenta/i }).click();
+
+  await expect(page).toHaveURL('http://localhost:5173/');
+});
+
+test('El registro no deja avanzar con datos incompletos', async ({ page }) => {
+  await page.goto('http://localhost:5173/Register');
+
+  // Sin email no se pasa de paso.
+  await page.getByRole('button', { name: /Siguiente/i }).click();
+  await expect(page.getByText(/Escribí un email/i)).toBeVisible();
+
+  // Las contraseñas se comparan en el mismo paso, no al final.
+  await page.getByLabel('Email').fill('prueba@demo.local');
+  await page.getByLabel(/^Contraseña/).fill('secreta123');
+  await page.getByLabel('Repetir contraseña').fill('otracosa123');
+  await page.getByRole('button', { name: /Siguiente/i }).click();
+  await expect(page.getByText(/no coinciden/i)).toBeVisible();
 });

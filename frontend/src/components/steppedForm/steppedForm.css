@@ -1,0 +1,294 @@
+/* ============================================================
+   Formulario por pasos. Los pasos viven todos en el DOM, uno al lado
+   del otro, y lo que se mueve es la cinta: por eso el desplazamiento
+   lateral se siente continuo en vez de un salto entre pantallas.
+   ============================================================ */
+
+.sf-page {
+    display: grid;
+    place-items: center;
+    min-height: calc(100vh - 66px);
+    padding: 40px 20px 60px;
+    box-sizing: border-box;
+}
+
+.sf-card {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: min(560px, 100%);
+    padding: 32px 30px 28px;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: 18px;
+    box-shadow: 0 16px 44px rgba(16, 24, 40, 0.1);
+    color: var(--adm-text);
+}
+
+.sf-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+.sf-logo {
+    height: 62px;
+    width: auto;
+    margin-bottom: 6px;
+}
+
+.sf-title {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.sf-subtitle {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: 1rem;
+}
+
+/* ---------- barra de pasos ---------- */
+
+.sf-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sf-step {
+    flex: 1;
+    min-width: 0;
+}
+
+/* La línea que une un paso con el anterior, para que se lea como un recorrido. */
+.sf-step + .sf-step {
+    position: relative;
+    padding-left: 8px;
+}
+
+.sf-step + .sf-step::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    width: 16px;
+    height: 2px;
+    background: var(--adm-border);
+}
+
+.sf-step.current + .sf-step::before,
+.sf-step.done + .sf-step::before {
+    background: var(--adm-green);
+}
+
+.sf-step-button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    border: 1px solid var(--adm-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--adm-muted);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.sf-step-button:disabled {
+    cursor: default;
+}
+
+.sf-step-dot {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--adm-bg);
+    color: var(--adm-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.sf-step-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sf-step.current .sf-step-button {
+    border-color: var(--adm-green);
+    background: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+}
+
+.sf-step.current .sf-step-dot {
+    background: var(--adm-green);
+    color: #fff;
+}
+
+.sf-step.done .sf-step-button {
+    border-color: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+}
+
+.sf-step.done .sf-step-button:hover {
+    background: var(--adm-green-soft);
+}
+
+.sf-step.done .sf-step-dot {
+    background: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+}
+
+/* ---------- cinta de pasos ---------- */
+
+.sf-viewport {
+    overflow: hidden;
+    /* El margen negativo deja que el foco de un input dibuje su contorno completo
+       sin que el overflow lo recorte. */
+    margin: -6px;
+    transition: height 0.32s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.sf-track {
+    display: flex;
+    /* flex-start y no stretch: cada paso conserva su alto natural y el alto de la
+       ventana lo maneja el componente. */
+    align-items: flex-start;
+    transition: transform 0.32s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.sf-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 0 0 100%;
+    min-width: 0;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.sf-panel-hint {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.sf-error {
+    margin: 0;
+}
+
+/* ---------- acciones ---------- */
+
+.sf-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.sf-submit {
+    flex: 1;
+    justify-content: center;
+}
+
+.sf-foot {
+    margin: 0;
+    text-align: center;
+    color: var(--adm-muted);
+    font-size: 0.95rem;
+}
+
+.sf-foot a {
+    color: var(--adm-green-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.sf-foot a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+    .sf-card {
+        padding: 26px 20px 24px;
+    }
+
+    /* En pantallas chicas los nombres de los pasos no entran: quedan los números. */
+    .sf-step-name {
+        display: none;
+    }
+
+    .sf-step-button {
+        justify-content: center;
+        padding: 9px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sf-track,
+    .sf-viewport {
+        transition: none;
+    }
+}
+
+/* ---------- campo con botón adentro (mostrar contraseña) ---------- */
+
+.sf-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.sf-input-wrap input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 44px 11px 13px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background: #fff;
+    color: var(--adm-text);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 400;
+}
+
+.sf-input-wrap input:focus {
+    outline: 2px solid var(--adm-green);
+    outline-offset: -1px;
+    border-color: transparent;
+}
+
+.sf-input-toggle {
+    position: absolute;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--adm-muted);
+    cursor: pointer;
+}
+
+.sf-input-toggle:hover {
+    background: var(--adm-bg);
+    color: var(--adm-text);
+}

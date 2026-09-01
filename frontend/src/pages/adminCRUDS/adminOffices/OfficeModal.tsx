@@ -1,170 +1,190 @@
-import { useState } from "react";
-import { FaTimes, FaTrash, FaChevronRight } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { FaTrash } from "react-icons/fa6";
+import { Modal } from "../../../components/modal/Modal.tsx";
 
-export function OfficeModal({visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces}: {visible: boolean; onClose: () => void; office: any | null; onDelete: (id: string) => void; onEdit: (id: string, newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string, active: boolean) => void; action: string; onCreate: ( newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void; cities: any[]; provinces: any[]}) {
-  if (!visible) return null;
+interface OfficeModalProps {
+  visible: boolean;
+  onClose: () => void;
+  office: any | null;
+  onDelete: (id: string) => void;
+  onEdit: (
+    id: string,
+    newDescription: string,
+    newOpeningTime: string,
+    newClosingTime: string,
+    newCityId: string,
+    active: boolean
+  ) => void;
+  action: string;
+  onCreate: (newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void;
+  cities: any[];
+  provinces: any[];
+}
 
-  if (action === "edit" && office && office.active) {
-    const [newOpeningTime, setNewOpeningTime] = useState(office.openingTime);
-    const [newClosingTime, setNewClosingTime] = useState(office.closingTime);
-    const [newDescription, setNewDescription] = useState(office.description);
-    const [newCityId, setNewCityId] = useState(office.city.idCity);
-    const [newProvinceId, setNewProvinceId] = useState(office.city.province.nameProvince);
+const emptyForm = { description: "", openingTime: "", closingTime: "", city: "", province: "" };
 
-    const filteredCities = newProvinceId 
-      ? cities.filter(city => city.province.idProvince == newProvinceId)
-      : cities;
+export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces }: OfficeModalProps) {
+  // El estado vive acá arriba y no dentro de cada rama: antes cada caso llamaba a
+  // useState por su cuenta, y cambiar de caso rompía el orden de los hooks.
+  const [form, setForm] = useState(emptyForm);
+  const [error, setError] = useState<string | null>(null);
 
-    const handleProvinceChange = (e: any) => {
-      setNewProvinceId(e.target.value);
-      setNewCityId('');
-    };
+  const editing = action === "edit" && !!office;
 
+  useEffect(() => {
+    if (!visible) return;
+
+    setForm(
+      office
+        ? {
+            description: office.description,
+            openingTime: office.openingTime,
+            closingTime: office.closingTime,
+            city: office.city.idCity,
+            province: office.city.province.idProvince,
+          }
+        : emptyForm
+    );
+    setError(null);
+  }, [visible, office]);
+
+  if (!visible || (action === "edit" && !office)) return null;
+
+  const filteredCities = form.province ? cities.filter((city) => String(city.province.idProvince) === String(form.province)) : [];
+
+  function submit() {
+    if (!form.description.trim()) return setError("La descripción es obligatoria");
+    if (!form.openingTime || !form.closingTime) return setError("Cargá el horario de apertura y el de cierre");
+    if (form.openingTime >= form.closingTime) return setError("El horario de apertura tiene que ser anterior al de cierre");
+    if (!form.city) return setError("Elegí una localidad");
+
+    setError(null);
+
+    if (editing) onEdit(office.idOffice, form.description.trim(), form.openingTime, form.closingTime, form.city, office.active);
+    else onCreate(form.description.trim(), form.openingTime, form.closingTime, form.city);
+  }
+
+  // Un consultorio dado de baja solo se puede reactivar.
+  if (editing && !office.active) {
     return (
-      <div className="crud-modal" onClick={onClose}>
-        <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
-          <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
-            <FaTimes className="close-icon" onClick={onClose} />
+      <Modal
+        open
+        onClose={onClose}
+        size="sm"
+        title={office.description}
+        subtitle="Consultorio dado de baja"
+        footer={
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+              Cerrar
+            </button>
+            <button
+              type="button"
+              className="adm-btn adm-btn-primary"
+              autoFocus
+              onClick={() =>
+                onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, false)
+              }
+            >
+              Reactivar consultorio
+            </button>
+          </>
+        }
+      >
+        <div className="ui-section">
+          <div className="ui-detail-list">
+            <div className="ui-detail-row">
+              <span>Horario</span>
+              <strong>
+                {office.openingTime} a {office.closingTime}
+              </strong>
+            </div>
+            <div className="ui-detail-row">
+              <span>Localidad</span>
+              <strong>
+                {office.city.nameCity}, {office.city.province.nameProvince}
+              </strong>
+            </div>
           </div>
-          
-          <div className="crud-input-container">
-            <label>Descripción: </label>
-            <input type="text" className="input-crud" placeholder={office.description} value={newDescription} onChange={e => setNewDescription(e.target.value)} />
-          </div>
-          <div className="crud-input-container">
-            <label>Horario de Apertura: </label>
-            <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} />
-          </div>
-          <div className="crud-input-container">
-            <label>Horario de Cierre: </label>
-            <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} />
-          </div>
-          <div className="crud-input-container">
-            <label>Provincia: </label>
-            <select className="input-crud" value={newProvinceId} onChange={handleProvinceChange}>  {}
-                <option value="">Seleccione una provincia</option>  {}
-                {provinces.map(province => (
-                  <option key={province.idProvince} value={province.idProvince}>
-                    {province.nameProvince}
-                  </option>
-                ))}
-              </select>
-          </div>
-          <div className="crud-input-container">
-            <label>Ciudad: </label>
-            <select className="input-crud" value={newCityId} onChange={e => setNewCityId(e.target.value)}>
-              <option value="">Seleccione una ciudad</option>  {}
-              {filteredCities.map(city => (
-                <option key={city.idCity} value={city.idCity}>
-                  {city.nameCity}  {}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="buttons">
-            <button className="delete-button" onClick={() => office && onDelete(office.idOffice)}>Eliminar Consultorio <FaTrash /></button>
-            <button className="edit-button" onClick={() => onEdit(office.idOffice, newDescription , newOpeningTime, newClosingTime, newCityId, office.active)}>Modificar</button>
-          </div>
+          <p className="ui-alert ui-alert-info">Mientras esté dado de baja no se pueden dar turnos en sus salas.</p>
         </div>
-      </div>
+      </Modal>
     );
   }
 
-  if (action === "create") {
-    const [newOpeningTime, setNewOpeningTime] = useState('');
-    const [newClosingTime, setNewClosingTime] = useState('');
-    const [newDescription, setNewDescription] = useState('');
-    const [newCityId, setNewCityId] = useState('');
-    const [newProvinceId, setNewProvinceId] = useState('');
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={editing ? "Editar consultorio" : "Nuevo consultorio"}
+      subtitle={editing ? office.description : "Dónde atienden los profesionales"}
+      footer={
+        <>
+          {editing && (
+            <button type="button" className="adm-btn adm-btn-danger" onClick={() => onDelete(office.idOffice)}>
+              <FaTrash />
+              Dar de baja
+            </button>
+          )}
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
+            {editing ? "Guardar cambios" : "Crear consultorio"}
+          </button>
+        </>
+      }
+    >
+      <div className="ui-section">
+        <label className="ui-field">
+          <span>Descripción</span>
+          <input
+            autoFocus
+            value={form.description}
+            placeholder="Consultorio Centro"
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </label>
 
-    const filteredCities = newProvinceId 
-      ? cities.filter(city => city.province.idProvince == newProvinceId)
-      : [];
+        <div className="ui-field-row">
+          <label className="ui-field">
+            <span>Abre a las</span>
+            <input type="time" value={form.openingTime} onChange={(e) => setForm({ ...form, openingTime: e.target.value })} />
+          </label>
+          <label className="ui-field">
+            <span>Cierra a las</span>
+            <input type="time" value={form.closingTime} onChange={(e) => setForm({ ...form, closingTime: e.target.value })} />
+          </label>
+        </div>
 
-    const handleProvinceChange = (e: any) => {
-      setNewProvinceId(e.target.value);
-      setNewCityId('');
-    };
-
-    return (
-      <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
-        if (e.key === 'Enter') {
-          onCreate(newDescription, newOpeningTime, newClosingTime, newCityId);
-          
-        }
-      }}>
-        <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
-          <div className="titleAndClose">
-            <h2 className="crud-modal-title">Crear Nuevo Consultorio <FaChevronRight /></h2>
-            <FaTimes className="close-icon" onClick={onClose} />
-          </div>
-          <div className="crud-input-container">
-            <label>Descripción:</label>
-            <input type="text" className="input-crud" placeholder="Descripción del Consultorio" value={newDescription} onChange={e => setNewDescription(e.target.value)} />
-          </div>
-          <div className="crud-input-container">
-            <label>Horario de Apertura:</label>
-            <input type="time" className="input-crud" value={newOpeningTime} onChange={e => setNewOpeningTime(e.target.value)} />
-          </div>
-          <div className="crud-input-container">
-            <label>Horario de Cierre:</label>
-            <input type="time" className="input-crud" value={newClosingTime} onChange={e => setNewClosingTime(e.target.value)} />
-          </div>
-          <div className="crud-input-container">
-            <label>Provincia:</label>
-            <select className="input-crud" value={newProvinceId} onChange={handleProvinceChange}> {}
-              <option value="">Seleccione una provincia</option> {}
-              {provinces.map(province => (
+        <div className="ui-field-row">
+          <label className="ui-field">
+            <span>Provincia</span>
+            <select value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value, city: "" })}>
+              <option value="">Elegí una provincia…</option>
+              {provinces.map((province) => (
                 <option key={province.idProvince} value={province.idProvince}>
                   {province.nameProvince}
                 </option>
               ))}
             </select>
-          </div>
-          <div className="crud-input-container">
-            <label>Ciudad:</label>
-            <select className="input-crud" value={newCityId} onChange={e => setNewCityId(e.target.value)}>
-              <option value="">Seleccione una ciudad</option> {}
-              {filteredCities.map(city => (
+          </label>
+
+          <label className="ui-field">
+            <span>Localidad</span>
+            <select value={form.city} disabled={!form.province} onChange={(e) => setForm({ ...form, city: e.target.value })}>
+              <option value="">{form.province ? "Elegí una localidad…" : "Elegí primero la provincia"}</option>
+              {filteredCities.map((city) => (
                 <option key={city.idCity} value={city.idCity}>
                   {city.nameCity}
                 </option>
               ))}
             </select>
-          </div>
-          
-          <div className="buttons">
-            <button className="create-button" onClick={() => onCreate(newDescription, newOpeningTime, newClosingTime, newCityId)}>Crear Consultorio</button>
-          </div>
+          </label>
         </div>
-      </div>
-    );
-  }
 
-  if (action === "edit" && office && !office.active) {
-    return (
-      <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
-        if (e.key === 'Enter') {
-          onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, true)
-        }
-      }}>
-        <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
-          <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles del Consultorio <FaChevronRight /></h2>
-            <FaTimes className="close-icon" onClick={onClose} />
-          </div>
-          <p>ID: {office.idOffice}</p>
-          <p>Descripción: {office.description}</p>
-          <p>Horario de Apertura: {office.openingTime}</p>
-          <p>Horario de Cierre: {office.closingTime}</p>
-          <p>Provincia: {office.city.province.nameProvince}</p>
-          <p>Ciudad: {office.city.nameCity}</p>
-          <div className="buttons">
-            <button className="edit-button" onClick={() => onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, false)}>Activar</button>
-          </div>
-        </div>
+        {error && <p className="ui-alert ui-alert-error">{error}</p>}
       </div>
-    );
-  }
+    </Modal>
+  );
 }

@@ -1,0 +1,453 @@
+/* ============================================================
+   Sistema visual del panel de administración.
+   Mantiene la identidad verde del proyecto pero con superficies
+   más claras, bordes suaves y tipografía más ordenada.
+   ============================================================ */
+
+:root {
+  --adm-green: #3b7658;
+  --adm-green-dark: #2f5e46;
+  --adm-green-soft: #e8f1ec;
+  --adm-surface: #ffffff;
+  --adm-bg: #f1f4f6;
+  --adm-text: #1f2a33;
+  --adm-muted: #64748b;
+  --adm-border: #e2e8f0;
+  --adm-danger: #c0392b;
+  --adm-danger-soft: #fdecea;
+  --adm-warn: #b7791f;
+  --adm-radius: 12px;
+  --adm-radius-sm: 8px;
+  --adm-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --adm-shadow-lg: 0 10px 30px rgba(16, 24, 40, 0.12);
+}
+
+/* ---------- layout de página ---------- */
+
+.adm-page {
+  width: min(1440px, 93vw);
+  margin: 0 auto;
+  padding: 34px 0 80px;
+  font-size: 17px;
+  color: var(--adm-text);
+}
+
+.adm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--adm-border);
+  margin-bottom: 32px;
+}
+
+.adm-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.adm-title {
+  margin: 0;
+  font-size: 2.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--adm-text);
+}
+
+.adm-subtitle {
+  margin: 0;
+  font-size: 1.08rem;
+  color: var(--adm-muted);
+}
+
+.adm-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: var(--adm-radius-sm);
+  border: 1px solid var(--adm-border);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.adm-back:hover {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green);
+  color: var(--adm-green-dark);
+}
+
+/* ---------- botones ---------- */
+
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 20px;
+  border-radius: var(--adm-radius-sm);
+  border: 1px solid transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  font-family: inherit;
+}
+
+.adm-btn-primary {
+  background: var(--adm-green);
+  color: #fff;
+}
+
+.adm-btn-primary:hover {
+  background: var(--adm-green-dark);
+}
+
+.adm-btn-ghost {
+  background: var(--adm-surface);
+  border-color: var(--adm-border);
+  color: var(--adm-text);
+}
+
+.adm-btn-ghost:hover {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green);
+}
+
+.adm-btn-danger {
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+  border-color: #f3c7c1;
+}
+
+.adm-btn-danger:hover {
+  background: #f9dcd8;
+}
+
+.adm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botón que prende o apaga un filtro: prendido queda en verde. */
+.adm-btn.active {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green);
+  color: var(--adm-green-dark);
+}
+
+/* ---------- barra de filtros de un listado ----------
+   Los chips arriba y el buscador abajo, como una sola pieza. */
+
+.adm-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* El buscador trae su propio margen para cuando va suelto; acá manda el gap. */
+.adm-filters .people-search {
+  margin-bottom: 0;
+}
+
+/* ---------- chips de filtro ----------
+   Fila de opciones excluyentes arriba de un listado: la elegida queda en verde. */
+
+.adm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.adm-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--adm-border);
+  border-radius: 999px;
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  font-family: inherit;
+  font-size: 0.97rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.adm-chips button:hover {
+  border-color: var(--adm-green);
+  color: var(--adm-green-dark);
+}
+
+.adm-chips button.active {
+  border-color: var(--adm-green);
+  background: var(--adm-green);
+  color: #fff;
+}
+
+/* Cuántos entran en ese filtro. */
+.adm-chip-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  opacity: 0.65;
+}
+
+/* ---------- tarjetas del menú ---------- */
+
+.adm-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 22px;
+}
+
+.adm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 30px 28px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+  text-decoration: none;
+  color: var(--adm-text);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.adm-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--adm-shadow-lg);
+  border-color: var(--adm-green);
+}
+
+.adm-card-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 1.7rem;
+}
+
+.adm-card-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.adm-card-desc {
+  font-size: 1rem;
+  color: var(--adm-muted);
+  line-height: 1.4;
+}
+
+/* ---------- sección plegable del catálogo ---------- */
+
+.adm-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 40px 0 0;
+  padding: 13px 20px;
+  background: var(--adm-surface);
+  border: 1px dashed var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  color: var(--adm-muted);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.adm-section-toggle:hover {
+  border-color: var(--adm-green);
+  color: var(--adm-green-dark);
+}
+
+.adm-section-toggle .adm-plus {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--adm-green);
+  color: #fff;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+
+.adm-section-toggle.open .adm-plus {
+  transform: rotate(45deg);
+}
+
+.adm-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.adm-collapsible.open {
+  grid-template-rows: 1fr;
+}
+
+.adm-collapsible > div {
+  overflow: hidden;
+}
+
+.adm-collapsible-inner {
+  padding-top: 16px;
+}
+
+/* ---------- panel / listas ---------- */
+
+.adm-panel {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+  overflow: hidden;
+}
+
+.adm-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 17px 22px;
+  border-bottom: 1px solid var(--adm-border);
+  background: #fafbfc;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--adm-muted);
+}
+
+.adm-empty {
+  padding: 60px 28px;
+  text-align: center;
+  color: var(--adm-muted);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.adm-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+/* ---------- placeholders de carga ---------- */
+
+@keyframes adm-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.adm-skeleton {
+  background: linear-gradient(90deg, #e9edf1 25%, #f5f7f9 50%, #e9edf1 75%);
+  background-size: 200% 100%;
+  animation: adm-shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.adm-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.adm-skeleton-row:last-child {
+  border-bottom: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-skeleton {
+    animation: none;
+  }
+}
+
+/* ---------- estados ---------- */
+
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.adm-badge-green {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.adm-badge-grey {
+  background: #eef1f4;
+  color: var(--adm-muted);
+}
+
+.adm-badge-red {
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+}
+
+.adm-badge-amber {
+  background: #fdf3e0;
+  color: var(--adm-warn);
+}
+
+@media (max-width: 768px) {
+  .adm-page {
+    width: 94vw;
+    padding-top: 16px;
+  }
+
+  .adm-title {
+    font-size: 1.55rem;
+  }
+
+  .adm-page {
+    font-size: 16px;
+  }
+
+  .adm-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* Marca de sobreturno. Vive acá porque la usan la agenda del profesional, la lista
+   de turnos y la grilla semanal. */
+.appt-tag-over {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px dashed var(--adm-warn);
+  color: var(--adm-warn);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

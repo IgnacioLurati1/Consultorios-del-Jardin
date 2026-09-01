@@ -1,51 +1,47 @@
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faBars} from '@fortawesome/free-solid-svg-icons'
-import {Link} from 'react-router-dom';
-import {Session} from './session/Session';
-import './Header.css';
-import {useState} from 'react';
-import {LateralMenu} from '../defaultLayout/lateralMenu/LateralMenu';
-import LogoHojas from '../../assets/LogoHojasRecortado.PNG';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { FaBars } from "react-icons/fa6";
+import { Session } from "./session/Session";
+import { LateralMenu } from "../defaultLayout/lateralMenu/LateralMenu";
+import LogoHojas from "../../assets/LogoHojasRecortado.PNG";
+import "./Header.css";
 
-export function Header(){
+const menuItems = [
+  { faviconName: "home", title: "Inicio", path: "/", userType: "all" },
+  { faviconName: "user", title: "Iniciar sesión", path: "/Login", userType: "guest" },
+  { faviconName: "database", title: "Panel de administración", path: "/AdminHome", userType: "admin" },
+  { faviconName: "professional", title: "Panel del profesional", path: "/ProfessionalHome", userType: "professional" },
+  { faviconName: "appointments", title: "Mis turnos", path: "/AppointmentsList", userType: "client" },
+  { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "client" },
+  { faviconName: "appointments", title: "Turnos", path: "/AppointmentsList", userType: "professional" },
+  { faviconName: "calendar", title: "Horarios", path: "/scheduleProfessional", userType: "professional" },
+  { faviconName: "phone", title: "Contacto", path: "/contacto", userType: "all" },
+];
 
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+export function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
-    };
+  const toggleMenu = () => setIsMenuOpen((open) => !open);
 
-        const menuItems = [
-    { faviconName: "home", title: "Home", path: "/", userType: "all"},
-    { faviconName: "user", title: "Login", path: "/login", userType: "guest"},
-    { faviconName: "phone", title: "Contacto", path: "/contacto" , userType: "all"},
-    { faviconName: "database", title: "Menú Admin", path: "/adminHome" , userType: "admin"},
-    { faviconName: "professional", title: "Menú Profesional", path: "/professionalHome" , userType: "professional"},
-    { faviconName: "appointments", title: "Mis turnos", path: "/AppointmentsList" , userType: "client"},
-    { faviconName: "appointments", title: "Administrar turnos", path: "/AppointmentsList" , userType: "professional"},
-    { faviconName: "requestAppointments", title: "Solicitar turnos", path: "/Appointment" , userType: "client"},
-  ];
+  return (
+    <>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <button type="button" className="app-header-menu" onClick={toggleMenu} aria-label="Abrir menú">
+            <FaBars />
+          </button>
 
-    return(
-        <>
-            <div className="header-container">   
-                <div className="header-left">  
-                    <button onClick={toggleMenu}><FontAwesomeIcon icon={faBars} /></button>
-                    <div >
-                        <Link className="title" to={"/"}>
-                            <p className="header-title-text">Consultorios del Jardin</p>
-                            <img src={LogoHojas} alt="Logo" className="logo-header"/>
-                        </Link>
-                    </div>
-                </div>
-                <div className="header-right">
-                    <Session/>
-                </div>
-            </div>
-            {isMenuOpen && (
-                <div className="backdrop" onClick={toggleMenu}></div>
-            )}
-            <LateralMenu isOpen={isMenuOpen} items={menuItems} onClose={toggleMenu} />
-        </>
-    );
+          <Link className="app-header-brand" to="/">
+            <img src={LogoHojas} alt="" className="app-header-logo" />
+            <span className="app-header-name">Consultorios del Jardín</span>
+          </Link>
+
+          <Session />
+        </div>
+      </header>
+
+      {isMenuOpen && <div className="app-backdrop" onClick={toggleMenu} />}
+      <LateralMenu isOpen={isMenuOpen} items={menuItems} onClose={toggleMenu} />
+    </>
+  );
 }

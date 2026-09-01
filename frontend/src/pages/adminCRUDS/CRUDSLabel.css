@@ -19,22 +19,24 @@
   box-sizing: border-box;
 }
 
-.green { 
-  background-color: #ffffff; 
-  border-left: 10px solid #4CAF50; }
+/* Estas dos iban sueltas como .green y .red, y le pegaban a cualquier elemento
+   de la app que usara esos nombres. Ahora solo aplican a la ficha del ABM. */
+.crud-label.green {
+  background-color: #ffffff;
+  border-left: 10px solid #4CAF50;
+}
 
-.red{
-  background-color: #ffffff; 
+.crud-label.red {
+  background-color: #ffffff;
   border-left: 10px solid rgb(224, 98, 98);
 }
 
-
-.red:hover {
+.crud-label.red:hover {
   background-color: rgb(255, 157, 157);
   transition: background-color 0.1s ease;
 }
 
-.green:hover {
+.crud-label.green:hover {
   background-color: #C9E6C3;
   transition: background-color 0.1s ease;
 }
@@ -194,4 +196,13 @@
         font-size: 0.9rem;
         color: #555;
     }
+}
+/* Filas de las listas del panel: un poco más grandes y con más aire */
+.adm-page .crud-label,
+.admin-home .crud-label {
+    font-size: 1.08rem;
+    min-height: 72px;
+    padding: 0 20px;
+    margin-bottom: 12px;
+    border-radius: 10px;
 }

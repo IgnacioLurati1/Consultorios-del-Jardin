@@ -71,3 +71,50 @@
   }
 
 }
+/* Aviso de modo sala (solo lectura) */
+.schedule-mode-note {
+  margin: 0 0 18px;
+  padding: 11px 14px;
+  background: var(--adm-green-soft, #e8f1ec);
+  color: var(--adm-green-dark, #2f5e46);
+  border-radius: var(--adm-radius-sm, 8px);
+  font-size: 0.9rem;
+}
+
+/* En el panel de admin el filtro va en la barra de acciones, no ocupa 10vw */
+.adm-header .filter-container {
+  width: auto;
+  min-width: 190px;
+}
+
+/* Mismas medidas que los .adm-btn de al lado: si no, queda mas bajito que ellos. */
+.adm-header .filter-selector {
+  height: auto;
+  padding: 12px 20px;
+  font-size: 1rem;
+  box-shadow: none;
+  border: 1px solid var(--adm-border, #e2e8f0);
+  background: #fff;
+  color: var(--adm-text, #1f2a33);
+  font-weight: 600;
+}
+
+.adm-header .filter-selector .icon {
+  font-size: 1em;
+}
+
+.adm-header .filter-options {
+  width: 280px;
+  box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16,24,40,.12));
+  border: 1px solid var(--adm-border, #e2e8f0);
+}
+
+.adm-page .schedule-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.schedule-subcontainer-full {
+  width: 100%;
+}

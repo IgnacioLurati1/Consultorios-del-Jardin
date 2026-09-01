@@ -1,138 +1,140 @@
-import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import "./Login.css";
-import Logo from "../../assets/LogoRecortado.png";
-import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DataInputPassword } from "../../components/inputs/passwordInput/DataInputPassword";
-import { useState } from "react";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa6";
+import { Toasts } from "../../components/toast/Toasts.tsx";
 import { useAuth } from "../../context/AuthContext";
 import type { TokenPayload } from "../types.ts";
-import ReCaptcha from "../../components/reCaptcha.tsx";
 import { LoginService } from "./loginServices.ts";
+import Logo from "../../assets/LogoRecortado.png";
+import "./Login.css";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const HOME_BY_TYPE: Record<string, string> = {
+  admin: "/AdminHome",
+  professional: "/ProfessionalHome",
+  client: "/",
+};
 
 export function Login() {
   const { login } = useAuth();
-
-  const [formData, setFormData] = useState({
-    email: "",
-    contraseña: "",
-  });
-
   const navigate = useNavigate();
-  const [captchaOk, setCaptchaOk] = useState(false);
 
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast.dismiss(); // Limpia notificaciones previas
+  function validate(): string | null {
+    if (!email.trim()) return "Escribí tu email";
+    if (!EMAIL_REGEX.test(email.trim())) return "Ese email no parece válido. Revisá que tenga @ y un punto";
+    if (!password) return "Escribí tu contraseña";
+    return null;
+  }
 
-    // Validaciones mínimas (También se tiene que hacer en el backend)
-    if (!formData.email || !formData.contraseña) {
-      toast.error("Complete todos los campos requeridos", {
-        className: "feedBack-box error",
-      });
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    toast.dismiss();
+
+    const problem = validate();
+    if (problem) {
+      setError(problem);
       return;
     }
 
-if (!captchaOk) {
-  toast.error("Por favor, completá el captcha", {
-    className: "feedBack-box error",
-  });
-  return;
-}
+    setError(null);
+    setSending(true);
 
-LoginService(formData.email, formData.contraseña)
-  .then((responseData: any) => {
-    if (responseData.token) {
-      localStorage.setItem("token", responseData.token);
-          toast.success("Inicio de sesión exitoso", {
-            className: "feedBack-box success",
-          });
-
-          const decoded: TokenPayload = jwtDecode(responseData.token);
-
-          login(responseData.token);
-
-          if (decoded.type === "admin") {
-            navigate("/adminHome");
-          } else if (decoded.type === "professional") {
-            navigate("/professionalHome");
-          } else if (decoded.type === "client") {
-            navigate("/");
-          }
-        } else {
+    LoginService(email.trim(), password)
+      .then((responseData: any) => {
+        if (!responseData.token) {
           navigate("/");
+          return;
         }
+
+        const decoded: TokenPayload = jwtDecode(responseData.token);
+        login(responseData.token);
+        navigate(HOME_BY_TYPE[decoded.type] ?? "/");
       })
       .catch((err: any) => {
-        console.error("Login error:", err);
-        const message = err.message || "Error en el inicio de sesión";
-        toast.error(message, {
-      className: "feedBack-box error",
+        setError(err.message || "No pudimos iniciar tu sesión");
+        setSending(false);
       });
-      });
-  };
+  }
 
   return (
-    <div className="user-login-container">
-      <form onSubmit={handleSubmit} className="login-form">
-        <div className="login-title">
-          <FontAwesomeIcon className="title-icon" icon={faGreaterThan} />
-          <h1 className="title-text">Inicio de sesión</h1>
+    <div className="login-page">
+      {/* noValidate: la validación nativa del navegador bloquearía el submit antes de
+          llegar acá y mostraría su propio globito. Los mensajes los damos nosotros. */}
+      <form className="login-card" onSubmit={submit} noValidate>
+        <div className="login-card-head">
+          <img src={Logo} alt="Consultorios del Jardín" className="login-logo" />
+          <h1 className="login-title">Iniciar sesión</h1>
+          <p className="login-subtitle">Entrá con tu email y tu contraseña</p>
         </div>
 
         <div className="login-body">
-          <div className="login-body-upper">
-            <DataInput label="Email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} />
-            <DataInputPassword
-              label="Contraseña"
-              showForgotPasswordLink={true}
-              value={formData.contraseña}
-              onChange={(e) => handleChange("contraseña", e.target.value)}
-            />
-          </div>
-          <hr className="divider"></hr>
-
-          <div className="login-body-middle">
-            <div>
-              <p className="no-account">
-                ¿No tienes cuenta?{" "}
-                <Link to="/Register" className="register-link">
-                  Registrate
-                </Link>
-              </p>
+          <label className="ui-field">
+            <span>Email</span>
+            <div className="login-input-wrap">
+              <input
+                autoFocus
+                type="email"
+                autoComplete="username"
+                placeholder="vos@mail.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
+              />
             </div>
-          </div>
+          </label>
 
-          <div className="login-body-lower">
-            <div className="login-logo-consultorios">
-              <img src={Logo} alt="Logo" />
+          <label className="ui-field">
+            <span>Contraseña</span>
+            <div className="login-input-wrap">
+              <input
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="Tu contraseña"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                }}
+              />
+              <button
+                type="button"
+                className="login-input-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar" : "Mostrar"}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
+          </label>
 
-            <div className="login-button-container">
-              <button className="login-button">Iniciar sesión</button>
-            </div>
-          </div>
+          <Link className="login-forgot" to="/forgot-password">
+            ¿Olvidaste tu contraseña?
+          </Link>
+
+          {error && <p className="ui-alert ui-alert-error">{error}</p>}
         </div>
 
-        <div className="captcha-container">
-          <ReCaptcha onChange={setCaptchaOk} />
-        </div>
+        <button type="submit" className="adm-btn adm-btn-primary login-submit" disabled={sending}>
+          {sending ? "Entrando…" : "Entrar"}
+        </button>
 
-        <div className="toast-container">
-          <ToastContainer position="bottom-right" closeOnClick={false} draggable={false} />
-        </div>
+        <p className="login-register-line">
+          ¿No tenés cuenta? <Link to="/Register">Registrate</Link>
+        </p>
       </form>
+
+      <Toasts />
     </div>
   );
 }

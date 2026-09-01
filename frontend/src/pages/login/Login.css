@@ -1,209 +1,146 @@
-/*---------------------------------------------------------*/
-/*---------------------------LOGIN-------------------------*/
-/*---------------------------------------------------------*/
+/* ============================================================
+   Inicio de sesión: una tarjeta al centro, con la misma paleta
+   y las mismas piezas de formulario que el resto del panel.
+   ============================================================ */
 
-.user-login-container {
+.login-page {
+    display: grid;
+    place-items: center;
+    min-height: calc(100vh - 66px);
+    padding: 40px 20px 60px;
+    box-sizing: border-box;
+}
+
+.login-card {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: min(460px, 100%);
+    padding: 32px 30px 28px;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: 18px;
+    box-shadow: 0 16px 44px rgba(16, 24, 40, 0.1);
+    color: var(--adm-text);
+}
+
+.login-card-head {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    background-color: #EDEDF2;
-    height: 90vh;
-    overflow-x: hidden;
-}
-
-
-.login-title{
-    background-color: rgba(243, 247, 248, 0.7);
-    width: 30%;
-    height: 8%;
-    gap: 15px;
-    display: flex;
-    justify-content: flex-start;
-    flex-direction: row;
-    align-items: center;
-    box-shadow: 0px 2px 10px #6C788E;
-    margin: 5vh;
-    margin-bottom: 0;
-    border-radius: 5px;
-    font-size: 1em;
+    gap: 6px;
     text-align: center;
 }
 
+.login-logo {
+    height: 62px;
+    width: auto;
+    margin-bottom: 6px;
+}
 
-.login-body{
+.login-title {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: 1rem;
+}
+
+/* ---------- campos ---------- */
+
+.login-body {
     display: flex;
     flex-direction: column;
-    margin: 20px;
-    background-color: rgba(243, 247, 248, 0.7);
-    width: 30%;
-    height: auto;
-    box-shadow: 0px 2px 10px #6C788E;
-    overflow: visible;
-    border-radius: 5px;
+    gap: 16px;
 }
 
-.login-body-upper{
+.login-input-wrap {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    width: 100%;
-    color: black;
-    box-sizing: border-box;
-    padding: 20px 20px 5px 20px;
+    align-items: center;
 }
 
-.login-body-lower{
+.login-input-wrap input {
     width: 100%;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-    min-height: 8rem;
-    margin-bottom: 10px;
-}   
-.login-logo-consultorios {
-    width: 30%;
+    padding: 13px 44px 13px 14px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background: #fff;
+    color: var(--adm-text);
+    font-size: 1.03rem;
+    font-family: inherit;
+    font-weight: 400;
 }
 
-.login-logo-consultorios img {
-    max-width: 100%;
-    height: auto;
+.login-input-wrap input:focus {
+    outline: 2px solid var(--adm-green);
+    outline-offset: -1px;
+    border-color: transparent;
 }
 
-.login-button-container{
-    width: 45%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    
-}
-.login-button {
-    background-color: #3B7658;
-    color: #FEFAE0;
-    padding: 10px 20px;
+
+.login-input-toggle {
+    position: absolute;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
     border: none;
-    border-radius: 5px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--adm-muted);
     cursor: pointer;
-    font-size: 1.4em;
-    font-weight: bold;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-}
-.login-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-.login-button:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.divider {
-    border: none;
-    height: 2px;
-    background-color: #ccc;
-    width: 95%;
+.login-input-toggle:hover {
+    background: var(--adm-bg);
+    color: var(--adm-text);
 }
 
-.login-body-middle{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
-.no-account {
-    font-size: 1.3rem;
-    color: #555;
-    display: block;
-    visibility: visible;
-}
-
-.register-link {
-    font-size: 1.5rem;
-    color: #3B7658;
+.login-forgot {
+    align-self: flex-start;
+    color: var(--adm-muted);
+    font-size: 0.9rem;
     text-decoration: none;
 }
-.forgot-password {
-        font-size: 0.9em;
-        color: #555;
-        text-decoration: none;
-        width: 50%;
-    }
 
-.login-form {
-    width: 100%;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.login-forgot:hover {
+    color: var(--adm-green-dark);
+    text-decoration: underline;
 }
 
-.user-login-container .Toastify__close-button > svg {
-  width: 1.8em;
-  height: 1.8em; 
-  /*Aumenta el tamaño de la X para cerrar el toast*/
-}
-
-@media (max-width: 750px) {
-
-    .user-login-container{
-        width: 100%;
-        height: 90vh;
-        justify-content: center;
-    }
-
-    .login-body {
-        width: 90%;
-        background-color: inherit;
-        box-shadow: none;
-        height: 100%;
-        justify-content: flex-start;
-        margin: 0;
-    }
-
-    .login-title {
-        width: 90%;
-        background-color: inherit;
-        box-shadow: none;
-        align-items: center;
-        justify-content: center;
-        border-radius: 0;
-        border-bottom: 2px solid #ccc;
-    }
-
-    .title-icon{
-        margin:0;
-    }
-
-    .login-logo-consultorios{
-        display: none;
-    }
-
-    .user-login-container {
-        justify-content: start;
-    }
-
-    .login-button-container{
-    width: 80%;
-    display: flex;
+.login-submit {
     justify-content: center;
-    align-items: center;
-    margin-bottom: 20px;
-    }
-
-    .login-body-upper{
-        gap: 10px;
-    }
-
-    .login-body-lower{
-        min-height: 1rem;
-        margin: 0;
-    }
-
-    .user-login-container .toast-container {
-    height: inherit;
-    /*Pone el toast al mismo tamaño que el body*/
+    padding: 13px 20px;
 }
+
+.login-register-line {
+    margin: 0;
+    text-align: center;
+    color: var(--adm-muted);
+    font-size: 0.95rem;
+}
+
+.login-register-line a {
+    color: var(--adm-green-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.login-register-line a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 26px 20px 24px;
+    }
 }

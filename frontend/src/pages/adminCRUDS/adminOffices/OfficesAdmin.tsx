@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
 import "../../adminCRUDS/adminCRUDS.css";
-import { NavZone } from "../../../components/navZone/NavZone.tsx";
+import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { FaPlus } from "react-icons/fa";
 import { OfficeLabel } from "./OfficeLabel.tsx";
 import { OfficeModal } from "./OfficeModal.tsx";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import type {Office, Province, City} from "../../types.ts";
 import SearchBar from "../../../components/searchBar/searchBar.tsx";
 import { findAllOffices, createOffice, updateOffice, removeOffice} from "./OfficeService.ts";
@@ -144,11 +145,8 @@ export function OfficesAdmin() {
   return (
         <div className="admin-home">
 
-            <NavZone title="Administrador de Consultorio"/>
-            <ToastContainer 
-                className = {`toast-container`}
-                draggable={false}
-            />
+            <AdminHeader title="Consultorios" subtitle="Sedes, con su horario de apertura y cierre" />
+            <Toasts />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de un consultorio" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
               {(!loading && offices.length === 0) ? (

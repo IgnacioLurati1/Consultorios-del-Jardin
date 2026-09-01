@@ -48,3 +48,30 @@
 
 }
 
+
+/* Barra de búsqueda dentro del panel de admin: alineada al ancho de la lista */
+.admin-home .crud-searchBar,
+.adm-page .crud-searchBar {
+    width: 100%;
+    border: 1px solid var(--adm-border, #e2e8f0);
+    border-radius: var(--adm-radius-sm, 8px);
+    margin: 0 0 18px;
+    padding: 4px 6px;
+    box-shadow: var(--adm-shadow, 0 1px 3px rgba(16,24,40,.08));
+}
+
+.admin-home .crud-searchInput,
+.adm-page .crud-searchInput {
+    font-size: 1.05rem;
+    padding: 10px 4px;
+}
+
+.admin-home .crud-searchBar input,
+.adm-page .crud-searchBar input {
+    border: none;
+}
+
+.admin-home .search-icon,
+.adm-page .search-icon {
+    font-size: 22px;
+}

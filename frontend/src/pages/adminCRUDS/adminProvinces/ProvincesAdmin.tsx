@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
 import "../../homePages/adminHome/AdminHome.css"
 import { ProvinceLabel } from "./ProvinceLabel.tsx";
 import { ProvinceModal } from "./ProvinceModal.tsx";
 import "../adminCRUDS.css";
-import { NavZone } from "../../../components/navZone/NavZone.tsx";
+import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { FaPlus } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import { createProvince, removeProvince, updateProvince, findAllProvinces } from "./ProvinceService.ts";  
 import type { Province } from "../../types.ts";
 import SearchBar from "../../../components/searchBar/searchBar.tsx";
@@ -88,11 +89,8 @@ export function ProvincesAdmin() {
     return (
       <>
         <div className="admin-home">
-            <NavZone title="Administrador de Provincias"/>
-            <ToastContainer 
-                className = {`toast-container`}
-                draggable={false}
-            />
+            <AdminHeader title="Provincias" subtitle="Provincias disponibles en el sistema" />
+            <Toasts />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una provincia" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
               {provinces.length === 0 && !loading ? (

@@ -1,0 +1,166 @@
+/* ============================================================
+   Grilla semanal. Una columna por día, la de hoy resaltada.
+   La usan la agenda del profesional y los horarios libres del paciente;
+   lo que cambia entre una y otra es el contenido de cada celda.
+   ============================================================ */
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--adm-border);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  box-shadow: var(--adm-shadow);
+  overflow: hidden;
+}
+
+.week-grid-day {
+  display: flex;
+  flex-direction: column;
+  background: var(--adm-surface);
+  min-height: 220px;
+}
+
+.week-grid-day.today .week-grid-head {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.week-grid-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--adm-border);
+  color: var(--adm-muted);
+}
+
+.week-grid-dayname {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.week-grid-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-grid-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.week-grid-empty {
+  text-align: center;
+  color: #cbd5e1;
+  padding: 14px 0;
+}
+
+/* ---------- celda base ---------- */
+
+.week-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cfe2d7;
+  border-left: 3px solid var(--adm-green);
+  border-radius: 8px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: filter 0.12s ease;
+}
+
+.week-slot:hover {
+  filter: brightness(0.96);
+}
+
+.week-slot:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 1px;
+}
+
+.week-slot-hour {
+  font-size: 0.86rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-slot-note {
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- entrada de las celdas ----------
+   Suben desde abajo, escalonadas: cuando se cambia de profesional o de semana,
+   el movimiento deja claro que lo que hay en pantalla es otra cosa. El retardo
+   sale de --slot-order, que pone quien arma la grilla, y se corta a los 480ms
+   para que una semana llena no tarde una eternidad en aparecer. */
+
+@keyframes week-slot-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.week-grid.animated .week-slot {
+  animation: week-slot-rise 0.38s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation-delay: min(calc(var(--slot-order, 0) * 26ms), 480ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .week-grid.animated .week-slot {
+    animation: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* No entran siete columnas: se scrollea de costado con un ancho mínimo usable. */
+  .week-grid {
+    grid-template-columns: repeat(7, minmax(150px, 1fr));
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  /* En celular las columnas se apilan, y los días sin nada no se muestran:
+     scrollear siete cabeceras vacías para encontrar la única con horarios
+     no ayuda a nadie. */
+  .week-grid {
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+
+  .week-grid-day {
+    min-height: 0;
+  }
+
+  .week-grid-day.is-empty {
+    display: none;
+  }
+
+  .week-grid-head {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 12px 14px;
+  }
+
+  .week-grid-cells {
+    padding: 10px 14px 14px;
+  }
+}

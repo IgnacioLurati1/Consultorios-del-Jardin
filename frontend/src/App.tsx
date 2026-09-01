@@ -15,14 +15,14 @@ import { RecoverPassword } from "./pages/newPassword/RecoverPassword.tsx";
 import { NewPassword } from "./pages/newPassword/NewPassword.tsx";
 import { PrivateRoutes } from "./PrivateRoutes.tsx";
 import { Outlet } from "react-router-dom";
-import CrudNav from "./components/crudNav/CrudNav.tsx";
 import { ProfessionalHome } from "./pages/homePages/professionalHome/professionalHome.tsx";
 import { ScheduleProfessional } from "./pages/scheduleProfessional/scheduleProfessional.tsx";
 import { AuthWatcher } from "./context/AuthWatcher.tsx";
 import { UsersAdmin } from "./pages/adminCRUDS/adminUsers/usersAdmin.tsx";
-import { AppointmentInput } from "./pages/appointments/appointmentInputs/appointmentInput.tsx";
-import { AppointmentDetails } from "./pages/appointments/appointmentDetails/appointmentDetails.tsx";
+import { BookAppointment } from "./pages/appointments/booking/BookAppointment.tsx";
 import { AppointmentsList } from "./pages/appointments/appointmentsList/appointmentList.tsx";
+import { ControlPanel } from "./pages/adminControl/ControlPanel.tsx";
+import { PatientsPage } from "./pages/patients/PatientsPage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -36,7 +36,6 @@ const router = createBrowserRouter([
       { path: "/Login", element: <Login /> },
       { path: "/EditProfile", element: (<PrivateRoutes allowedTypes={["admin","professional","client"]}>
             <AuthWatcher>
-              <Outlet />
               <EditProfile />
             </AuthWatcher>
           </PrivateRoutes>) },
@@ -48,7 +47,6 @@ const router = createBrowserRouter([
           <PrivateRoutes allowedTypes={["admin"]}>
             <AuthWatcher>
               <Outlet />
-              <CrudNav />
             </AuthWatcher>
           </PrivateRoutes>
         ),
@@ -59,6 +57,7 @@ const router = createBrowserRouter([
           { path: "OfficesAdmin", element: <OfficesAdmin /> },
           { path: "RoomsAdmin", element: <RoomsAdmin /> },
           { path: "UsersAdmin", element: <UsersAdmin/>},
+          { path: "Control", element: <ControlPanel/>},
           { path: "RegisterProfAdmin", element: <RegisterProf/>},
         ],
       },
@@ -79,9 +78,17 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoutes allowedTypes={["admin", "professional"]}>
             <AuthWatcher>
-              <Outlet />
-                <ScheduleProfessional />
-              <CrudNav />
+              <ScheduleProfessional />
+            </AuthWatcher>
+          </PrivateRoutes>
+        ),
+      },
+      {
+        path: "/Patients",
+        element: (
+          <PrivateRoutes allowedTypes={["professional"]}>
+            <AuthWatcher>
+              <PatientsPage />
             </AuthWatcher>
           </PrivateRoutes>
         ),
@@ -91,20 +98,10 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoutes allowedTypes={["professional","admin","client"]}>
             <AuthWatcher>
-              <AppointmentInput />
+              <BookAppointment />
             </AuthWatcher>
           </PrivateRoutes>
         ),
-      },
-      {
-       path: "/AppointmentDetails", 
-       element: (
-            <PrivateRoutes allowedTypes={["professional","admin","client"]}>
-              <AuthWatcher>
-                <AppointmentDetails />
-              </AuthWatcher>
-            </PrivateRoutes>
-          )
       },
       {path: "/AppointmentsList",
        element: (

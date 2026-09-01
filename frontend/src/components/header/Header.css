@@ -1,211 +1,276 @@
-.header-container {
+/* ============================================================
+   Barra superior. El verde y el color crema son los de la marca;
+   lo que cambia es el orden: una fila de alto fijo, el nombre a la
+   izquierda y la sesión resuelta en un solo menú a la derecha.
+   ============================================================ */
+
+.app-header {
     position: sticky;
     top: 0;
-    background-color: #3B7658;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     z-index: 1000;
-    width: 100%;
-    height: 10vh;
+    background: linear-gradient(180deg, #3f7d5d, var(--adm-green, #3b7658));
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 16px rgba(16, 24, 40, 0.14);
 }
 
-.header-right {
-    padding : 0px 20px;
-}
-
-.header-left {
+.app-header-inner {
     display: flex;
-    padding : 0px 20px;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
+    height: 66px;
+    padding: 0 22px;
+    box-sizing: border-box;
 }
-.header-left button {
-    background: none;
-    border: none;
-    font-size: 24px;
+
+.app-header-menu {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: #fefae0;
+    font-size: 1.15rem;
     cursor: pointer;
-    color:#FEFAE0;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
-.header-left .title {
+
+.app-header-menu:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.app-header-brand {
     display: flex;
-    font-size: 24px;
+    align-items: center;
+    gap: 10px;
+    margin-right: auto;
+    min-width: 0;
+    color: #fefae0;
     text-decoration: none;
-    font-weight:bold;
-    color:#FEFAE0;
-    align-items: center;
 }
 
-.header-title-text{
-    color:inherit;
-    margin: 0;
+.app-header-logo {
+    height: 30px;
+    width: auto;
+    flex-shrink: 0;
 }
 
-.logo-header {
-    margin-left:10px;
+.app-header-name {
+    font-size: 1.18rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
 }
 
-.login-register {
+/* ---------- accesos sin sesión ---------- */
+
+.app-session {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
-.login-register .button-right {
-    font-weight: bold;
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 16px;
+.app-header-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 17px;
+    border-radius: 10px;
+    font-size: 0.97rem;
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
-.button-right:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-.button-right:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.app-header-btn.ghost {
+    border: 1px solid rgba(254, 250, 224, 0.55);
+    background: transparent;
+    color: #fefae0;
 }
 
-/* "Login" button */
-.login {
-    background-color: transparent;
-    color: #FEFAE0;
-    border: 2px solid #FEFAE0;
+.app-header-btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
-/* "Log out" button */
-.out {
-    margin-left: 1vw;
+.app-header-btn.solid {
+    border: 1px solid #fefae0;
+    background: #fefae0;
+    color: var(--adm-green-dark, #2f5e46);
 }
 
-/* "Register" button */
-.register {
-    background-color: #FEFAE0;
-    color: #3a7656;
-    border: 2px solid #FEFAE0;
+.app-header-btn.solid:hover {
+    background: #fff;
 }
 
-.backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 998; 
-}
+/* ---------- menú de la persona logueada ---------- */
 
-.session{
+.app-user-button {
     display: flex;
-    flex-direction: row;
-}
-
-.profile-icon{
-    background-color: transparent;
-    display: flex;
-    font-size: 24px;
-    color:#FEFAE0;
     align-items: center;
-    align-content: center;
-    justify-content: center;
-    border: 2px solid #FEFAE0;
+    gap: 10px;
+    max-width: 280px;
+    padding: 6px 12px 6px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fefae0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.app-user-button:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.app-user-avatar {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
     border-radius: 50%;
-    width: 2.5vw;
-    height: 2.5vw;
-    min-width: 40px;
-    min-height: 40px;
-    cursor: pointer;
+    background: #fefae0;
+    color: var(--adm-green-dark, #2f5e46);
+    font-size: 0.82rem;
+    font-weight: 700;
 }
 
-.login-out{
-    background-color: transparent;
-    color: #FEFAE0;
-    border: 2px solid #FEFAE0;
-    margin-left: 1vw;
+.app-user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.logout-confirmation {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #3131315A;
-    display: none;
-    align-items: center;
-    z-index: 999; 
-    display: none;
-    justify-content: center;
+.app-user-chevron {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    opacity: 0.8;
+    transition: transform 0.18s ease;
 }
 
-.logout-confirmation.visible {
-    display: flex;
+.app-user-chevron.open {
+    transform: rotate(180deg);
 }
 
-.logout-content{
+.app-user-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 1001;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: #e0e0e0;
-    color: #000;
-    padding: 20px;
-    border-radius: 15px;
-    width: 40%;
-    height: 50%;
-    font-size: 2vw;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.733);
+    width: min(280px, calc(100vw - 32px));
+    padding: 6px;
+    background: var(--adm-surface, #fff);
+    border: 1px solid var(--adm-border, #e2e8f0);
+    border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(16, 24, 40, 0.22);
+    color: var(--adm-text, #1f2a33);
+    animation: app-menu-in 0.14s ease-out;
 }
 
-.logout-buttons{
+@keyframes app-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+.app-user-menu-head {
     display: flex;
-    gap: 3vw;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 12px 12px 14px;
+    border-bottom: 1px solid var(--adm-border, #e2e8f0);
+    margin-bottom: 6px;
 }
 
-.confirm-logout-button{
-    width: 5vw;
-    background-color: #bce2ce;
-    color: #3a7656;
-    border: 2px solid #3a7656;
-    min-width: 80px;
+.app-user-menu-name {
+    font-size: 1rem;
+    font-weight: 700;
 }
 
-.cancel-logout-button{
-    width: 5vw;
-    background-color: #fad8d2;
-    color: #ad4e3d;
-    border: 2px solid #ad4e3d;
-    min-width: 80px;
+.app-user-menu-mail {
+    font-size: 0.85rem;
+    color: var(--adm-muted, #64748b);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--adm-text, #1f2a33);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.app-user-menu-item:hover {
+    background: var(--adm-green-soft, #e8f1ec);
+    color: var(--adm-green-dark, #2f5e46);
+}
+
+.app-user-menu-item.danger {
+    color: var(--adm-danger, #c0392b);
+}
+
+.app-user-menu-item.danger:hover {
+    background: var(--adm-danger-soft, #fdecea);
+}
+
+/* El menú lateral y su fondo van por encima de la barra: si no, la barra
+   (que es sticky) tapaba el logo y la X del menú. */
+.app-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(16, 24, 40, 0.35);
 }
 
 @media (max-width: 750px) {
-    .header-title-text{
+    .app-header-inner {
+        gap: 10px;
+        padding: 0 14px;
+    }
+
+    .app-header-name {
         display: none;
     }
 
-    .register{
+    .app-user-name {
         display: none;
     }
 
-    .header-right{
-       padding-left: 0; 
-       padding-right: 2vw;
+    .app-user-button {
+        padding: 6px;
     }
 
-    .logout-content{
-        width: 80%;
-        font-size: 1rem;
-        height: auto;
-        padding: 30px 20px;
-    }
-    .logout-text{
-        display: flex;        
-        justify-content: center;
-        text-align: center;
-        font-size: 1rem;
+    .app-header-btn.solid {
+        display: none;
     }
 }
-

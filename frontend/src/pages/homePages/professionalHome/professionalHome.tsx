@@ -1,43 +1,166 @@
-import { FaCalendarAlt, FaUser, FaClipboardList } from "react-icons/fa";
-import HomeCard from "../HomeCard";
-import {NavZone} from "../../../components/navZone/NavZone";
-import "./professionalHome.css";
+import { FaCalendarAlt, FaClipboardList, FaUserInjured } from "react-icons/fa";
+import { FaArrowRight, FaRegClock } from "react-icons/fa6";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { findPerson, getDecodedToken } from "../../commonServices";
-import type { Person } from "../../types";
-import { toast, ToastContainer } from "react-toastify";
+import { findProfessionalAppointmentsInRange } from "../../appointments/appointmentsService.ts";
+import { describeState, shortHour, toISODate } from "../../appointments/appointmentTypes.ts";
+import type { Appointment, Person } from "../../types";
+import { SkeletonLine } from "../../../components/skeleton/Skeleton";
+import { RecurringAppointments } from "./RecurringAppointments.tsx";
+import "../../adminCRUDS/adminPanel.css";
+import "./professionalHome.css";
+
+interface MenuEntry {
+  icon: React.ComponentType;
+  title: string;
+  description: string;
+  link: string;
+}
+
+const entries: MenuEntry[] = [
+  {
+    icon: FaClipboardList,
+    title: "Turnos",
+    description: "Agenda de turnos en grilla o en lista, con su estado y su paciente.",
+    link: "/AppointmentsList",
+  },
+  {
+    icon: FaCalendarAlt,
+    title: "Horarios",
+    description: "Tu agenda semanal y la duración de los turnos de cada módulo.",
+    link: "/scheduleProfessional",
+  },
+  {
+    icon: FaUserInjured,
+    title: "Pacientes",
+    description: "Pacientes con cuenta y pacientes anónimos cargados por vos.",
+    link: "/Patients",
+  },
+];
 
 export function ProfessionalHome() {
   const [professional, setProfessional] = useState<Person | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [today, setToday] = useState<Appointment[] | null>(null);
 
   useEffect(() => {
-  
-      const decoded = getDecodedToken();
-      if (!decoded) return;
-        const email = decoded.email
-        findPerson(email)
-        .then(data => {
-          if (!data) {
+    const decoded = getDecodedToken();
+    if (!decoded) return;
+
+    findPerson(decoded.email)
+      .then((data) => {
+        if (!data) {
           toast.error("No se encontró el profesional");
           return;
-          }
-          setProfessional(data);
-        })
-        .catch(err => toast.error(`Error al cargar al profesional: ${err.message}`));
-    }, []);
-    
-  return (
-    <div className="professional-home-container-whole">
+        }
+        setProfessional(data);
+      })
+      .catch((err) => toast.error(`No pudimos cargar tus datos: ${err.message}`))
+      .finally(() => setLoading(false));
+  }, []);
 
-      <div className="nav-zone-container">
-        <NavZone title={`Bienvenido ${professional?.surname}, ${professional?.name}`} />
-      </div>
-        <div className="professional-cards-container">
-          <div className="professional-card"><HomeCard icon={FaCalendarAlt} title="Horarios" link="/scheduleProfessional" /></div>
-          <div className="professional-card"><HomeCard icon={FaClipboardList} title="Turnos" link="/appointmentsList" /></div>
-          {/*<div className="professional-card"><HomeCard icon={FaUser} title="Pacientes" link="/pacientes" /></div>*/}
+  // Agenda del día: se pide el rango de un solo día, sin los cancelados.
+  useEffect(() => {
+    const iso = toISODate(new Date());
+
+    findProfessionalAppointmentsInRange(iso, iso)
+      .then((data) => setToday([...data].sort((a, b) => a.initialHour.localeCompare(b.initialHour))))
+      .catch(() => setToday([]));
+  }, []);
+
+  const dayLabel = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+
+  return (
+    <div className="adm-page">
+      <header className="adm-header">
+        <div className="adm-header-titles">
+          {loading ? (
+            <>
+              <SkeletonLine width="320px" height={28} />
+              <SkeletonLine width="180px" height={16} />
+            </>
+          ) : (
+            <>
+              <h1 className="adm-title">
+                Hola, {professional?.name} {professional?.surname}
+              </h1>
+              <p className="adm-subtitle">{professional?.speciality || "Panel del profesional"}</p>
+            </>
+          )}
         </div>
-      <ToastContainer className = {`toast-container`} draggable={false}/>
+      </header>
+
+      <section className="adm-card-grid">
+        {entries.map((entry) => {
+          const Icon = entry.icon;
+          return (
+            <Link className="adm-card" to={entry.link} key={entry.title}>
+              <span className="adm-card-icon">
+                <Icon />
+              </span>
+              <span className="adm-card-title">{entry.title}</span>
+              <span className="adm-card-desc">{entry.description}</span>
+            </Link>
+          );
+        })}
+      </section>
+
+      <section className="prof-today">
+        <div className="prof-today-head">
+          <div>
+            <h2 className="prof-today-title">Hoy</h2>
+            <p className="prof-today-date">{dayLabel}</p>
+          </div>
+          <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
+            Ver toda la agenda
+            <FaArrowRight />
+          </Link>
+        </div>
+
+        <div className="adm-panel">
+          {today === null ? (
+            <div className="prof-today-loading">
+              <SkeletonLine height={18} />
+              <SkeletonLine width="70%" height={18} />
+              <SkeletonLine width="45%" height={18} />
+            </div>
+          ) : today.length === 0 ? (
+            <div className="adm-empty">No tenés turnos para hoy.</div>
+          ) : (
+            <ul className="prof-today-list">
+              {today.map((appointment) => {
+                const state = describeState(appointment.state);
+
+                return (
+                  <li className="prof-today-item" key={appointment.numAppointment}>
+                    <span className="prof-today-hour">
+                      <FaRegClock aria-hidden="true" />
+                      {shortHour(appointment.initialHour)}
+                    </span>
+                    <span className="prof-today-person">
+                      {appointment.patient ? (
+                        `${appointment.patient.surname}, ${appointment.patient.name}`
+                      ) : (
+                        <span className="prof-today-free">Sin paciente asignado</span>
+                      )}
+                    </span>
+                    <span className="prof-today-room">{appointment.room?.description}</span>
+                    {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                    <span className={state.className}>{state.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <RecurringAppointments />
+
+      <Toasts />
     </div>
   );
 }

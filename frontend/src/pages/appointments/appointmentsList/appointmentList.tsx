@@ -1,341 +1,398 @@
-import "./appointmentList.css";
-import {NavZone} from "../../../components/navZone/NavZone";
-import type{ Appointment, Office, Person, Diagnostic} from "../../types.ts"
-import { useEffect, useState } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { useEffect, useMemo, useState } from "react";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
+import { toast } from "react-toastify";
+import { FaBorderAll, FaList, FaChevronLeft, FaChevronRight, FaEye, FaEyeSlash, FaPlus } from "react-icons/fa6";
+import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
+import { SkeletonList, SkeletonGrid } from "../../../components/skeleton/Skeleton.tsx";
+import { AppointmentCard } from "./AppointmentCard.tsx";
+import { AppointmentWeekGrid } from "./AppointmentWeekGrid.tsx";
+import { AppointmentDetailModal } from "./AppointmentDetailModal.tsx";
+import { NewAppointmentModal } from "./NewAppointmentModal.tsx";
+import type { Appointment, Person, RecurrenceFrequency, Room, Schedule } from "../../types.ts";
+import {
+  addDays,
+  appointmentDate,
+  formatDayLabel,
+  formatWeekRange,
+  startOfWeek,
+  toISODate,
+} from "../appointmentTypes.ts";
+import {
+  acceptAppointment,
+  addPatientToAppointment,
+  cancelAppointmentService,
+  findPatientAppointments,
+  findProfessionalAppointments,
+  findProfessionalAppointmentsInRange,
+  updateAppointmentRecord,
+  updateAppointment,
+  createProfessionalAppointment,
+} from "../appointmentsService.ts";
+import { findAllPatients } from "../../patients/patientsService.ts";
+import { findAllActiveRooms } from "../../adminCRUDS/adminRooms/RoomService.ts";
+import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
+import { createRecurrence, stopRecurrence } from "../recurrencesService.ts";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
-import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
-import {findProfessionalAppointments, findPatientAppointments, createProfessionalAppointment} from "../appointmentsService.ts"
-import { AppointmentsGrid } from "./appointmentsGrid.tsx";
-import { AppointmentsGridFilter } from "./appointmentsGridFilter.tsx";
-import { FaPlus } from "react-icons/fa";
-import { ProfessionalAppointmentModal } from "./professionalAppointmentModal/professionalAppointmentModal.tsx";
+import "../../adminCRUDS/adminPanel.css";
+import "./appointmentList.css";
 
+type ViewMode = "list" | "grid";
 
-export function AppointmentsList(){
-
-  // --- FUNCIONES HELPER 
-  const isAppointmentAttended = (app: Appointment): boolean => {
-    return app.diagnostics &&
-      app.diagnostics.length > 0 &&
-      app.diagnostics.every(d => d.state === "assisted");
-    };
-
+export function AppointmentsList() {
   const [person, setPerson] = useState<Person | undefined>(undefined);
-  const [offices, setOffices] = useState<Office[] | []>([]);
-  const [officeToFilter, setOfficeToFilter] = useState<Office|undefined>(undefined);
-  const [acceptedFilter, setAcceptedFilter] = useState(false);
-  const [attendedFilter, setAttendedFilter] = useState(false);
-  const [unattendedFilter, setUnattendedFilter] = useState(false);
-  const [pendingFilter, setPendingFilter] = useState(false); // Añadido el filtro pendiente
-  const [appointments, setAppointments] = useState<Appointment[] | []>([]);
-  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[] | []>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [peopleMap, setPeopleMap] = useState<Map<string,string>>(new Map());
-  const [personToFilter, setPersonToFilter] = useState<string | undefined>(undefined);
-  const [pagesAppointment, setPagesAppointment] = useState<number>(0);
-  const [showButtonMore, setShowButtonMore] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Person[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [newModalOpen, setNewModalOpen] = useState(false);
 
-  const [openProfAppoModal, setOpenProfAppoModal] = useState(false);
+  // La grilla es la vista por defecto. El paciente no la tiene (no hay endpoint de
+  // rango para su lado), así que para él siempre se resuelve en lista.
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [includeCancelled, setIncludeCancelled] = useState(false);
+  const [page, setPage] = useState(0);
+  const [monday, setMonday] = useState<Date>(() => startOfWeek(new Date()));
+
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Appointment | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(false);
+
+  const isProfessional = person?.type === "professional";
+  const effectiveMode: ViewMode = isProfessional ? viewMode : "list";
 
   useEffect(() => {
-
     const decoded = getDecodedToken();
     if (!decoded) return;
-        const email = decoded.email
-        findPerson(email)               
-        .then(data => {
+
+    findPerson(decoded.email)
+      .then((data) => {
         if (!data) {
-        toast.error("No se encontró a la persona");
-        return;
+          toast.error("No se encontró a la persona");
+          return;
         }
         setPerson(data);
       })
-      .catch(err => toast.error(`Error al cargar al profesional: ${err.message}`));
-    }, []);
-
-useEffect(() => {
-    if (!person || openProfAppoModal) return;
-    let ignore = false;
-
-    setIsLoading(true);
-    let promise;
-
-    if (person.type === "professional") {
-      promise = findProfessionalAppointments(pagesAppointment);
-    } else {
-      promise = findPatientAppointments(pagesAppointment);
-    }
-
-    promise.then(async (enrichedAppointments) => {
-      if (ignore) return; //eliminar en produccion (se pone esto por el stricted mode que ejecuta las peticiones dos veces) 
-
-      if (enrichedAppointments.length == 15){
-        setShowButtonMore(true);
-      }else{
-        setShowButtonMore(false);
-      }
-      // Extraer todos los emails únicos de la lista
-      const uniqueEmails = new Set<string>();
-      enrichedAppointments.forEach(app => {
-        uniqueEmails.add(app.professional.email);
-        app.diagnostics?.forEach(d => { 
-          uniqueEmails.add(d.patient);
-        });
-      });
-
-      const personPromises = Array.from(uniqueEmails).map(email =>
-        findPerson(email).catch(() => null)
-      );
-
-      const peopleData = await Promise.all(personPromises);
-
-      const newPeopleMap = new Map<string, string>();
-      peopleData.forEach(p => {
-        if (p && p.email !== person.email) {
-          newPeopleMap.set(p.email, `${p.name} ${p.surname}`);
-        }
-      });
-      setPeopleMap(newPeopleMap);
-      setAppointments(enrichedAppointments);
-    })
-    .catch(err => {
-      if (ignore) return; //eliminar en produccion
-      toast.error(`Error al obtener turnos: ${err.message}`);
-    })
-    .finally(() => {
-      if (ignore) return; //eliminar en produccion
-      setIsLoading(false);
-    });
-
-    return () => {
-       ignore = true; //eliminar en produccion
-    };
-
-  }, [openProfAppoModal,person]);
-
-  useEffect(() => {
-    if(!person) return ;
-    let ignore = false;
-
-    setIsLoading(true);
-    let promise;
-
-    if (person.type === "professional") {
-      promise = findProfessionalAppointments(pagesAppointment);
-    } else {
-      promise = findPatientAppointments(pagesAppointment);
-    }
-
-    promise.then(async (enrichedAppointments) => {
-      if (ignore) return; //eliminar en produccion (se pone esto por el stricted mode que ejecuta las peticiones dos veces) 
-
-      if (enrichedAppointments.length == 15){
-        setShowButtonMore(true);
-      }else{
-        setShowButtonMore(false);
-      }
-      // Extraer todos los emails únicos de la lista
-      const uniqueEmails = new Set<string>();
-      enrichedAppointments.forEach(app => {
-        uniqueEmails.add(app.professional.email);
-        app.diagnostics?.forEach(d => { 
-          uniqueEmails.add(d.patient);
-        });
-      });
-
-      const personPromises = Array.from(uniqueEmails).map(email =>
-        findPerson(email).catch(() => null)
-      );
-
-      const peopleData = await Promise.all(personPromises);
-
-      const newPeopleMap = new Map<string, string>();
-      peopleData.forEach(p => {
-        if (p && p.email !== person.email) {
-          newPeopleMap.set(p.email, `${p.name} ${p.surname}`);
-        }
-      });
-      
-      setPeopleMap(newPeopleMap);
-      
-      setAppointments((prev) => [...prev, ...enrichedAppointments]);
-    })
-    .catch(err => {
-      if (ignore) return; //eliminar en produccion
-      toast.error(`Error al obtener turnos: ${err.message}`);
-    })
-    .finally(() => {
-      if (ignore) return; //eliminar en produccion
-      setIsLoading(false);
-    });
-  },[pagesAppointment]);
-
-
-  // Callback para que la CELDA notifique al PADRE de cambios en DIAGNÓSTICOS
-  const handleDiagnosticsUpdate = (
-    idAppointment: number, 
-    updatedDiagnostics: Diagnostic[]
-  ) => {
-    setAppointments(currentAppointments =>
-      currentAppointments.map(app =>
-        app.numAppointment === idAppointment
-          ? { ...app, diagnostics: updatedDiagnostics }
-          : app
-      )
-    );
-  };
-
-  // Callback para que la CELDA notifique al PADRE de cambios de ESTADO (Aceptado, Cancelado)
-    const handleAppointmentStateUpdate = (
-    idAppointment: number,
-    newState: string
-  ) => {
-    setAppointments(currentAppointments =>
-      currentAppointments.map(app =>
-        app.numAppointment === idAppointment
-          ? { ...app, state: newState }
-          : app
-      )
-    );
-  };
-  
-  useEffect(() => {
-      findAllActiveOffices()
-      .then(data => {
-          setOffices(data);
-      })
-      .catch(err => {
-          toast.error("Error cargando salas:", err);
-      });
+      .catch((err) => toast.error(`Error al cargar los datos: ${err.message}`));
   }, []);
 
-    // --- useEffect DE FILTRADO (Ahora reacciona a todo) ---
+  // El profesional necesita la lista de pacientes para poder asignar uno a un turno vacío,
+  // las salas para el sobreturno y sus horarios para ofrecer los turnos normales.
   useEffect(() => {
-    let filtered = appointments;
+    if (!isProfessional || !person) return;
 
-    // 1. Filtro de Consultorio
-    if (officeToFilter) {
-      filtered = filtered.filter(app => app.room.office.idOffice === officeToFilter.idOffice);
+    findAllPatients()
+      .then(setPatients)
+      .catch(() => setPatients([]));
+
+    findAllActiveRooms()
+      .then(setRooms)
+      .catch(() => setRooms([]));
+
+    findProfessionalSchedules(person.email)
+      .then(setSchedules)
+      .catch(() => setSchedules([]));
+  }, [isProfessional, person]);
+
+  function loadAppointments() {
+    if (!person) return;
+
+    setLoading(true);
+
+    const mode: ViewMode = person.type === "professional" ? viewMode : "list";
+
+    const request =
+      mode === "grid"
+        ? findProfessionalAppointmentsInRange(toISODate(monday), toISODate(addDays(monday, 6)), includeCancelled)
+        : person.type === "professional"
+        ? findProfessionalAppointments(page, includeCancelled)
+        : findPatientAppointments(page, includeCancelled);
+
+    request
+      .then((data) => {
+        setAppointments(data);
+        setHasMore(mode === "list" && data.length === 15);
+      })
+      .catch((err) => toast.error(`Error al obtener turnos: ${err.message}`))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(loadAppointments, [person, viewMode, includeCancelled, page, monday]);
+
+  /* ---------- agrupado de la vista lista: por semana y, adentro, por día ----------
+     Las semanas que vienen van primero (la más cercana arriba) y después las
+     pasadas, de la más reciente a la más vieja. Dentro de cada semana los días
+     van en orden de calendario. */
+  const grouped = useMemo(() => {
+    const weeks = new Map<string, { monday: Date; days: Map<string, { date: Date; items: Appointment[] }> }>();
+
+    for (const appointment of appointments) {
+      const date = appointmentDate(appointment.date);
+      const weekStart = startOfWeek(date);
+      const weekKey = toISODate(weekStart);
+      const dayKey = toISODate(date);
+
+      if (!weeks.has(weekKey)) weeks.set(weekKey, { monday: weekStart, days: new Map() });
+      const week = weeks.get(weekKey)!;
+
+      if (!week.days.has(dayKey)) week.days.set(dayKey, { date, items: [] });
+      week.days.get(dayKey)!.items.push(appointment);
     }
 
-    if(personToFilter){
-      filtered = filtered.filter(app => app.professional.email === personToFilter || app.diagnostics.some(d => d.patient == personToFilter))
+    const currentWeek = startOfWeek(new Date()).getTime();
+
+    const ordered = Array.from(weeks.values()).sort((a, b) => {
+      const aUpcoming = a.monday.getTime() >= currentWeek;
+      const bUpcoming = b.monday.getTime() >= currentWeek;
+
+      if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1; // lo que viene, arriba
+      return aUpcoming
+        ? a.monday.getTime() - b.monday.getTime() // próximas: la más cercana primero
+        : b.monday.getTime() - a.monday.getTime(); // pasadas: la más reciente primero
+    });
+
+    for (const week of ordered) {
+      const days = Array.from(week.days.entries()).sort((a, b) => a[1].date.getTime() - b[1].date.getTime());
+      week.days = new Map(days);
+      for (const [, day] of week.days) day.items.sort((a, b) => a.initialHour.localeCompare(b.initialHour));
     }
 
-    // 2. Filtros de Estado
-    const anyStateFilterActive = acceptedFilter || attendedFilter || unattendedFilter || pendingFilter;
+    return ordered;
+  }, [appointments]);
 
-    if (anyStateFilterActive) {
-      filtered = filtered.filter(app => {
-        // Filtro "Pendientes"
-        if (pendingFilter && app.state === "pending") {
-          return true;
-        }
-        // Filtro "Aceptados"
-        if (acceptedFilter && app.state === "accepted") {
-          return true;
-        }
-        // Filtro "Atendidos" (lógica derivada)
-        if (attendedFilter && isAppointmentAttended(app)) {
-          return true;
-        }
-        // Filtro "No atendidos" (lógica derivada)
-        if (unattendedFilter && !isAppointmentAttended(app)) {
-          return true;
-        }
-        return false;
-      });
-    }
+  /* ---------- acciones ---------- */
 
-    setFilteredAppointments(filtered);
+  function refreshAfter(action: Promise<unknown>, successMessage: string) {
+    action
+      .then(() => {
+        toast.success(successMessage);
+        setSelected(undefined);
+        loadAppointments();
+      })
+      .catch((err: any) => toast.error(err.message));
+  }
 
-  }, [appointments, officeToFilter, acceptedFilter, attendedFilter, unattendedFilter, pendingFilter, personToFilter]);
+  const handleAccept = (appointment: Appointment) =>
+    refreshAfter(acceptAppointment(appointment.numAppointment), "Turno aceptado");
 
-  if (isLoading && person) {
-    return (
-      <div className="appointments-status-state">
-        <p>Cargando diagnósticos de los turnos...</p>
-      </div>
+  const handleCancel = (appointment: Appointment) =>
+    refreshAfter(cancelAppointmentService(appointment.numAppointment), "Turno cancelado");
+
+  const handleSaveRecord = (appointment: Appointment, data: { state?: string; observations?: string }) =>
+    refreshAfter(
+      updateAppointmentRecord(appointment.numAppointment, { ...data, patientEmail: appointment.patient?.email }),
+      "Registro guardado"
     );
+
+  const handleAddPatient = (appointment: Appointment, patientEmail: string) =>
+    refreshAfter(addPatientToAppointment(appointment.numAppointment, patientEmail), "Paciente asignado");
+
+  const handleUpdate = (
+    appointment: Appointment,
+    data: { date?: string; initialHour?: string; finalHour?: string; room?: string; value?: number }
+  ) => refreshAfter(updateAppointment(appointment.numAppointment, data), "Turno actualizado");
+
+  const handleRepeat = (appointment: Appointment, frequency: RecurrenceFrequency) =>
+    createRecurrence(appointment.numAppointment, frequency)
+      .then(({ created }) => {
+        toast.success(created > 0 ? `Turno repetible creado: ${created} turnos más agendados` : "Turno repetible creado");
+        setSelected(undefined);
+        loadAppointments();
+      })
+      .catch((err: any) => toast.error(err.message));
+
+  const handleStopRepeat = (appointment: Appointment) => {
+    if (!appointment.recurrence) return;
+
+    stopRecurrence(appointment.recurrence.idRecurrence)
+      .then(() => {
+        toast.success("Se frenó la repetición. Los turnos ya creados siguen en pie.");
+        setSelected(undefined);
+        loadAppointments();
+      })
+      .catch((err: any) => toast.error(err.message));
+  };
+
+  async function handleCreate(data: {
+    date: string;
+    initialHour: string;
+    finalHour: string;
+    room: string;
+    value: number;
+    patientEmail?: string;
+    overbooked: boolean;
+  }) {
+    await createProfessionalAppointment(data);
+    toast.success(data.overbooked ? "Sobreturno creado" : "Turno creado");
+    loadAppointments();
   }
 
-  async function addAppointment(newAppointment:{date: string,initialHour: string,finalHour: string,room: string,type: string,value: number,patientEmail: string}){
-    try{
-      const createdAppointment = await createProfessionalAppointment(newAppointment)
-      if ( createdAppointment ){
-          //setAppointments([createdAppointment, ...appointments]);
-          toast.success(`Turno creado con éxito`);
-          setOpenProfAppoModal(false);
+  /* ---------- render ---------- */
+
+  const canUseGrid = isProfessional;
+
+  return (
+    <div className="adm-page">
+      <AdminHeader
+        title="Turnos"
+        subtitle={
+          effectiveMode === "grid"
+            ? formatWeekRange(monday)
+            : isProfessional
+            ? "Tus turnos, del más reciente al más viejo"
+            : "Tus turnos"
         }
-    }catch (error:any){
-      toast.error(`Error al crear el turno: ${error.message}`);
-    }
-  }
- 
-  if(person){
-    return (
-        <div className="appointment-person-container">
-          <div className="appointment-container">
-            <div className="upper-appointment-container">
-              <div className="sub-upper-appointment-container">
-                <NavZone title={`Turnos de ${person.name}, ${person.surname}`}/>
-                {
-                  person.type === "professional" ? 
-                  <div className="create-professional-appointment-container" onClick={()=>setOpenProfAppoModal(true)}>
-                    <p>Crear un turno</p>
-                    <FaPlus className="create-professional-appointment-icon" size={24}/>
-                  </div> 
-                  : <></>
-                }
+        backTo={isProfessional ? "/ProfessionalHome" : "/"}
+        actions={
+          <>
+            {isProfessional && (
+              <button type="button" className="adm-btn adm-btn-primary" onClick={() => setNewModalOpen(true)}>
+                <FaPlus />
+                Nuevo turno
+              </button>
+            )}
+            <button
+              type="button"
+              className={`adm-btn adm-btn-ghost ${includeCancelled ? "active" : ""}`}
+              onClick={() => {
+                setIncludeCancelled((v) => !v);
+                setPage(0);
+              }}
+              title={includeCancelled ? "Ocultar los turnos cancelados" : "Mostrar también los cancelados"}
+            >
+              {includeCancelled ? <FaEyeSlash /> : <FaEye />}
+              {includeCancelled ? "Ocultar cancelados" : "Ver cancelados"}
+            </button>
+
+            {canUseGrid && (
+              <div className="appt-view-toggle" role="group" aria-label="Modo de vista">
+                <button
+                  type="button"
+                  className={viewMode === "list" ? "active" : ""}
+                  onClick={() => setViewMode("list")}
+                  aria-pressed={viewMode === "list"}
+                >
+                  <FaList />
+                  Lista
+                </button>
+                <button
+                  type="button"
+                  className={viewMode === "grid" ? "active" : ""}
+                  onClick={() => setViewMode("grid")}
+                  aria-pressed={viewMode === "grid"}
+                >
+                  <FaBorderAll />
+                  Grilla
+                </button>
               </div>
-              <ToastContainer className = {`toast-container`} draggable={false}/>
-              <AppointmentsGridFilter appointments={appointments} 
-                offices={offices} 
-                setOfficeToFilter={setOfficeToFilter} 
-                acceptedFilter={acceptedFilter} 
-                setAcceptedFilter={setAcceptedFilter}
-                attendedFilter={attendedFilter}
-                setAttendedFilter={setAttendedFilter}
-                unattendedFilter={unattendedFilter}
-                setUnattendedFilter={setUnattendedFilter}
-                pendingFilter={pendingFilter}
-                setPendingFilter={setPendingFilter}
-                setPersonToFilter={setPersonToFilter}
-                peopleMap = {peopleMap}
-                userType={person.type}
-                />
-                
-            </div>
-            <div className="appointment-subcontainer">
-              {isLoading ? (
-                <div className="appointments-status-state">
-                  <span>Cargando turnos...</span>
-                </div>
-              ) : filteredAppointments.length === 0 ? (
-                <div className="appointments-empty-state">
-                  <span>Sin turnos para mostrar</span>
-                  <small>No hay turnos que coincidan con los filtros aplicados.</small>
-                </div>
-              ) : (
-                <AppointmentsGrid
-                  appointments={filteredAppointments}
-                  user={person}
-                  onDiagnosticsUpdate={handleDiagnosticsUpdate}
-                  onAppointmentStateUpdate={handleAppointmentStateUpdate}
-                />
-              )}
-            </div>
-            {showButtonMore ? 
-              <button className="nextPageButton" onClick={()=>setPagesAppointment(pagesAppointment+1)}>Cargar mas turnos</button>
-            : <></>}
-            
-          </div>    
-          <ProfessionalAppointmentModal isOpen={openProfAppoModal} onClose={() => setOpenProfAppoModal(false)} onCreate={addAppointment} user={person}/>
+            )}
+          </>
+        }
+      />
+
+      <Toasts />
+
+      {/* ---------- navegación de semanas (solo grilla) ---------- */}
+      {effectiveMode === "grid" && (
+        <div className="appt-week-nav">
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setMonday(addDays(monday, -7))}>
+            <FaChevronLeft />
+            Semana anterior
+          </button>
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setMonday(startOfWeek(new Date()))}>
+            Esta semana
+          </button>
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setMonday(addDays(monday, 7))}>
+            Semana siguiente
+            <FaChevronRight />
+          </button>
         </div>
-      );
-  } 
+      )}
 
-  return null;
+      {/* ---------- contenido ---------- */}
+      {loading || !person ? (
+        effectiveMode === "grid" ? (
+          <SkeletonGrid columns={7} />
+        ) : (
+          <div className="adm-panel">
+            <SkeletonList rows={6} />
+          </div>
+        )
+      ) : effectiveMode === "grid" && person ? (
+        <AppointmentWeekGrid appointments={appointments} monday={monday} user={person} onOpen={setSelected} />
+      ) : appointments.length === 0 ? (
+        <div className="adm-panel">
+          <div className="adm-empty">
+            {includeCancelled ? "No hay turnos para mostrar." : "No hay turnos activos. Probá mostrando también los cancelados."}
+          </div>
+        </div>
+      ) : (
+        <div className="appt-weeks">
+          {grouped.map((week) => (
+            <section className="appt-week-block" key={toISODate(week.monday)}>
+              <h2 className="appt-week-title">{formatWeekRange(week.monday)}</h2>
+
+              {Array.from(week.days.values()).map((day) => (
+                <div className="appt-day-block" key={toISODate(day.date)}>
+                  <h3 className="appt-day-title">{formatDayLabel(day.date)}</h3>
+                  <div className="appt-day-items">
+                    {day.items.map((appointment) => (
+                      <AppointmentCard
+                        key={appointment.numAppointment}
+                        appointment={appointment}
+                        user={person}
+                        onOpen={setSelected}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+      )}
+
+      {/* ---------- paginado (solo lista) ---------- */}
+      {effectiveMode === "list" && !loading && (page > 0 || hasMore) && (
+        <div className="appt-pagination">
+          <button type="button" className="adm-btn adm-btn-ghost" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+            <FaChevronLeft />
+            Anteriores
+          </button>
+          <span className="appt-page">Página {page + 1}</span>
+          <button type="button" className="adm-btn adm-btn-ghost" disabled={!hasMore} onClick={() => setPage((p) => p + 1)}>
+            Siguientes
+            <FaChevronRight />
+          </button>
+        </div>
+      )}
+
+      {person && (
+        <AppointmentDetailModal
+          appointment={selected}
+          user={person}
+          patients={patients}
+          onClose={() => setSelected(undefined)}
+          onAccept={handleAccept}
+          onCancel={handleCancel}
+          onSaveRecord={handleSaveRecord}
+          onAddPatient={handleAddPatient}
+          onUpdate={handleUpdate}
+          onRepeat={handleRepeat}
+          onStopRepeat={handleStopRepeat}
+          rooms={rooms}
+        />
+      )}
+
+      {isProfessional && (
+        <NewAppointmentModal
+          isOpen={newModalOpen}
+          onClose={() => setNewModalOpen(false)}
+          rooms={rooms}
+          patients={patients}
+          schedules={schedules}
+          onCreate={handleCreate}
+        />
+      )}
+    </div>
+  );
 }
-

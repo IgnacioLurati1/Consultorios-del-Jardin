@@ -1,70 +1,15 @@
-
 body {
-    background-color: #EDEDF2;
+  background-color: var(--adm-bg, #f1f4f6);
 }
 
-.options-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    width: 90%;
-    margin: 20px auto;
-}
-
+/* Las pantallas de CRUD siguen usando .admin-home como contenedor;
+   se le da el mismo ancho y respiro que a .adm-page. */
 .admin-home {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    margin: auto;
-    color: black;
-    width: 60%;
+  display: flex;
+  flex-direction: column;
+  width: min(1440px, 93vw);
+  margin: 0 auto;
+  padding: 34px 0 80px;
+  font-size: 17px;
+  color: var(--adm-text, #1f2a33);
 }
-
-.admin-home-container-whole{
-    width: 90vw;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-}
-
-.admin-cards-container{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    align-items: center;
-    justify-content: center;
-    margin-top: 5vh;
-    gap:10px
-}
-
-.admin-card{
-    height: 40vh;
-    min-width: 200px;
-}
-
-
-
-@media (max-width: 768px) {
-    .options-container {
-        display: flex;
-        flex-direction: column;
-        margin: 0;
-        width: 90%;
-    }
-
-    .admin-home {
-        width: 100%;
-    }
-
-    .admin-cards-container {
-        grid-template-columns: repeat(2, 1fr);
-        font-size: 10px;
-    }
-
-    .admin-card {
-        height: 30vh;   /* más bajitas */
-        width: 100%;    /* que ocupen el espacio de la columna del grid */
-        min-width: unset; /* dejamos que el grid maneje el ancho */
-    }
-}
-

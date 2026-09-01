@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
+import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { RoomLabel  } from "./RoomLabel";   
 import {RoomModal} from "./RoomModal";
 import "../../homePages/adminHome/AdminHome.css"
 import "../adminCRUDS.css";
 import "./RoomLabelStyle.css";
-import { NavZone } from "../../../components/navZone/NavZone";
+import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { FaPlus } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import type {City,Office,Room} from "../../types.ts"
 import { findAllActiveCities} from "../adminCities/CityService.ts"
 import { findAllActiveOffices} from "../adminOffices/OfficeService.ts"
@@ -143,11 +144,8 @@ export function RoomsAdmin() {
     return (
         <div className="admin-home">
 
-            <NavZone title="Administrador de Salas"/>
-            <ToastContainer 
-                className = {`toast-container`}
-                draggable={false}
-            />
+            <AdminHeader title="Salas" subtitle="Salas de atención dentro de cada consultorio" />
+            <Toasts />
             <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese el nombre de una sala" />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
                 {rooms.length === 0 && !loading ? (

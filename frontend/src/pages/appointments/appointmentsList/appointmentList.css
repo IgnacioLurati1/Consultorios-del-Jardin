@@ -1,179 +1,403 @@
-.appointment-person-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+@import "../../adminCRUDS/adminPanel.css";
+
+/* ============================================================
+   Turnos: vista lista (agrupada por semana y día) y vista grilla semanal
+   ============================================================ */
+
+/* ---------- conmutador de vista ---------- */
+
+.appt-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  overflow: hidden;
+  background: var(--adm-surface);
 }
 
-.upper-appointment-container {
-  display: flex;
-  justify-content: space-between;
+.appt-view-toggle button {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 15px;
-  width: 100%;
-  margin-top: 10px;
-}
-.upper-appointment-container .navZone{
-  margin: 0;
-  width: 40%;
-  height: 8vh;
-}
-.sub-upper-appointment-container{
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 2vw;
-}
-
-.appointment-container{
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 90%;
-}
-
-.toast-container {
-    position: fixed !important;
-    margin-top:2vh;
-    width: auto;
-    font-size: 1.5vw;
-    overflow: hidden;
-    margin-bottom: 0;
-}
-
-.appointment-subcontainer{
-  flex-direction: column;
-  align-items: center;
-  background-color:aliceblue;
-  max-height: 70vh;
-  border-radius: 10px;
-  width: 100%;
-  padding: 0;
-  overflow-y: auto;
-}
-
-.nextPageButton{
-  font-size: 0.9vw;
-  font-weight: bold;
-  color:aliceblue;
+  gap: 8px;
+  padding: 12px 18px;
+  border: none;
+  background: transparent;
+  color: var(--adm-muted);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  border-radius: 5px;
-  border: none;
-  padding: 10px 15px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.appt-view-toggle button + button {
+  border-left: 1px solid var(--adm-border);
+}
+
+.appt-view-toggle button.active {
+  background: var(--adm-green);
+  color: #fff;
+}
+
+.appt-view-toggle button:not(.active):hover {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+/* ---------- navegación de semanas ---------- */
+
+.appt-week-nav {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3vw;
-  width: 10vw;
-  background-color: #3478af;
-  margin-top: 1vh;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
-.nextPageButton:hover{
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
+/* ---------- vista lista: semanas y, adentro, dias ----------
+   Las semanas necesitan aire entre si: son el corte grande de la lista y sin
+   separacion las tarjetas de una se leen como continuacion de la anterior. */
 
-.nextPageButton:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.create-professional-appointment-container{
-  box-shadow: 0px 1px 10px #6C788E;
-  background: #F3F7F8;
-  color: #3B7658;
-  border: none;
-  width: 14vw;
-  height: 8vh;       
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  border-radius: 8px; 
-  font-size: 1.5em;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  font-weight: bold;
-}
-
-.create-professional-appointment-container:hover{
-    cursor: pointer;
-    background-color: #E1E8EB;
-    transform: scale(1.02);
-    box-shadow: 0px 1px 10px #6C788E;
-}
-.create-professional-appointment-icon {
-  transition: transform 0.3s ease, rotate 1s ease;
-}
-
-.create-professional-appointment-container:hover .create-professional-appointment-icon {
-  transform: rotate(90deg) scale(1.2);
-}
-
-.appointments-status-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: #888;
-  font-size: 25px;
-}
-
-.appointments-empty-state {
+.appt-weeks {
   display: flex;
   flex-direction: column;
+  gap: 44px;
+}
+
+.appt-week-block {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.appt-week-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+/* capitalize dejaba "31 Ago Al 6 Sept": va en mayuscula solo el arranque. */
+.appt-week-title::first-letter {
+  text-transform: uppercase;
+}
+
+/* Linea que arranca despues del texto y cierra el ancho: marca donde empieza la semana. */
+.appt-week-title::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--adm-green);
+  opacity: 0.35;
+}
+
+.appt-day-title {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--adm-muted);
+}
+
+.appt-day-title::first-letter {
+  text-transform: uppercase;
+}
+
+.appt-day-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.appt-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-left: 4px solid var(--adm-green);
+  border-radius: var(--adm-radius-sm);
+  box-shadow: var(--adm-shadow);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--adm-text);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.appt-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--adm-shadow-lg);
+}
+
+/* La franja izquierda y el horario toman el color del estado, igual que el cartel */
+.appt-card.state-accepted { border-left-color: var(--adm-green); }
+.appt-card.state-accepted .appt-card-hours { color: var(--adm-green-dark); }
+
+.appt-card.state-pending { border-left-color: #b7791f; }
+.appt-card.state-pending .appt-card-hours { color: #8a5d10; }
+
+.appt-card.state-assisted { border-left-color: #6c788e; }
+.appt-card.state-assisted .appt-card-hours { color: #414d5f; }
+
+.appt-card.state-missed { border-left-color: var(--adm-danger); }
+.appt-card.state-missed .appt-card-hours { color: var(--adm-danger); }
+
+.appt-card.state-cancelled {
+  border-left-color: #cbd5e1;
+  opacity: 0.72;
+}
+
+.appt-card.state-cancelled .appt-card-hours {
+  color: var(--adm-muted);
+  text-decoration: line-through;
+}
+
+.appt-card-hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--adm-green-dark);
+}
+
+.appt-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.appt-card-person,
+.appt-card-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appt-card-person {
+  font-weight: 600;
+}
+
+.appt-card-person.muted {
+  color: var(--adm-muted);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.appt-card-room {
+  font-size: 0.9rem;
+  color: var(--adm-muted);
+}
+
+.appt-pagination {
+  display: flex;
   align-items: center;
   justify-content: center;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.appt-page {
+  font-size: 0.95rem;
+  color: var(--adm-muted);
+  font-weight: 600;
+}
+
+/* Colores por estado sobre la celda de components/weekGrid. */
+.week-slot.state-pending {
+  background: #fdf3e0;
+  border-color: #f0dcb4;
+  border-left-color: #b7791f;
+  color: #8a5d10;
+}
+
+.week-slot.state-assisted {
+  background: #eef1f4;
+  border-color: #dfe4ea;
+  border-left-color: #6c788e;
+  color: #414d5f;
+}
+
+.week-slot.state-missed {
+  background: var(--adm-danger-soft);
+  border-color: #f3c7c1;
+  border-left-color: var(--adm-danger);
+  color: var(--adm-danger);
+}
+
+.week-slot.state-cancelled {
+  background: #f6f7f9;
+  border-color: #e5e8ec;
+  border-left-color: #cbd5e1;
+  color: #94a3b8;
+}
+
+.week-slot.state-cancelled .week-slot-hour {
+  text-decoration: line-through;
+}
+
+.appt-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appt-history li {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  padding: 2.5rem 2rem;
-  margin: 1rem 0;
+  padding: 12px 14px;
+  background: var(--adm-bg);
+  border-radius: var(--adm-radius-sm);
 }
 
-.appointments-empty-state span {
-  font-size: 25px;
-  font-weight: 500;
-  color: #555;
+.appt-history-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.appointments-empty-state small {
-  font-size: 18px;
-  color: #aaa;
+.appt-history-obs {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--adm-text);
+  line-height: 1.5;
 }
+
+.appt-history-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
 
 @media (max-width: 768px) {
-  .appointment-person-container  {
-    position: relative;
-    width: 100vw;
+  .appt-view-toggle {
+    width: 100%;
   }
 
-  .upper-appointment-container {
-    flex-direction: column;
-    align-items: stretch;
+  .appt-view-toggle button {
+    flex: 1;
+    justify-content: center;
+    padding: 11px 10px;
+  }
+
+  .appt-week-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .appt-week-nav .adm-btn:nth-child(2) {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  /* La tarjeta pasa a dos filas: hora + estado arriba, datos abajo */
+  .appt-card {
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    padding: 14px 16px;
+  }
+
+  .appt-card-main {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .appt-card-hours {
+    flex: 1;
+  }
+
+  .appt-weeks {
+    gap: 34px;
+  }
+
+  .appt-pagination {
     gap: 10px;
-    width: 90vw;
   }
+}
 
-  .upper-appointment-container .navZone{
-    width: 100%;
-    height: auto;
-  }
+/* ---------- alta de turnos: turno normal vs sobreturno ---------- */
 
-  .toast-container {
-    margin-top:0vh;
-    width: 100%;
-    font-size: 4vw;
-    overflow: hidden;
-    margin-bottom: 0;
-  }
-  .create-professional-appointment-container{
-    height: auto;
-    width: 10vw;      
-    aspect-ratio: 1 / 1;
-    font-size: 2vw;
-  }
-  p{
-    display: none;
-  }
+.appt-mode-toggle {
+  display: flex;
+  gap: 0;
+  padding: 4px;
+  background: var(--adm-bg);
+  border-radius: var(--adm-radius-sm);
+}
 
+.appt-mode-toggle button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--adm-muted);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.appt-mode-toggle button.active {
+  background: var(--adm-surface);
+  color: var(--adm-green-dark);
+  box-shadow: 0 0 0 1px var(--adm-green), var(--adm-shadow);
+}
+
+.appt-mode-toggle button:not(.active):hover {
+  color: var(--adm-text);
+}
+
+.appt-schedule-link {
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+/* ---------- marca de sobreturno ---------- */
+
+.appt-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.week-slot.overbooked {
+  border-style: dashed;
+}
+
+.appt-slot-over {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #fdf3e0;
+  color: var(--adm-warn);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }

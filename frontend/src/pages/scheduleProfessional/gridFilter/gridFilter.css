@@ -1,7 +1,10 @@
 .filter-container{
   width: 10vw;
   position: relative;
-  z-index: 900;
+  /* Alcanza con estar arriba de la grilla. Con 900 se colaba por encima del velo
+     de la ventana de "que queres ver" y quedaba encendido mientras todo lo demas
+     estaba atenuado. */
+  z-index: 20;
 }
 
 .filter-selector {
@@ -195,3 +198,151 @@
   }
 }
   
+/* ---- filtro simplificado: solo salas ----
+   El disparador es un boton mas de la cabecera: mismo alto, mismo borde y mismo
+   verde que los .adm-btn-ghost que tiene al lado. Antes llevaba un box-shadow
+   gris de 10px que lo dejaba encendido al lado del resto. */
+
+/* Se ancha con su texto, como los botones de al lado, en vez de un 10vw fijo. */
+.filter-container {
+  width: auto;
+}
+
+.filter-selector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  width: 100%;
+  height: auto;
+  padding: 12px 20px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  box-shadow: none;
+  color: var(--adm-text);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-selector:hover {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green);
+  box-shadow: none;
+  transform: none;
+}
+
+.filter-selector:active {
+  transform: none;
+}
+
+.filter-selector .icon {
+  font-size: 1em;
+  color: var(--adm-muted);
+}
+
+/* El panel que se abre, con la misma superficie que el resto del panel. */
+.filter-options {
+  margin-top: 6px;
+  min-width: 260px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  box-shadow: var(--adm-shadow-lg);
+  overflow: hidden;
+}
+
+.filter-option {
+  padding: 10px 10px 0;
+}
+
+.filter-input {
+  padding: 8px 10px;
+  border-color: var(--adm-border);
+  color: var(--adm-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.filter-input:focus {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -1px;
+}
+
+.filter-list-item {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--adm-border);
+  border-radius: 6px;
+  color: var(--adm-text);
+}
+
+.filter-list li:last-child .filter-list-item {
+  border-bottom: none;
+}
+
+.filter-list-empty {
+  padding: 10px;
+  list-style-type: none;
+  color: #6C788E;
+  font-size: 0.9em;
+}
+
+.filter-list-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 1em;
+  color: inherit;
+  cursor: pointer;
+}
+
+.filter-list-item.selected {
+  background-color: #E8F1EC;
+  color: #2F5E46;
+  font-weight: 600;
+}
+
+.filter-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.filter-occupancy {
+  width: calc(100% - 1vw);
+  margin: 0.5vw;
+  padding: 9px 12px;
+  background: #3B7658;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-occupancy:hover {
+  background: #2F5E46;
+}
+
+.delete-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 0.95em;
+  cursor: pointer;
+}
+
+.delete-filters:hover {
+  background-color: #E1E8EB;
+}

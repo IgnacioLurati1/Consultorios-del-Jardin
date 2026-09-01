@@ -1,13 +1,13 @@
 import { DataInput } from "../../components/inputs/standardTextInput/DataInput";
+import { Toasts } from "../../components/toast/Toasts.tsx";
 import { Link } from "react-router-dom";
 import "./RecoverPassword.css";
 import Logo from "../../assets/LogoRecortado.png";
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import api from "../../axios.ts";
-import { toast, ToastContainer } from "react-toastify"
+import { toast } from "react-toastify"
 import { useState } from "react";
-import ReCaptcha from "../../components/reCaptcha.tsx";
 
 async function sendEmail(email: string) {
 
@@ -23,7 +23,6 @@ async function sendEmail(email: string) {
 export function RecoverPassword() {
 
   const [email, setEmail] = useState("");
-    const [captchaOk, setCaptchaOk] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setEmail(e.target.value);
@@ -60,31 +59,14 @@ export function RecoverPassword() {
           <div className="recoverPassword-button-container">
             <button
               className="recoverPassword-button"
-              onClick={() => {
-                if (!captchaOk) {
-                  toast.error("Por favor, completá el captcha", {
-                    className: "feedBack-box error",
-                  });
-                  return;
-                }
-
-                sendEmail(email);
-              }}
+              onClick={() => sendEmail(email)}
             >
               Enviar instrucciones
             </button>
           </div>
         </div>
       </div>
-      <ToastContainer className="feedBack-box"
-          closeOnClick={false}
-          draggable={false}
-          toastClassName="feedBack-box"
-        />
-
-        <div className="captcha-container">
-          <ReCaptcha onChange={setCaptchaOk} />
-        </div>
+      <Toasts />
     </div>
   );
 }

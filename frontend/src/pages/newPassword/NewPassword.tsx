@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { Toasts } from "../../components/toast/Toasts.tsx";
 import "./NewPassword.css";
 import Logo from "../../assets/LogoRecortado.png";
 import { faGreaterThan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DataInputPassword } from "../../components/inputs/passwordInput/DataInputPassword";
 import { useLocation } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 
 export function NewPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -28,7 +29,7 @@ export function NewPassword() {
     const token = localStorage.getItem("tokenTemp");
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/people/changePassword`, {
+      const response = await fetch("/api/people/changePassword", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -86,11 +87,7 @@ export function NewPassword() {
           </div>
         </div>
       </div>
-      <ToastContainer className="feedBack-box"
-          closeOnClick={false}
-          draggable={false}
-          toastClassName="feedBack-box"
-        />
+      <Toasts />
     </div>
   );
 }

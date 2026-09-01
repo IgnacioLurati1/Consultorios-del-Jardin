@@ -1,209 +1,173 @@
-import { useEffect, useState, useRef } from "react";
-import "../CRUDSModal.css";
-import { FaTimes } from "react-icons/fa";
-import { FaChevronRight } from "react-icons/fa";
-import { FaTrash } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { useEffect, useState } from "react";
+import { FaTrash } from "react-icons/fa6";
+import { Modal } from "../../../components/modal/Modal.tsx";
 
 interface CityModalProps {
-    visible: boolean;
-    city: {
-        idCity: string;
-        nameCity: string;
-        province: {
-            idProvince: string;
-            nameProvince: string;
-            active?: boolean
-        };
-        active: boolean;
-    } | null;
-    provinces: {idProvince:string, nameProvince:string}[];
-    onClose: () => void;
-    onDelete: (idCity: string) => void;
-    onEdit : (Updatedcity: {
-        idCity: string;
-        nameCity: string;
-        province:  string;
-    }, 
+  visible: boolean;
+  city: {
+    idCity: string;
+    nameCity: string;
+    province: {
+      idProvince: string;
+      nameProvince: string;
+      active?: boolean;
+    };
+    active: boolean;
+  } | null;
+  provinces: { idProvince: string; nameProvince: string }[];
+  onClose: () => void;
+  onDelete: (idCity: string) => void;
+  onEdit: (
+    Updatedcity: {
+      idCity: string;
+      nameCity: string;
+      province: string;
+    },
     active: boolean
-    ) => void;
-    onCreate: (newCity: {
-        nameCity: string;
-        province: string;
-    }) => void;
-    type: string;
+  ) => void;
+  onCreate: (newCity: { nameCity: string; province: string }) => void;
+  type: string;
 }
 
 export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit, onCreate, type }: CityModalProps) {
-    
-    const [cityData, setCityData] = useState({ idCity: "", nameCity: "", province:"", active:true   });
-    const [provinceName, setProvinceName] = useState("");
-    const [errors, setErrors] = useState<{ nameCity?:string, province?: string}>({})
+  const [cityData, setCityData] = useState({ idCity: "", nameCity: "", province: "", active: true });
+  const [errors, setErrors] = useState<{ nameCity?: string; province?: string }>({});
 
+  const editing = type === "edit" && !!city;
 
-    useEffect(() => {
-        if (visible && city) {
-            setCityData({idCity: city.idCity, nameCity: city.nameCity, province: city.province.idProvince, active: city.active});
-            setProvinceName(city.province.nameProvince);
-            setErrors({})
-        }
-    }, [visible, city]);
+  useEffect(() => {
+    if (!visible) return;
 
-    const activateButtonRef = useRef<HTMLButtonElement| null>(null);
-    const createButtonRef = useRef<HTMLButtonElement| null>(null);
-
-    function handleKeyDown(event: React.KeyboardEvent) {
-        if (event.key !== 'Enter') {
-            return;
-        } 
-
-        if (type === "edit" && city && city.active === false){
-            activateButtonRef.current?.click();
-        } else if (type === "create") {
-            createButtonRef.current?.click();
-        }
+    if (city) {
+      setCityData({ idCity: city.idCity, nameCity: city.nameCity, province: city.province.idProvince, active: city.active });
+    } else {
+      setCityData({ idCity: "", nameCity: "", province: "", active: true });
     }
+    setErrors({});
+  }, [visible, city]);
 
-    function validateInputs(){
-        const newErrors: typeof errors = {};
+  if (!visible || (type === "edit" && !city)) return null;
 
-        if(!cityData.nameCity.trim()){
-            newErrors.nameCity = "El nombre es obligatorio"
-        }
-
-        if(!cityData.province){
-            newErrors.province = "Se debe elegir una provincia"
-        }
-
-        setErrors(newErrors);
-
-        if( Object.keys(newErrors).length ===0){
-            return true
-        }else 
-            {return false}
-    }
-
-    function handleSubmit(){
-
-        if(!validateInputs()) {
-            console.log("validacion fallida", errors)
-        return;}
-
-        if(type === "edit"){
-            onEdit(cityData, true)
-        }else{
-            onCreate({nameCity: cityData.nameCity, province:cityData.province})
-        }
-    }
-
-    if (!visible|| (type ==="edit" && !city)) {
-        return null;
-    }
-
-    if(provinces.length === 0) {
-        return (
-            <div className="crud-modal" onClick={onClose}>
-                <div className ="crud-modal-content" onClick={e => e.stopPropagation()}>
-                    <div className="titleAndClose">
-                        <h2 className="crud-modal-title">{type === "edit"?
-                            "Detalles de la Localidad":"Crear Localidad"}<FaChevronRight />
-                        </h2>
-
-                        <FaTimes className="close-icon" onClick={onClose} />
-                    </div>
-                    {type === "edit" && city? (
-                        <div>
-                            <p><strong> ID: {city.idCity}</strong></p>
-                        </div>
-                    ) : null}
-                    {city && type === "edit" ? (<div>
-                        <p>Nombre: {cityData.nameCity}</p>
-                        <p>Provincia: {provinceName}    <strong>(Inhabilitada)</strong></p>
-                        No es posible modificar la Localidad porque no hay provincias disponibles.
-                        </div>) :
-                        (<div>
-                        No es posible crear una Localidad porque no hay provincias disponibles.
-                        </div>)}
-                </div>
-            </div>
-        );
-    }
-
+  // Sin provincias no hay dónde ubicar la localidad.
+  if (provinces.length === 0) {
     return (
-        <div className="crud-modal" onClick={onClose}>
-            <div className ="crud-modal-content" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
-                <div className="titleAndClose">
-                <h2 className="crud-modal-title">{type === "edit"?
-                    "Detalles de la Localidad":"Crear Localidad"}<FaChevronRight /></h2>
-                    <FaTimes className="close-icon" onClick={onClose} />
-                    </div>
-                    <div className="crud-input-container">
-                        <label>Nombre: </label>
-                        <input
-                            className={`input-crud ${errors.nameCity? "input-error" : "input-valid"}`}
-                            type="text"
-                            value={cityData.nameCity}
-                            onChange={(e) => setCityData({ ...cityData, nameCity: e.target.value })}
-                        />
-                        <div>
-                            {errors.nameCity && <p className="error-text">{errors.nameCity}</p>}
-                        </div>
-                    </div>
-                    <div className="crud-input-container">
-                        <label>Provincia:</label>
-                        <input
-                            className={`input-crud ${errors.province? "input-error" : "input-valid"}`}
-                            type="text"
-                            list = "provinces"
-                            value={provinceName}
-                            onChange={e => {
-                            const value = e.target.value;
-                            setProvinceName(value);
+      <Modal
+        open
+        onClose={onClose}
+        size="sm"
+        title={editing ? "Editar localidad" : "Nueva localidad"}
+        footer={
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+            Cerrar
+          </button>
+        }
+      >
+        <p className="ui-alert ui-alert-error">
+          No hay ninguna provincia habilitada. Creá o reactivá una provincia antes de {editing ? "editar" : "crear"} localidades.
+        </p>
+      </Modal>
+    );
+  }
 
-                            const selectedProvince = provinces.find(p => p.nameProvince === value);
+  function submit() {
+    const newErrors: typeof errors = {};
+    if (!cityData.nameCity.trim()) newErrors.nameCity = "El nombre es obligatorio";
+    if (!cityData.province) newErrors.province = "Elegí una provincia";
 
-                            if (selectedProvince) {
-                            setCityData({ ...cityData, province: selectedProvince.idProvince });
-                            } else {
-                            setCityData({ ...cityData, province:"" });
-                            }}}
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
-                            onBlur = {() => {
-                                if (!provinces.find(p => p.nameProvince === provinceName)) {
-                                    toast.dismiss();
-                                    setErrors(prev => ({...prev, province: "Provincia inválida"}))
-                                    setCityData({ ...cityData, province:""});
-                            }
-                            else {
-                                setErrors(prev => {
-                                    const { province, ...rest } = prev;
-                                    return rest;
-                                    });
-                            }
-                            }}
-                        />
-                        <datalist id="provinces">  
-                            {provinces.map((province) => (
-                                <option key={province.idProvince} value={province.nameProvince}/>
-                            ))}
-                        </datalist>
-                        <div>
-                            {errors.province && <p className="error-text">{errors.province}</p>}
-                        </div>
-                    </div>
-                    <div className="buttons">
-                        {type === "edit" && city? (
-                            city.active === false ? (
-                                <>
-                                <button autoFocus ref={activateButtonRef} className="create-button" onClick={() => onEdit(cityData, false)}>Activar</button>
-                                </>
-                            ):
-                        <>
-                        <button type="button" className="delete-button" onClick={() => {onDelete(cityData.idCity); onClose()}} >Eliminar<FaTrash /></button>
-                        <button type="button" className="edit-button" onClick={()=>handleSubmit()}>Modificar</button></>
-                        ) : (<button autoFocus ref={createButtonRef} type="button" className="create-button"  onClick={()=>handleSubmit()}>Añadir</button>)}
-                    </div>
-            </div>
-        </div>
-    )
+    if (editing) onEdit({ ...cityData, nameCity: cityData.nameCity.trim() }, true);
+    else onCreate({ nameCity: cityData.nameCity.trim(), province: cityData.province });
+  }
+
+  // Una localidad dada de baja solo se puede reactivar.
+  if (editing && city!.active === false) {
+    return (
+      <Modal
+        open
+        onClose={onClose}
+        size="sm"
+        title={city!.nameCity}
+        subtitle={`${city!.province.nameProvince} · localidad dada de baja`}
+        footer={
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+              Cerrar
+            </button>
+            <button type="button" className="adm-btn adm-btn-primary" autoFocus onClick={() => onEdit(cityData, false)}>
+              Reactivar localidad
+            </button>
+          </>
+        }
+      >
+        <p className="ui-alert ui-alert-info">
+          Mientras esté dada de baja no se pueden crear consultorios en esta localidad.
+        </p>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="sm"
+      title={editing ? "Editar localidad" : "Nueva localidad"}
+      subtitle={editing ? city!.nameCity : "Se usa para ubicar los consultorios"}
+      footer={
+        <>
+          {editing && (
+            <button
+              type="button"
+              className="adm-btn adm-btn-danger"
+              onClick={() => {
+                onDelete(cityData.idCity);
+                onClose();
+              }}
+            >
+              <FaTrash />
+              Dar de baja
+            </button>
+          )}
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
+            {editing ? "Guardar cambios" : "Crear localidad"}
+          </button>
+        </>
+      }
+    >
+      <div className="ui-section">
+        <label className="ui-field">
+          <span>Nombre</span>
+          <input
+            autoFocus
+            value={cityData.nameCity}
+            placeholder="Rosario"
+            onChange={(e) => setCityData({ ...cityData, nameCity: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+          />
+          {errors.nameCity && <small className="ui-hint">{errors.nameCity}</small>}
+        </label>
+
+        <label className="ui-field">
+          <span>Provincia</span>
+          {/* Antes era un input con datalist: se podía escribir cualquier cosa y quedaba
+              en un estado inválido hasta salir del campo. Con un select no hay forma de
+              elegir algo que no exista. */}
+          <select value={cityData.province} onChange={(e) => setCityData({ ...cityData, province: e.target.value })}>
+            <option value="">Elegí una provincia…</option>
+            {provinces.map((province) => (
+              <option key={province.idProvince} value={province.idProvince}>
+                {province.nameProvince}
+              </option>
+            ))}
+          </select>
+          {errors.province && <small className="ui-hint">{errors.province}</small>}
+        </label>
+      </div>
+    </Modal>
+  );
 }

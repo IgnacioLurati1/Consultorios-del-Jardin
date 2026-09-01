@@ -1,0 +1,88 @@
+@import "../adminCRUDS/adminPanel.css";
+
+.control-note {
+  margin: 0 0 18px;
+  padding: 11px 14px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  border-radius: var(--adm-radius-sm);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Qué se está listando y en qué orden: cambia con el filtro de pasados. */
+.control-order {
+  margin: 0 0 12px;
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.control-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.control-table thead th {
+  text-align: left;
+  padding: 12px 18px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--adm-border);
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.control-table tbody td {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--adm-border);
+  color: var(--adm-text);
+  vertical-align: middle;
+}
+
+.control-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.control-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.control-hours {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.control-muted {
+  color: var(--adm-muted);
+  font-style: italic;
+}
+
+.control-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.control-page {
+  font-size: 0.9rem;
+  color: var(--adm-muted);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .control-table {
+    font-size: 0.85rem;
+  }
+
+  .control-table thead th,
+  .control-table tbody td {
+    padding: 10px 12px;
+  }
+}

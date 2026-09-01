@@ -1,85 +1,109 @@
-import {useState} from "react";
-import "../CRUDSModal.css";
-import { FaTimes } from "react-icons/fa";
-import { FaChevronRight } from "react-icons/fa";
-import { FaTrash } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { FaTrash } from "react-icons/fa6";
+import { Modal } from "../../../components/modal/Modal.tsx";
 
-export function ProvinceModal({visible, onClose, province, onDelete, onEdit, action, onCreate}: {visible: boolean; onClose: () => void; province: any | null; onDelete: () => void; onEdit: (id: string, newName: string, active:boolean) => void; action: string; onCreate: (newName: string) => void;}) {
-    if (!visible) return null;
-    if (action === "edit" && province && province.active) {
-    const [newName, setNewName] = useState('');
+interface ProvinceModalProps {
+  visible: boolean;
+  onClose: () => void;
+  province: any | null;
+  onDelete: () => void;
+  onEdit: (id: string, newName: string, active: boolean) => void;
+  action: string;
+  onCreate: (newName: string) => void;
+}
 
+export function ProvinceModal({ visible, onClose, province, onDelete, onEdit, action, onCreate }: ProvinceModalProps) {
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const editing = action === "edit" && province;
+  const disabled = editing && province.active === false;
+
+  useEffect(() => {
+    if (!visible) return;
+    // Antes el campo arrancaba vacío y solo mostraba el nombre actual como placeholder:
+    // guardar sin escribir nada dejaba la provincia sin nombre.
+    setName(editing ? province.nameProvince : "");
+    setError(null);
+  }, [visible, province, action]);
+
+  if (!visible || (action === "edit" && !province)) return null;
+
+  function submit() {
+    if (!name.trim()) {
+      setError("El nombre no puede quedar vacío");
+      return;
+    }
+
+    if (editing) onEdit(province.idProvince, name.trim(), true);
+    else onCreate(name.trim());
+  }
+
+  // Una provincia dada de baja solo se puede reactivar.
+  if (disabled) {
     return (
-    <div className="crud-modal" onClick={onClose}>
-      <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
-        <div className="titleAndClose">
-          <h2 className="crud-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
-          <FaTimes className="close-icon" onClick={onClose} />
-        </div>
-        <div className="crud-input-container">
-          <label>Nombre: </label>
-          <input type="text" className="input-crud" placeholder={province.nameProvince} value={newName} onChange={e => {
-              setNewName(e.target.value);
-          }}/>
-        </div>
-
-        <div className="buttons">
-          <button className="delete-button" onClick={onDelete}>Eliminar provincia <FaTrash /></button>
-          <button className="edit-button" onClick={() => onEdit(province.idProvince, newName, true)}>Modificar</button>
-        </div>
-      </div>
-    </div>
-  );}
-
-  if (action === "create") {
-    const [newName, setNewName] = useState('');
-    return (
-      <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
-        if (e.key === 'Enter') {
-          onCreate(newName);
+      <Modal
+        open
+        onClose={onClose}
+        size="sm"
+        title={province.nameProvince}
+        subtitle="Provincia dada de baja"
+        footer={
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+              Cerrar
+            </button>
+            <button type="button" className="adm-btn adm-btn-primary" autoFocus onClick={() => onEdit(province.idProvince, " ", false)}>
+              Reactivar provincia
+            </button>
+          </>
         }
-      }}>
-        <div className="crud-modal-content" onClick={e => e.stopPropagation()}>
-          <div className="titleAndClose">
-            <h2 className="crud-modal-title">Crear Nueva Provincia <FaChevronRight /></h2>
-            <FaTimes className="close-icon" onClick={onClose} />
-          </div>
-          <div className="crud-input-container">
-            <label>Nombre: </label>
-            <input type="text" className="input-crud" placeholder="Nombre de la provincia" value={newName} onChange={e => {
-                setNewName(e.target.value);
-            }}/>
-          </div>
-
-          <div className="buttons">
-            <button className="create-button" onClick={() => onCreate(newName)}>Crear provincia</button>
-          </div>
-        </div>
-      </div>
+      >
+        <p className="ui-alert ui-alert-info">
+          Mientras esté dada de baja no se pueden crear localidades en esta provincia ni modificar sus datos.
+        </p>
+      </Modal>
     );
   }
 
-  if(action === "edit" && province.active == false){
-    return (
-      <div className="crud-modal" tabIndex={0} onClick={onClose} onKeyDown={e => {
-        if (e.key === 'Enter') {
-          onEdit(province.idProvince, " ", false);
-        }
-      }}>
-        <div className="crud-modal-content" onClick={e => e.stopPropagation()} >
-          <div className="titleAndClose">
-            <h2 className="crud-modal-title">Detalles de la Provincia <FaChevronRight /></h2>
-            <FaTimes className="close-icon" onClick={onClose} />
-          </div>
-          <p>ID: {province.idProvince}</p>
-          <p>Nombre:  {province.nameProvince}</p>
-          <div className="buttons">
-            <button autoFocus className="create-button" onClick={() => onEdit(province.idProvince, " ", false)}>Activar</button>
-          </div>
-        </div>
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="sm"
+      title={editing ? "Editar provincia" : "Nueva provincia"}
+      subtitle={editing ? province.nameProvince : "Se usa para agrupar las localidades"}
+      footer={
+        <>
+          {editing && (
+            <button type="button" className="adm-btn adm-btn-danger" onClick={onDelete}>
+              <FaTrash />
+              Dar de baja
+            </button>
+          )}
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+            Cancelar
+          </button>
+          <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
+            {editing ? "Guardar cambios" : "Crear provincia"}
+          </button>
+        </>
+      }
+    >
+      <div className="ui-section">
+        <label className="ui-field">
+          <span>Nombre</span>
+          <input
+            autoFocus
+            value={name}
+            placeholder="Santa Fe"
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+          />
+        </label>
+
+        {error && <p className="ui-alert ui-alert-error">{error}</p>}
       </div>
-    )
-  }
-
+    </Modal>
+  );
 }
-

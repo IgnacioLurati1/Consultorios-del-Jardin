@@ -1,9 +1,8 @@
-import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import "./LateralMenu.css"; 
-import Logo from '../../../assets/Logo.png';
-import "../../header/Header.css";
+import { Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { FaXmark } from "react-icons/fa6";
+import Logo from "../../../assets/Logo.png";
 import {
   faHouse,
   faUser,
@@ -11,17 +10,17 @@ import {
   faCreditCard,
   faPhone,
   faUserTie,
-  faArrowLeft,
   faDatabase,
   faCalendarCheck,
-} from '@fortawesome/free-solid-svg-icons';
-import { getDecodedToken } from '../../../pages/commonServices';
+} from "@fortawesome/free-solid-svg-icons";
+import { getDecodedToken } from "../../../pages/commonServices";
+import "./LateralMenu.css";
 
 type LateralMenuItem = {
   faviconName: string;
   title: string;
   path: string;
-  userType: string; // 'admin','professional','client','guest' <--- valores posibles
+  userType: string; // 'admin','professional','client','guest','all'
 };
 
 type LateralMenuProps = {
@@ -42,38 +41,33 @@ const iconMap: Record<string, IconDefinition> = {
   requestAppointments: faCalendarDays,
 };
 
-let currentUserType = 'all'; // Valor por defecto
+export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
+  const decodedToken = isOpen ? getDecodedToken() : null;
+  const currentUserType = decodedToken ? decodedToken.type : "guest";
 
-export function LateralMenu({isOpen, items, onClose }: LateralMenuProps) {
-  
-  if (isOpen){
-    const decodedToken = getDecodedToken();
-    currentUserType = decodedToken ? decodedToken.type : 'guest';
-  }
-  
+  const visible = items.filter((item) => item.userType === "all" || item.userType === currentUserType);
+
   return (
-    <div className={`lateral-menu ${isOpen ? 'open' : 'closed'}`}>
-        <div>
-            {items.map((item) => {
-              if(item.userType == 'all' || item.userType == currentUserType) {
-                const icon = iconMap[item.faviconName] ?? faHouse; // ícono por defecto
-                return (
-                <Link className='link-menu-item' onClick={onClose} key={item.path} to={item.path}>
-                    <div className="menu-item">
-                    <FontAwesomeIcon icon={icon} />
-                    <span>{item.title}</span>
-                    </div>
-                </Link>
-                );
-            }
-            })}
-        </div>
-        <div className='back-button' onClick={onClose}>
-            <FontAwesomeIcon icon={faArrowLeft} />
-        </div>
-        <div className="logo-container">
-            <img src={Logo} alt="Logo" className="logo" />
-        </div>
-    </div>
+    <nav className={`lateral-menu ${isOpen ? "open" : "closed"}`} aria-hidden={!isOpen}>
+      <div className="lateral-menu-head">
+        <img src={Logo} alt="Consultorios del Jardín" className="lateral-menu-logo" />
+        <button type="button" className="lateral-menu-close" onClick={onClose} aria-label="Cerrar menú">
+          <FaXmark />
+        </button>
+      </div>
+
+      <div className="lateral-menu-items">
+        {visible.map((item) => (
+          <Link className="lateral-menu-item" onClick={onClose} key={`${item.userType}-${item.path}`} to={item.path}>
+            <span className="lateral-menu-icon">
+              <FontAwesomeIcon icon={iconMap[item.faviconName] ?? faHouse} />
+            </span>
+            {item.title}
+          </Link>
+        ))}
+      </div>
+
+      <p className="lateral-menu-foot">Consultorios del Jardín</p>
+    </nav>
   );
 }

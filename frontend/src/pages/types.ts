@@ -35,10 +35,15 @@ export interface Person{
     name: string;
     surname: string;
     phoneNumber: string;
-    password: string;
+    /** Los pacientes anónimos no tienen contraseña. */
+    password?: string | null;
     speciality: string;
     type: string;
     active: boolean;
+    /** Paciente cargado por un profesional, sin cuenta propia. */
+    anonymous?: boolean;
+    /** Email del profesional que lo cargó, si es (o fue) un paciente anónimo. */
+    createdBy?: string | null;
 }
 
 export interface Schedule {
@@ -48,7 +53,6 @@ export interface Schedule {
     room: Room;
     finalHour: string;
     active: boolean;
-    allowedType: "simple" | "taller";
     duration: number
 }
 
@@ -58,18 +62,33 @@ export interface TokenPayload {
     exp:number;
 }
 
+/**
+ * Vista clínica de un turno. Ya no es una entidad propia: el backend la deriva
+ * del turno y la sigue exponiendo en los endpoints /diagnostic.
+ */
 export interface Diagnostic {
     appointment: number;
     patient: string;
     state: string;
-    observations: string;
+    observations: string | null;
 }
 
-export interface DiagnosticPopulatedAppointment {
-    appointment: Appointment;
-    patient: string;
-    state: string;
-    observations: string;
+export type RecurrenceFrequency = "weekly" | "biweekly";
+
+/** Turno repetible: la receta con la que el backend va creando los turnos que se repiten. */
+export interface Recurrence {
+    idRecurrence: number;
+    frequency: RecurrenceFrequency;
+    initialHour: string;
+    finalHour: string;
+    value: number;
+    overbooked: boolean;
+    /** Fecha del turno que la originó: define el día de la semana. */
+    startDate: string;
+    patient: { email: string; name: string; surname: string } | null;
+    room: { idRoom: number; description: string };
+    /** Los próximos turnos ya generados. */
+    upcoming: { numAppointment: number; date: string }[];
 }
 
 export interface Appointment {
@@ -78,9 +97,15 @@ export interface Appointment {
     initialHour: string;
     finalHour: string;
     value: number;
-    type: "simple" | "taller";
+    /** pending | accepted | assisted | missed, o un ISO timestamp si fue cancelado. */
     state: string;
+    observations?: string | null;
+    /** Sobreturno: el profesional lo dio fuera de sus módulos de atención. */
+    overbooked?: boolean;
+    /** Si salió de un turno repetible, la configuración que lo generó. */
+    recurrence?: { idRecurrence: number; frequency: RecurrenceFrequency; active: boolean } | null;
     professional: Person;
+    /** Un turno tiene como mucho un paciente. Puede no tener ninguno todavía. */
+    patient?: Person | null;
     room: Room;
-    diagnostics: Diagnostic[];
 }
