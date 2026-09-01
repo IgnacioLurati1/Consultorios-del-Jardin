@@ -74,7 +74,12 @@ export class RecurrenceService {
     );
 
     if (!appointment) throw notFound("Ese turno no existe, ya fue cancelado o no es tuyo");
-    if (appointment.recurrence) throw conflict("Ese turno ya se está repitiendo");
+
+    // Frenar una repetición no le borra el puntero al turno: la configuración queda como
+    // registro de lo que pasó y los turnos que generó siguen apuntándole. Así que lo que
+    // impide volver a repetir no es que haya una, sino que esa siga andando. Sin este
+    // matiz, un turno que se repitió una vez no se podía volver a repetir nunca.
+    if (appointment.recurrence?.active) throw conflict("Ese turno ya se está repitiendo");
 
     const recurrence = em.create(Recurrence, {
       professional: appointment.professional,

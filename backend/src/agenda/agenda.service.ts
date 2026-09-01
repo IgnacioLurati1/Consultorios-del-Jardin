@@ -92,7 +92,7 @@ export class AgendaService {
     const [rooms, schedules, appointments, hours] = await Promise.all([
       em.find(Room, { active: true }, { populate: ["office"], orderBy: { description: "ASC" } }),
       em.find(Schedule, { day }, { populate: ["person", "room"] }),
-      em.find(Appointment, { date }, { populate: ["professional", "patient", "room"], orderBy: { initialHour: "ASC" } }),
+      em.find(Appointment, { date }, { populate: ["professional", "patient", "room", "recurrence"], orderBy: { initialHour: "ASC" } }),
       this.openingHours(),
     ]);
 
@@ -134,8 +134,12 @@ export class AgendaService {
         state: appointment.state,
         /** Fuera de los módulos del profesional: lo metió a mano. */
         overbooked: !!appointment.overbooked,
-        /** Salió de un turno que se repite solo. */
-        recurring: !!appointment.recurrence,
+        /**
+         * Sale de un turno que se repite solo, y esa repetición sigue andando. Frenarla no
+         * le borra el puntero al turno, así que con mirar si existe se seguiría etiquetando
+         * como repetido algo que ya no se repite.
+         */
+        recurring: !!appointment.recurrence?.active,
         professional: personView(appointment.professional),
         patient: appointment.patient ? personView(appointment.patient) : null,
       })),
