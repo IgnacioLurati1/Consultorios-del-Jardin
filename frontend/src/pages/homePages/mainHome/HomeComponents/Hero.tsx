@@ -51,7 +51,7 @@ function pitchFor({ type, firstName }: Session): Pitch {
     default:
       return {
         eyebrow: "Consultorios del Jardín",
-        title: "Pedí tu turno cuando puedas, no cuando atienden.",
+        title: "Sacá turno con el profesional que quieras.",
         lead: "Cuatro especialidades en un mismo lugar. Elegís con qué profesional te atendés, ves los horarios que tiene libres y confirmás desde el celular, sin llamar por teléfono.",
         primary: { label: "Crear mi cuenta", to: "/Register" },
         secondary: { label: "Ya tengo cuenta", to: "/Login" },

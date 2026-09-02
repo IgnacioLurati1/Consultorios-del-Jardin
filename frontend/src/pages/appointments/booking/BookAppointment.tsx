@@ -202,7 +202,7 @@ export function BookAppointment() {
               const initials = `${professional.surname?.charAt(0) ?? ""}${professional.name?.charAt(0) ?? ""}`.toUpperCase();
 
               return (
-                <li key={professional.email}>
+                <li key={professional.email} className="booking-professional-row">
                   <button
                     type="button"
                     className={`booking-professional ${active ? "active" : ""}`}
@@ -226,16 +226,17 @@ export function BookAppointment() {
                     </span>
                   </button>
 
-                  {/* Fuera del botón de arriba: un botón dentro de otro no es HTML válido,
-                      y además abrir la ficha no tiene por qué desplegar los horarios. */}
+                  {/* Hermano del botón de arriba y no hijo: un botón dentro de otro no es
+                      HTML válido, y abrir la ficha no tiene por qué desplegar los horarios. */}
                   <button
                     type="button"
                     className="booking-about-btn"
                     onClick={() => setAbout(professional)}
+                    title="Acerca de mí"
                     aria-label={`Acerca de ${professional.name} ${professional.surname}`}
                   >
                     <FaCircleInfo aria-hidden="true" />
-                    Acerca de mí
+                    <span>Acerca de mí</span>
                   </button>
                 </li>
               );

@@ -201,6 +201,8 @@ export function AppointmentDetailModal({
             />
             <small>Lo que cobrás por esta consulta. Vacío queda en 0.</small>
           </label>
+
+          <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
         </div>
       ) : (
         <>

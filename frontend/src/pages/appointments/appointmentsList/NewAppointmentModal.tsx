@@ -311,6 +311,8 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
           <small>Si lo dejás vacío queda en 0 y lo podés completar después.</small>
         </label>
 
+        <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
+
         <label className="ui-field">
           <span>Paciente</span>
           <select value={form.patientEmail} onChange={(e) => setForm({ ...form, patientEmail: e.target.value })}>

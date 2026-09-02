@@ -287,6 +287,8 @@ export default function NewAppointmentScreen() {
             error={errors.value}
           />
 
+          <Note>Este dato es privado entre el paciente y vos.</Note>
+
           <PickerField
             label="Que se repita"
             value={

@@ -46,16 +46,29 @@
   padding: 0;
 }
 
+/* La fila lleva dos controles: el que despliega los horarios y el que abre la ficha.
+   Por eso la línea divisoria vive acá y no en el botón: si no, quedaba solo debajo de
+   uno de los dos. */
+.booking-professional-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.booking-professionals > li:last-child {
+  border-bottom: none;
+}
+
 .booking-professional {
   display: flex;
   align-items: center;
   gap: 16px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   box-sizing: border-box;
   padding: 16px 22px;
   border: none;
   border-left: 3px solid transparent;
-  border-bottom: 1px solid var(--adm-border);
   background: transparent;
   color: inherit;
   font-family: inherit;
@@ -63,10 +76,6 @@
   text-align: left;
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease;
-}
-
-.booking-professionals > li:last-child .booking-professional {
-  border-bottom: none;
 }
 
 .booking-professional:hover {
@@ -220,6 +229,16 @@
     width: 100%;
     justify-content: center;
   }
+
+  /* Con la fila apilada, el ícono se va arriba a la derecha en vez de quedar
+     centrado contra un bloque que creció hacia abajo. */
+  .booking-professional-row {
+    align-items: flex-start;
+  }
+
+  .booking-about-btn {
+    padding: 18px 14px 0 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -234,31 +253,39 @@
 }
 
 /* ── Acerca de mí ─────────────────────────────────────────────────
-   Va debajo de la fila del profesional y no adentro: un botón dentro de
-   otro botón no es HTML válido, y abrir la ficha no tiene por qué
-   desplegar los horarios. */
+   Al final de la fila, del lado de "Ver horarios". Cuando el ancho no da,
+   se queda el ícono: el nombre completo lo dicen el title y el aria-label. */
 .booking-about-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin: 6px 0 0 14px;
-  padding: 6px 12px;
+  flex-shrink: 0;
+  padding: 0 22px 0 4px;
   background: transparent;
-  border: 1px solid var(--adm-border);
-  border-radius: var(--adm-radius-sm);
+  border: none;
   color: var(--adm-muted);
   font: inherit;
   font-size: 0.88rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .booking-about-btn:hover,
 .booking-about-btn:focus-visible {
-  border-color: var(--adm-green);
   color: var(--adm-green-dark);
   outline: none;
+}
+
+@media (max-width: 860px) {
+  .booking-about-btn span {
+    display: none;
+  }
+
+  .booking-about-btn {
+    padding: 0 18px;
+  }
 }
 
 /* La presentación es texto escrito a mano: los saltos de línea que puso la persona
