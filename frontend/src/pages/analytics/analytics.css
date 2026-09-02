@@ -171,7 +171,7 @@
 }
 
 .an-axis {
-  fill: #64748b;
+  fill: var(--adm-muted);
   font-size: 13px;
   font-family: inherit;
 }
@@ -189,7 +189,7 @@
   font-size: 12px;
   font-weight: 700;
   font-family: inherit;
-  stroke: #fff;
+  stroke: var(--adm-on-green);
   stroke-width: 3.5;
   stroke-linejoin: round;
   paint-order: stroke fill;
@@ -442,4 +442,112 @@
 /* Misma barra, en chico, dentro de la fila de cada rol. */
 .an-roles .an-tool-bar {
   display: flex;
+}
+
+/* ---------- cuentas marcadas ---------- */
+
+.an-flags {
+  margin-top: 22px;
+}
+
+.an-flags-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* El punto de color reemplaza a un ícono: dice de qué lista se trata sin agregar una
+   figura más a una pantalla que ya está llena de números. */
+.an-flags-title::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.an-flags-title-red {
+  color: var(--adm-danger);
+}
+
+.an-flags-title-red::before {
+  background: var(--adm-danger);
+}
+
+.an-flags-title-amber {
+  color: var(--adm-warn);
+}
+
+.an-flags-title-amber::before {
+  background: var(--adm-warn);
+}
+
+.an-flag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.an-flag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 15px;
+  border: 1px solid var(--adm-border);
+  border-left-width: 4px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+}
+
+.an-flag-red {
+  border-left-color: var(--adm-danger);
+  background: var(--adm-danger-soft);
+}
+
+.an-flag-amber {
+  border-left-color: var(--adm-warn);
+  background: var(--adm-warn-soft);
+}
+
+.an-flag-who,
+.an-flag-why {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.an-flag-why {
+  text-align: right;
+}
+
+.an-flag-who strong {
+  font-size: 0.97rem;
+  font-weight: 600;
+}
+
+.an-flag-who span,
+.an-flag-why span {
+  font-size: 0.83rem;
+  color: var(--adm-muted);
+}
+
+.an-flag-why span:first-child {
+  color: var(--adm-text);
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .an-flag-why {
+    text-align: left;
+  }
 }

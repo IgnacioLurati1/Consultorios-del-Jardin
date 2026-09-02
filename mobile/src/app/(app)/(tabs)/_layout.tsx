@@ -13,12 +13,14 @@ import { useTheme } from "../../../theme/useTheme";
  * las que se llega desde Más o desde Inicio), solo salen de la barra.
  */
 
-type Slot = "index" | "pedir-turno" | "turnos" | "pacientes" | "usuarios" | "numeros" | "mas";
+type Slot = "index" | "pedir-turno" | "turnos" | "pacientes" | "usuarios" | "dia" | "numeros" | "mas";
 
 const VISIBLE: Record<string, Slot[]> = {
   client: ["index", "pedir-turno", "turnos", "mas"],
   professional: ["index", "turnos", "pacientes", "mas"],
-  admin: ["index", "usuarios", "numeros", "mas"],
+  // El día del consultorio y no los números: la agenda se mira todos los días, la
+  // facturación una vez por mes. Los números siguen a un toque, desde Inicio.
+  admin: ["index", "usuarios", "dia", "mas"],
 };
 
 export default function TabsLayout() {
@@ -82,6 +84,15 @@ export default function TabsLayout() {
           href: shows("usuarios"),
           title: "Usuarios",
           tabBarIcon: ({ color, size }) => <FontAwesome6 name="users" size={size - 4} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="dia"
+        options={{
+          href: shows("dia"),
+          title: "El día",
+          tabBarIcon: ({ color, size }) => <FontAwesome6 name="table-columns" size={size - 4} color={color} />,
         }}
       />
 

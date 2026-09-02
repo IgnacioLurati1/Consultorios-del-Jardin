@@ -148,6 +148,8 @@ export interface AssistantSpend {
 }
 
 export interface AssistantUsage {
+  /** Lo que va del día. El plan gratuito de Groq se mide así y se reinicia a medianoche. */
+  hoy: AssistantSpend;
   mesEnCurso: AssistantSpend;
   historico: AssistantSpend;
   desde: string | null;

@@ -70,7 +70,7 @@
 }
 
 .prof-today-item:hover {
-    background: #fafbfc;
+    background: var(--adm-surface-alt);
 }
 
 .prof-today-item:focus-visible {
@@ -198,6 +198,241 @@
   }
 
   .prof-repeat-item .adm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---------- configuracion del consultorio ----------
+   Cierra el panel: son decisiones que se toman una vez, no cosas que se miran
+   todos los dias. Cada opcion es una fila con su switch, y lo que solo tiene
+   sentido con el switch prendido aparece recien ahi. */
+
+.prof-setting {
+  border-bottom: 1px solid var(--adm-border);
+}
+
+/* Los repetibles viven acá y no entre las tarjetas del menú: son una configuración
+   del consultorio, no una pantalla de todos los días. */
+.prof-setting-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--adm-border);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.14s ease;
+}
+
+.prof-setting-link:hover {
+  background: var(--adm-surface-alt);
+}
+
+.prof-setting-link:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -2px;
+}
+
+.prof-setting-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.prof-setting-chevron {
+  flex-shrink: 0;
+  color: var(--adm-muted);
+  transition: transform 0.16s ease;
+}
+
+.prof-setting-link:hover .prof-setting-chevron {
+  transform: translateX(3px);
+}
+
+.prof-setting-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  cursor: pointer;
+}
+
+.prof-setting-main:hover {
+  background: var(--adm-surface-alt);
+}
+
+.prof-setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.prof-setting-label {
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+
+.prof-setting-desc {
+  color: var(--adm-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+/* El switch es un checkbox de verdad: llega el foco por teclado y la barra
+   espaciadora lo cambia, sin tener que reimplementar nada de eso. */
+.prof-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 50px;
+  height: 28px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--adm-border-strong);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.prof-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--adm-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.28);
+  transition: transform 0.18s ease;
+}
+
+.prof-switch:checked {
+  background: var(--adm-green);
+}
+
+.prof-switch:checked::after {
+  transform: translateX(22px);
+}
+
+.prof-switch:focus-visible {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+.prof-switch:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.prof-setting-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 22px 20px;
+}
+
+/* Lo de adentro entra un toque después de que se abrió el alto: primero se hace lugar,
+   después aparece el contenido. Al revés se ve el texto apretándose contra el borde. */
+.adm-collapsible.open .prof-setting-extra {
+  animation: adm-enter 0.26s ease-out 0.08s backwards;
+}
+
+.prof-setting-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.94rem;
+}
+
+.prof-setting-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 18px 22px;
+}
+
+/* ---------- vacaciones ---------- */
+
+.prof-vacation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prof-vacation-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+}
+
+.prof-vacation-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.prof-vacation-when {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-vacation-reason {
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 640px) {
+  .prof-setting-main {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .prof-setting-extra {
+    padding: 4px 16px 18px;
+  }
+
+  .prof-setting-link {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .prof-setting-actions {
+    padding: 16px;
+  }
+
+  .prof-setting-actions .adm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .prof-vacation-item {
+    flex-wrap: wrap;
+  }
+
+  .prof-vacation-item .adm-btn {
     width: 100%;
     justify-content: center;
   }

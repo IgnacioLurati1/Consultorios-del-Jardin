@@ -72,13 +72,14 @@ export function StateBadge({ state }: { state: StateKey }) {
 }
 
 /** Etiqueta neutra para un dato suelto: "Sobreturno", "Se repite", una especialidad. */
-export function Tag({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "green" | "warn" }) {
+export function Tag({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "green" | "warn" | "danger" }) {
   const { colors } = useTheme();
 
   const skin = {
     neutral: { bg: colors.sunken, fg: colors.muted },
     green: { bg: colors.greenSoft, fg: colors.greenDark },
     warn: { bg: colors.warnSoft, fg: colors.warn },
+    danger: { bg: colors.dangerSoft, fg: colors.danger },
   }[tone];
 
   return (

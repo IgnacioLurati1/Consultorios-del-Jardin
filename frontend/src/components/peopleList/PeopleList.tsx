@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
+import { Hint } from "../hint/Hint.tsx";
 
 export type BadgeTone = "green" | "amber" | "red" | "grey";
 
 export interface PersonBadge {
   label: string;
   tone: BadgeTone;
+  /**
+   * Por qué está puesto. Un color llama la atención y no contesta nada: el cartelito
+   * que la lleva se subraya punteado y al pasarle el mouse explica de dónde salió.
+   */
+  hint?: string;
 }
 
 interface PeopleSearchProps {
@@ -43,10 +49,17 @@ interface PersonRowProps {
   /** Color de las iniciales. Sirve para distinguir de un vistazo el tipo de persona. */
   tone?: "green" | "amber" | "grey";
   onClick?: () => void;
+  /**
+   * Un botón propio de la fila, al costado.
+   *
+   * Va afuera del botón de la fila y no adentro: un botón dentro de otro botón no es
+   * HTML válido, el navegador lo desarma, y el click termina en cualquiera de los dos.
+   */
+  action?: ReactNode;
 }
 
 /** Fila del listado: iniciales, nombre, una línea de contexto y sus cartelitos. */
-export function PersonRow({ name, surname, meta, badges = [], tone = "green", onClick }: PersonRowProps) {
+export function PersonRow({ name, surname, meta, badges = [], tone = "green", onClick, action }: PersonRowProps) {
   const initials = `${surname?.charAt(0) ?? ""}${name?.charAt(0) ?? ""}`.toUpperCase();
 
   const content = (
@@ -63,9 +76,9 @@ export function PersonRow({ name, surname, meta, badges = [], tone = "green", on
       {badges.length > 0 && (
         <span className="people-row-badges">
           {badges.map((badge) => (
-            <span key={badge.label} className={`adm-badge adm-badge-${badge.tone}`}>
-              {badge.label}
-            </span>
+            <Hint key={badge.label} text={badge.hint}>
+              <span className={`adm-badge adm-badge-${badge.tone}`}>{badge.label}</span>
+            </Hint>
           ))}
         </span>
       )}
@@ -73,14 +86,17 @@ export function PersonRow({ name, surname, meta, badges = [], tone = "green", on
   );
 
   return (
-    <li>
+    <li className={action ? "people-item has-action" : "people-item"}>
       {onClick ? (
         <button type="button" className="people-row" onClick={onClick}>
           {content}
         </button>
       ) : (
-        <div className="people-row">{content}</div>
+        <div className="people-row">
+          {content}
+        </div>
       )}
+      {action && <div className="people-row-action">{action}</div>}
     </li>
   );
 }

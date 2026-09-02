@@ -9,6 +9,7 @@ import { Kpi, KpiGrid, AnalyticsSection, MonthTabs } from "./Kpi.tsx";
 import { ProfessionalReport } from "./ProfessionalReport.tsx";
 import { AssistantUsageSection } from "./AssistantUsageSection.tsx";
 import { AccessChannelsSection } from "./AccessChannelsSection.tsx";
+import { BehaviourSection } from "./BehaviourSection.tsx";
 import {
   decimal,
   findOfficeAnalytics,
@@ -275,6 +276,7 @@ export function OfficeAnalyticsPage() {
       <div id="an-system" className={`adm-collapsible ${systemOpen ? "open" : ""}`}>
         <div>
           <div className="adm-collapsible-inner">
+            <BehaviourSection />
             <AccessChannelsSection channels={data.channels} />
             <AssistantUsageSection />
           </div>

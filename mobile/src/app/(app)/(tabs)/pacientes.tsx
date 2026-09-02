@@ -11,9 +11,11 @@ import { ChipRow, Tag } from "../../../components/Chip";
 import { DataState, EmptyState } from "../../../components/States";
 import { Group } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
+import { ContactPatientSheet } from "../../../features/ContactPatient";
 import { initials } from "../../../lib/appointments";
 import { matches } from "../../../lib/specialities";
 import { useAsync } from "../../../lib/useAsync";
+import { useUser } from "../../../session/SessionProvider";
 import { radius, SCREEN_PADDING, space, TOUCH } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
 
@@ -40,6 +42,8 @@ export default function PatientsScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<Scope>("mine");
+  const [contacting, setContacting] = useState<Person | null>(null);
+  const me = useUser();
 
   const state = useAsync(() => (scope === "mine" ? myPatients() : findActiveByType("client")), [scope]);
 
@@ -135,11 +139,22 @@ export default function PatientsScreen() {
                 person={person}
                 last={index === results.length - 1}
                 onPress={() => router.push(`/(app)/paciente/${encodeURIComponent(person.email)}`)}
+                // Solo en los propios: contactar a alguien que nunca atendiste no es una
+                // acción que la pantalla tenga por qué ofrecer.
+                onContact={scope === "mine" ? () => setContacting(person) : undefined}
               />
             ))}
           </Group>
         </DataState>
       </View>
+
+      {/* La sesión guarda el email y el rol, nada más. Alcanza: el mail sale de la
+          cuenta de Gmail del profesional, así que del otro lado ya saben quién escribe. */}
+      <ContactPatientSheet
+        patient={contacting}
+        professional={{ email: me.email }}
+        onClose={() => setContacting(null)}
+      />
 
       <View style={styles.newButton}>
         <Button
@@ -154,7 +169,18 @@ export default function PatientsScreen() {
   );
 }
 
-function PatientRow({ person, onPress, last }: { person: Person; onPress: () => void; last: boolean }) {
+function PatientRow({
+  person,
+  onPress,
+  last,
+  onContact,
+}: {
+  person: Person;
+  onPress: () => void;
+  last: boolean;
+  /** Sin esto la fila no muestra el botón de contacto. */
+  onContact?: () => void;
+}) {
   const { colors } = useTheme();
 
   return (
@@ -186,7 +212,22 @@ function PatientRow({ person, onPress, last }: { person: Person; onPress: () => 
 
       {person.anonymous ? <Tag label="Sin cuenta" /> : null}
 
-      <FontAwesome6 name="chevron-right" size={13} color={colors.muted} />
+      {/* Va por fuera del Pressable de la fila en cuanto a intención, aunque esté
+          adentro: el hitSlop y el stopPropagation del onPress alcanzan para que tocar el
+          teléfono no abra la ficha. */}
+      {onContact ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Contactar a ${person.name} ${person.surname}`}
+          hitSlop={10}
+          onPress={onContact}
+          style={[styles.contact, { borderColor: colors.border }]}
+        >
+          <FontAwesome6 name="address-book" size={14} color={colors.greenDark} />
+        </Pressable>
+      ) : (
+        <FontAwesome6 name="chevron-right" size={13} color={colors.muted} />
+      )}
     </Pressable>
   );
 }
@@ -216,6 +257,14 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
   },
   avatar: { width: 40, height: 40, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
+  contact: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rowText: { flex: 1, gap: 2 },
   pressed: { opacity: 0.6 },
 });

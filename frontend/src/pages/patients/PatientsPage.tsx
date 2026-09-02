@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaPlus } from "react-icons/fa6";
+import { FaAddressBook, FaPlus } from "react-icons/fa6";
 import { AdminHeader } from "../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
@@ -14,6 +14,8 @@ import {
   type AnonymousPatientInput,
 } from "./patientsService.ts";
 import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts";
+import { ContactPatientModal } from "./ContactPatientModal.tsx";
+import { findPerson, getDecodedToken } from "../commonServices.ts";
 import type { Appointment } from "../types.ts";
 import type { Person } from "../types.ts";
 
@@ -71,6 +73,9 @@ function historyDate(value: string): string {
 
 export function PatientsPage() {
   const [patients, setPatients] = useState<Person[]>([]);
+  // Quién está logueado: firma el borrador del mail que se le abre al paciente.
+  const [me, setMe] = useState<Person | undefined>(undefined);
+  const [contacting, setContacting] = useState<Person | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<Scope>("mine");
@@ -85,6 +90,15 @@ export function PatientsPage() {
   const [form, setForm] = useState<AnonymousPatientInput>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const decoded = getDecodedToken();
+    if (!decoded) return;
+
+    findPerson(decoded.email)
+      .then((data) => setMe(data ?? undefined))
+      .catch(() => setMe(undefined));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,11 +280,32 @@ export function PatientsPage() {
                     : { label: "Con cuenta", tone: "green" as const },
                 ]}
                 onClick={() => openPatient(patient)}
+                // Solo en los propios: contactar a alguien que nunca atendiste no es
+                // una acción que la pantalla tenga por qué ofrecer.
+                action={
+                  scope === "mine" ? (
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn-ghost adm-btn-sm"
+                      onClick={() => setContacting(patient)}
+                    >
+                      <FaAddressBook />
+                      Contactar
+                    </button>
+                  ) : undefined
+                }
               />
             ))}
           </PeopleList>
         )}
       </div>
+
+      <ContactPatientModal
+        open={!!contacting}
+        onClose={() => setContacting(undefined)}
+        patient={contacting}
+        professional={me}
+      />
 
       <Modal
         open={modalOpen}

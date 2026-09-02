@@ -9,6 +9,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,500..700,0..100,0..1&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Consultorios del Jardin</title>
+    <!--
+      El tema se resuelve antes de pintar nada. Si esperara a que arranque React, la
+      primera pantalla saldria en claro y pasaria a oscuro medio segundo despues: un
+      fogonazo blanco en la cara de alguien que justamente eligio no tener uno.
+      Es la misma cuenta que hace ThemeContext, escrita para correr sin el.
+    -->
+    <script>
+      (function () {
+        try {
+          // Sin cookie vale el mismo arranque que usa ThemeContext: el horario prendido.
+          var raw = document.cookie.split("; ").find(function (row) { return row.indexOf("tema=") === 0; });
+          var saved = raw
+            ? JSON.parse(decodeURIComponent(raw.slice(5)))
+            : { mode: "schedule", from: "20:00", to: "07:00" };
+          var theme = saved.mode;
+          if (theme === "schedule") {
+            var now = new Date();
+            var minutes = now.getHours() * 60 + now.getMinutes();
+            var toMinutes = function (time) {
+              var parts = String(time).split(":");
+              return Number(parts[0]) * 60 + Number(parts[1]);
+            };
+            var start = toMinutes(saved.from);
+            var end = toMinutes(saved.to);
+            var dark = start === end ? false
+              : start < end ? minutes >= start && minutes < end
+              : minutes >= start || minutes < end;
+            theme = dark ? "dark" : "light";
+          }
+          if (theme === "dark" || theme === "light") document.documentElement.setAttribute("data-theme", theme);
+        } catch (error) {
+          /* Sin cookie, cookie rota, o cookies bloqueadas: queda el tema claro. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

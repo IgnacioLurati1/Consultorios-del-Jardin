@@ -202,7 +202,7 @@ export function BookAppointment() {
               const initials = `${professional.surname?.charAt(0) ?? ""}${professional.name?.charAt(0) ?? ""}`.toUpperCase();
 
               return (
-                <li key={professional.email} className="booking-professional-row">
+                <li key={professional.email} className={`booking-professional-row ${active ? "active" : ""}`}>
                   <button
                     type="button"
                     className={`booking-professional ${active ? "active" : ""}`}

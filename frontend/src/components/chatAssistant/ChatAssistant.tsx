@@ -4,6 +4,7 @@ import { FaXmark, FaCommentDots, FaPaperPlane, FaRobot, FaArrowRight } from "rea
 import { getDecodedToken } from "../../pages/commonServices";
 import { useAuth } from "../../context/AuthContext";
 import { sendMessageToAssistant } from "./chatAssistantService";
+import { readJsonCookie, writeJsonCookie } from "../../lib/cookies";
 import type { ChatLink, ChatMessage } from "./chatAssistantService";
 import "./ChatAssistant.css";
 
@@ -12,6 +13,41 @@ import "./ChatAssistant.css";
 type DisplayMessage = ChatMessage & { isAction?: boolean; links?: ChatLink[] };
 
 const MAX_HISTORY = 20;
+
+/**
+ * Lo último que se habló, guardado en el equipo de quien mira.
+ *
+ * Es solo lo que se ve: al asistente no se le manda, así que después de recargar
+ * arranca sin acordarse de nada. La conversación queda en pantalla porque volver y
+ * encontrar el panel vacío hace perder lo que uno acababa de preguntar, no porque el
+ * modelo tenga que seguir el hilo. Que sea así también significa que no se le está
+ * pagando dos veces al proveedor por el mismo contexto.
+ */
+const CHAT_COOKIE = "chat";
+const CHAT_KEPT = 5;
+
+// Una cookie entra en 4 KB contando todas las del dominio. Una respuesta larga del
+// asistente sola se lleva la mitad, así que cada mensaje se guarda recortado: lo que se
+// recupera es de qué se estaba hablando, no la respuesta completa.
+const CHAT_MAX_CHARS = 320;
+
+function loadChat(): ChatMessage[] {
+    const saved = readJsonCookie<ChatMessage[]>(CHAT_COOKIE, []);
+    if (!Array.isArray(saved)) return [];
+
+    return saved
+        .filter(msg => msg && typeof msg.content === "string" && (msg.role === "user" || msg.role === "assistant"))
+        .slice(-CHAT_KEPT);
+}
+
+function saveChat(messages: ChatMessage[]): void {
+    const kept = messages.slice(-CHAT_KEPT).map(({ role, content }) => ({
+        role,
+        content: content.length > CHAT_MAX_CHARS ? `${content.slice(0, CHAT_MAX_CHARS)}…` : content,
+    }));
+
+    writeJsonCookie(CHAT_COOKIE, kept);
+}
 
 /** Lo que puede hacer el asistente según quién esté logueado. */
 const GREETINGS: Record<string, string[]> = {
@@ -44,6 +80,9 @@ export function ChatAssistant() {
 function ChatAssistantWidget({ role }: { role: string }) {
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
+    // Lo que quedó de antes de recargar. Vive aparte de `history` porque no es historial
+    // de la conversación: es un recuerdo en pantalla, y nunca sale para el servidor.
+    const [previous, setPrevious] = useState<ChatMessage[]>(() => loadChat());
     const [history, setHistory] = useState<DisplayMessage[]>([]);
     const [pendingMessage, setPendingMessage] = useState<string | null>(null);
     const [input, setInput] = useState("");
@@ -56,6 +95,13 @@ function ChatAssistantWidget({ role }: { role: string }) {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [history, pendingMessage, isLoading]);
+
+    // Se guarda lo que se ve, no lo que se mandó: los cinco últimos entre lo que quedaba
+    // de antes y lo de ahora, que es lo que aparecería si se recargara en este momento.
+    useEffect(() => {
+        if (history.length === 0) return;
+        saveChat([...previous, ...history.map(({ role, content }) => ({ role, content }))]);
+    }, [history, previous]);
 
     useEffect(() => {
         if (rateLimitSeconds <= 0) return;
@@ -158,7 +204,27 @@ function ChatAssistantWidget({ role }: { role: string }) {
                     </div>
 
                     <div className="chat-assistant-messages">
-                        {history.length === 0 && !pendingMessage && (
+                        {previous.length > 0 && (
+                            <>
+                                {previous.map((msg, i) => (
+                                    <div key={`antes-${i}`} className={`chat-message chat-message--${msg.role}`}>
+                                        <div className="chat-message-bubble chat-message-bubble--past">{msg.content}</div>
+                                    </div>
+                                ))}
+
+                                {/* Se dice que el asistente no se acuerda, en vez de dejar
+                                    que la persona lo descubra repreguntando algo que ya
+                                    había explicado. */}
+                                <div className="chat-past-mark">
+                                    <span>De antes. El asistente no se lo acuerda.</span>
+                                    <button type="button" onClick={() => { setPrevious([]); saveChat([]); }}>
+                                        Borrar
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {previous.length === 0 && history.length === 0 && !pendingMessage && (
                             <div className="chat-assistant-welcome">
                                 <FaRobot className="chat-assistant-welcome-icon" />
                                 <p>¡Hola! Soy el asistente del consultorio.</p>

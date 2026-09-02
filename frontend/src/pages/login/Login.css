@@ -72,7 +72,7 @@
     padding: 13px 44px 13px 14px;
     border: 1px solid var(--adm-border);
     border-radius: var(--adm-radius-sm);
-    background: #fff;
+    background: var(--adm-surface);
     color: var(--adm-text);
     font-size: 1.03rem;
     font-family: inherit;

@@ -94,7 +94,7 @@
   font-size: 1rem;
   box-shadow: none;
   border: 1px solid var(--adm-border, #e2e8f0);
-  background: #fff;
+  background: var(--adm-surface);
   color: var(--adm-text, #1f2a33);
   font-weight: 600;
 }

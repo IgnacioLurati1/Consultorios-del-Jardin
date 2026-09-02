@@ -181,6 +181,9 @@ export function ScheduleModal({
                 Guardar
               </button>
             </div>
+            <p className="ui-alert ui-alert-info">
+              Esto no modifica los turnos ya creados: vale para los que se saquen de acá en adelante.
+            </p>
           </div>
         )}
       </Modal>

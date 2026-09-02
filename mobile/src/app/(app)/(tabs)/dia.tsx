@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { agendaDay } from "../../../api/agenda";
 import { ChipRow } from "../../../components/Chip";
 import { Screen } from "../../../components/Screen";
@@ -39,6 +40,10 @@ function weekDays(weeksAhead: number) {
  * que tiene que poder mirar la agenda de todo el equipo junta.
  */
 export default function DayScreen() {
+  // Vive en la barra de abajo, así que no tiene encabezado de navegación que le resuelva
+  // el aire de arriba: se lo pone la pantalla, igual que el resto de las pestañas.
+  const insets = useSafeAreaInsets();
+
   const [weeksAhead, setWeeksAhead] = useState(0);
   const days = weekDays(weeksAhead);
 
@@ -59,7 +64,7 @@ export default function DayScreen() {
   }
 
   return (
-    <Screen refreshing={state.refreshing} onRefresh={state.refresh} flush>
+    <Screen refreshing={state.refreshing} onRefresh={state.refresh} flush style={{ paddingTop: insets.top + space.lg }}>
       <View style={styles.controls}>
         <ChipRow
           options={[

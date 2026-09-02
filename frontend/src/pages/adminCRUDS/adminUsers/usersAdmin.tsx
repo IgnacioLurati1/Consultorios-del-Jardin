@@ -7,6 +7,7 @@ import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow, type PersonBadge } from "../../../components/peopleList/PeopleList.tsx";
 import { getAllUsers, toggleBookable, toggleState, updatePerson } from "./usersService";
+import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
 import { UserModal } from "./userModal";
 import type { Person } from "../../types";
 
@@ -34,6 +35,19 @@ function matchesFilter(user: Person, filter: UserFilter): boolean {
   }
 }
 
+/** Por qué se cayó sola una cuenta. El motivo lo escribe la regla que la dio de baja. */
+function explainBan(user: Person): string {
+  const reason = user.banReason ? user.banReason.charAt(0).toLowerCase() + user.banReason.slice(1) : null;
+  const when = user.bannedAt
+    ? ` el ${new Date(user.bannedAt).toLocaleDateString("es-AR", { day: "numeric", month: "long" })}`
+    : "";
+
+  return (
+    `El sistema la deshabilitó solo${when}${reason ? `: ${reason}` : ""}. ` +
+    "Los turnos que había sacado en esa tanda se dieron de baja. Si fue un error, se vuelve a habilitar desde su ficha."
+  );
+}
+
 const normalize = (text: string) =>
   text
     ?.normalize("NFD")
@@ -45,6 +59,9 @@ export function UsersAdmin() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<UserFilter>("all");
+  // Los pacientes marcados por su asistencia. Van por separado porque no son un campo de
+  // la persona sino una cuenta sobre sus turnos, y se recalcula cada vez que se mira.
+  const [flagged, setFlagged] = useState<Map<string, FlaggedPatient>>(new Map());
   const [modalData, setModalData] = useState<Person>();
   const [modalVisible, setModalVisible] = useState(false);
   const navigate = useNavigate();
@@ -54,6 +71,12 @@ export function UsersAdmin() {
       .then(setUsers)
       .catch((err) => toast.error(`No pudimos cargar los usuarios: ${err.message}`))
       .finally(() => setLoading(false));
+
+    // Sin ruido si falla: la marca es un extra sobre el listado, y quedarse sin ella no
+    // impide hacer nada de lo que se viene a hacer a esta pantalla.
+    findBehaviourReport()
+      .then((report) => setFlagged(new Map(report.suspicious.map((patient) => [patient.email, patient]))))
+      .catch(() => setFlagged(new Map()));
   }, []);
 
   const filtered = useMemo(() => {
@@ -129,8 +152,24 @@ export function UsersAdmin() {
     ];
 
     if (user.anonymous) badges.push({ label: "Anónimo", tone: "amber" });
-    if (!user.active) badges.push({ label: "Deshabilitado", tone: "red" });
-    else if (user.type === "professional" && user.bookable === false) badges.push({ label: "Fuera de la búsqueda", tone: "amber" });
+
+    if (!user.active) {
+      // Deshabilitado a mano y deshabilitado por una regla se ven distinto: el segundo
+      // no lo revisó nadie todavía, y es el que hay que ir a mirar.
+      badges.push(
+        user.bannedBy === "system"
+          ? { label: "Baneado por el sistema", tone: "red", hint: explainBan(user) }
+          : { label: "Deshabilitado", tone: "red", hint: "Lo deshabilitó la administración a mano. Se vuelve a habilitar desde su ficha." }
+      );
+    } else if (user.type === "professional" && user.bookable === false) {
+      badges.push({
+        label: "Fuera de la búsqueda",
+        tone: "amber",
+        hint: "Sigue trabajando y atendiendo, pero no aparece cuando un paciente busca con quién sacar turno.",
+      });
+    } else if (flagged.has(user.email)) {
+      badges.push({ label: "Comportamiento sospechoso", tone: "amber", hint: explainSuspicion(flagged.get(user.email)!) });
+    }
 
     return badges;
   }

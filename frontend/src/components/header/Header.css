@@ -8,7 +8,7 @@
     position: sticky;
     top: 0;
     z-index: 1000;
-    background: linear-gradient(180deg, #3f7d5d, var(--adm-green, #3b7658));
+    background: linear-gradient(180deg, var(--adm-bar-top), var(--adm-bar-bottom));
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 16px rgba(16, 24, 40, 0.14);
 }
 
@@ -109,7 +109,7 @@
 }
 
 .app-header-btn.solid:hover {
-    background: #fff;
+    background: var(--adm-surface);
 }
 
 /* ---------- menú de la persona logueada ---------- */
@@ -274,6 +274,117 @@
     }
 
     .app-header-btn.solid {
+        display: none;
+    }
+}
+
+/* ---------- modo oscuro ---------- */
+
+.app-theme {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+/* El engranaje es la puerta de la configuración, no la acción: más chico y más apagado
+   que el sol y la luna que tiene al lado. */
+.app-theme-gear {
+    width: 32px;
+    height: 32px;
+    font-size: 0.82rem;
+    opacity: 0.72;
+}
+
+.app-theme-gear:hover,
+.app-theme-gear.open {
+    opacity: 1;
+}
+
+.app-theme-menu {
+    width: min(290px, calc(100vw - 32px));
+    padding: 6px 6px 12px;
+    cursor: default;
+}
+
+.app-theme-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.app-theme-check:hover {
+    background: var(--adm-green-soft);
+}
+
+.app-theme-check input {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    accent-color: var(--adm-green);
+    cursor: pointer;
+}
+
+.app-theme-times {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 4px 12px 0;
+}
+
+/* Apagado se sigue viendo, pero desteñido: esconderlo haría saltar el panel de alto
+   cada vez que se prende y se apaga la opción. */
+.app-theme-times[aria-hidden="true"] {
+    opacity: 0.45;
+}
+
+.app-theme-time {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--adm-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.app-theme-time input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-surface);
+    color: var(--adm-text);
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.app-theme-time input:disabled {
+    background: var(--adm-surface-sunken);
+    cursor: not-allowed;
+}
+
+.app-theme-note {
+    margin: 12px 12px 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--adm-muted);
+}
+
+@media (max-width: 750px) {
+    /* En el celular la barra tiene el ancho justo: la configuración del horario se hace
+       una vez y se puede hacer desde una pantalla grande. */
+    .app-theme-gear {
         display: none;
     }
 }

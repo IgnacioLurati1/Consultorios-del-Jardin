@@ -22,10 +22,10 @@
 .hourly-module.empty {
   background: repeating-linear-gradient(
     45deg,
-    #fbfcfd,
-    #fbfcfd 6px,
-    #f4f6f8 6px,
-    #f4f6f8 12px
+    var(--adm-surface-alt),
+    var(--adm-surface-alt) 6px,
+    var(--adm-surface-sunken) 6px,
+    var(--adm-surface-sunken) 12px
   );
   border: 1px dashed var(--adm-border, #e2e8f0);
   cursor: pointer;
@@ -55,14 +55,14 @@
 
 .hourly-module.taken {
   background: var(--adm-green-soft, #e8f1ec);
-  border: 1px solid #cfe2d7;
+  border: 1px solid var(--adm-green-line);
   border-left: 4px solid var(--adm-green, #3b7658);
   color: var(--adm-green-dark, #2f5e46);
   cursor: pointer;
 }
 
 .hourly-module.taken:hover {
-  background: #dcebe2;
+  background: var(--adm-green-soft);
   box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
 }
 
@@ -108,10 +108,10 @@
 .hourly-module.read-only.empty:hover {
   background: repeating-linear-gradient(
     45deg,
-    #fbfcfd,
-    #fbfcfd 6px,
-    #f4f6f8 6px,
-    #f4f6f8 12px
+    var(--adm-surface-alt),
+    var(--adm-surface-alt) 6px,
+    var(--adm-surface-sunken) 6px,
+    var(--adm-surface-sunken) 12px
   );
   border-color: var(--adm-border, #e2e8f0);
 }
@@ -121,14 +121,14 @@
 }
 
 .hourly-module.read-only.taken {
-  border-left-color: #6c788e;
-  background: #eef1f4;
-  border-color: #dfe4ea;
-  color: #414d5f;
+  border-left-color: var(--adm-slate);
+  background: var(--adm-surface-sunken);
+  border-color: var(--adm-border);
+  color: var(--adm-text);
 }
 
 .hourly-module.read-only.taken:hover {
-  background: #e6eaf0;
+  background: var(--adm-surface-sunken);
 }
 
 @media (max-width: 768px) {

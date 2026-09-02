@@ -53,6 +53,21 @@
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--adm-border);
+  /* El resaltado vive en la fila y no en el botón: el botón termina antes de "Acerca de
+     mí", así que pintarlo a él dejaba el color cortado a mitad de la fila. */
+  border-left: 3px solid transparent;
+  background: transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.booking-professional-row:hover {
+  background: var(--adm-surface-alt);
+}
+
+/* El elegido queda marcado: abajo se están viendo sus horarios. */
+.booking-professional-row.active {
+  background: var(--adm-green-soft);
+  border-left-color: var(--adm-green);
 }
 
 .booking-professionals > li:last-child {
@@ -68,29 +83,17 @@
   box-sizing: border-box;
   padding: 16px 22px;
   border: none;
-  border-left: 3px solid transparent;
   background: transparent;
   color: inherit;
   font-family: inherit;
   font-size: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-
-.booking-professional:hover {
-  background: #fafbfc;
 }
 
 .booking-professional:focus-visible {
   outline: 2px solid var(--adm-green);
   outline-offset: -2px;
-}
-
-/* El elegido queda marcado: abajo se están viendo sus horarios. */
-.booking-professional.active {
-  background: var(--adm-green-soft);
-  border-left-color: var(--adm-green);
 }
 
 .booking-professional-avatar {
@@ -101,7 +104,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -145,10 +148,10 @@
   transform: rotate(180deg);
 }
 
-.booking-professional:hover .booking-professional-action,
-.booking-professional.active .booking-professional-action {
+.booking-professional-row:hover .booking-professional-action,
+.booking-professional-row.active .booking-professional-action {
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
 }
 
 /* ---------- horarios del profesional elegido ---------- */

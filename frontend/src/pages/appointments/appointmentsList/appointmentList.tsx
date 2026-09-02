@@ -27,6 +27,7 @@ import {
 import { useAppointmentActions } from "../useAppointmentActions.ts";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
+import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import "./appointmentList.css";
 
@@ -184,6 +185,10 @@ export function AppointmentsList() {
 
   return (
     <div className="adm-page">
+      {/* Para el paciente esta es su pantalla principal, así que es acá donde tiene que
+          enterarse de lo que pasa en el consultorio. */}
+      <AnnouncementBanner />
+
       <AdminHeader
         title="Turnos"
         subtitle={

@@ -1,0 +1,79 @@
+/* ============================================================
+   El globito que explica una marca de color. Reemplaza al `title`
+   del navegador: mismo tipo de letra que el resto de la pantalla,
+   ancho controlado y sin el segundo de espera.
+   ============================================================ */
+
+.ui-hint {
+  display: inline-flex;
+  min-width: 0;
+  cursor: help;
+}
+
+/* Sin ninguna marca no hay forma de saber que hay algo para leer. El punteado es la
+   convención de toda la vida para exactamente esto, y va sobre el texto que se explica
+   —no sobre la caja entera— para que se lea igual dentro de un cartelito redondeado. */
+.ui-hint > * {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.ui-hint-bubble {
+  position: fixed;
+  z-index: 3000;
+  max-width: 340px;
+  padding: 11px 14px;
+  border-radius: var(--adm-radius-sm);
+  /* Fondo propio, oscuro en los dos temas: un globo del color de la tarjeta que tiene
+     abajo se confunde con ella justo cuando se lo quiere leer aparte. */
+  background: #1f2a26;
+  color: #eef3f0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  box-shadow: 0 12px 28px rgba(15, 21, 19, 0.28);
+  pointer-events: none;
+  animation: ui-hint-in 0.12s ease-out;
+}
+
+[data-theme="dark"] .ui-hint-bubble {
+  background: #2b3733;
+  border: 1px solid #3c4a45;
+}
+
+/* La punta. Es un cuadrado girado, que es la única forma de que el vértice quede
+   pintado del mismo color que el globo sin tener que dibujar nada. */
+.ui-hint-bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--ui-hint-arrow, 50%);
+  bottom: -4px;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%) rotate(45deg);
+  background: inherit;
+  border-radius: 1px;
+}
+
+.ui-hint-bubble.below::after {
+  bottom: auto;
+  top: -4px;
+}
+
+@keyframes ui-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-hint-bubble {
+    animation: none;
+  }
+}

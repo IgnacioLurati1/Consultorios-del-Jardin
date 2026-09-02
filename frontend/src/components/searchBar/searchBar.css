@@ -4,8 +4,8 @@
     align-items: center;
     width: 80%;
     font-size: 30%;
-    background-color: white;
-    border: 1px solid black;
+    background-color: var(--adm-surface);
+    border: 1px solid var(--adm-border);
     border-radius: 10px;
     margin-bottom: 1%;
     margin-top: 1.5%;
@@ -14,7 +14,7 @@
 .search-icon {
     font-size: 30px;
     margin-left: 8px;
-    color: gray;
+    color: var(--adm-muted);
 }
 
 .crud-searchInput {
@@ -23,13 +23,15 @@
     outline: none;
     border: none !important;
     background: transparent;
+    /* Un campo no hereda el color del texto de su alrededor: hay que decírselo. */
+    color: var(--adm-text);
     width: 100%;
 }
 
 .crud-searchBar input {
     margin-left: 8px;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--adm-border);
     border-radius: 4px;
 }
 

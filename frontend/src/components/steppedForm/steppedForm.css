@@ -139,7 +139,7 @@
 
 .sf-step.current .sf-step-dot {
     background: var(--adm-green);
-    color: #fff;
+    color: var(--adm-on-green);
 }
 
 .sf-step.done .sf-step-button {
@@ -261,7 +261,7 @@
     padding: 11px 44px 11px 13px;
     border: 1px solid var(--adm-border);
     border-radius: var(--adm-radius-sm);
-    background: #fff;
+    background: var(--adm-surface);
     color: var(--adm-text);
     font-size: 1rem;
     font-family: inherit;

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FaXmark } from "react-icons/fa6";
-import Logo from "../../../assets/Logo.png";
+import { useLogo } from "../../../lib/useLogo";
 import {
   faHouse,
   faUser,
@@ -42,6 +42,7 @@ const iconMap: Record<string, IconDefinition> = {
 };
 
 export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
+  const logo = useLogo("padded");
   const decodedToken = isOpen ? getDecodedToken() : null;
   const currentUserType = decodedToken ? decodedToken.type : "guest";
 
@@ -50,7 +51,7 @@ export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
   return (
     <nav className={`lateral-menu ${isOpen ? "open" : "closed"}`} aria-hidden={!isOpen}>
       <div className="lateral-menu-head">
-        <img src={Logo} alt="Consultorios del Jardín" className="lateral-menu-logo" />
+        <img src={logo} alt="Consultorios del Jardín" className="lateral-menu-logo" />
         <button type="button" className="lateral-menu-close" onClick={onClose} aria-label="Cerrar menú">
           <FaXmark />
         </button>

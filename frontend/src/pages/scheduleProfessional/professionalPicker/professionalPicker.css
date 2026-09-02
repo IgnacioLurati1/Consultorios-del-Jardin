@@ -135,7 +135,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -236,7 +236,7 @@
 }
 
 .picker-item-avatar-room {
-  background: #6C788E;
+  background: var(--adm-slate);
 }
 
 .picker-results {
@@ -329,7 +329,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
   font-size: 0.95rem;
 }
 

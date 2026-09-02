@@ -5,7 +5,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { SteppedForm, type FormStep } from "../../../components/steppedForm/SteppedForm.tsx";
 import { registerProfessional } from "./usersService";
-import Logo from "../../../assets/LogoRecortado.png";
+import { useLogo } from "../../../lib/useLogo";
 import {
   DOC_TYPES,
   MIN_PASSWORD,
@@ -21,6 +21,7 @@ import { SPECIALITIES } from "../../specialities.ts";
 const ABOUT_MAX = 600;
 
 export function RegisterProf() {
+  const logo = useLogo();
   const navigate = useNavigate();
 
   const [form, setForm] = useState<RegisterForm>(emptyRegisterForm);
@@ -190,7 +191,7 @@ export function RegisterProf() {
       <SteppedForm
         title="Registrar profesional"
         subtitle="Queda habilitado para atender apenas se guarda"
-        logo={Logo}
+        logo={logo}
         steps={steps}
         submitLabel="Registrar profesional"
         submitting={sending}

@@ -10,8 +10,42 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background-color: #EDEDF2F2;
-  color:#FEFAE0;
+  background-color: var(--adm-bg);
+  color: var(--adm-text);
   font-family: 'Ubuntu', sans-serif;
   height: 100%;
+}
+
+/* El fondo también en el html: al hacer scroll más allá del contenido, el navegador
+   pinta lo que haya acá, y sin esto aparece una franja blanca abajo del todo. */
+html {
+  background-color: var(--adm-bg);
+  /* El lugar de la barra de scroll queda reservado siempre. Sin esto, una pantalla que
+     empieza corta y crece (un listado que termina de cargar, un panel que se despliega)
+     estrena la barra y corre todo el contenido unos píxeles a la izquierda de golpe. */
+  scrollbar-gutter: stable;
+}
+
+/* El cambio de tema se cruza con una transición corta para que no sea un parpadeo. Va
+   solo en lo que pinta el fondo y el texto: animar todo hace que cada pantalla arranque
+   desvanecida cuando se la abre. */
+body,
+.adm-page,
+.adm-panel,
+.adm-card,
+.ui-modal,
+.people-row {
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+/* Alguien que pidió menos movimiento no pidió ver el cambio de tema animado. */
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .adm-page,
+  .adm-panel,
+  .adm-card,
+  .ui-modal,
+  .people-row {
+    transition: none;
+  }
 }

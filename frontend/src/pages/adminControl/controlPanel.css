@@ -27,7 +27,7 @@
 .control-table thead th {
   text-align: left;
   padding: 12px 18px;
-  background: #fafbfc;
+  background: var(--adm-surface-alt);
   border-bottom: 1px solid var(--adm-border);
   color: var(--adm-muted);
   font-size: 0.82rem;
@@ -49,7 +49,7 @@
 }
 
 .control-table tbody tr:hover {
-  background: #fafbfc;
+  background: var(--adm-surface-alt);
 }
 
 .control-hours {
@@ -85,4 +85,327 @@
   .control-table tbody td {
     padding: 10px 12px;
   }
+}
+
+/* ============================================================
+   Vista por día: quiénes vienen, cuándo, y en qué momentos se
+   junta gente en la sala de espera.
+   ============================================================ */
+
+.control-views {
+  margin-bottom: 18px;
+}
+
+/* ---------- elegir el día ---------- */
+
+.day-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.day-picker-input {
+  padding: 10px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  font-family: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-picker-input:focus {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -1px;
+}
+
+/* El nombre del día escrito con todas las letras. La fecha del selector se lee en
+   números y el día de la semana es el dato que hay que confirmar antes de mirar nada. */
+.day-picker-label {
+  color: var(--adm-muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ---------- el día en cinco números ---------- */
+
+.day-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.day-count {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 11px 16px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+}
+
+.day-count strong {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--adm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-count > span {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+}
+
+.day-muted {
+  color: var(--adm-muted);
+  font-weight: 400;
+}
+
+/* ---------- cuándo se llena ---------- */
+
+/* Va primero y con el color de advertencia: es lo único de esta pantalla sobre lo que
+   todavía se puede hacer algo el día anterior. */
+.day-crowd {
+  margin-bottom: 20px;
+  border-color: var(--adm-warn);
+}
+
+.day-crowd .adm-panel-head {
+  background: var(--adm-warn-soft);
+  color: var(--adm-warn-dark);
+  border-bottom-color: var(--adm-warn);
+}
+
+.day-crowd-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.02rem;
+}
+
+.day-crowd-rule {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.day-crowd-list,
+.day-team-list,
+.day-blocks,
+.day-block-visits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-crowd-item {
+  display: grid;
+  grid-template-columns: 130px 110px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.day-crowd-list > li:last-child,
+.day-team-list > li:last-child,
+.day-blocks > li:last-child {
+  border-bottom: none;
+}
+
+.day-crowd-when {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--adm-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.day-crowd-peak strong {
+  color: var(--adm-warn-dark);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.day-crowd-who {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  color: var(--adm-text);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.day-crowd-profs {
+  color: var(--adm-muted);
+  font-size: 0.86rem;
+}
+
+/* ---------- quiénes atienden ---------- */
+
+.day-team,
+.day-flow {
+  margin-bottom: 20px;
+}
+
+.day-team-item {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.day-team-hours {
+  color: var(--adm-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.day-team-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.day-team-who span {
+  font-size: 0.87rem;
+}
+
+.day-team-count {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+/* ---------- el día en orden de llegada ---------- */
+
+.day-block {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+/* La hora se repite una vez por grupo y no una por turno: el bloque entero es "los que
+   entran a las nueve", y verlo escrito cuatro veces no lo hace más cierto. */
+.day-block-hour {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.day-block-hour strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--adm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-block-hour span {
+  color: var(--adm-muted);
+  font-size: 0.85rem;
+}
+
+.day-block-visits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.day-visit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border: 1px solid var(--adm-border);
+  border-left: 3px solid transparent;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface-alt);
+}
+
+/* El turno cae dentro de un tramo lleno. Es la misma marca amarilla del panel de
+   arriba: quien la vio ahí la reconoce acá sin que haya que explicarla de nuevo. */
+.day-visit.crowded {
+  border-left-color: var(--adm-warn);
+  background: var(--adm-warn-soft);
+}
+
+.day-visit-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.day-visit-who span {
+  font-size: 0.87rem;
+}
+
+.day-visit-room {
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.day-visit-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  .day-crowd-item,
+  .day-team-item,
+  .day-block {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .day-visit {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .day-visit-room,
+  .day-visit-tags {
+    white-space: normal;
+  }
+}
+
+.day-crowd-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.day-crowd-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  font-size: 0.9rem;
+}
+
+.day-crowd-name-hour {
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }

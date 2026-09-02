@@ -51,6 +51,15 @@ export interface Person{
     anonymous?: boolean;
     /** Email del profesional que lo cargó, si es (o fue) un paciente anónimo. */
     createdBy?: string | null;
+    /**
+     * Quién apagó la cuenta. "admin" es una decisión de una persona; "system" la tomó
+     * una regla de uso. En null la cuenta está bien, o se deshabilitó antes de que se
+     * empezara a registrar el motivo.
+     */
+    bannedBy?: "admin" | "system" | null;
+    bannedAt?: string | null;
+    /** Qué regla saltó, si la deshabilitó el sistema. */
+    banReason?: string | null;
 }
 
 export interface Schedule {

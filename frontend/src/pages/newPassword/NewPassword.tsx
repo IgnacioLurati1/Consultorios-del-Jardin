@@ -3,13 +3,14 @@ import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { FaCircleCheck, FaEye, FaEyeSlash, FaRegCircle, FaTriangleExclamation } from "react-icons/fa6";
 import { Toasts } from "../../components/toast/Toasts.tsx";
-import Logo from "../../assets/LogoRecortado.png";
+import { useLogo } from "../../lib/useLogo";
 import "./passwordPages.css";
 
 /** Mismo mínimo que pide el registro. */
 const MIN_PASSWORD = 6;
 
 export function NewPassword() {
+  const logo = useLogo();
   const [params] = useSearchParams();
   const token = params.get("token");
 
@@ -103,7 +104,7 @@ export function NewPassword() {
     <div className="pw-page">
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
-          <img src={Logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
           <h1 className="pw-title">Elegí tu contraseña nueva</h1>
           <p className="pw-subtitle">La vas a usar para entrar a partir de ahora.</p>
         </div>

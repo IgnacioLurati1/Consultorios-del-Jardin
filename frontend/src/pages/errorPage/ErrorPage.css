@@ -87,7 +87,7 @@
 .er-btn-main {
     background: var(--adm-green, #3b7658);
     border-color: var(--adm-green, #3b7658);
-    color: #ffffff;
+    color: var(--adm-on-green);
 }
 
 .er-btn-main:hover {

@@ -1,0 +1,422 @@
+/* ============================================================
+   Avisos del consultorio: el cartel que ve el usuario arriba de
+   su panel, y la pantalla donde el admin lo escribe.
+   Los tres niveles usan los mismos tokens que el resto del
+   sistema, así que el rojo de un aviso es el mismo rojo que el
+   de un error en un formulario.
+   ============================================================ */
+
+.anc-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.anc {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-sizing: border-box;
+  padding: 15px 16px;
+  border: 1px solid transparent;
+  /* La barra de color al costado hace el trabajo de lejos: se distingue de qué tipo es
+     el aviso antes de leerlo, que es lo único que se le puede pedir a un color. */
+  border-left-width: 5px;
+  border-radius: var(--adm-radius);
+}
+
+.anc-error {
+  background: var(--adm-danger-soft);
+  border-color: var(--adm-danger-line);
+  border-left-color: var(--adm-danger);
+  color: var(--adm-text);
+}
+
+.anc-warning {
+  background: var(--adm-warn-soft);
+  border-color: var(--adm-warn-soft);
+  border-left-color: var(--adm-warn);
+  color: var(--adm-text);
+}
+
+.anc-news {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green-line);
+  border-left-color: var(--adm-green);
+  color: var(--adm-text);
+}
+
+.anc-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  /* En px enteros y no en rem: a 1.05rem el ícono mide 16,79 px, y como el svg recorta
+     lo que se sale de su caja, la fracción sobrante se pierde y el círculo queda con el
+     fondo cortado en plano. */
+  font-size: 18px;
+  line-height: 1;
+}
+
+.anc-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+
+.anc-error .anc-icon {
+  color: var(--adm-danger);
+}
+
+.anc-warning .anc-icon {
+  color: var(--adm-warn);
+}
+
+.anc-news .anc-icon {
+  color: var(--adm-green);
+}
+
+.anc-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.anc-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.anc-body {
+  margin: 3px 0 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  /* Los saltos de línea que escribió el admin se respetan: un aviso de tres puntos se
+     escribe en tres renglones y tiene que llegar en tres renglones. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.anc-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.anc-close:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, 0.16);
+}
+
+/* ---------- el editor del admin ---------- */
+
+.anc-composer {
+  margin-bottom: 26px;
+}
+
+/* Todo el encabezado abre y cierra: es una barra ancha y es lo único clickeable de la
+   pieza cuando está plegada, así que apuntarle no puede costar nada. */
+.anc-composer-toggle {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid var(--adm-border);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.anc-composer-toggle:hover {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.anc-composer-toggle:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -2px;
+}
+
+/* Plegado no hay nada debajo, así que la línea de abajo del encabezado sobra. */
+.anc-composer:not(.open) .anc-composer-toggle {
+  border-bottom-color: transparent;
+}
+
+.anc-composer-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.anc-composer-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.anc-composer-chevron {
+  color: var(--adm-muted);
+  transition: transform 0.2s ease;
+}
+
+.anc-composer.open .anc-composer-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anc-composer-chevron {
+    transition: none;
+  }
+}
+
+.anc-composer-count {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.anc-composer-body {
+  display: grid;
+  /* La vista previa tiene ancho fijo porque representa un ancho real: si se estirara con
+     la ventana dejaría de parecerse a lo que la persona va a ver. */
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 26px;
+  padding: 20px 22px;
+}
+
+.anc-composer-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.anc-composer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.anc-composer-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--adm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.anc-composer-hint {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--adm-muted);
+}
+
+.anc-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.anc-level {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon label"
+    "icon hint";
+  align-items: center;
+  gap: 2px 11px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.anc-level svg {
+  grid-area: icon;
+  font-size: 1.15rem;
+}
+
+.anc-level-label {
+  grid-area: label;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.anc-level-hint {
+  grid-area: hint;
+  font-size: 0.79rem;
+  color: var(--adm-muted);
+}
+
+.anc-level-error svg {
+  color: var(--adm-danger);
+}
+
+.anc-level-warning svg {
+  color: var(--adm-warn);
+}
+
+.anc-level-news svg {
+  color: var(--adm-green);
+}
+
+.anc-level:hover {
+  border-color: var(--adm-border-strong);
+}
+
+.anc-level-error.active {
+  border-color: var(--adm-danger);
+  background: var(--adm-danger-soft);
+}
+
+.anc-level-warning.active {
+  border-color: var(--adm-warn);
+  background: var(--adm-warn-soft);
+}
+
+.anc-level-news.active {
+  border-color: var(--adm-green);
+  background: var(--adm-green-soft);
+}
+
+.anc-composer-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 16px;
+  border: 1px dashed var(--adm-border-strong);
+  border-radius: var(--adm-radius);
+  background: var(--adm-bg);
+}
+
+/* ---------- los avisos ya publicados ---------- */
+
+.anc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--adm-border);
+}
+
+.anc-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.anc-list > li:last-child {
+  border-bottom: none;
+}
+
+/* Bajado: sigue en la lista para poder volver a subirlo, pero apagado. */
+.anc-item.down {
+  opacity: 0.55;
+}
+
+.anc-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.anc-dot-error {
+  background: var(--adm-danger);
+}
+
+.anc-dot-warning {
+  background: var(--adm-warn);
+}
+
+.anc-dot-news {
+  background: var(--adm-green);
+}
+
+.anc-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.anc-item-text strong {
+  font-size: 0.98rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anc-item-text span {
+  font-size: 0.83rem;
+  color: var(--adm-muted);
+}
+
+.anc-item-delete {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-muted);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.anc-item-delete:hover {
+  border-color: var(--adm-danger-line);
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+}
+
+@media (max-width: 900px) {
+  .anc-composer-body {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 620px) {
+  .anc-item {
+    flex-wrap: wrap;
+    padding: 13px 18px;
+  }
+
+  .anc-item-text {
+    flex-basis: calc(100% - 24px);
+  }
+}

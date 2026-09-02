@@ -149,7 +149,7 @@
 }
 
 .home-btn-primary:hover {
-  background: #fff;
+  background: var(--adm-surface);
 }
 
 .home-btn-primary svg {
@@ -294,7 +294,7 @@
 }
 
 .home-slot.is-taken {
-  background: #f6f8f9;
+  background: var(--adm-surface-alt);
 }
 
 .home-slot.is-taken .home-slot-hour,
@@ -311,7 +311,7 @@
 
 .home-slot.is-mine .home-slot-hour,
 .home-slot.is-mine .home-slot-state {
-  color: #fff;
+  color: var(--adm-on-green);
 }
 
 .home-agenda-caption {
@@ -585,7 +585,7 @@
   margin-bottom: 4px;
   border-radius: 50%;
   background: var(--home-green);
-  color: #fff;
+  color: var(--adm-on-green);
   font-family: var(--home-display);
   font-size: 1.1rem;
   font-weight: 700;

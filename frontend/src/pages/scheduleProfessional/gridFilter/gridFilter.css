@@ -9,8 +9,8 @@
 
 .filter-selector {
   box-shadow: 0px 1px 10px #6C788E;
-  background: #F3F7F8;
-  color: #3B7658;
+  background: var(--adm-surface-alt);
+  color: var(--adm-green);
   height: 8vh;       
   display: flex;
   align-items: center;
@@ -23,7 +23,7 @@
 
 .filter-selector:hover{
     cursor: pointer;
-    background-color: #E1E8EB;
+    background-color: var(--adm-surface-sunken);
     transform: scale(1.02);
     box-shadow: 0px 1px 10px #6C788E;
 }
@@ -44,7 +44,7 @@
 .filter-options{
   position: absolute;
   margin-top: 5px;
-  background-color:#F3F7F8;
+  background-color:var(--adm-surface-alt);
   width: 20vw;
   border-radius: 5px;
   right: 0;
@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   gap: 1vw;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--adm-border);
 }
 
 .filter-input-container:last-of-type{
@@ -76,8 +76,8 @@
   width: 100%;
   background: transparent;
   font-size: 1.2em;
-  color: #3B7658;
-  border: 1px solid #6c788e57;
+  color: var(--adm-green);
+  border: 1px solid var(--adm-border);
   border-radius: 5px;
 }
 
@@ -86,24 +86,24 @@
 }
 
 .filter-list{
-  color:#6C788E;
+  color:var(--adm-slate);
   padding-left: 0;
   margin-top:0;
 }
 
 .list-icon{
-  color: #3B7658;
+  color: var(--adm-green);
 }
 
 .filter-list-item{
   padding: 0.5vw;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--adm-border);
   list-style-type: none;
   transition: transform 0.2s ease
 }
 
 .filter-list-item:hover{
-  background-color: #E1E8EB;
+  background-color: var(--adm-surface-sunken);
   cursor: pointer;
 }
 
@@ -116,8 +116,8 @@
   display: flex;
   align-items: center;
   font-size: 1.2em;
-  color: #6C788E;
-  border-bottom: 1px solid #ccc;
+  color: var(--adm-slate);
+  border-bottom: 1px solid var(--adm-border);
   list-style-type: none;
   transition: transform 0.2s ease
 }
@@ -134,7 +134,7 @@
   -moz-appearance: none;    /* Prefijo para Firefox */
   width: 1.1em; 
   height: 1.1em;
-  border: 2px solid #6C788E; 
+  border: 2px solid var(--adm-slate); 
   border-radius: 5px;
   background-color: transparent; 
   display: inline-block; 
@@ -148,7 +148,7 @@
 }
 
 .custom-checkbox:checked {
-  border-color: #4CAF50;
+  border-color: var(--adm-green);
   /* SVG (gráfico vectorial) insertado directamente en el CSS.Es la forma más nítida de añadir un ícono sin archivos externos.*/
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%234CAF50' stroke-width='3' d='M3 8l3 3 7-7'/%3E%3C/svg%3E");
 }
@@ -161,7 +161,7 @@
 
 .delete-filters{
   padding: 0.5vw;
-  color: #6C788E;
+  color: var(--adm-slate);
 }
 
 @media (max-width: 768px) {
@@ -286,7 +286,7 @@
 .filter-list-empty {
   padding: 10px;
   list-style-type: none;
-  color: #6C788E;
+  color: var(--adm-slate);
   font-size: 0.9em;
 }
 
@@ -302,8 +302,8 @@
 }
 
 .filter-list-item.selected {
-  background-color: #E8F1EC;
-  color: #2F5E46;
+  background-color: var(--adm-green-soft);
+  color: var(--adm-green-dark);
   font-weight: 600;
 }
 
@@ -316,8 +316,8 @@
   width: calc(100% - 1vw);
   margin: 0.5vw;
   padding: 9px 12px;
-  background: #3B7658;
-  color: #fff;
+  background: var(--adm-green);
+  color: var(--adm-on-green);
   border: none;
   border-radius: 8px;
   font-family: inherit;
@@ -327,7 +327,7 @@
 }
 
 .filter-occupancy:hover {
-  background: #2F5E46;
+  background: var(--adm-green-dark);
 }
 
 .delete-filters {
@@ -337,12 +337,12 @@
   width: 100%;
   background: transparent;
   border: none;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--adm-border);
   font-family: inherit;
   font-size: 0.95em;
   cursor: pointer;
 }
 
 .delete-filters:hover {
-  background-color: #E1E8EB;
+  background-color: var(--adm-surface-sunken);
 }

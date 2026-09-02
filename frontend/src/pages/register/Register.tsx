@@ -6,7 +6,7 @@ import { Toasts } from "../../components/toast/Toasts.tsx";
 import { SteppedForm, type FormStep } from "../../components/steppedForm/SteppedForm.tsx";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../axios";
-import Logo from "../../assets/LogoRecortado.png";
+import { useLogo } from "../../lib/useLogo";
 import {
   DOC_TYPES,
   MIN_PASSWORD,
@@ -18,6 +18,7 @@ import {
 } from "./registerFields.ts";
 
 export function Register() {
+  const logo = useLogo();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -172,7 +173,7 @@ export function Register() {
       <SteppedForm
         title="Crear cuenta"
         subtitle="Tres pasos cortos y ya podés pedir turno"
-        logo={Logo}
+        logo={logo}
         steps={steps}
         submitLabel="Crear cuenta"
         submitting={sending}

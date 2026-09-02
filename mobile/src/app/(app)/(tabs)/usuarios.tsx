@@ -7,6 +7,7 @@ import { errorMessage } from "../../../api/client";
 import { findAllUsers, toggleUserBookable, toggleUserState } from "../../../api/people";
 import { Person } from "../../../api/types";
 import { Button } from "../../../components/Button";
+import { behaviourReport, explainSuspicion, type FlaggedPatient } from "../../../api/security";
 import { ChipRow, Tag } from "../../../components/Chip";
 import { useFeedback } from "../../../components/Feedback";
 import { DataState, EmptyState } from "../../../components/States";
@@ -41,6 +42,13 @@ export default function UsersScreen() {
   const [filter, setFilter] = useState<Filter>("pending");
   const [search, setSearch] = useState("");
   const state = useAsync(findAllUsers, []);
+
+  // Los pacientes marcados por su asistencia. Van aparte porque no son un campo de la
+  // persona sino una cuenta sobre sus turnos. Si falla, el listado funciona igual.
+  const flagged = useAsync(async () => {
+    const report = await behaviourReport().catch(() => null);
+    return new Map((report?.suspicious ?? []).map((patient) => [patient.email, patient]));
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -184,6 +192,7 @@ export default function UsersScreen() {
                 key={person.email}
                 person={person}
                 last={index === results.length - 1}
+                suspicion={flagged.data?.get(person.email)}
                 onToggle={() => toggle(person)}
                 onToggleBookable={() => toggleBookable(person)}
               />
@@ -210,12 +219,15 @@ function UserRow({
   onToggle,
   onToggleBookable,
   last,
+  suspicion,
 }: {
   person: Person;
   onToggle: () => void;
   /** Solo se ofrece para un profesional habilitado: es esconderlo, no darlo de baja. */
   onToggleBookable: () => void;
   last: boolean;
+  /** Presente si el paciente viene faltando más de lo que asiste. */
+  suspicion?: FlaggedPatient;
 }) {
   const { colors } = useTheme();
   const hidden = person.type === "professional" && person.active && person.bookable === false;
@@ -237,12 +249,32 @@ function UserRow({
         </AppText>
         {!person.active ? (
           <View style={styles.rowTag}>
-            <Tag label={person.type === "professional" ? "Esperando aprobación" : "Deshabilitado"} tone="warn" />
+            {/* Bajada a mano y bajada por una regla no son lo mismo para quien tiene que
+                decidir si la vuelve a habilitar: a la segunda no la revisó nadie. */}
+            {person.bannedBy === "system" ? (
+              <Tag label="Baneado por el sistema" tone="danger" />
+            ) : (
+              <Tag label={person.type === "professional" ? "Esperando aprobación" : "Deshabilitado"} tone="warn" />
+            )}
           </View>
         ) : hidden ? (
           <View style={styles.rowTag}>
             <Tag label="Fuera de la búsqueda" tone="warn" />
           </View>
+        ) : suspicion ? (
+          <View style={styles.rowTag}>
+            <Tag label="Comportamiento sospechoso" tone="warn" />
+          </View>
+        ) : null}
+
+        {person.bannedBy === "system" && person.banReason ? (
+          <AppText variant="caption" tone="muted" numberOfLines={2}>
+            {person.banReason}
+          </AppText>
+        ) : suspicion ? (
+          <AppText variant="caption" tone="muted" numberOfLines={3}>
+            {explainSuspicion(suspicion)}
+          </AppText>
         ) : null}
       </View>
 

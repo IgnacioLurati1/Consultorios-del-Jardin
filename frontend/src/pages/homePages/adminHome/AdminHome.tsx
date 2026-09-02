@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList } from "react-icons/fa";
 import { FaChartColumn, FaHouse, FaMountainCity } from "react-icons/fa6";
 import { WeekSummary } from "../../agenda/WeekSummary.tsx";
+import { AnnouncementComposer } from "../../announcements/AnnouncementComposer.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import "./AdminHome.css";
 
@@ -103,6 +104,10 @@ export function AdminHome() {
       </section>
 
       <WeekSummary />
+
+      {/* Entre cómo viene la semana y los datos generales: es lo que se hace después de
+          mirar cómo viene el consultorio y antes de irse a tocar catálogos. */}
+      <AnnouncementComposer />
 
       <button
         type="button"

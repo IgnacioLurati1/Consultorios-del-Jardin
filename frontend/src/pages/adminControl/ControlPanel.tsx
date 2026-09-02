@@ -7,6 +7,7 @@ import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { ProfessionalPicker } from "../scheduleProfessional/professionalPicker/ProfessionalPicker.tsx";
 import { findAllActiveProfessionals } from "../adminCRUDS/adminUsers/usersService.ts";
 import { findAppointmentsByProfessional, type AdminAppointment, type AppointmentKind } from "./controlService.ts";
+import { DayAgenda } from "./DayAgenda.tsx";
 import type { Person } from "../types.ts";
 import "../adminCRUDS/adminPanel.css";
 import "./controlPanel.css";
@@ -47,7 +48,16 @@ function formatDate(value: string): string {
   }).format(date);
 }
 
+/** Las dos preguntas que se le hacen a esta pantalla, que no se contestan igual. */
+type ControlView = "professional" | "day";
+
+const VIEWS: { key: ControlView; label: string }[] = [
+  { key: "professional", label: "Por profesional" },
+  { key: "day", label: "Por día" },
+];
+
 export function ControlPanel() {
+  const [view, setView] = useState<ControlView>("professional");
   const [professionals, setProfessionals] = useState<Person[]>([]);
   const [professional, setProfessional] = useState<Person | undefined>(undefined);
   const [appointments, setAppointments] = useState<AdminAppointment[]>([]);
@@ -56,7 +66,10 @@ export function ControlPanel() {
   const [includePast, setIncludePast] = useState(false);
   const [kind, setKind] = useState<AppointmentKind>("all");
 
-  const [pickerOpen, setPickerOpen] = useState(true);
+  // Cerrado al entrar. Antes se abría solo, que con una sola vista alcanzaba; ahora hay
+  // dos, y una ventana encima al llegar tapa justamente el control que dice que existe
+  // la otra. El panel vacío ya invita a buscar profesional con un botón bien grande.
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [loadingProfessionals, setLoadingProfessionals] = useState(true);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
 
@@ -93,41 +106,65 @@ export function ControlPanel() {
       <AdminHeader
         title="Control de turnos"
         subtitle={
-          professional
+          view === "day"
+            ? "Todo lo que pasa en el consultorio un día"
+            : professional
             ? `${professional.surname}, ${professional.name}${professional.speciality ? ` · ${professional.speciality}` : ""}`
             : "Elegí un profesional para ver sus turnos"
         }
         actions={
-          <>
-            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setPickerOpen(true)}>
-              {professional ? "Cambiar profesional" : "Buscar profesional"}
-            </button>
+          view === "professional" ? (
+            <>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setPickerOpen(true)}>
+                {professional ? "Cambiar profesional" : "Buscar profesional"}
+              </button>
 
-            <button
-              type="button"
-              className={`adm-btn adm-btn-ghost ${includePast ? "active" : ""}`}
-              disabled={!professional}
-              onClick={() => {
-                setIncludePast((v) => !v);
-                setPage(0);
-              }}
-              title={includePast ? "Mostrar solo los turnos de hoy en adelante" : "Mostrar tambien los turnos ya pasados"}
-            >
-              {includePast ? <FaEyeSlash /> : <FaEye />}
-              {includePast ? "Ocultar pasados" : "Ver pasados"}
-            </button>
-          </>
+              <button
+                type="button"
+                className={`adm-btn adm-btn-ghost ${includePast ? "active" : ""}`}
+                disabled={!professional}
+                onClick={() => {
+                  setIncludePast((v) => !v);
+                  setPage(0);
+                }}
+                title={includePast ? "Mostrar solo los turnos de hoy en adelante" : "Mostrar tambien los turnos ya pasados"}
+              >
+                {includePast ? <FaEyeSlash /> : <FaEye />}
+                {includePast ? "Ocultar pasados" : "Ver pasados"}
+              </button>
+            </>
+          ) : undefined
         }
       />
 
       <Toasts />
+
+      {/* Las dos vistas miran los mismos turnos desde lugares distintos: una sigue a una
+          persona a lo largo del tiempo y la otra congela un día y cuenta cuánta gente
+          hay. Mezclarlas en una sola pantalla obligaba a elegir un orden que servía para
+          una de las dos preguntas y estorbaba a la otra. */}
+      <div className="adm-chips control-views" role="group" aria-label="Cómo mirar los turnos">
+        {VIEWS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={view === key ? "active" : ""}
+            aria-pressed={view === key}
+            onClick={() => setView(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <p className="control-note">
         Vista de solo lectura. Se muestran los horarios, el paciente y el estado del turno; las observaciones clínicas no se
         incluyen, y desde acá no se cancela ni se modifica nada.
       </p>
 
-      {professional && (
+      {view === "day" && <DayAgenda />}
+
+      {view === "professional" && professional && (
         <div className="adm-filters">
           <div className="adm-chips" role="group" aria-label="Tipo de turno">
             {KINDS.map(({ key, label }) => (
@@ -145,7 +182,7 @@ export function ControlPanel() {
         </div>
       )}
 
-      {professional && (
+      {view === "professional" && professional && (
         <p className="control-order">
           {includePast
             ? "Todos los turnos, del más reciente al más viejo."
@@ -153,6 +190,7 @@ export function ControlPanel() {
         </p>
       )}
 
+      {view === "professional" && (
       <div className="adm-panel">
         {!professional ? (
           <div className="adm-empty">
@@ -213,8 +251,9 @@ export function ControlPanel() {
           </table>
         )}
       </div>
+      )}
 
-      {professional && (
+      {view === "professional" && professional && (
         <div className="control-pagination">
           <button
             type="button"
@@ -237,11 +276,11 @@ export function ControlPanel() {
       )}
 
       <ProfessionalPicker
-        isOpen={pickerOpen}
+        isOpen={view === "professional" && pickerOpen}
         professionals={professionals}
         loading={loadingProfessionals}
         onSelect={selectProfessional}
-        onClose={professional ? () => setPickerOpen(false) : undefined}
+        onClose={() => setPickerOpen(false)}
       />
     </div>
   );

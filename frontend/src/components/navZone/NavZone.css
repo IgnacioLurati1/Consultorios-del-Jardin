@@ -15,13 +15,13 @@
 
 .navZone-icon {
     box-sizing: border-box;
-    color: #3B7658;
+    color: var(--adm-green);
     width: 1.8rem;
     height: 1.8rem;
     margin-left:2vw;
 }
 .navZone-text{
-    color: #3B7658; 
+    color: var(--adm-green);
 }
 
 @media (max-width: 768px) {

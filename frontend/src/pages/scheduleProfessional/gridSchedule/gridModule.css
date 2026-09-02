@@ -37,7 +37,7 @@
   width: 100%;
   padding: 14px 8px;
   box-sizing: border-box;
-  background: #fafbfc;
+  background: var(--adm-surface-alt);
   border-bottom: 1px solid var(--adm-border, #e2e8f0);
   color: var(--adm-muted, #64748b);
   font-size: 0.86rem;

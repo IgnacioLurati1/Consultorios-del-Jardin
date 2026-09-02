@@ -1,0 +1,152 @@
+/* Los turnos repetibles en su propia pantalla.
+   Tarjetas y no renglones: cada repetición tiene cuatro datos que hacen falta para
+   decidir (con quién, dónde, cuánto, hasta cuándo) y en un renglón entraban dos. */
+
+.rec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  overflow: hidden;
+}
+
+.rec-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 14px;
+}
+
+.rec-card-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.rec-card-titles {
+  min-width: 0;
+}
+
+.rec-card-when {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* capitalize dejaba "Lunes · 10:00": va en mayuscula solo el arranque. */
+.rec-card-when::first-letter {
+  text-transform: uppercase;
+}
+
+.rec-card-freq {
+  margin: 2px 0 0;
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+}
+
+.rec-card-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  padding: 4px 20px 16px;
+}
+
+.rec-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-fact span {
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rec-fact strong {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-card-next {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--adm-border);
+  background: var(--adm-surface-alt);
+  font-size: 0.9rem;
+}
+
+.rec-card-next-label {
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rec-next-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-next-list li {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  font-size: 0.85rem;
+}
+
+.rec-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding: 14px 20px;
+  border-top: 1px solid var(--adm-border);
+}
+
+/* El boton cierra la tarjeta a la derecha; las etiquetas quedan a la izquierda. */
+.rec-card-foot .adm-btn {
+  margin-left: auto;
+}
+
+@media (max-width: 560px) {
+  .rec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rec-card-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .rec-card-foot .adm-btn {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}

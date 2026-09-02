@@ -17,16 +17,18 @@
 
 .crud-create-entity-input {
     border-radius: 5px;
-    border: 1px solid black;
+    border: 1px solid var(--adm-border);
+    background: var(--adm-surface);
+    color: var(--adm-text);
     padding: 8px;
 }
 
 .crud-create-entity button {
     border-radius: 5px;
-    border: 1px solid green;
+    border: 1px solid var(--adm-green);
     padding: 8px 12px;
-    background-color: white;
-    color: green;
+    background-color: var(--adm-surface);
+    color: var(--adm-green-dark);
     cursor: pointer;
 }
 
@@ -42,7 +44,7 @@
 }
 
 .crud-loading {
-    color: black;
+    color: var(--adm-text);
     font-weight: bold;
     font-size: 50px;
     text-align: center;
@@ -50,7 +52,7 @@
 }
 
 .crud-add-button {
-    color: #fff;
+    color: var(--adm-on-green);
     padding: 11px 18px;
     background-color: var(--adm-green);
     border: none;
@@ -83,9 +85,9 @@
 .skeleton-loading {
   background: linear-gradient(
     90deg,
-    #e0e0e0 25%,
-    #f0f0f0 50%,
-    #e0e0e0 75%
+    var(--adm-skeleton) 25%,
+    var(--adm-skeleton-shine) 50%,
+    var(--adm-skeleton) 75%
   );
   background-size: 200% 100%;
   animation: wave 1.5s ease-in-out infinite;

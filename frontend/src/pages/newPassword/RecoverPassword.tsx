@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FaEnvelopeCircleCheck } from "react-icons/fa6";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import api from "../../axios.ts";
-import Logo from "../../assets/LogoRecortado.png";
+import { useLogo } from "../../lib/useLogo";
 import "./passwordPages.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,6 +16,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * averiguar quién tiene cuenta acá.
  */
 export function RecoverPassword() {
+  const logo = useLogo();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function RecoverPassword() {
       {/* noValidate: los mensajes los damos nosotros, no el globito del navegador. */}
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
-          <img src={Logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
           <h1 className="pw-title">¿Olvidaste tu contraseña?</h1>
           <p className="pw-subtitle">Escribí tu email y te mandamos un link para elegir una nueva.</p>
         </div>

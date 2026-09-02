@@ -1,5 +1,5 @@
 .data-input-label {
-    color: black;
+    color: var(--adm-text);
     font-size: 1.2em;
     margin-bottom: 0.5em;
 }
@@ -16,11 +16,13 @@
     padding: 0.5rem;
     border-radius: 5px;
     font-size: 1rem;
-    border: 2px solid #888; 
-    outline: none; 
+    border: 2px solid var(--adm-border-strong);
+    background: var(--adm-surface);
+    color: var(--adm-text);
+    outline: none;
     transition: border 0.2s ease;
 }
 
 .data-input-input:focus, .data-input-selector:focus {
-    border-color: #3B7658;
+    border-color: var(--adm-green);
 }

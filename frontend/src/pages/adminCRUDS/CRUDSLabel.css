@@ -13,7 +13,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
   font-size: 1.2rem; 
-  color: #333;
+  color: var(--adm-text);
 
   white-space: nowrap;
   box-sizing: border-box;
@@ -22,12 +22,12 @@
 /* Estas dos iban sueltas como .green y .red, y le pegaban a cualquier elemento
    de la app que usara esos nombres. Ahora solo aplican a la ficha del ABM. */
 .crud-label.green {
-  background-color: #ffffff;
-  border-left: 10px solid #4CAF50;
+  background-color: var(--adm-surface);
+  border-left: 10px solid var(--adm-green);
 }
 
 .crud-label.red {
-  background-color: #ffffff;
+  background-color: var(--adm-surface);
   border-left: 10px solid rgb(224, 98, 98);
 }
 
@@ -37,7 +37,7 @@
 }
 
 .crud-label.green:hover {
-  background-color: #C9E6C3;
+  background-color: var(--adm-green-soft);
   transition: background-color 0.1s ease;
 }
 
@@ -94,7 +94,7 @@
 .time-range {
     flex: 0 0 auto; 
     margin-right: 15px;
-    color: #666;
+    color: var(--adm-muted);
     font-size: 0.95rem;
 }
 
@@ -194,7 +194,7 @@
         justify-content: flex-start;
         text-align: left;
         font-size: 0.9rem;
-        color: #555;
+        color: var(--adm-muted);
     }
 }
 /* Filas de las listas del panel: un poco más grandes y con más aire */

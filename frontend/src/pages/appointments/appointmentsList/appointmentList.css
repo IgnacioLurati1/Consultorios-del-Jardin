@@ -35,7 +35,7 @@
 
 .appt-view-toggle button.active {
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
 }
 
 .appt-view-toggle button:not(.active):hover {
@@ -137,17 +137,17 @@
 .appt-card.state-accepted { border-left-color: var(--adm-green); }
 .appt-card.state-accepted .appt-card-hours { color: var(--adm-green-dark); }
 
-.appt-card.state-pending { border-left-color: #b7791f; }
+.appt-card.state-pending { border-left-color: var(--adm-warn); }
 .appt-card.state-pending .appt-card-hours { color: #8a5d10; }
 
-.appt-card.state-assisted { border-left-color: #6c788e; }
-.appt-card.state-assisted .appt-card-hours { color: #414d5f; }
+.appt-card.state-assisted { border-left-color: var(--adm-slate); }
+.appt-card.state-assisted .appt-card-hours { color: var(--adm-text); }
 
 .appt-card.state-missed { border-left-color: var(--adm-danger); }
 .appt-card.state-missed .appt-card-hours { color: var(--adm-danger); }
 
 .appt-card.state-cancelled {
-  border-left-color: #cbd5e1;
+  border-left-color: var(--adm-border-strong);
   opacity: 0.72;
 }
 
@@ -216,31 +216,31 @@
 
 /* Colores por estado sobre la celda de components/weekGrid. */
 .week-slot.state-pending {
-  background: #fdf3e0;
-  border-color: #f0dcb4;
-  border-left-color: #b7791f;
-  color: #8a5d10;
+  background: var(--adm-warn-soft);
+  border-color: var(--adm-warn-soft);
+  border-left-color: var(--adm-warn);
+  color: var(--adm-warn-dark);
 }
 
 .week-slot.state-assisted {
-  background: #eef1f4;
-  border-color: #dfe4ea;
-  border-left-color: #6c788e;
-  color: #414d5f;
+  background: var(--adm-surface-sunken);
+  border-color: var(--adm-border);
+  border-left-color: var(--adm-slate);
+  color: var(--adm-text);
 }
 
 .week-slot.state-missed {
   background: var(--adm-danger-soft);
-  border-color: #f3c7c1;
+  border-color: var(--adm-danger-line);
   border-left-color: var(--adm-danger);
   color: var(--adm-danger);
 }
 
 .week-slot.state-cancelled {
-  background: #f6f7f9;
-  border-color: #e5e8ec;
-  border-left-color: #cbd5e1;
-  color: #94a3b8;
+  background: var(--adm-surface-alt);
+  border-color: var(--adm-border);
+  border-left-color: var(--adm-border-strong);
+  color: var(--adm-muted-soft);
 }
 
 .week-slot.state-cancelled .week-slot-hour {
@@ -394,7 +394,7 @@
   margin-left: 6px;
   padding: 1px 6px;
   border-radius: 999px;
-  background: #fdf3e0;
+  background: var(--adm-warn-soft);
   color: var(--adm-warn);
   font-size: 0.68rem;
   font-weight: 700;

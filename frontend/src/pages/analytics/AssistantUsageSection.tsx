@@ -20,8 +20,10 @@ const ROLE_LABELS: Record<string, string> = {
  * Qué se le pide al asistente y cuánto sale.
  *
  * Los tokens son lo que factura el proveedor del modelo, así que es el único número que
- * se puede leer como plata. El ranking de funciones está al lado a propósito: sirve para
- * ver si lo que más se usa es también lo que más cuesta.
+ * se puede leer como plata. El primero es el del día porque el límite del plan gratuito
+ * es diario: el del mes sirve para ver la tendencia, pero el que se puede agotar hoy es
+ * el de hoy. El ranking de funciones está al lado a propósito: sirve para ver si lo que
+ * más se usa es también lo que más cuesta.
  *
  * Carga aparte del resto de la pantalla: es información de otro sistema, y que tarde o
  * falle no tiene por qué demorar los números del consultorio.
@@ -63,8 +65,15 @@ export function AssistantUsageSection() {
   return (
     <AnalyticsSection title="El asistente" scope="Consumo y uso">
       <KpiGrid>
+        {/* Del día y no del mes: el plan gratuito de Groq tiene un tope diario que se
+            reinicia a medianoche, así que el número que dice si hoy se llega es este. */}
         <Kpi
           lead
+          label="Tokens de hoy"
+          value={tokens(data.hoy.tokens)}
+          note={data.hoy.consultas === 1 ? "1 consulta hoy" : `${data.hoy.consultas} consultas hoy`}
+        />
+        <Kpi
           label="Tokens del mes"
           value={tokens(data.mesEnCurso.tokens)}
           note={`${data.mesEnCurso.consultas} consultas`}

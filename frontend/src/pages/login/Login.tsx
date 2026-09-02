@@ -7,7 +7,7 @@ import { Toasts } from "../../components/toast/Toasts.tsx";
 import { useAuth } from "../../context/AuthContext";
 import type { TokenPayload } from "../types.ts";
 import { LoginService } from "./loginServices.ts";
-import Logo from "../../assets/LogoRecortado.png";
+import { useLogo } from "../../lib/useLogo";
 import "./Login.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,6 +19,7 @@ const HOME_BY_TYPE: Record<string, string> = {
 };
 
 export function Login() {
+  const logo = useLogo();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -71,7 +72,7 @@ export function Login() {
           llegar acá y mostraría su propio globito. Los mensajes los damos nosotros. */}
       <form className="login-card" onSubmit={submit} noValidate>
         <div className="login-card-head">
-          <img src={Logo} alt="Consultorios del Jardín" className="login-logo" />
+          <img src={logo} alt="Consultorios del Jardín" className="login-logo" />
           <h1 className="login-title">Iniciar sesión</h1>
           <p className="login-subtitle">Entrá con tu email y tu contraseña</p>
         </div>

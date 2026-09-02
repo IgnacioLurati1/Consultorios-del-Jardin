@@ -56,6 +56,12 @@ export interface Person {
   /** Paciente cargado por un profesional, sin cuenta propia. */
   anonymous?: boolean;
   createdBy?: string | null;
+  /**
+   * Quién apagó la cuenta. "admin" es una decisión de una persona; "system" la tomó una
+   * regla de uso. En null la cuenta está bien.
+   */
+  bannedBy?: "admin" | "system" | null;
+  banReason?: string | null;
 }
 
 export type Day = "lunes" | "martes" | "miercoles" | "jueves" | "viernes" | "sabado";

@@ -72,7 +72,7 @@ button.people-row {
 }
 
 button.people-row:hover {
-  background: #fafbfc;
+  background: var(--adm-surface-alt);
 }
 
 button.people-row:focus-visible {
@@ -88,7 +88,7 @@ button.people-row:focus-visible {
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -103,7 +103,7 @@ button.people-row:focus-visible {
 }
 
 .people-avatar.grey {
-  background: #94a3b8;
+  background: var(--adm-muted-soft);
 }
 
 .people-row-text {
@@ -255,4 +255,59 @@ button.people-row:focus-visible {
         gap: 8px;
         min-width: 0;
     }
+}
+
+/* ---------- botón propio de la fila ---------- */
+
+/* La fila entera es un botón (abre la ficha), así que el de al lado se apoya encima en
+   vez de meterse adentro: dos botones anidados no son HTML válido. */
+.people-item.has-action {
+  position: relative;
+}
+
+.people-item.has-action .people-row {
+  padding-right: 150px;
+}
+
+.people-row-action {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 620px) {
+  /* En pantalla chica no hay lugar al costado: el botón baja abajo del nombre y la fila
+     deja de ser una línea. */
+  .people-item.has-action {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    border-bottom: 1px solid var(--adm-border);
+  }
+
+  .people-item.has-action .people-row {
+    padding-right: 22px;
+    padding-bottom: 6px;
+    border-bottom: none;
+  }
+
+  .people-row-action {
+    position: static;
+    transform: none;
+    padding: 0 22px 15px;
+  }
+
+  .people-row-action .adm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Llamar y WhatsApp, en la ventana de contacto del paciente. */
+.patients-contact-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
 }

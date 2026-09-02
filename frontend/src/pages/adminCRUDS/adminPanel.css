@@ -4,22 +4,139 @@
    más claras, bordes suaves y tipografía más ordenada.
    ============================================================ */
 
+/* Los colores viven todos acá arriba y el resto de la app los usa por nombre. Es lo que
+   hace posible el modo oscuro: no hay un segundo juego de reglas en cada pantalla, hay
+   el mismo diseño leyendo otros valores. Un color escrito a mano en una pantalla es un
+   pedazo de la app que se queda en claro cuando todo lo demás se apaga. */
+
 :root {
   --adm-green: #3b7658;
+  /* En claro es un verde más oscuro que --adm-green; en oscuro es más claro. Lo que se
+     mantiene entre los dos no es el tono sino el rol: contrasta contra --adm-green-soft
+     y marca el estado activo. */
   --adm-green-dark: #2f5e46;
   --adm-green-soft: #e8f1ec;
+  --adm-green-line: #cfe2d7;
+  /* Lo que se escribe encima de --adm-green. En claro, blanco sobre verde medio; en
+     oscuro el verde sube de luminosidad para verse y entonces lo legible encima es el
+     fondo, no el blanco. Es el mismo rol resuelto al revés. */
+  --adm-on-green: #ffffff;
+  /* Verde apenas más claro que --adm-green, para el degradé fino que corona una ventana
+     modal. En oscuro también sube, para seguir leyéndose como un brillo y no como una
+     mancha. */
+  --adm-green-glow: #6fa588;
+  /* El gris de un bloque que todavía está cargando, y el reflejo que lo recorre. El
+     reflejo siempre tiene que ser más claro que la base: si se invierten, la animación
+     se lee como una sombra que pasa y no como algo que está por llegar. */
+  --adm-skeleton: #e9edf1;
+  --adm-skeleton-shine: #f5f7f9;
+  /* La barra de arriba es marca, no superficie: se mantiene verde en los dos temas. Por
+     eso tiene sus propios valores y no sale de --adm-green, que en oscuro se aclara para
+     poder leerse sobre el fondo y dejaría la barra más clara que la página. */
+  --adm-bar-top: #3f7d5d;
+  --adm-bar-bottom: #3b7658;
   --adm-surface: #ffffff;
+  /* Superficie apenas separada de la principal: encabezados de tabla, pies de tarjeta,
+     franjas que agrupan sin llegar a ser un panel aparte. */
+  --adm-surface-alt: #fafbfc;
+  /* Hundida: lo que está detrás de la superficie, como el fondo de una fila al pasarle
+     el mouse o el riel de un control. */
+  --adm-surface-sunken: #eef1f4;
   --adm-bg: #f1f4f6;
   --adm-text: #1f2a33;
   --adm-muted: #64748b;
+  --adm-muted-soft: #94a3b8;
   --adm-border: #e2e8f0;
+  --adm-border-strong: #cbd5e1;
+  /* Gris azulado de los gráficos y las leyendas: el neutro que acompaña al verde. */
+  --adm-slate: #6c788e;
   --adm-danger: #c0392b;
   --adm-danger-soft: #fdecea;
+  --adm-danger-line: #f3c7c1;
   --adm-warn: #b7791f;
+  --adm-warn-soft: #fdf3e0;
+  --adm-warn-dark: #8a5d10;
+  /* Detrás de una ventana modal. */
+  --adm-overlay: rgba(16, 24, 40, 0.45);
   --adm-radius: 12px;
   --adm-radius-sm: 8px;
   --adm-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
   --adm-shadow-lg: 0 10px 30px rgba(16, 24, 40, 0.12);
+  color-scheme: light;
+}
+
+/* Modo oscuro.
+   No es el mismo diseño con los colores invertidos: un blanco puro invertido da un negro
+   puro, y un negro puro con texto blanco encima vibra y cansa. Los fondos son grises
+   verdosos —el verde del proyecto sigue estando, apagado— y el texto es un blanco roto.
+   Los verdes suben de luminosidad porque el mismo verde que se lee sobre blanco
+   desaparece sobre gris oscuro. */
+
+[data-theme="dark"] {
+  --adm-green: #5fa37e;
+  --adm-green-dark: #85c4a1;
+  --adm-green-soft: #1b2c24;
+  --adm-green-line: #2c463a;
+  --adm-on-green: #0f1513;
+  --adm-green-glow: #8ecdaa;
+  --adm-skeleton: #1e2624;
+  --adm-skeleton-shine: #2b3733;
+  --adm-bar-top: #1e3b2c;
+  --adm-bar-bottom: #172d22;
+  --adm-surface: #171e1b;
+  --adm-surface-alt: #1c2421;
+  --adm-surface-sunken: #222b28;
+  --adm-bg: #0f1513;
+  --adm-text: #e6ece9;
+  --adm-muted: #97a69f;
+  --adm-muted-soft: #74837c;
+  --adm-border: #2a3531;
+  --adm-border-strong: #3b4844;
+  --adm-slate: #93a0b5;
+  --adm-danger: #ef8a7d;
+  --adm-danger-soft: #32201e;
+  --adm-danger-line: #56332e;
+  --adm-warn: #dfb264;
+  --adm-warn-soft: #2e2617;
+  --adm-warn-dark: #ecc888;
+  --adm-overlay: rgba(0, 0, 0, 0.62);
+  --adm-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --adm-shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+/* El texto de ejemplo de un campo vacío.
+   Sin esta regla lo elige el navegador a partir del color del texto: en oscuro queda casi
+   tan claro como lo que se escribe, y el ejemplo deja de leerse como ejemplo. El opacity
+   está porque Firefox le aplica una transparencia propia por encima del color. */
+/* Los campos no heredan ni el color del texto ni el fondo de lo que los rodea: el
+   navegador les pone los suyos. Uno al que ninguna pantalla le puso nada sale blanco con
+   letra negra, también en modo oscuro. Esto lo cubre con selector de elemento —la
+   especificidad más baja que hay— así que cualquier regla propia lo sigue pisando. Las
+   casillas y los radios quedan afuera: los dibuja el sistema y `accent-color` ya los
+   resuelve. */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: var(--adm-surface);
+  color: var(--adm-text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--adm-muted);
+  opacity: 1;
+}
+
+/* El logo del modo oscuro es otro dibujo, no el mismo invertido: las hojas suben más y
+   el rulo de la "C" no llega tan arriba. Encuadrados igual, la palabra —que es lo que se
+   mira— sale un 6% más chica que en el claro. Se compensa acá y no agrandando la caja
+   para que el ajuste no mueva nada de lo que tiene alrededor. */
+[data-theme="dark"] .lateral-menu-logo,
+[data-theme="dark"] .login-logo,
+[data-theme="dark"] .pw-logo,
+[data-theme="dark"] .sf-logo {
+  transform: scale(1.06);
 }
 
 /* ---------- layout de página ---------- */
@@ -104,9 +221,16 @@
   font-family: inherit;
 }
 
+/* Chico, para cuando el botón vive adentro de una fila de un listado y no en la barra
+   de acciones de la pantalla. */
+.adm-btn-sm {
+  padding: 8px 14px;
+  font-size: 0.88rem;
+}
+
 .adm-btn-primary {
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
 }
 
 .adm-btn-primary:hover {
@@ -127,11 +251,11 @@
 .adm-btn-danger {
   background: var(--adm-danger-soft);
   color: var(--adm-danger);
-  border-color: #f3c7c1;
+  border-color: var(--adm-danger-line);
 }
 
 .adm-btn-danger:hover {
-  background: #f9dcd8;
+  background: var(--adm-danger-soft);
 }
 
 .adm-btn:disabled {
@@ -194,7 +318,7 @@
 .adm-chips button.active {
   border-color: var(--adm-green);
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
 }
 
 /* Cuántos entran en ese filtro. */
@@ -285,7 +409,7 @@
   height: 26px;
   border-radius: 50%;
   background: var(--adm-green);
-  color: #fff;
+  color: var(--adm-on-green);
   font-size: 0.9rem;
   transition: transform 0.2s ease;
 }
@@ -330,7 +454,7 @@
   flex-wrap: wrap;
   padding: 17px 22px;
   border-bottom: 1px solid var(--adm-border);
-  background: #fafbfc;
+  background: var(--adm-surface-alt);
   font-size: 1rem;
   font-weight: 600;
   color: var(--adm-muted);
@@ -364,7 +488,7 @@
 }
 
 .adm-skeleton {
-  background: linear-gradient(90deg, #e9edf1 25%, #f5f7f9 50%, #e9edf1 75%);
+  background: linear-gradient(90deg, var(--adm-skeleton) 25%, var(--adm-skeleton-shine) 50%, var(--adm-skeleton) 75%);
   background-size: 200% 100%;
   animation: adm-shimmer 1.4s ease-in-out infinite;
   border-radius: 6px;
@@ -407,7 +531,7 @@
 }
 
 .adm-badge-grey {
-  background: #eef1f4;
+  background: var(--adm-surface-sunken);
   color: var(--adm-muted);
 }
 
@@ -417,7 +541,7 @@
 }
 
 .adm-badge-amber {
-  background: #fdf3e0;
+  background: var(--adm-warn-soft);
   color: var(--adm-warn);
 }
 

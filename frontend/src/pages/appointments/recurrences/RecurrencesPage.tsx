@@ -1,32 +1,52 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { FaRepeat } from "react-icons/fa6";
-import { SkeletonLine } from "../../../components/skeleton/Skeleton";
+import { AdminHeader } from "../../../components/adminHeader/AdminHeader";
 import { Modal } from "../../../components/modal/Modal";
-import { findRecurrences, stopRecurrence, updateRecurrence, FREQUENCY_LABELS } from "../../appointments/recurrencesService";
+import { SkeletonLine } from "../../../components/skeleton/Skeleton";
+import { Toasts } from "../../../components/toast/Toasts";
+import { findRecurrences, stopRecurrence, updateRecurrence, FREQUENCY_LABELS } from "../recurrencesService";
 import { findAllActiveRooms } from "../../adminCRUDS/adminRooms/RoomService";
-import { appointmentDate, formatDayLabel, shortHour } from "../../appointments/appointmentTypes";
+import { appointmentDate, formatDayLabel, shortHour } from "../appointmentTypes";
 import type { Recurrence, RecurrenceFrequency, Room } from "../../types";
+import "../../adminCRUDS/adminPanel.css";
+import "../../homePages/professionalHome/professionalHome.css";
+import "./recurrences.css";
 
 const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 /** Los turnos repetibles caen siempre el mismo día: el de la fecha que los originó. */
-/** "12/11" alcanza: el año se sobreentiende y el renglón ya viene cargado. */
-function shortDate(value: string): string {
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
-}
-
 function weekdayOf(startDate: string): string {
   return DAY_NAMES[appointmentDate(startDate).getDay()];
 }
 
+function shortDate(value: string): string {
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+}
+
+/** El orden en que se lee una agenda: por día de la semana y después por hora. */
+function byWhen(a: Recurrence, b: Recurrence): number {
+  const dayA = appointmentDate(a.startDate).getDay();
+  const dayB = appointmentDate(b.startDate).getDay();
+
+  // El domingo cierra la semana en vez de abrirla, que es como se lee una agenda.
+  const weekA = dayA === 0 ? 7 : dayA;
+  const weekB = dayB === 0 ? 7 : dayB;
+
+  return weekA - weekB || a.initialHour.localeCompare(b.initialHour);
+}
+
 /**
- * Turnos repetibles del profesional, debajo de la agenda del día.
+ * Los turnos repetibles del profesional, en su propia pantalla.
  *
- * Acá se ve la receta, no los turnos: cambiar algo vale para los que falta generar, y
- * los que ya están creados se editan o se cancelan desde la lista de turnos, uno por uno.
+ * Antes vivían apretados al pie del panel, donde no entraba más que el día y la hora.
+ * Acá hay lugar para lo que hace falta para decidir: con quién es cada uno, hasta
+ * cuándo va, y qué turnos dejó agendados.
+ *
+ * Sigue siendo la receta y no los turnos: cambiar algo vale para los que falta generar,
+ * y los que ya están creados se editan o se cancelan desde la agenda, uno por uno.
  */
-export function RecurringAppointments() {
+export function RecurrencesPage() {
   const [recurrences, setRecurrences] = useState<Recurrence[] | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [editing, setEditing] = useState<Recurrence | undefined>(undefined);
@@ -55,6 +75,8 @@ export function RecurringAppointments() {
       .then(setRooms)
       .catch(() => setRooms([]));
   }, []);
+
+  const ordered = useMemo(() => (recurrences ? [...recurrences].sort(byWhen) : null), [recurrences]);
 
   function openEdit(recurrence: Recurrence) {
     setEditing(recurrence);
@@ -96,67 +118,105 @@ export function RecurringAppointments() {
       .catch((err: any) => toast.error(err.message));
   }
 
-  return (
-    <section className="prof-today">
-      <div className="prof-today-head">
-        <div>
-          <h2 className="prof-today-title">Turnos repetibles</h2>
-          <p className="prof-today-date">Se agendan solos hasta cuatro semanas para adelante</p>
-        </div>
-      </div>
+  const total = ordered?.length ?? 0;
 
-      <div className="adm-panel">
-        {recurrences === null ? (
+  return (
+    <div className="adm-page">
+      <AdminHeader
+        title="Turnos repetibles"
+        subtitle={
+          total === 0
+            ? "Los turnos que se agendan solos"
+            : `${total} ${total === 1 ? "repetición activa" : "repeticiones activas"} · se agendan solas hasta cuatro semanas para adelante`
+        }
+        backTo="/ProfessionalHome"
+        backLabel="Panel"
+      />
+
+      {ordered === null ? (
+        <div className="adm-panel">
           <div className="prof-today-loading">
             <SkeletonLine height={18} />
             <SkeletonLine width="70%" height={18} />
+            <SkeletonLine width="45%" height={18} />
           </div>
-        ) : recurrences.length === 0 ? (
+        </div>
+      ) : ordered.length === 0 ? (
+        <div className="adm-panel">
           <div className="adm-empty">
             No tenés turnos repetibles.
             <br />
             Abrí un turno desde la agenda y marcalo como repetible para que se agende solo.
           </div>
-        ) : (
-          <ul className="prof-repeat-list">
-            {recurrences.map((recurrence) => (
-              <li className="prof-repeat-item" key={recurrence.idRecurrence}>
-                <span className="prof-repeat-icon" aria-hidden="true">
+        </div>
+      ) : (
+        <div className="rec-grid">
+          {ordered.map((recurrence) => (
+            <article className="rec-card adm-enter" key={recurrence.idRecurrence}>
+              <header className="rec-card-head">
+                <span className="rec-card-icon" aria-hidden="true">
                   <FaRepeat />
                 </span>
-
-                <div className="prof-repeat-text">
-                  <span className="prof-repeat-when">
-                    {weekdayOf(recurrence.startDate)} · {shortHour(recurrence.initialHour)} a {shortHour(recurrence.finalHour)}
-                  </span>
-                  <span className="prof-repeat-meta">
-                    {FREQUENCY_LABELS[recurrence.frequency].toLowerCase()} · {recurrence.room.description}
-                    {recurrence.patient ? ` · ${recurrence.patient.surname}, ${recurrence.patient.name}` : " · sin paciente asignado"}
-                  </span>
-                  <span className="prof-repeat-next">
-                    {recurrence.upcoming.length === 0
-                      ? "Sin turnos agendados por ahora"
-                      : `Próximos: ${recurrence.upcoming
-                          .slice(0, 3)
-                          .map((item) => formatDayLabel(appointmentDate(item.date)))
-                          .join(" · ")}`}
-                  </span>
+                <div className="rec-card-titles">
+                  <h2 className="rec-card-when">
+                    {weekdayOf(recurrence.startDate)} · {shortHour(recurrence.initialHour)}
+                  </h2>
+                  <p className="rec-card-freq">
+                    {FREQUENCY_LABELS[recurrence.frequency].toLowerCase()}, hasta las{" "}
+                    {shortHour(recurrence.finalHour)}
+                  </p>
                 </div>
+              </header>
 
-                {/* El corte se lee de un vistazo: es lo que separa una repetición que sigue
-                    para siempre de una que termina en dos semanas. */}
-                {recurrence.endDate && <span className="appt-tag-until">hasta el {shortDate(recurrence.endDate)}</span>}
+              <div className="rec-card-facts">
+                <div className="rec-fact">
+                  <span>Paciente</span>
+                  <strong>
+                    {recurrence.patient ? (
+                      `${recurrence.patient.surname}, ${recurrence.patient.name}`
+                    ) : (
+                      <span className="ui-detail-empty">sin asignar</span>
+                    )}
+                  </strong>
+                </div>
+                <div className="rec-fact">
+                  <span>Consultorio</span>
+                  <strong>{recurrence.room.description}</strong>
+                </div>
+                <div className="rec-fact">
+                  <span>Valor</span>
+                  <strong>{recurrence.value ? `$${recurrence.value.toLocaleString("es-AR")}` : "—"}</strong>
+                </div>
+                <div className="rec-fact">
+                  <span>Hasta</span>
+                  <strong>{recurrence.endDate ? shortDate(recurrence.endDate) : "sin fecha de corte"}</strong>
+                </div>
+              </div>
 
+              <div className="rec-card-next">
+                <span className="rec-card-next-label">Próximos</span>
+                {recurrence.upcoming.length === 0 ? (
+                  <span className="ui-detail-empty">Sin turnos agendados por ahora</span>
+                ) : (
+                  <ul className="rec-next-list">
+                    {recurrence.upcoming.slice(0, 4).map((item) => (
+                      <li key={item.numAppointment}>{formatDayLabel(appointmentDate(item.date))}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <footer className="rec-card-foot">
                 {recurrence.overbooked && <span className="appt-tag-over">Sobreturno</span>}
-
+                {recurrence.endDate && <span className="appt-tag-until">hasta el {shortDate(recurrence.endDate)}</span>}
                 <button type="button" className="adm-btn adm-btn-ghost" onClick={() => openEdit(recurrence)}>
                   Configurar
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              </footer>
+            </article>
+          ))}
+        </div>
+      )}
 
       <Modal
         open={!!editing}
@@ -183,8 +243,8 @@ export function RecurringAppointments() {
         }
       >
         <p className="ui-alert ui-alert-info">
-          Lo que cambies vale para los turnos que falta generar. Los que ya están agendados quedan como están: se editan o se cancelan
-          desde la agenda, uno por uno.
+          Lo que cambies vale para los turnos que falta generar. Los que ya están agendados quedan como están: se editan
+          o se cancelan desde la agenda, uno por uno.
         </p>
 
         <div className="ui-section">
@@ -263,11 +323,14 @@ export function RecurringAppointments() {
               onChange={(e) => setForm({ ...form, value: e.target.value })}
             />
             <small>Lo que vas a cobrar por cada uno de los próximos. Vacío queda en 0.</small>
+            <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
           </label>
         </div>
 
         <p className="ui-hint">Frenar la repetición no borra ningún turno ya agendado.</p>
       </Modal>
-    </section>
+
+      <Toasts />
+    </div>
   );
 }

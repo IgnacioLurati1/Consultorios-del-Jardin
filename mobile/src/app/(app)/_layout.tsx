@@ -46,7 +46,6 @@ export default function AppLayout() {
 
       <Stack.Screen name="admin/alta-profesional" options={{ title: "Alta de profesional", presentation: "modal" }} />
       <Stack.Screen name="admin/control" options={{ title: "Control de turnos" }} />
-      <Stack.Screen name="admin/dia" options={{ title: "El día completo" }} />
       <Stack.Screen name="admin/provincias" options={{ title: "Provincias" }} />
       <Stack.Screen name="admin/localidades" options={{ title: "Localidades" }} />
       <Stack.Screen name="admin/sucursales" options={{ title: "Sucursales" }} />

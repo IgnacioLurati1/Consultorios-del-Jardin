@@ -14,7 +14,7 @@
 }
 
 .office-label-row-2 {
-  color: #777;
+  color: var(--adm-muted);
   display: flex;   
   justify-content: space-between; 
   align-items: baseline;

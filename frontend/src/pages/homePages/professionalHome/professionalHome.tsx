@@ -11,7 +11,8 @@ import { AppointmentDetailModal } from "../../appointments/appointmentsList/Appo
 import { describeState, shortHour, toISODate } from "../../appointments/appointmentTypes.ts";
 import type { Appointment, Person } from "../../types";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton";
-import { RecurringAppointments } from "./RecurringAppointments.tsx";
+import { ProfessionalSettings } from "./ProfessionalSettings.tsx";
+import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import "./professionalHome.css";
 
@@ -89,6 +90,10 @@ export function ProfessionalHome() {
 
   return (
     <div className="adm-page">
+      {/* Arriba de todo, antes del saludo: si el consultorio tiene algo que decir, se
+          lee antes de ponerse a trabajar y no después de haber hecho las cosas mal. */}
+      <AnnouncementBanner />
+
       <header className="adm-header">
         <div className="adm-header-titles">
           {loading ? (
@@ -174,7 +179,7 @@ export function ProfessionalHome() {
         </div>
       </section>
 
-      <RecurringAppointments />
+      <ProfessionalSettings />
 
       {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
 

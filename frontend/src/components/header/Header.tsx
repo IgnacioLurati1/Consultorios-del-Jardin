@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaBars } from "react-icons/fa6";
 import { Session } from "./session/Session";
+import { ThemeToggle } from "./ThemeToggle";
 import { LateralMenu } from "../defaultLayout/lateralMenu/LateralMenu";
 import LogoHojas from "../../assets/LogoHojasRecortado.PNG";
 import "./Header.css";
@@ -39,6 +40,7 @@ export function Header() {
             <span className="app-header-name">Consultorios del Jardín</span>
           </Link>
 
+          <ThemeToggle />
           <Session />
         </div>
       </header>

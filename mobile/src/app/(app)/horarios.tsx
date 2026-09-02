@@ -134,20 +134,30 @@ export default function SchedulesScreen() {
                         role === "admin"
                           ? undefined
                           : () =>
-                              Alert.alert(`${DAY_LABELS[day]} de ${hhmm(schedule.initialHour)} a ${hhmm(schedule.finalHour)}`, "¿Qué querés hacer?", [
+                              Alert.alert(
+                                `${DAY_LABELS[day]} de ${hhmm(schedule.initialHour)} a ${hhmm(schedule.finalHour)}`,
+                                "Cambiar la duración no modifica los turnos ya creados, solo los que se saquen de acá en adelante.",
+                                [
                                 ...DURATIONS.filter((duration) => duration !== schedule.duration).map((duration) => ({
                                   text: `Turnos de ${duration} min`,
                                   onPress: () => changeDuration(schedule, duration),
                                 })),
                                 { text: "Sacar el módulo", style: "destructive" as const, onPress: () => confirmRemove(schedule) },
-                                { text: "Cancelar", style: "cancel" as const },
-                              ])
+                                  { text: "Cancelar", style: "cancel" as const },
+                                ]
+                              )
                       }
                     />
                   ))}
                 </Group>
               </Section>
             ))}
+
+            {role !== "admin" ? (
+              <View style={{ marginTop: space.xl }}>
+                <Note>Cambiar la duración de un módulo no modifica los turnos ya creados, solo los futuros.</Note>
+              </View>
+            ) : null}
 
             {role !== "admin" ? (
               <Section>

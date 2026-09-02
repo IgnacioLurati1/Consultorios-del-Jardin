@@ -11,6 +11,8 @@ import { BandHeadline, DayBand } from "../../../components/DayBand";
 import { DataState, EmptyState, SkeletonList } from "../../../components/States";
 import { Group, Note, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
+import { AnnouncementBanner } from "../../../features/Announcements";
+import { OfficeSettings } from "../../../features/OfficeSettings";
 import { WeekSummary } from "../../../features/WeekSummary";
 import { isUpcoming, stateOf } from "../../../lib/appointments";
 import { money, today } from "../../../lib/dates";
@@ -185,11 +187,13 @@ function ProfessionalHome() {
         <Section title="Tu consultorio">
           <Group>
             <Row title="Horarios de atención" subtitle="Los módulos en los que atendés" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
-            <Row title="Turnos que se repiten" subtitle="Los que se generan solos cada semana" icon="repeat" onPress={() => router.push("/(app)/repeticiones")} />
             <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
             <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" last onPress={() => router.push("/(app)/nuevo-turno")} />
           </Group>
         </Section>
+
+        {/* Cierra el panel: lo que se decide una vez y despues se olvida. */}
+        <OfficeSettings />
       </View>
     </Frame>
   );
@@ -241,7 +245,7 @@ function AdminHome() {
             <Row title="Usuarios" subtitle="Altas, bajas y solicitudes de profesionales" icon="users" onPress={() => router.push("/(app)/(tabs)/usuarios")} />
             <Row title="Control de turnos" subtitle="Qué está dando cada profesional" icon="eye" onPress={() => router.push("/(app)/admin/control")} />
             <Row title="Horarios" subtitle="Los módulos de atención de cada uno" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
-            <Row title="El día completo" subtitle="Quién atiende y qué turnos hay, consultorio por consultorio" icon="table-columns" onPress={() => router.push("/(app)/admin/dia")} />
+            <Row title="El día completo" subtitle="Quién atiende y qué turnos hay, consultorio por consultorio" icon="table-columns" onPress={() => router.push("/(app)/(tabs)/dia")} />
             <Row title="Números del consultorio" subtitle="Facturación, pacientes y uso del asistente" icon="chart-column" last onPress={() => router.push("/(app)/(tabs)/numeros")} />
           </Group>
         </Section>
@@ -290,6 +294,11 @@ function Frame({
       }
     >
       <DayBand onOpenAssistant={() => router.push("/(app)/asistente")}>{band}</DayBand>
+
+      {/* Va en el marco y no en cada rol: lo que el consultorio tiene para decir es lo
+          primero que hay que leer, sea quien sea el que entró. */}
+      <AnnouncementBanner />
+
       {children}
       <View style={styles.pad}>
         <AppText variant="caption" tone="muted" style={styles.foot}>

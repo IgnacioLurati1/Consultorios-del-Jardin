@@ -21,6 +21,7 @@ import { AuthWatcher } from "./context/AuthWatcher.tsx";
 import { UsersAdmin } from "./pages/adminCRUDS/adminUsers/usersAdmin.tsx";
 import { BookAppointment } from "./pages/appointments/booking/BookAppointment.tsx";
 import { AppointmentsList } from "./pages/appointments/appointmentsList/appointmentList.tsx";
+import { RecurrencesPage } from "./pages/appointments/recurrences/RecurrencesPage.tsx";
 import { ControlPanel } from "./pages/adminControl/ControlPanel.tsx";
 import { PatientsPage } from "./pages/patients/PatientsPage.tsx";
 import { AnalyticsPage } from "./pages/analytics/AnalyticsPage.tsx";
@@ -118,6 +119,16 @@ const router = createBrowserRouter([
           <PrivateRoutes allowedTypes={["professional","admin","client"]}>
             <AuthWatcher>
               <BookAppointment />
+            </AuthWatcher>
+          </PrivateRoutes>
+        ),
+      },
+      {
+        path: "/Recurrences",
+        element: (
+          <PrivateRoutes allowedTypes={["professional"]}>
+            <AuthWatcher>
+              <RecurrencesPage />
             </AuthWatcher>
           </PrivateRoutes>
         ),
