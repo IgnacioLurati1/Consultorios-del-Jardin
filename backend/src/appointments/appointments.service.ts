@@ -280,7 +280,10 @@ export class AppointmentService {
     return await em.find(
       Appointment,
       { professional: { email: professionalEmail }, state: "pending" },
-      { populate: ["room.office", "patient"] }
+      // Del más cercano al más lejano: un pendiente para mañana urge más que uno para el
+      // mes que viene, y uno cuya fecha ya pasó es el que primero hay que sacarse de
+      // encima. Sin orden, la lista salía en el orden en que MySQL tuviera ganas.
+      { populate: ["room.office", "patient"], orderBy: { date: "ASC" as const, initialHour: "ASC" as const } }
     );
   }
 

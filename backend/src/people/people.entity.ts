@@ -66,6 +66,22 @@ export class Person {
   @Property({ nullable: true, type: "text" })
   banReason?: string | null;
 
+  // De qué clase fue la baja automática. Las dos las decide una regla, pero no significan
+  // lo mismo ni se resuelven igual: "abuse" es alguien usando mal su propia cuenta, y se
+  // revisa cuando se pueda; "compromise" es una cuenta que se comportó como si la
+  // estuviera manejando otro, y hasta que un administrador la mire hay que dar por
+  // sentado que la contraseña está en manos ajenas.
+  @Property({ nullable: true })
+  banKind?: "abuse" | "compromise" | null;
+
+  // Quién la volvió a habilitar después de una baja por posible intrusión, y cuándo.
+  // Queda escrito porque es una decisión de seguridad que tomó una persona concreta.
+  @Property({ nullable: true })
+  clearedBy?: string | null;
+
+  @Property({ nullable: true, type: "datetime" })
+  clearedAt?: Date | null;
+
   // Si aparece entre las opciones cuando un paciente saca turno.
   //
   // Es distinto de `active`, que lo saca del sistema entero. Un profesional con la agenda

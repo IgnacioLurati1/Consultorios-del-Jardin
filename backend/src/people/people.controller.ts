@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
 import { sendError } from "../shared/errors.js";
 import { clientChannel, isMobileClient } from "../config/clients.js";
+import { describeLockout } from "../config/middlewares.js";
 
 dotenv.config();
 
@@ -272,8 +273,11 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
+    // Se contesta después de validar la contraseña y no antes: así el mensaje de una
+    // cuenta cerrada solo lo ve quien sabe la contraseña, y no cualquiera que pruebe
+    // emails para averiguar cuáles existen.
     if (!person.active) {
-      return res.status(403).json({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
+      return res.status(403).json(describeLockout(person));
     }
 
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
@@ -300,12 +304,14 @@ async function logOut(req: Request, res: Response) {
   res.status(200).json({ message: "Sesión cerrada" });
 }
 
-async function toggleState(req: Request, res: Response) {
+async function toggleState(req: RequestWithUser, res: Response) {
   try {
-    await peopleService.toggleState(req.params.email);
+    await peopleService.toggleState(req.params.email, req.user?.email);
     res.status(200).json({ message: "Estado de la persona cambiado con éxito" });
   } catch (error: any) {
-    res.status(500).json({ message: "Ups! Algo salió mal. Intente más tarde" });
+    // Un rechazo de seguridad tiene que llegar con su motivo: "algo salió mal" deja al
+    // administrador sin saber que lo que falta es que la revise otra persona.
+    sendError(res, error, { fallback: "Ups! Algo salió mal. Intente más tarde" });
   }
 }
 

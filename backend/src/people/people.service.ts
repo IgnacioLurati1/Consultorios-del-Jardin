@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { Schedule } from "../schedule/schedules.entity.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, note, paragraph, title } from "../config/mailTemplate.js";
-import { badRequest, conflict } from "../shared/errors.js";
+import { badRequest, conflict, forbidden } from "../shared/errors.js";
 import type { ClientChannel } from "../config/clients.js";
 import { startOfDay } from "../shared/dates.js";
 import { SettingsService } from "../settings/settings.service.js";
@@ -385,9 +385,26 @@ export class PeopleService {
    * la había bajado el sistema y una persona decidió que estaba bien, esa decisión gana
    * y no tiene por qué seguir arrastrando la marca.
    */
-  async toggleState(email: string) {
+  /**
+   * Habilita o deshabilita una cuenta, dejando escrito quién lo hizo.
+   *
+   * `actorEmail` es el administrador que aprieta el botón. Importa en un solo caso, pero
+   * importa mucho: una cuenta que el sistema cerró por parecer intervenida solo la puede
+   * volver a abrir otra persona. En la práctica ya se cumple solo —una cuenta cerrada no
+   * puede pedir nada, así que no puede levantarse a sí misma— pero dejarlo escrito acá
+   * hace que siga siendo verdad si mañana alguien cambia cómo se autentica.
+   */
+  async toggleState(email: string, actorEmail?: string) {
     const person = await em.findOneOrFail(Person, { email });
     const active = !person.active;
+
+    if (active && person.banKind === "compromise") {
+      if (!actorEmail) throw forbidden("Para reabrir una cuenta cerrada por seguridad hace falta saber quién la reabre");
+
+      if (actorEmail.toLowerCase() === email.toLowerCase()) {
+        throw forbidden("Una cuenta cerrada por posible intrusión la tiene que revisar y reabrir otro administrador");
+      }
+    }
 
     em.assign(person, {
       ...person,
@@ -395,9 +412,19 @@ export class PeopleService {
       bannedBy: active ? null : "admin",
       bannedAt: active ? null : new Date(),
       banReason: null,
+      // Al reabrir, la marca de intrusión se guarda como resuelta: queda quién la
+      // levantó y cuándo. Al cerrar a mano se limpia, porque pasa a ser otra cosa.
+      banKind: null,
+      clearedBy: active && person.banKind === "compromise" ? actorEmail ?? null : null,
+      clearedAt: active && person.banKind === "compromise" ? new Date() : null,
     });
 
     await em.flush();
+
+    if (active && person.clearedBy) {
+      console.warn(`SEGURIDAD: ${person.clearedBy} volvió a habilitar a ${email}, cerrada por posible intrusión`);
+    }
+
     return true;
   }
 }
