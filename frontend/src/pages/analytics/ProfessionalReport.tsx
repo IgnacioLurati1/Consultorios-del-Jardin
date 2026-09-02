@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StackedBars, ChartLegend, type Band } from "./Charts.tsx";
 import { Kpi, KpiGrid, AnalyticsSection, MonthTabs } from "./Kpi.tsx";
-import { decimal, money, type ProfessionalAnalytics } from "./analyticsService.ts";
+import { decimal, money, type Denials, type ProfessionalAnalytics } from "./analyticsService.ts";
 
 const BILLING_BANDS: Band[] = [
   { key: "billed", label: "Cobrado (turnos asistidos)", color: "#3b7658" },
@@ -84,15 +84,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             note={`${month.cancelled} cancelados · ${month.missed} no vinieron`}
           />
           <Kpi label="Sobreturnos" value={month.overbooked} note="dados fuera de tus módulos" />
-          <Kpi
-            label="Pedidos rechazados"
-            value={month.denials.denied}
-            note={
-              month.denials.expired > 0
-                ? `${month.denials.expired} se vencieron sin respuesta`
-                : "ninguno se venció sin respuesta"
-            }
-          />
+          <Kpi label="Pedidos rechazados" value={month.denials.denied} note={splitOf(month.denials)} />
         </KpiGrid>
       </AnalyticsSection>
 
@@ -131,15 +123,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
           <Kpi label="Pacientes distintos" value={total.patients} />
           <Kpi label="Cancelados o ausentes" value={lost} note={`${lostRate}% de los ${given} turnos dados`} />
           <Kpi label="Sobreturnos" value={total.overbooked} />
-          <Kpi
-            label="Pedidos rechazados"
-            value={total.denials.denied}
-            note={
-              total.denials.expired > 0
-                ? `${total.denials.expired} se vencieron sin respuesta`
-                : "ninguno se venció sin respuesta"
-            }
-          />
+          <Kpi label="Pedidos rechazados" value={total.denials.denied} note={splitOf(total.denials)} />
           <Kpi
             label="Turnos sacados por la app"
             value={total.fromApp}
@@ -162,6 +146,20 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
       </AnalyticsSection>
     </>
   );
+}
+
+/**
+ * Cómo se reparten los pedidos rechazados entre los dos motivos.
+ *
+ * La tarjeta muestra el total, así que la nota tiene que decir las dos mitades y no solo
+ * una: con "2 se vencieron sin respuesta" arriba de un 5, los otros tres había que
+ * sacarlos restando.
+ */
+function splitOf({ denied, expired }: Denials): string {
+  if (denied === 0) return "no rechazó ninguno";
+  if (expired === 0) return "todos rechazados a mano";
+  if (expired === denied) return "todos vencidos sin respuesta";
+  return `${denied - expired} a mano · ${expired} vencidos sin respuesta`;
 }
 
 /** "agosto 2026" no entra bajo una barra: en el eje va "ago 26". */

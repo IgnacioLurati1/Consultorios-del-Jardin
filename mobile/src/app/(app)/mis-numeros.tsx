@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { myAnalytics } from "../../api/analytics";
+import { myAnalytics, type Denials } from "../../api/analytics";
 import { ChipRow } from "../../components/Chip";
 import { Screen } from "../../components/Screen";
 import { ErrorState, SkeletonList } from "../../components/States";
@@ -24,6 +24,17 @@ const METRICS: { key: Metric; label: string }[] = [
  * facturó este mes) y recién después abre el detalle: los meses anteriores, la carga de
  * la agenda y de dónde salen los turnos.
  */
+/**
+ * Cómo se reparten los pedidos rechazados entre los dos motivos. La fila muestra el
+ * total, así que acá van las dos mitades: con solo los vencidos, los rechazados a mano
+ * había que sacarlos restando.
+ */
+function splitOf({ denied, expired }: Denials): string {
+  if (denied === 0) return "Ninguno";
+  if (expired === 0) return "Todos rechazados a mano";
+  if (expired === denied) return "Todos vencidos sin respuesta";
+  return `${denied - expired} a mano · ${expired} vencidos sin respuesta`;
+}
 export default function MyNumbersScreen() {
   const state = useAsync(myAnalytics, []);
   const [metric, setMetric] = useState<Metric>("appointments");
@@ -80,11 +91,7 @@ export default function MyNumbersScreen() {
                 <Row title="Sobreturnos" value={String(current.overbooked)} />
                 <Row
                   title="Pedidos rechazados"
-                  subtitle={
-                    current.denials.expired > 0
-                      ? `${current.denials.expired} se vencieron sin respuesta`
-                      : "Ninguno se venció sin respuesta"
-                  }
+                  subtitle={splitOf(current.denials)}
                   value={String(current.denials.denied)}
                   last
                 />
