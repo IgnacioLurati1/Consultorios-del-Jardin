@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaFilePdf, FaChevronDown } from "react-icons/fa6";
+import { FaFilePdf, FaChevronDown, FaPlus } from "react-icons/fa6";
 import { AdminHeader } from "../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
@@ -41,6 +41,7 @@ export function OfficeAnalyticsPage() {
   const [monthKey, setMonthKey] = useState<string | null>(null);
   const [detail, setDetail] = useState<ProfessionalAnalytics | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [systemOpen, setSystemOpen] = useState(false);
 
   useEffect(() => {
     findOfficeAnalytics()
@@ -105,17 +106,64 @@ export function OfficeAnalyticsPage() {
     <div className="adm-page an-page">
       <AdminHeader
         title="Números del consultorio"
-        subtitle={`Facturación, turnos y carga del equipo · ${headcount} profesionales activos`}
+        subtitle={
+          selected
+            ? "Actividad de un profesional, sin lo que factura"
+            : `Facturación, turnos y carga del equipo · ${headcount} profesionales activos`
+        }
         actions={
-          <button type="button" className="adm-btn adm-btn-ghost" onClick={() => window.print()}>
-            <FaFilePdf />
-            Exportar a PDF
-          </button>
+          <>
+            {/* Elegir a alguien cambia toda la pantalla, así que el selector va donde
+                están los controles de la pantalla y no enterrado al final de ella. */}
+            <div className="an-picker">
+              <select
+                value={selected}
+                onChange={(e) => setSelected(e.target.value)}
+                aria-label="Ver los números de un profesional"
+              >
+                <option value="">Todo el consultorio</option>
+                {data.professionals.map((professional) => (
+                  <option key={professional.email} value={professional.email}>
+                    {professional.surname}, {professional.name}
+                    {professional.speciality ? ` · ${professional.speciality}` : ""}
+                  </option>
+                ))}
+              </select>
+              <FaChevronDown className="an-picker-hint" aria-hidden="true" />
+            </div>
+
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => window.print()}>
+              <FaFilePdf />
+              Exportar a PDF
+            </button>
+          </>
         }
       />
 
       <Toasts />
 
+      {/* Un profesional elegido reemplaza los números del consultorio en vez de sumarse
+          abajo: son dos lecturas distintas y mezclarlas obligaba a scrollear para saber
+          de quién era cada número. */}
+      {selected ? (
+        loadingDetail || !detail ? (
+          <div className="adm-panel">
+            <div className="prof-today-loading">
+              <SkeletonLine height={20} />
+              <SkeletonLine width="60%" height={20} />
+            </div>
+          </div>
+        ) : (
+          <div key={detail.professional.email} className="adm-enter">
+            <h2 className="an-detail-title">
+              {detail.professional.surname}, {detail.professional.name}
+              {detail.professional.speciality ? <span className="an-muted"> · {detail.professional.speciality}</span> : null}
+            </h2>
+            <ProfessionalReport data={detail} />
+          </div>
+        )
+      ) : (
+      <>
       <AnalyticsSection
         title="Por mes"
         scope={month.inProgress ? "en curso, hasta hoy" : "mes cerrado"}
@@ -208,45 +256,32 @@ export function OfficeAnalyticsPage() {
         </KpiGrid>
       </AnalyticsSection>
 
-      {/* ---- los números de un profesional puntual, en la misma pantalla ---- */}
-      <AnalyticsSection title="Un profesional en particular">
-        <div className="an-picker">
-          <label className="ui-field">
-            <span>Profesional</span>
-            <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-              <option value="">Elegí un profesional…</option>
-              {data.professionals.map((professional) => (
-                <option key={professional.email} value={professional.email}>
-                  {professional.surname}, {professional.name}
-                  {professional.speciality ? ` · ${professional.speciality}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <FaChevronDown className="an-picker-hint" aria-hidden="true" />
+      {/* Por dónde entra la gente y lo que gasta el asistente son números del sistema,
+          no del consultorio: le sirven a quien lo mantiene y le estorban a quien vino a
+          ver cómo viene el mes. */}
+      <button
+        type="button"
+        className={`adm-section-toggle ${systemOpen ? "open" : ""}`}
+        onClick={() => setSystemOpen((open) => !open)}
+        aria-expanded={systemOpen}
+        aria-controls="an-system"
+      >
+        <span className="adm-plus">
+          <FaPlus />
+        </span>
+        {systemOpen ? "Ocultar números del sistema" : "Números del sistema"}
+      </button>
+
+      <div id="an-system" className={`adm-collapsible ${systemOpen ? "open" : ""}`}>
+        <div>
+          <div className="adm-collapsible-inner">
+            <AccessChannelsSection channels={data.channels} />
+            <AssistantUsageSection />
+          </div>
         </div>
-
-        {loadingDetail ? (
-          <div className="adm-panel">
-            <div className="prof-today-loading">
-              <SkeletonLine height={20} />
-              <SkeletonLine width="60%" height={20} />
-            </div>
-          </div>
-        ) : detail ? (
-          <div className="an-detail">
-            <h3 className="an-detail-title">
-              {detail.professional.surname}, {detail.professional.name}
-              {detail.professional.speciality ? <span className="an-muted"> · {detail.professional.speciality}</span> : null}
-            </h3>
-            <ProfessionalReport data={detail} />
-          </div>
-        ) : null}
-      </AnalyticsSection>
-
-      <AccessChannelsSection channels={data.channels} />
-
-      <AssistantUsageSection />
+      </div>
+      </>
+      )}
     </div>
   );
 }

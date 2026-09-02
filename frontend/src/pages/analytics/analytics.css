@@ -221,32 +221,54 @@
 
 /* ---------- profesional puntual ---------- */
 
+/* El selector vive en la botonera del encabezado, al lado de exportar: elegir a alguien
+   cambia toda la pantalla, así que es un control de la pantalla y no una sección más. */
 .an-picker {
   position: relative;
-  max-width: 460px;
-  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
 }
 
-.an-picker-hint {
-  display: none;
-}
-
-.an-detail {
-  padding: 22px;
-  background: #fafbfc;
+.an-picker select {
+  min-height: 42px;
+  max-width: 280px;
+  padding: 9px 34px 9px 14px;
+  background: var(--adm-surface);
   border: 1px solid var(--adm-border);
-  border-radius: var(--adm-radius);
+  border-radius: var(--adm-radius-sm);
+  color: var(--adm-text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
+.an-picker select:hover,
+.an-picker select:focus-visible {
+  border-color: var(--adm-green);
+  color: var(--adm-green-dark);
+  outline: none;
+}
+
+/* La flecha la dibujamos nosotros porque `appearance: none` se lleva puesta la del
+   sistema, que es lo que hace que el select se parezca al botón de al lado. */
+.an-picker-hint {
+  position: absolute;
+  right: 13px;
+  pointer-events: none;
+  font-size: 0.8rem;
+  color: var(--adm-muted);
+}
+
+/* Nombre del profesional que se está mirando: encabeza la pantalla entera. */
 .an-detail-title {
-  margin: 0 0 22px;
-  font-size: 1.15rem;
+  margin: 0 0 26px;
+  font-size: 1.5rem;
   font-weight: 700;
-}
-
-/* El bloque anidado ya vive dentro de una caja: sin esto queda un escalón de aire. */
-.an-detail .an-section:last-child {
-  margin-bottom: 0;
+  letter-spacing: -0.01em;
+  color: var(--adm-text);
 }
 
 /* ============================================================
@@ -306,12 +328,6 @@
 
   .an-kpi-value {
     font-size: 1.3rem;
-  }
-
-  .an-detail {
-    background: transparent;
-    padding: 0;
-    border: none;
   }
 
   /* Los fondos de las barras se imprimen; sin esto salen en blanco. */
