@@ -20,6 +20,9 @@ import { space } from "../../theme/tokens";
  * todo el sistema. La contraseña tampoco se cambia acá, se pide por mail: así el que
  * agarra un teléfono desbloqueado no puede quedarse con la cuenta.
  */
+/** El mismo tope que valida el backend. */
+const ABOUT_MAX = 600;
+
 export default function MyDataScreen() {
   const { email, role } = useUser();
   const { signOut } = useSession();
@@ -32,6 +35,7 @@ export default function MyDataScreen() {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [docType, setDocType] = useState<string | null>(null);
   const [docNumber, setDocNumber] = useState<string | null>(null);
+  const [about, setAbout] = useState<string | null>(null);
   const [sheet, setSheet] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
@@ -55,6 +59,7 @@ export default function MyDataScreen() {
     phoneNumber: phoneNumber ?? saved.phoneNumber ?? "",
     docType: docType ?? saved.docType ?? "DNI",
     docNumber: docNumber ?? saved.docNumber ?? "",
+    about: about ?? saved.about ?? "",
   };
 
   const changed =
@@ -62,7 +67,8 @@ export default function MyDataScreen() {
     form.surname !== saved.surname ||
     form.phoneNumber !== (saved.phoneNumber ?? "") ||
     form.docType !== (saved.docType ?? "DNI") ||
-    form.docNumber !== (saved.docNumber ?? "");
+    form.docNumber !== (saved.docNumber ?? "") ||
+    form.about !== (saved.about ?? "");
 
   async function save() {
     if (busy) return;
@@ -86,6 +92,8 @@ export default function MyDataScreen() {
         phoneNumber: form.phoneNumber.trim(),
         docType: form.docType,
         docNumber: form.docNumber.trim(),
+        // Solo la manda el profesional: es la única ficha que un paciente puede llegar a leer.
+        ...(role === "professional" ? { about: form.about.trim() } : {}),
       });
 
       feedback.done("Guardamos tus datos");
@@ -95,6 +103,7 @@ export default function MyDataScreen() {
       setPhoneNumber(null);
       setDocType(null);
       setDocNumber(null);
+      setAbout(null);
     } catch (problem) {
       setErrors({ name: errorMessage(problem) });
     } finally {
@@ -145,6 +154,20 @@ export default function MyDataScreen() {
             error={errors.phoneNumber}
             required
           />
+
+          {role === "professional" ? (
+            <Field
+              label="Acerca de mí"
+              value={form.about}
+              onChangeText={setAbout}
+              multiline
+              numberOfLines={5}
+              maxLength={ABOUT_MAX}
+              autoCapitalize="sentences"
+              placeholder="Con qué trabajás, con qué enfoque, a quiénes atendés…"
+              hint={`Lo lee el paciente antes de elegir con quién atenderse. ${form.about.length}/${ABOUT_MAX}`}
+            />
+          ) : null}
 
           <Button label="Guardar" onPress={save} loading={busy} disabled={!changed} block />
         </View>

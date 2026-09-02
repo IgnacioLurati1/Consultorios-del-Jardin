@@ -1,7 +1,9 @@
 import api from "../../axios";
 import type { Person } from "../types";
 
-type PersonUpdate = Partial<Pick<Person, "name" | "surname" | "phoneNumber" | "docType" | "docNumber">> & { email: string };
+type PersonUpdate = Partial<Pick<Person, "name" | "surname" | "phoneNumber" | "docType" | "docNumber" | "about">> & {
+  email: string;
+};
 
 export function updatePerson(person: PersonUpdate): Promise<Person | undefined> {
   return api.put(`/people/${person.email}`, person)

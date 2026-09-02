@@ -23,7 +23,10 @@ const HOME_BY_TYPE: Record<string, string> = {
   client: "/",
 };
 
-const emptyForm = { name: "", surname: "", email: "", phoneNumber: "", docType: "DNI", docNumber: "" };
+const emptyForm = { name: "", surname: "", email: "", phoneNumber: "", docType: "DNI", docNumber: "", about: "" };
+
+/** El mismo tope que valida el backend. */
+const ABOUT_MAX = 600;
 
 export function EditProfile() {
   const [person, setPerson] = useState<Person | undefined>(undefined);
@@ -33,6 +36,7 @@ export function EditProfile() {
   const [error, setError] = useState<string | null>(null);
 
   const decoded = getDecodedToken();
+  const isProfessional = decoded?.type === "professional";
 
   useEffect(() => {
     if (!decoded) {
@@ -55,6 +59,7 @@ export function EditProfile() {
           docType: data.docType || "DNI",
           docNumber: data.docNumber || "",
           phoneNumber: data.phoneNumber || "",
+          about: data.about || "",
         });
       })
       .catch((err) => toast.error(`No pudimos cargar tus datos: ${err.message}`))
@@ -89,6 +94,8 @@ export function EditProfile() {
       phoneNumber: form.phoneNumber.replace(/\D/g, ""),
       docType: form.docType,
       docNumber: form.docNumber.trim(),
+      // Solo la manda el profesional: es la única ficha que un paciente puede llegar a leer.
+      ...(isProfessional ? { about: form.about.trim() } : {}),
     })
       .then(() => toast.success("Datos guardados"))
       .catch((err: any) => {
@@ -191,6 +198,26 @@ export function EditProfile() {
                   </label>
                 </div>
               </div>
+
+              {isProfessional && (
+                <div className="ui-section">
+                  <h2 className="ui-section-title">Acerca de mí</h2>
+
+                  <label className="ui-field">
+                    <span>Tu presentación</span>
+                    <textarea
+                      rows={5}
+                      maxLength={ABOUT_MAX}
+                      placeholder="Con qué trabajás, con qué enfoque, a quiénes atendés…"
+                      value={form.about}
+                      onChange={(e) => setForm({ ...form, about: e.target.value })}
+                    />
+                    <small>
+                      Es lo que lee el paciente antes de elegir con quién atenderse. {form.about.length}/{ABOUT_MAX}
+                    </small>
+                  </label>
+                </div>
+              )}
 
               {error && <p className="ui-alert ui-alert-error profile-error">{error}</p>}
 
