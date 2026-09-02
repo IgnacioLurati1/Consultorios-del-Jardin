@@ -10,6 +10,7 @@ import { button, escapeHtml, note, paragraph, title } from "../config/mailTempla
 import { badRequest, conflict } from "../shared/errors.js";
 import type { ClientChannel } from "../config/clients.js";
 import { startOfDay } from "../shared/dates.js";
+import { SettingsService } from "../settings/settings.service.js";
 
 dotenv.config();
 
@@ -127,6 +128,13 @@ export class PeopleService {
       query.andWhere({ "p.speciality": speciality });
     }
 
+    // De licencia no se ofrece. A diferencia de `bookable`, que es una decisión que se
+    // mantiene, esto se cae solo el día que vuelve: nadie tiene que acordarse de
+    // volver a prenderlo.
+    const onVacation = await new SettingsService().onVacationToday();
+
+    if (onVacation.length > 0) query.andWhere({ "p.email": { $nin: onVacation } });
+
     return await query.execute();
   }
 
@@ -215,6 +223,8 @@ export class PeopleService {
       active: true,
       // Solo significa algo en un profesional, pero la columna no admite nulos.
       bookable: true,
+      autoAccept: false,
+      autoMarkWhen: "appointment" as const,
       anonymous: true,
       createdBy: data.createdBy,
     });
@@ -368,9 +378,25 @@ export class PeopleService {
     await this.mailService.sendMail(msg);
   }
 
+  /**
+   * Habilita o deshabilita una cuenta a mano.
+   *
+   * Deja anotado que fue el admin, y al volver a habilitar borra el motivo: si la cuenta
+   * la había bajado el sistema y una persona decidió que estaba bien, esa decisión gana
+   * y no tiene por qué seguir arrastrando la marca.
+   */
   async toggleState(email: string) {
     const person = await em.findOneOrFail(Person, { email });
-    em.assign(person, { ...person, active: !person.active });
+    const active = !person.active;
+
+    em.assign(person, {
+      ...person,
+      active,
+      bannedBy: active ? null : "admin",
+      bannedAt: active ? null : new Date(),
+      banReason: null,
+    });
+
     await em.flush();
     return true;
   }

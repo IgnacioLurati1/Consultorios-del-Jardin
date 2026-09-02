@@ -6,6 +6,8 @@ import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "./appointments.service.js";
 import { Appointment } from "./appointments.entity.js";
 import { badRequest, conflict } from "../shared/errors.js";
+import { SettingsService } from "../settings/settings.service.js";
+import { toISODate } from "../shared/dates.js";
 const DAY_NAMES = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
 
 /** Nombre del día, en local, tal como se guardan los horarios de atención. */
@@ -28,6 +30,7 @@ export class AppointmentEngine {
   private officeService: OfficeService;
   private roomService: RoomService;
   private appointmentService: AppointmentService;
+  private settingsService: SettingsService;
   private em: EntityManager;
 
   constructor(
@@ -43,6 +46,7 @@ export class AppointmentEngine {
     this.officeService = office;
     this.roomService = room;
     this.appointmentService = appointment;
+    this.settingsService = new SettingsService();
     this.em = em;
   }
 
@@ -143,6 +147,14 @@ export class AppointmentEngine {
     const localDate = new Date(year, month, day); // esto ya es local
     const dayName = days[localDate.getDay()];
 
+    // La licencia se chequea acá y no solo al listar horarios libres: la lista se arma
+    // una vez y el paciente puede tardar en elegir, así que entre que la vio y confirmó
+    // el profesional pudo haber cargado las vacaciones.
+    const vacationDays = await this.settingsService.vacationDays(professionalEmail);
+
+    if (vacationDays.has(toISODate(localDate)))
+      throw badRequest("El profesional no atiende ese día. Elegí otra fecha");
+
     const schedule = await this.scheduleService.findScheduleByHourRange(initialHour, dayName, professional, office, this.em);
     // We ask for the office eventhough it's not strictly necessary, to ensure in case of schedule overlaps that the office is the correct one
 
@@ -178,7 +190,9 @@ export class AppointmentEngine {
       patient: await this.peopleService.findPersonByEmail(patientEmail, this.em),
       room,
       value: 0,
-      state: "pending",
+      // Con la confirmación automática prendida el turno nace ocupando el horario, sin
+      // pasar por la bandeja de pedidos del profesional.
+      state: professional.autoAccept ? "accepted" : "pending",
       observations: null,
       reminderSent: "not sent",
       // El paciente solo puede sacar turno en las franjas que el profesional publica.
@@ -202,6 +216,11 @@ export class AppointmentEngine {
 
     const schedules = await this.scheduleService.findSchedulesByProfessionalAndOffice(professional, office, this.em);
 
+    // Los días de licencia siguen contando como días hábiles del horizonte: si alguien se
+    // toma dos semanas, el paciente no ve horarios en vez de ver los de la vuelta. Que la
+    // agenda aparezca vacía es la respuesta correcta a "¿cuándo puedo ir?".
+    const vacationDays = await this.settingsService.vacationDays(professionalEmail);
+
     const availableSlots: Array<{ date: Date; initialHour: string; finalHour: string }> = [];
 
     const now = new Date();
@@ -217,7 +236,7 @@ export class AppointmentEngine {
       const dayOfWeek = currentDate.getDay();
       if (dayOfWeek !== 0) {
         const dayName = days[dayOfWeek];
-        const daySchedules = schedules.filter((s) => s.day === dayName);
+        const daySchedules = vacationDays.has(toISODate(currentDate)) ? [] : schedules.filter((s) => s.day === dayName);
 
         const isToday = currentDate.toDateString() === now.toDateString();
 

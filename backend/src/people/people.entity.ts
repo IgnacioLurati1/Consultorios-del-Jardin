@@ -49,6 +49,23 @@ export class Person {
   @Property({ nullable: false })
   active!: boolean;
 
+  // Quién apagó el `active` de arriba. Un usuario deshabilitado a mano y uno que se
+  // deshabilitó solo por cómo venía usando el sistema se ven igual en la base, y no son
+  // lo mismo para quien tiene que decidir si lo vuelve a habilitar: el primero lo bajó
+  // una persona que sabe por qué, el segundo lo bajó una regla.
+  //
+  // En null la cuenta está sana, o quedó deshabilitada de antes de que existiera esto.
+  @Property({ nullable: true })
+  bannedBy?: "admin" | "system" | null;
+
+  @Property({ nullable: true, type: "datetime" })
+  bannedAt?: Date | null;
+
+  // Qué regla saltó, en las palabras que se le muestran al admin. Se guarda armado
+  // porque describe lo que pasaba en ese momento: recalcularlo después da otra cosa.
+  @Property({ nullable: true, type: "text" })
+  banReason?: string | null;
+
   // Si aparece entre las opciones cuando un paciente saca turno.
   //
   // Es distinto de `active`, que lo saca del sistema entero. Un profesional con la agenda
@@ -59,6 +76,40 @@ export class Person {
   // Solo tiene sentido en un profesional. En el resto queda en true y no molesta a nadie.
   @Property({ default: true })
   bookable: boolean = true;
+
+  // Confirmar solos los turnos que pide un paciente, en vez de dejarlos esperando.
+  //
+  // Un turno pedido nace en "pending" y no ocupa el horario hasta que el profesional lo
+  // acepta. Para quien atiende por orden de llegada eso es un trámite de más: el horario
+  // ya estaba publicado, y si está publicado es porque lo puede atender. Con esto el
+  // turno nace aceptado y el paciente recibe la confirmación en el mismo momento.
+  @Property({ default: false })
+  autoAccept: boolean = false;
+
+  // Cómo cerrar los turnos a los que ya se les pasó la hora y el profesional no cerró a
+  // mano. En null la función está apagada, que es como venía funcionando: el turno queda
+  // en "accepted" para siempre y no cuenta ni como que vino ni como que faltó.
+  //
+  // El valor es el estado que se les pone, porque cada consultorio tiene una realidad
+  // distinta: donde casi todos vienen conviene "assisted" y corregir la excepción, y
+  // donde faltan seguido conviene "missed".
+  @Property({ nullable: true })
+  autoMark?: "assisted" | "missed" | null;
+
+  // Cuándo se aplica lo de arriba: apenas termina el turno, o recién al cerrar el día.
+  // Al final del día da tiempo a cargar la asistencia real de un turno que se estiró o de
+  // un paciente que llegó tarde; apenas termina deja la agenda al día sola.
+  @Property({ default: "appointment" })
+  autoMarkWhen: "appointment" | "day" = "appointment";
+
+  // Desde cuándo vale el cierre automático: el momento en que se prendió el switch.
+  //
+  // Sin esto, prender la opción cierra de una toda la agenda vieja que quedó sin marcar,
+  // que en un consultorio con un año de uso son cientos de turnos que nadie revisó
+  // pasando a "vino" o "no vino" de un plumazo, y los números del año cambiando solos.
+  // Una preferencia nueva no puede reescribir lo que ya pasó: se aplica de acá en más.
+  @Property({ nullable: true, type: "datetime" })
+  autoMarkSince?: Date | null;
 
   // Paciente "dummy" cargado por un profesional. No puede iniciar sesión.
   // Si alguien se registra con este mismo email, la cuenta se convierte en real

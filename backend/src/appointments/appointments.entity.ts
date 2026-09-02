@@ -61,4 +61,13 @@ export class Appointment {
   // apagar la configuración no toca los turnos ya creados.
   @ManyToOne(() => Recurrence, { nullable: true })
   recurrence?: Rel<Recurrence> | null;
+
+  // Cuándo se dio de alta el turno, que no es lo mismo que para cuándo es. Sirve para
+  // mirar el ritmo con el que alguien saca turnos: diez turnos en un día es una cosa si
+  // se pidieron a lo largo de la tarde y otra si salieron todos en el mismo minuto.
+  //
+  // Nullable porque los turnos anteriores a esta columna no tienen cómo saberlo. Los
+  // controles de abuso solo miran lo que tiene fecha, así que el pasado no dispara nada.
+  @Property({ nullable: true, type: "datetime", onCreate: () => new Date() })
+  createdAt?: Date | null;
 }

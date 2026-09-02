@@ -118,6 +118,18 @@ async function getAppointmentsByProfessional(req: RequestWithUser, res: Response
   }
 }
 
+// Todo lo del consultorio en un día: quién viene, a qué hora, y dónde se amontona.
+async function getDayAgenda(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para administradores" });
+
+    const agenda = await appointmentService.findDayAgenda(req.params.date);
+    res.status(200).json({ data: agenda });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 async function getAppointmentDiagnostics(req: RequestWithUser, res: Response) {
   // This method retrieves all diagnostics for a given appointment, professional only
 
@@ -352,6 +364,7 @@ export {
   getProfessionalAppointments,
   getProfessionalAppointmentsInRange,
   getAppointmentsByProfessional,
+  getDayAgenda,
   getAppointmentDiagnostics,
   createPatientAppointment,
   getPendingAppointments,

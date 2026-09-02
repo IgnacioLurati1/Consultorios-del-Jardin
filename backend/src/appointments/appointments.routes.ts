@@ -8,6 +8,7 @@ import {
   getProfessionalAppointments,
   getProfessionalAppointmentsInRange,
   getAppointmentsByProfessional,
+  getDayAgenda,
   getAppointmentDiagnostics,
   createPatientAppointment,
   getPendingAppointments,
@@ -143,6 +144,36 @@ appointmentRouter.get("/pending", getPendingAppointments);
 // Ojo: no puede ser "/professional/range" porque "/professional/:page" se registra antes
 // y capturaría "range" como número de página.
 appointmentRouter.get("/professional-range", getProfessionalAppointmentsInRange);
+
+/**
+ * @swagger
+ * /api/appointments/by-day/{date}:
+ *   get:
+ *     summary: Agenda completa del consultorio para un día (solo admin)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Día a consultar, en formato AAAA-MM-DD
+ *     responses:
+ *       200:
+ *         description: Turnos del día ordenados por horario de ingreso, resumen por profesional y tramos con varios pacientes a la vez
+ *       400:
+ *         description: La fecha no vino en formato AAAA-MM-DD
+ *       401:
+ *         description: Token ausente, invalido o expirado
+ *       403:
+ *         description: Solo los administradores pueden ver la agenda del dia
+ *       500:
+ *         description: Error del servidor
+ */
+appointmentRouter.get("/by-day/:date", getDayAgenda);
 
 /**
  * @swagger

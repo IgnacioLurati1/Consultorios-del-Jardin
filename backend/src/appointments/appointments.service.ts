@@ -9,10 +9,11 @@ import { RoomService } from "../rooms/rooms.service.js";
 import { AppointmentEngine } from "./appointments.engine.js";
 import MailService from "../config/mailer.js";
 import { button, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
-import { badRequest, conflict, notFound } from "../shared/errors.js";
+import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
 import { monthKey, startOfDay } from "../shared/dates.js";
+import { SecurityService } from "../security/security.service.js";
 
 const em = orm.em;
 
@@ -36,6 +37,7 @@ export class AppointmentService {
   private officeService: OfficeService;
   private roomService: RoomService;
   private mailService: MailService;
+  private securityService: SecurityService;
 
   constructor() {
     this.peopleService = new PeopleService();
@@ -43,6 +45,7 @@ export class AppointmentService {
     this.officeService = new OfficeService();
     this.roomService = new RoomService();
     this.mailService = new MailService();
+    this.securityService = new SecurityService();
   }
 
   private toDiagnosticView(appointment: Appointment): DiagnosticView {
@@ -210,6 +213,67 @@ export class AppointmentService {
       patient: a.patient ? { email: a.patient.email, name: a.patient.name, surname: a.patient.surname } : null,
       room: { idRoom: a.room.idRoom, description: a.room.description },
     }));
+  }
+
+  /**
+   * Todo lo que pasa en el consultorio un día.
+   *
+   * No es la agenda de nadie en particular: es quién va a estar y a qué hora, mirado
+   * desde la puerta de entrada. Por eso viene ordenado por horario de ingreso y no por
+   * profesional, y por eso el corazón de la respuesta son los tramos en los que se
+   * juntan varios pacientes a la vez: eso es lo que se nota en la sala de espera y lo
+   * único que el admin puede anticipar el día anterior.
+   */
+  async findDayAgenda(day: string, crowdLimit = CROWD_LIMIT) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day ?? "")) throw badRequest("La fecha tiene que venir como AAAA-MM-DD");
+
+    const date = startOfDay(day);
+    if (Number.isNaN(date.getTime())) throw badRequest("Esa fecha no existe");
+
+    const rows = await em.find(
+      Appointment,
+      { date, state: { $in: ACTIVE_APPOINTMENT_STATES } },
+      {
+        populate: ["room.office", "patient", "professional"],
+        orderBy: { initialHour: "ASC" as const, finalHour: "ASC" as const },
+      }
+    );
+
+    const visits = rows.map((a) => ({
+      numAppointment: a.numAppointment,
+      initialHour: a.initialHour,
+      finalHour: a.finalHour,
+      state: a.state,
+      overbooked: a.overbooked,
+      patient: a.patient
+        ? {
+            email: a.patient.email,
+            name: a.patient.name,
+            surname: a.patient.surname,
+            phoneNumber: a.patient.phoneNumber ?? null,
+          }
+        : null,
+      professional: {
+        email: a.professional.email,
+        name: a.professional.name,
+        surname: a.professional.surname,
+        speciality: a.professional.speciality ?? null,
+      },
+      room: { idRoom: a.room.idRoom, description: a.room.description, office: a.room.office?.description ?? null },
+    }));
+
+    // Un turno sin paciente asignado ocupa el consultorio pero no llena la sala de
+    // espera. Para contar gente sirve el otro, así que las dos cosas van por separado.
+    const withPatient = visits.filter((visit) => visit.patient);
+
+    return {
+      date: day,
+      visits,
+      professionals: summarizeProfessionals(visits),
+      crowded: findCrowdedStretches(withPatient, crowdLimit),
+      crowdLimit,
+      patients: new Set(withPatient.map((visit) => visit.patient!.email)).size,
+    };
   }
 
   async findPendingProfessionalAppointmentsByEmail(professionalEmail: string): Promise<Appointment[]> {
@@ -612,9 +676,32 @@ export class AppointmentService {
       );
     });
 
-    await this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour).catch((err) =>
-      console.error("Error enviando email de creación de turno:", err)
-    );
+    // El control del ritmo va antes que los mails, y no después: si esta reserva hizo
+    // saltar el límite, el turno se borra junto con el resto de la tanda, y avisarle a
+    // nadie de un turno que dejó de existir es peor que no avisar.
+    const abuse = await this.securityService.reviewBookingRate(patientEmail).catch((err) => {
+      console.error("Error revisando el ritmo de reservas:", err);
+      return null;
+    });
+
+    if (abuse) {
+      throw forbidden(
+        `Tu cuenta quedó deshabilitada y se dieron de baja los turnos que sacaste recién (${abuse.deleted}). ` +
+          "Si fue un error, escribinos desde la pantalla de contacto.",
+        "USER_DISABLED"
+      );
+    }
+
+    // Con la confirmación automática el turno ya nació aceptado, así que mandarle
+    // "falta que el profesional lo confirme" sería mentira y lo dejaría esperando un
+    // segundo mail que no va a llegar nunca.
+    const created =
+      refreshed.state === "accepted"
+        ? this.sendAppointmentAcceptedEmails(refreshed)
+        : this.sendAppointmentCreatedEmail(patientEmail, refreshed, initialHour);
+
+    await created.catch((err) => console.error("Error enviando email de creación de turno:", err));
+
     const result = {
       numAppointment: refreshed.numAppointment,
       date: refreshed.date,
@@ -930,4 +1017,111 @@ export class AppointmentService {
     await em.flush();
   }
 
+}
+
+// Cuántos pacientes a la vez ya son "se llenó". Cuatro es el número con el que se
+// empezó: la sala tiene lugar para más, pero a partir de ahí deja de sentirse vacía.
+const CROWD_LIMIT = 4;
+
+type DayVisit = {
+  initialHour: string;
+  finalHour: string;
+  patient: { email: string; name: string; surname: string } | null;
+  professional: { email: string; name: string; surname: string; speciality: string | null };
+};
+
+/** Quiénes atienden ese día, desde cuándo hasta cuándo y con cuánta gente. */
+function summarizeProfessionals(visits: DayVisit[]) {
+  const byEmail = new Map<
+    string,
+    { email: string; name: string; surname: string; speciality: string | null; from: string; to: string; visits: number; patients: number }
+  >();
+
+  for (const visit of visits) {
+    const found = byEmail.get(visit.professional.email);
+
+    if (!found) {
+      byEmail.set(visit.professional.email, {
+        ...visit.professional,
+        from: visit.initialHour,
+        to: visit.finalHour,
+        visits: 1,
+        patients: visit.patient ? 1 : 0,
+      });
+      continue;
+    }
+
+    if (visit.initialHour < found.from) found.from = visit.initialHour;
+    if (visit.finalHour > found.to) found.to = visit.finalHour;
+    found.visits += 1;
+    if (visit.patient) found.patients += 1;
+  }
+
+  return Array.from(byEmail.values()).sort((a, b) => a.from.localeCompare(b.from) || a.surname.localeCompare(b.surname));
+}
+
+/**
+ * Los tramos del día en los que hay `limit` pacientes o más al mismo tiempo.
+ *
+ * Se barre por los bordes de los turnos y no por hora redonda: dos turnos que empiezan
+ * y media y se pisan quince minutos son un cruce real, y una grilla de horas enteras no
+ * lo ve. Los tramos contiguos que siguen estando llenos se pegan en uno solo, porque lo
+ * que interesa es "de tres y media a cinco hay gente", no cada subdivisión interna.
+ */
+/** Una persona con dos turnos encimados es una sola persona en la sala de espera. */
+function dedupe(visits: DayVisit[]): DayVisit[] {
+  const seen = new Set<string>();
+
+  return visits.filter((visit) => {
+    const key = `${visit.patient!.email}|${visit.initialHour}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function findCrowdedStretches(visits: DayVisit[], limit: number) {
+  const edges = Array.from(new Set(visits.flatMap((visit) => [visit.initialHour, visit.finalHour]))).sort();
+
+  type Stretch = { from: string; to: string; peak: number; visits: DayVisit[] };
+  const stretches: Stretch[] = [];
+
+  for (let i = 0; i < edges.length - 1; i++) {
+    const from = edges[i];
+    const to = edges[i + 1];
+    const inside = visits.filter((visit) => visit.initialHour <= from && visit.finalHour >= to);
+
+    // Se cuentan personas y no turnos: alguien con dos turnos encimados ocupa una silla,
+    // no dos, y lo que se quiere saber es cuánta gente hay en la sala.
+    const people = new Set(inside.map((visit) => visit.patient!.email)).size;
+    if (people < limit) continue;
+
+    const previous = stretches[stretches.length - 1];
+
+    if (previous && previous.to === from) {
+      previous.to = to;
+      previous.peak = Math.max(previous.peak, people);
+      for (const visit of inside) if (!previous.visits.includes(visit)) previous.visits.push(visit);
+      continue;
+    }
+
+    stretches.push({ from, to, peak: people, visits: [...inside] });
+  }
+
+  return stretches.map((stretch) => ({
+    from: stretch.from,
+    to: stretch.to,
+    peak: stretch.peak,
+    patients: dedupe(stretch.visits)
+      .map((visit) => ({
+        email: visit.patient!.email,
+        name: visit.patient!.name,
+        surname: visit.patient!.surname,
+        initialHour: visit.initialHour,
+        finalHour: visit.finalHour,
+        professional: `${visit.professional.surname}, ${visit.professional.name}`,
+      }))
+      .sort((a, b) => a.initialHour.localeCompare(b.initialHour) || a.surname.localeCompare(b.surname)),
+    professionals: Array.from(new Set(stretch.visits.map((visit) => `${visit.professional.surname}, ${visit.professional.name}`))).sort(),
+  }));
 }

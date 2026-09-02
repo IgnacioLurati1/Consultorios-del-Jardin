@@ -521,9 +521,13 @@ export class AnalyticsService {
    */
   async assistantUsage() {
     const monthFrom = startOfMonth(new Date());
+    // El plan gratuito de Groq se mide por día y se reinicia a la medianoche: el número
+    // que dice si hoy se llega es el del día, no el del mes.
+    const dayFrom = startOfDay(new Date());
 
     const rows = await em.find(AssistantUsage, {}, { orderBy: { createdAt: "ASC" } });
     const thisMonth = rows.filter((row) => row.createdAt >= monthFrom);
+    const today = rows.filter((row) => row.createdAt >= dayFrom);
 
     const sum = (subset: AssistantUsage[]) => ({
       consultas: subset.length,
@@ -571,6 +575,7 @@ export class AnalyticsService {
     const ranking = rankTools(rows);
 
     return {
+      hoy: sum(today),
       mesEnCurso: sum(thisMonth),
       historico: sum(rows),
       desde: rows.length ? rows[0].createdAt : null,

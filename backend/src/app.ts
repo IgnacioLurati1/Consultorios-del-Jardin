@@ -19,9 +19,13 @@ import { appointmentRouter } from "./appointments/appointments.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
 import { startRecurrenceJob } from "./jobs/recurrence.job.js";
 import { startExpiryJob } from "./jobs/expiry.job.js";
+import { startAttendanceJob } from "./jobs/attendance.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { analyticsRouter } from "./analytics/analytics.routes.js";
 import { agendaRouter } from "./agenda/agenda.routes.js";
+import { settingsRouter } from "./settings/settings.routes.js";
+import { announcementRouter } from "./announcements/announcements.routes.js";
+import { securityRouter } from "./security/security.routes.js";
 import { contactRouter } from "./contact/contact.routes.js";
 import { assistantRouter } from "./assistant/assistant.routes.js";
 import { setupSwagger } from './config/swagger.js';
@@ -94,6 +98,9 @@ app.use("/api/appointments", verifyToken, appointmentRouter);
 app.use("/api/recurrences", verifyToken, recurrenceRouter);
 app.use("/api/analytics", verifyToken, analyticsRouter);
 app.use("/api/agenda", verifyToken, agendaRouter);
+app.use("/api/settings", verifyToken, settingsRouter);
+app.use("/api/announcements", verifyToken, announcementRouter);
+app.use("/api/security", verifyToken, securityRouter);
 app.use("/api/assistant", verifyToken, assistantRouter);
 // Sin verifyToken a propósito: cualquiera tiene que poder escribirle al consultorio.
 app.use("/api/contact", contactRouter);
@@ -109,6 +116,7 @@ if (!isProduction){
 startReminderJob();
 startRecurrenceJob();
 startExpiryJob();
+startAttendanceJob();
 
 app.listen(3000, () => {
   console.log("Server runnning on http://localhost:3000/");
