@@ -36,6 +36,13 @@ export class Person {
   @Property({ nullable: true, unique: false })
   speciality!: string;
 
+  // Cómo se presenta el profesional: en qué trabaja, con qué enfoque, con quiénes.
+  // Lo lee el paciente antes de elegir con quién sacar turno, así que es lo único de la
+  // ficha que escribe la persona con sus palabras. Es opcional: sin esto la pantalla
+  // muestra la especialidad y nada más, que es como venía funcionando.
+  @Property({ nullable: true, type: "text" })
+  about?: string | null;
+
   @Property({ nullable: false })
   type!: string;
 

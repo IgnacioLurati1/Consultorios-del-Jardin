@@ -15,6 +15,9 @@ dotenv.config();
 
 const em = orm.em;
 
+/** Tope de la presentación del profesional. Es de la pantalla que la muestra, no de la columna. */
+const ABOUT_MAX = 600;
+
 export class PeopleService {
   private mailService: MailService;
 
@@ -134,6 +137,8 @@ export class PeopleService {
       throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
     if (data.email && !this.validateEmail(data.email))
       throw badRequest("El email no tiene un formato válido");
+    if (data.about && data.about.trim().length > ABOUT_MAX)
+      throw badRequest(`La presentación no puede pasar de ${ABOUT_MAX} caracteres`);
   }
 
   async createPerson(data: RequiredEntityData<Person>) {
