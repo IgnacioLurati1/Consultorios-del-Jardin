@@ -84,6 +84,15 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             note={`${month.cancelled} cancelados · ${month.missed} no vinieron`}
           />
           <Kpi label="Sobreturnos" value={month.overbooked} note="dados fuera de tus módulos" />
+          <Kpi
+            label="Pedidos rechazados"
+            value={month.denials.denied}
+            note={
+              month.denials.expired > 0
+                ? `${month.denials.expired} se vencieron sin respuesta`
+                : "ninguno se venció sin respuesta"
+            }
+          />
         </KpiGrid>
       </AnalyticsSection>
 
@@ -122,6 +131,15 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
           <Kpi label="Pacientes distintos" value={total.patients} />
           <Kpi label="Cancelados o ausentes" value={lost} note={`${lostRate}% de los ${given} turnos dados`} />
           <Kpi label="Sobreturnos" value={total.overbooked} />
+          <Kpi
+            label="Pedidos rechazados"
+            value={total.denials.denied}
+            note={
+              total.denials.expired > 0
+                ? `${total.denials.expired} se vencieron sin respuesta`
+                : "ninguno se venció sin respuesta"
+            }
+          />
           <Kpi
             label="Turnos sacados por la app"
             value={total.fromApp}

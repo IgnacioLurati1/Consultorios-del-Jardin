@@ -6,7 +6,7 @@ import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow, type PersonBadge } from "../../../components/peopleList/PeopleList.tsx";
-import { getAllUsers, toggleState, updatePerson } from "./usersService";
+import { getAllUsers, toggleBookable, toggleState, updatePerson } from "./usersService";
 import { UserModal } from "./userModal";
 import type { Person } from "../../types";
 
@@ -101,6 +101,16 @@ export function UsersAdmin() {
       .catch((err) => toast.error(`No pudimos cambiar el estado: ${err.message}`));
   }
 
+  /** Esconderlo de la búsqueda de turnos no lo deshabilita: sigue trabajando igual. */
+  function toggleBookableUser(email: string) {
+    toggleBookable(email)
+      .then(({ bookable }) => {
+        toast.success(bookable ? "Vuelve a aparecer cuando se busca turno" : "Deja de aparecer cuando se busca turno");
+        setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, bookable })));
+      })
+      .catch((err) => toast.error(`No pudimos cambiarlo: ${err.message}`));
+  }
+
   // Solo se editan profesionales, y nunca la contraseña (ver UserModal).
   async function editUser(email: string, data: Partial<Person>) {
     try {
@@ -120,6 +130,7 @@ export function UsersAdmin() {
 
     if (user.anonymous) badges.push({ label: "Anónimo", tone: "amber" });
     if (!user.active) badges.push({ label: "Deshabilitado", tone: "red" });
+    else if (user.type === "professional" && user.bookable === false) badges.push({ label: "Fuera de la búsqueda", tone: "amber" });
 
     return badges;
   }
@@ -197,6 +208,7 @@ export function UsersAdmin() {
         createdByName={modalData?.createdBy ? nameByEmail.get(modalData.createdBy) ?? modalData.createdBy : undefined}
         onClose={() => setModalVisible(false)}
         onToggleState={toggleStateUser}
+        onToggleBookable={toggleBookableUser}
         onEdit={editUser}
       />
     </div>

@@ -43,8 +43,6 @@ export function AccessChannelsSection({ channels }: { channels: AccessChannels }
 
   return (
     <AnalyticsSection title="Por dónde entran" scope={channels.since ? `desde el ${longDate(channels.since)}` : undefined}>
-      <p className="an-note">"Sin registro" no es una cuenta muerta: es una que no entró desde que se mide.</p>
-
       <KpiGrid>
         <Kpi
           lead

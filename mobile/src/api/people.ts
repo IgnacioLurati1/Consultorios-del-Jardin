@@ -79,6 +79,16 @@ export async function toggleUserState(email: string): Promise<void> {
   await api.patch(`/people/${encodeURIComponent(email)}/toggleState`);
 }
 
+/**
+ * Muestra o esconde a un profesional de la búsqueda de turnos. Solo admin.
+ *
+ * No lo deshabilita: sigue entrando, viendo su agenda y cargando turnos a mano.
+ */
+export async function toggleUserBookable(email: string): Promise<boolean> {
+  const { data } = await api.patch(`/people/${encodeURIComponent(email)}/toggleBookable`);
+  return data.data.bookable as boolean;
+}
+
 export interface ProfessionalInput {
   name: string;
   surname: string;

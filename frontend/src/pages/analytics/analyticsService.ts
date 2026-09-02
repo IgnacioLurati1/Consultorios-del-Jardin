@@ -46,6 +46,20 @@ export interface MonthPoint extends Metrics {
   label: string;
 }
 
+/**
+ * Pedidos de turno que no llegaron a ser turno.
+ *
+ * No sale de las mismas filas que el resto: rechazar un pedido pendiente lo borra, así
+ * que esto viene de un contador mensual que lleva el backend. Por eso va en su propio
+ * campo y no mezclado con las métricas, que sí cierran todas entre sí.
+ */
+export interface Denials {
+  /** Los que rechazó a mano más los que venció el sistema. */
+  denied: number;
+  /** De los anteriores, los que se cayeron solos porque nunca los contestó. */
+  expired: number;
+}
+
 export type ProfessionalMonthPoint = ProfessionalMetrics & { key: string; label: string };
 
 /** Un mes que se puede mirar en tarjetas: el que corre y el anterior. */
@@ -57,12 +71,12 @@ export interface RecentMonth extends Metrics, DayLoad {
 }
 
 export type ProfessionalRecentMonth = ProfessionalMetrics &
-  DayLoad & { key: string; label: string; inProgress: boolean };
+  DayLoad & { key: string; label: string; inProgress: boolean; denials: Denials };
 
 export interface ProfessionalAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
   recent: ProfessionalRecentMonth[];
-  total: ProfessionalMetrics & DayLoad & { months: number };
+  total: ProfessionalMetrics & DayLoad & { months: number; denials: Denials };
   months: ProfessionalMonthPoint[];
 }
 

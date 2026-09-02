@@ -54,6 +54,19 @@ export function findOne(email:string): Promise<Person>{
     });
 }
 
+/**
+ * Muestra o esconde a un profesional de la búsqueda de turnos. No lo deshabilita: sigue
+ * entrando, viendo su agenda y cargando turnos a mano.
+ */
+export function toggleBookable(email: string){
+    return api.patch(`/people/${email}/toggleBookable`)
+    .then(response => response.data.data as { bookable: boolean })
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
+}
+
 export function toggleState(email:string){
     return api.patch(`/people/${email}/toggleState`)
     .then(res => res.data)

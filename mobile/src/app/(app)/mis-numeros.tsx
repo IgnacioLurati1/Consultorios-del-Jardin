@@ -77,7 +77,17 @@ export default function MyNumbersScreen() {
                 <Row title="Asistieron" value={String(current.assisted)} />
                 <Row title="No vinieron" value={String(current.missed)} />
                 <Row title="Cancelados" value={String(current.cancelled)} />
-                <Row title="Sobreturnos" value={String(current.overbooked)} last />
+                <Row title="Sobreturnos" value={String(current.overbooked)} />
+                <Row
+                  title="Pedidos rechazados"
+                  subtitle={
+                    current.denials.expired > 0
+                      ? `${current.denials.expired} se vencieron sin respuesta`
+                      : "Ninguno se venció sin respuesta"
+                  }
+                  value={String(current.denials.denied)}
+                  last
+                />
               </Group>
             </View>
           </Section>

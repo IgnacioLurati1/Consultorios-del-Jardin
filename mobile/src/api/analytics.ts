@@ -30,6 +30,19 @@ export type Metrics = Activity & Billing;
  */
 export type ProfessionalMetrics = Activity & Partial<Billing>;
 
+/**
+ * Pedidos de turno que no llegaron a ser turno.
+ *
+ * No sale de las mismas filas que el resto: rechazar un pedido pendiente lo borra, así
+ * que viene de un contador mensual que lleva el backend.
+ */
+export interface Denials {
+  /** Los que rechazó a mano más los que venció el sistema. */
+  denied: number;
+  /** De los anteriores, los que se cayeron solos porque nunca los contestó. */
+  expired: number;
+}
+
 export interface DayLoad {
   averagePerDay: number;
   busiestDay: string | null;
@@ -51,15 +64,15 @@ export interface RecentMonth extends Metrics, DayLoad {
 /** Los números propios del profesional: acá la plata siempre viene. */
 export interface SelfAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
-  recent: RecentMonth[];
-  total: Metrics & DayLoad & { months: number };
+  recent: (RecentMonth & { denials: Denials })[];
+  total: Metrics & DayLoad & { months: number; denials: Denials };
   months: MonthPoint[];
 }
 
 export interface ProfessionalAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
-  recent: (ProfessionalMetrics & DayLoad & { key: string; label: string; inProgress: boolean })[];
-  total: ProfessionalMetrics & DayLoad & { months: number };
+  recent: (ProfessionalMetrics & DayLoad & { key: string; label: string; inProgress: boolean; denials: Denials })[];
+  total: ProfessionalMetrics & DayLoad & { months: number; denials: Denials };
   months: (ProfessionalMetrics & { key: string; label: string })[];
 }
 

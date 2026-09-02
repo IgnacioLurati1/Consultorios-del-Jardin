@@ -40,6 +40,11 @@ export interface Person{
     speciality: string;
     type: string;
     active: boolean;
+    /**
+     * Si el profesional aparece entre las opciones cuando un paciente saca turno. En
+     * false sigue trabajando igual: entra, ve su agenda y carga turnos a mano.
+     */
+    bookable?: boolean;
     /** Paciente cargado por un profesional, sin cuenta propia. */
     anonymous?: boolean;
     /** Email del profesional que lo cargó, si es (o fue) un paciente anónimo. */

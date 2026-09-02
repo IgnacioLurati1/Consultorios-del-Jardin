@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaPen, FaTrash } from "react-icons/fa6";
+import { FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import type { Person } from "../../types";
 import { SPECIALITIES } from "../../specialities.ts";
@@ -11,13 +11,15 @@ interface UserModalProps {
   createdByName?: string;
   onClose: () => void;
   onToggleState: (email: string) => void;
+  /** Muestra o esconde al profesional de la búsqueda de turnos. Solo para profesionales. */
+  onToggleBookable: (email: string) => void;
   /** Guarda los cambios. Solo se ofrece para profesionales. */
   onEdit: (email: string, data: Partial<Person>) => void;
 }
 
 const emptyUser = { email: "", name: "", surname: "", docType: "", docNumber: "", phoneNumber: "", speciality: "" };
 
-export function UserModal({ visible, user, createdByName, onClose, onToggleState, onEdit }: UserModalProps) {
+export function UserModal({ visible, user, createdByName, onClose, onToggleState, onToggleBookable, onEdit }: UserModalProps) {
   const [userData, setUserData] = useState(emptyUser);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +97,23 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
           Editar datos
         </button>
       )}
+
+      {/* Dos formas distintas de sacar a alguien de circulación: esta lo esconde de la
+          búsqueda de turnos y lo deja trabajando; la de al lado lo saca del sistema. */}
+      {isProfessional && user.active && (
+        <button
+          type="button"
+          className="adm-btn adm-btn-ghost"
+          onClick={() => {
+            onToggleBookable(user.email);
+            onClose();
+          }}
+        >
+          {user.bookable === false ? <FaEye /> : <FaEyeSlash />}
+          {user.bookable === false ? "Volver a ofrecerlo" : "Sacar de la búsqueda"}
+        </button>
+      )}
+
       {user.active ? (
         <button
           type="button"
@@ -200,6 +219,14 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
                 {user.active ? "Habilitado" : "Deshabilitado"}
               </span>
             </div>
+            {isProfessional && (
+              <div className="ui-detail-row">
+                <span>En la búsqueda de turnos</span>
+                <span className={`adm-badge ${user.bookable === false ? "adm-badge-amber" : "adm-badge-green"}`}>
+                  {user.bookable === false ? "No aparece" : "Aparece"}
+                </span>
+              </div>
+            )}
             <div className="ui-detail-row">
               <span>Cuenta</span>
               <strong>

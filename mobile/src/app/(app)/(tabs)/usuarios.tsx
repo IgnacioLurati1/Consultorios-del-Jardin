@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorMessage } from "../../../api/client";
-import { findAllUsers, toggleUserState } from "../../../api/people";
+import { findAllUsers, toggleUserBookable, toggleUserState } from "../../../api/people";
 import { Person } from "../../../api/types";
 import { Button } from "../../../components/Button";
 import { ChipRow, Tag } from "../../../components/Chip";
@@ -89,6 +89,26 @@ export default function UsersScreen() {
     ]);
   }
 
+  /**
+   * Esconderlo de la búsqueda de turnos, sin deshabilitarlo.
+   *
+   * No se confirma como el deshabilitar: acá no queda nadie afuera de la app, y volver
+   * atrás es tocar el mismo botón.
+   */
+  async function toggleBookable(person: Person) {
+    try {
+      const bookable = await toggleUserBookable(person.email);
+      feedback.done(
+        bookable
+          ? `${fullName(person)} vuelve a aparecer cuando se busca turno`
+          : `${fullName(person)} deja de aparecer cuando se busca turno`
+      );
+      state.reload();
+    } catch (problem) {
+      feedback.problem(errorMessage(problem));
+    }
+  }
+
   const empty = {
     pending: { title: "No hay nadie esperando", description: "Cuando un profesional se registre, va a aparecer acá para que lo apruebes." },
     professionals: { title: "Todavía no hay profesionales", description: "Podés darlos de alta vos desde el botón de abajo." },
@@ -160,7 +180,13 @@ export default function UsersScreen() {
         >
           <Group>
             {results.map((person, index) => (
-              <UserRow key={person.email} person={person} last={index === results.length - 1} onToggle={() => toggle(person)} />
+              <UserRow
+                key={person.email}
+                person={person}
+                last={index === results.length - 1}
+                onToggle={() => toggle(person)}
+                onToggleBookable={() => toggleBookable(person)}
+              />
             ))}
           </Group>
         </DataState>
@@ -179,8 +205,20 @@ export default function UsersScreen() {
   );
 }
 
-function UserRow({ person, onToggle, last }: { person: Person; onToggle: () => void; last: boolean }) {
+function UserRow({
+  person,
+  onToggle,
+  onToggleBookable,
+  last,
+}: {
+  person: Person;
+  onToggle: () => void;
+  /** Solo se ofrece para un profesional habilitado: es esconderlo, no darlo de baja. */
+  onToggleBookable: () => void;
+  last: boolean;
+}) {
   const { colors } = useTheme();
+  const hidden = person.type === "professional" && person.active && person.bookable === false;
 
   return (
     <View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
@@ -201,8 +239,29 @@ function UserRow({ person, onToggle, last }: { person: Person; onToggle: () => v
           <View style={styles.rowTag}>
             <Tag label={person.type === "professional" ? "Esperando aprobación" : "Deshabilitado"} tone="warn" />
           </View>
+        ) : hidden ? (
+          <View style={styles.rowTag}>
+            <Tag label="Fuera de la búsqueda" tone="warn" />
+          </View>
         ) : null}
       </View>
+
+      {person.type === "professional" && person.active ? (
+        <Pressable
+          onPress={onToggleBookable}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={
+            hidden
+              ? `Volver a ofrecer a ${fullName(person)} cuando se busca turno`
+              : `Sacar a ${fullName(person)} de la búsqueda de turnos`
+          }
+          android_ripple={{ color: colors.border, borderless: true }}
+          style={({ pressed }) => [styles.rowAction, pressed && Platform.OS === "ios" && styles.pressed]}
+        >
+          <FontAwesome6 name={hidden ? "eye-slash" : "eye"} size={19} color={hidden ? colors.warn : colors.muted} />
+        </Pressable>
+      ) : null}
 
       <Pressable
         onPress={onToggle}

@@ -210,7 +210,6 @@ export function OfficeAnalyticsPage() {
 
       {/* ---- los números de un profesional puntual, en la misma pantalla ---- */}
       <AnalyticsSection title="Un profesional en particular">
-        <p className="an-note">Sin lo que factura: eso lo ve cada profesional en su propio panel.</p>
         <div className="an-picker">
           <label className="ui-field">
             <span>Profesional</span>
