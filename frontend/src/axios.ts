@@ -37,10 +37,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/** Dónde se guarda el motivo, para que el login lo pueda contar después de la patada. */
+export const LOCKOUT_KEY = "cierre-de-sesion";
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // La cuenta se cerró sola mientras estaba en uso. No hay nada que reintentar y
+    // tampoco tiene sentido dejar a la persona mirando una pantalla que ya no carga
+    // nada: se la manda al login con el motivo, que es lo único que puede hacer algo
+    // con esta información.
+    if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_COMPROMISED") {
+      try {
+        sessionStorage.setItem(LOCKOUT_KEY, error.response.data.message ?? "");
+      } catch {
+        // Sin sessionStorage el login muestra su texto por defecto, que dice lo mismo.
+      }
+
+      localStorage.removeItem("token");
+      if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
+
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest(originalRequest?.url)) {
       originalRequest._retry = true; // marca este request como retry

@@ -10,6 +10,7 @@ import { ProfessionalReport } from "./ProfessionalReport.tsx";
 import { AssistantUsageSection } from "./AssistantUsageSection.tsx";
 import { AccessChannelsSection } from "./AccessChannelsSection.tsx";
 import { BehaviourSection } from "./BehaviourSection.tsx";
+import { CompromisedSection } from "./CompromisedSection.tsx";
 import {
   decimal,
   findOfficeAnalytics,
@@ -276,6 +277,9 @@ export function OfficeAnalyticsPage() {
       <div id="an-system" className={`adm-collapsible ${systemOpen ? "open" : ""}`}>
         <div>
           <div className="adm-collapsible-inner">
+            {/* Primero lo que ya pasó y hay que decidir hoy; después lo que solo
+                hay que mirar. */}
+            <CompromisedSection />
             <BehaviourSection />
             <AccessChannelsSection channels={data.channels} />
             <AssistantUsageSection />

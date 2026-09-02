@@ -401,3 +401,25 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+
+/* ── Seguimiento, del lado del paciente ───────────────────────────
+   Es texto escrito a mano por otra persona: los saltos de línea que puso
+   (un plan de comidas, una lista de ejercicios) son parte de lo que quiso
+   decir y tienen que llegar tal cual. */
+.appt-followup {
+  margin: 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--adm-green);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-green-soft);
+  color: var(--adm-text);
+  font-size: 0.97rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.appt-followup-who {
+  margin-top: 8px;
+  color: var(--adm-muted);
+}

@@ -255,6 +255,22 @@ export function AppointmentDetailModal({
             </div>
           </div>
 
+          {/* ---- el seguimiento, del lado del paciente ---- */}
+          {/* Lo que escribe el profesional no es una nota interna: es lo que le queda a
+              la persona de la consulta, y muchas veces es lo único que se lleva —un plan
+              de alimentación, ejercicios para practicar, qué mirar hasta la próxima—.
+              Guardarlo donde no lo puede leer lo vuelve inútil justo para quien lo
+              necesita. */}
+          {!isProfessional && appointment.observations && (
+            <div className="ui-section">
+              <h3 className="ui-section-title">Seguimiento</h3>
+              <p className="appt-followup">{appointment.observations}</p>
+              <p className="ui-hint appt-followup-who">
+                Lo escribió {appointment.professional.surname}, {appointment.professional.name} después de la consulta.
+              </p>
+            </div>
+          )}
+
           {/* ---- asignar paciente a un turno que no tiene ---- */}
           {isProfessional && !appointment.patient && !cancelled && (
             <div className="ui-section">
@@ -354,9 +370,18 @@ export function AppointmentDetailModal({
                   rows={4}
                   value={observations}
                   onChange={(e) => setObservations(e.target.value)}
-                  placeholder="Notas de la consulta…"
+                  placeholder="Qué trabajaron y qué sigue hasta la próxima…"
                 />
               </label>
+
+              {/* Antes esto no se le mostraba a nadie más y era fácil escribirlo como una
+                  nota para uno mismo. Ahora lo lee el paciente, y eso cambia cómo se
+                  escribe: decirlo acá, al lado del campo, es la única forma de que se
+                  entere antes de guardar y no después. */}
+              <p className="ui-alert ui-alert-info">
+                Esto lo ven el paciente y vos. Sirve para dejarle el seguimiento —un plan, indicaciones, qué mirar hasta la
+                próxima consulta—.
+              </p>
 
               <div className="ui-section-actions">
                 <button

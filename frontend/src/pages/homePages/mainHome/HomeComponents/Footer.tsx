@@ -42,6 +42,7 @@ export function Footer() {
         <nav className="home-footer-links" aria-label="Accesos">
           <Link to="/Appointment">Pedir un turno</Link>
           <Link to="/AppointmentsList">Mis turnos</Link>
+          <Link to="/preguntas">Preguntas frecuentes</Link>
           <Link to="/contacto">Escribinos</Link>
           <Link to="/Login">Iniciar sesión</Link>
           <Link to="/Register">Crear cuenta</Link>

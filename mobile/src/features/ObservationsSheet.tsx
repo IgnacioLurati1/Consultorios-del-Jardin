@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { Button } from "../components/Button";
 import { Sheet } from "../components/Sheet";
+import { Note } from "../components/Surfaces";
 import { AppText } from "../components/Text";
 import { radius, space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
@@ -10,8 +11,11 @@ import { useTheme } from "../theme/useTheme";
 const MAX = 600;
 
 /**
- * Lo que el profesional anota del turno. Es la parte clínica: la ve él y nadie más, así
- * que el panel lo dice en vez de darlo por sabido.
+ * Lo que el profesional anota del turno.
+ *
+ * Lo lee también el paciente, así que el panel lo dice al lado del campo y no en otra
+ * pantalla: es lo que hace la diferencia entre una nota para uno mismo y el seguimiento
+ * que la persona se lleva de la consulta.
  */
 export function ObservationsSheet({
   visible,
@@ -38,7 +42,7 @@ export function ObservationsSheet({
         <TextInput
           value={text}
           onChangeText={(value) => setText(value.slice(0, MAX))}
-          placeholder="Cómo fue la sesión, qué se trabajó, qué queda pendiente."
+          placeholder="Qué trabajaron y qué sigue hasta la próxima."
           placeholderTextColor={colors.muted}
           selectionColor={colors.green}
           multiline
@@ -48,13 +52,12 @@ export function ObservationsSheet({
         />
 
         <View style={styles.footer}>
-          <AppText variant="caption" tone="muted">
-            Solo lo ves vos
-          </AppText>
           <AppText variant="caption" tone={text.length >= MAX ? "warn" : "muted"}>
             {text.length} / {MAX}
           </AppText>
         </View>
+
+        <Note>Esto lo ven el paciente y vos. Sirve para dejarle el seguimiento, un plan o qué mirar hasta la próxima.</Note>
 
         <Button
           label="Guardar"
@@ -79,5 +82,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  footer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  footer: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center" },
 });

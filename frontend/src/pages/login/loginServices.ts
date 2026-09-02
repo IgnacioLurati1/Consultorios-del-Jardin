@@ -14,6 +14,10 @@ export function LoginService(email: string, password: string): Promise<{ token: 
           .then(response => response.data)
           .catch((error) => {
             const backendMsg = error.response?.data?.message || error.message;
-            throw new Error(backendMsg);
+            const problem: any = new Error(backendMsg);
+            // El código viaja con el error: una cuenta cerrada por posible intrusión no
+            // se cuenta igual que una contraseña equivocada, y la pantalla lo distingue.
+            problem.code = error.response?.data?.code;
+            throw problem;
           });
 }

@@ -1,0 +1,178 @@
+/* ============================================================
+   Preguntas frecuentes. Una columna con las preguntas plegadas y,
+   al costado, los datos del consultorio que no son una pregunta
+   pero se vienen a buscar acá igual.
+   ============================================================ */
+
+.faq-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+  align-items: start;
+  gap: 28px;
+}
+
+.faq-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faq-item {
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface);
+  box-shadow: var(--adm-shadow);
+  overflow: hidden;
+}
+
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 20px;
+  color: var(--adm-text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+  /* La flechita ya dice que se abre; el triangulito del navegador sobra y además se
+     dibuja distinto en cada uno. */
+  list-style: none;
+}
+
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.faq-question:hover {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.faq-question:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -2px;
+}
+
+.faq-chevron {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: var(--adm-muted);
+  overflow: visible;
+  transition: transform 0.2s ease;
+}
+
+.faq-item[open] .faq-chevron {
+  transform: rotate(180deg);
+}
+
+.faq-item[open] .faq-question {
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.faq-answer {
+  padding: 16px 20px 18px;
+  color: var(--adm-text);
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.faq-answer p {
+  margin: 0 0 10px;
+}
+
+.faq-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.faq-answer a {
+  color: var(--adm-green-dark);
+  font-weight: 600;
+}
+
+.faq-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.faq-list li {
+  padding-left: 14px;
+  border-left: 3px solid var(--adm-green-line);
+}
+
+/* ---------- la columna de al lado ---------- */
+
+.faq-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 20px;
+}
+
+.faq-facts {
+  margin: 0;
+  padding: 16px 20px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.faq-facts li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  color: var(--adm-text);
+  font-size: 0.94rem;
+  overflow-wrap: anywhere;
+}
+
+.faq-facts svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--adm-green);
+  overflow: visible;
+}
+
+.faq-facts a {
+  color: var(--adm-text);
+}
+
+.faq-facts a:hover {
+  color: var(--adm-green-dark);
+}
+
+.faq-help {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px dashed var(--adm-border-strong);
+  border-radius: var(--adm-radius);
+}
+
+.faq-help p {
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .faq-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .faq-aside {
+    position: static;
+  }
+}

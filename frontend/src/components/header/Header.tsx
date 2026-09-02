@@ -19,6 +19,10 @@ const menuItems = [
   // con la única diferencia de que no puede elegirse a sí mismo.
   { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "professional" },
   { faviconName: "calendar", title: "Horarios", path: "/scheduleProfessional", userType: "professional" },
+  // Solo para quien viene a atenderse. Un profesional o un admin no necesitan que les
+  // expliquen dónde queda el consultorio.
+  { faviconName: "faq", title: "Preguntas frecuentes", path: "/preguntas", userType: "guest" },
+  { faviconName: "faq", title: "Preguntas frecuentes", path: "/preguntas", userType: "client" },
   { faviconName: "phone", title: "Contacto", path: "/contacto", userType: "all" },
 ];
 

@@ -57,6 +57,8 @@ export interface Person{
      * empezara a registrar el motivo.
      */
     bannedBy?: "admin" | "system" | null;
+  /** De qué clase fue la baja automática: uso abusivo propio, o cuenta ajena. */
+  banKind?: "abuse" | "compromise" | null;
     bannedAt?: string | null;
     /** Qué regla saltó, si la deshabilitó el sistema. */
     banReason?: string | null;

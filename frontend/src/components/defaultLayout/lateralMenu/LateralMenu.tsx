@@ -12,6 +12,7 @@ import {
   faUserTie,
   faDatabase,
   faCalendarCheck,
+  faCircleQuestion,
 } from "@fortawesome/free-solid-svg-icons";
 import { getDecodedToken } from "../../../pages/commonServices";
 import "./LateralMenu.css";
@@ -39,6 +40,7 @@ const iconMap: Record<string, IconDefinition> = {
   professional: faUserTie,
   appointments: faCalendarCheck,
   requestAppointments: faCalendarDays,
+  faq: faCircleQuestion,
 };
 
 export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {

@@ -132,11 +132,25 @@ export default function AppointmentScreen() {
             <Group>
               <Row
                 title={appointment.observations ? "Observaciones" : "Todavía no anotaste nada"}
-                subtitle={appointment.observations ?? "Lo que escribas acá solo lo ves vos."}
+                subtitle={appointment.observations ?? "Lo que escribas acá lo lee también el paciente."}
                 icon="pen"
                 last
                 onPress={() => setObservationsOpen(true)}
               />
+            </Group>
+          </Section>
+        ) : appointment.observations ? (
+          // Lo que anotó el profesional es lo que la persona se lleva de la consulta: un
+          // plan, indicaciones, qué mirar hasta la próxima. Escondérselo lo vuelve inútil
+          // justo para quien lo necesita.
+          <Section title="Seguimiento">
+            <Group>
+              <View style={styles.followup}>
+                <AppText variant="body">{appointment.observations}</AppText>
+                <AppText variant="caption" tone="muted">
+                  Lo escribió {fullName(appointment.professional)} después de la consulta.
+                </AppText>
+              </View>
             </Group>
           </Section>
         ) : null}
@@ -268,4 +282,5 @@ const styles = StyleSheet.create({
   tags: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
   actions: { gap: space.md },
   spaced: { marginTop: space.md },
+  followup: { padding: space.lg, gap: space.sm },
 });

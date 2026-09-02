@@ -34,6 +34,14 @@ export function findProfessionalAppointmentsInRange(from: string, to: string, in
     .catch(backendError);
 }
 
+/** Los turnos que el paciente pidió y el profesional todavía no aceptó ni rechazó. */
+export function findPendingAppointments(): Promise<Appointment[]> {
+  return api
+    .get("/appointments/pending")
+    .then((response) => response.data.data)
+    .catch(backendError);
+}
+
 /* ============================================================
    Acciones sobre un turno
    ============================================================ */

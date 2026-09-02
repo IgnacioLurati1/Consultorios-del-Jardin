@@ -64,6 +64,14 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const original = error.config as (AxiosRequestConfig & { _retried?: boolean }) | undefined;
 
+    // La cuenta se cerró sola mientras estaba en uso. No hay nada que reintentar: se
+    // corta la sesión y la pantalla de login cuenta el motivo, que llega del servidor.
+    if (error.response?.status === 403 && (error.response.data as { code?: string } | undefined)?.code === "ACCOUNT_COMPROMISED") {
+      await clearTokens();
+      onSessionLost();
+      return Promise.reject(error);
+    }
+
     const expired = error.response?.status === 401 && original && !original._retried && !isAuthRequest(original.url);
 
     if (expired) {

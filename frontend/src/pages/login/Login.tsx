@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { toast } from "react-toastify";
-import { FaEye, FaEyeSlash } from "react-icons/fa6";
+import { FaEye, FaEyeSlash, FaShieldHalved } from "react-icons/fa6";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { useAuth } from "../../context/AuthContext";
 import type { TokenPayload } from "../types.ts";
 import { LoginService } from "./loginServices.ts";
+import { LOCKOUT_KEY } from "../../axios";
 import { useLogo } from "../../lib/useLogo";
 import "./Login.css";
 
@@ -27,6 +28,17 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Una cuenta cerrada por seguridad no es un error de tipeo: se cuenta aparte y se ve
+  // distinto, porque lo que hay que hacer no es reintentar sino hablar con alguien.
+  const [lockout, setLockout] = useState<string | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(LOCKOUT_KEY);
+      if (saved) sessionStorage.removeItem(LOCKOUT_KEY);
+      return saved || null;
+    } catch {
+      return null;
+    }
+  });
   const [sending, setSending] = useState(false);
 
   function validate(): string | null {
@@ -47,6 +59,7 @@ export function Login() {
     }
 
     setError(null);
+    setLockout(null);
     setSending(true);
 
     LoginService(email.trim(), password)
@@ -61,7 +74,9 @@ export function Login() {
         navigate(HOME_BY_TYPE[decoded.type] ?? "/");
       })
       .catch((err: any) => {
-        setError(err.message || "No pudimos iniciar tu sesión");
+        if (err.code === "ACCOUNT_COMPROMISED") setLockout(err.message);
+        else setError(err.message || "No pudimos iniciar tu sesión");
+
         setSending(false);
       });
   }
@@ -122,6 +137,17 @@ export function Login() {
           <Link className="login-forgot" to="/forgot-password">
             ¿Olvidaste tu contraseña?
           </Link>
+
+          {lockout && (
+            <div className="login-lockout" role="alert">
+              <FaShieldHalved aria-hidden="true" />
+              <div>
+                <strong>Cuenta cerrada por seguridad</strong>
+                <p>{lockout}</p>
+                <Link to="/contact">Escribirle al consultorio</Link>
+              </div>
+            </div>
+          )}
 
           {error && <p className="ui-alert ui-alert-error">{error}</p>}
         </div>

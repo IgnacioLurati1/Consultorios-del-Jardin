@@ -8,6 +8,7 @@ import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow, type PersonBadge } from "../../../components/peopleList/PeopleList.tsx";
 import { getAllUsers, toggleBookable, toggleState, updatePerson } from "./usersService";
 import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
+import { explainCompromise } from "../../analytics/compromisedService.ts";
 import { UserModal } from "./userModal";
 import type { Person } from "../../types";
 
@@ -157,10 +158,20 @@ export function UsersAdmin() {
       // Deshabilitado a mano y deshabilitado por una regla se ven distinto: el segundo
       // no lo revisó nadie todavía, y es el que hay que ir a mirar.
       badges.push(
-        user.bannedBy === "system"
+        user.banKind === "compromise"
+          ? { label: "Posible cuenta hackeada", tone: "red", hint: explainCompromise(user.banReason ?? null, false) }
+          : user.bannedBy === "system"
           ? { label: "Baneado por el sistema", tone: "red", hint: explainBan(user) }
           : { label: "Deshabilitado", tone: "red", hint: "Lo deshabilitó la administración a mano. Se vuelve a habilitar desde su ficha." }
       );
+    } else if (user.banKind === "compromise") {
+      // Marcada pero con el acceso abierto: solo pasa con la última cuenta de
+      // administración activa, y es el caso que más urge mirar de todo el listado.
+      badges.push({
+        label: "Posible cuenta hackeada",
+        tone: "amber",
+        hint: explainCompromise(user.banReason ?? null, true),
+      });
     } else if (user.type === "professional" && user.bookable === false) {
       badges.push({
         label: "Fuera de la búsqueda",

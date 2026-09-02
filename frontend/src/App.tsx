@@ -27,6 +27,7 @@ import { PatientsPage } from "./pages/patients/PatientsPage.tsx";
 import { AnalyticsPage } from "./pages/analytics/AnalyticsPage.tsx";
 import { OfficeAnalyticsPage } from "./pages/analytics/OfficeAnalyticsPage.tsx";
 import { ContactPage } from "./pages/contact/ContactPage.tsx";
+import { FaqPage } from "./pages/faq/FaqPage.tsx";
 import { ErrorPage } from "./pages/errorPage/ErrorPage.tsx";
 
 const router = createBrowserRouter([
@@ -43,6 +44,7 @@ const router = createBrowserRouter([
       { path: "/Register", element: <Register /> },
       { path: "/Login", element: <Login /> },
       { path: "/contacto", element: <ContactPage /> },
+      { path: "/preguntas", element: <FaqPage /> },
       { path: "/EditProfile", element: (<PrivateRoutes allowedTypes={["admin","professional","client"]}>
             <AuthWatcher>
               <EditProfile />

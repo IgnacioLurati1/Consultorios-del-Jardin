@@ -437,3 +437,40 @@
     justify-content: center;
   }
 }
+
+/* ---------- pendientes de confirmación ----------
+   Misma caja que la agenda del día. Lo único propio es la fecha en la fila (un
+   pendiente puede ser de cualquier día) y el paginador de abajo. */
+
+.prof-pending .prof-today-person {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: normal;
+}
+
+.prof-pending-day {
+    font-size: 0.86rem;
+    font-weight: 400;
+    color: var(--adm-muted);
+}
+
+.prof-pending-day::first-letter {
+    text-transform: uppercase;
+}
+
+.prof-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 12px 22px;
+    border-top: 1px solid var(--adm-border);
+}
+
+.prof-pager-page {
+    color: var(--adm-muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}

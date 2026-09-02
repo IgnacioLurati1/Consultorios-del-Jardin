@@ -551,3 +551,174 @@
     text-align: left;
   }
 }
+
+/* ============================================================
+   Cuentas cerradas por seguridad. El rastro es lo que se viene a
+   ver acá: qué llegó a tocar la cuenta antes de caer, y qué de eso
+   salió de verdad.
+   ============================================================ */
+
+.cmp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cmp-item {
+  padding: 16px 18px;
+  border: 1px solid var(--adm-danger-line);
+  border-left: 5px solid var(--adm-danger);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface);
+}
+
+/* La que quedó marcada pero abierta: es un pendiente, no un hecho consumado. */
+.cmp-item-warn {
+  border-color: var(--adm-warn);
+  border-left-color: var(--adm-warn);
+}
+
+.cmp-head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.cmp-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.cmp-item-warn .cmp-icon {
+  background: var(--adm-warn-soft);
+  color: var(--adm-warn-dark);
+}
+
+.cmp-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  overflow: visible;
+}
+
+.cmp-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cmp-who strong {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.cmp-who span {
+  font-size: 0.86rem;
+  color: var(--adm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmp-state {
+  flex-shrink: 0;
+}
+
+.cmp-reason {
+  margin: 12px 0;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--adm-text);
+}
+
+.cmp-trail {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--adm-border);
+  /* Un rastro largo se desplaza solo en vez de estirar la pantalla entera. */
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.cmp-step {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.cmp-trail > li:last-child {
+  border-bottom: none;
+}
+
+.cmp-step-when {
+  font-size: 0.84rem;
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmp-step-what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.92rem;
+  color: var(--adm-text);
+}
+
+.cmp-step-what code {
+  font-size: 0.8rem;
+  color: var(--adm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-step-result {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.79rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Salió bien es la peor noticia de las tres: eso ya pasó y hay que repararlo. */
+.cmp-step-done {
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+}
+
+.cmp-step-blocked {
+  background: var(--adm-surface-sunken);
+  color: var(--adm-muted);
+}
+
+.cmp-step-failed,
+.cmp-step-unknown {
+  background: var(--adm-warn-soft);
+  color: var(--adm-warn-dark);
+}
+
+@media (max-width: 700px) {
+  .cmp-step {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
