@@ -44,6 +44,8 @@ export interface Person {
   surname: string;
   phoneNumber: string;
   speciality: string;
+  /** Cómo se presenta el profesional. Lo lee el paciente antes de elegir con quién atenderse. */
+  about?: string | null;
   type: Role;
   active: boolean;
   /**

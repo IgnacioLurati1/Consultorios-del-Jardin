@@ -23,6 +23,8 @@ export interface RegisterForm {
   docType: string;
   docNumber: string;
   speciality: string;
+  /** Solo lo llena el alta de profesionales: el paciente no tiene ficha que mostrar. */
+  about: string;
 }
 
 export const emptyRegisterForm: RegisterForm = {
@@ -35,6 +37,7 @@ export const emptyRegisterForm: RegisterForm = {
   docType: "",
   docNumber: "",
   speciality: "",
+  about: "",
 };
 
 export function validateAccount(form: RegisterForm): string | null {

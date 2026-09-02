@@ -98,6 +98,8 @@ export interface ProfessionalInput {
   phoneNumber: string;
   password: string;
   speciality: string;
+  /** Su presentación, opcional. Vacío no se manda. */
+  about?: string;
 }
 
 /**

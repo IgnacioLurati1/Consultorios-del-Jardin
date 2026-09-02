@@ -16,6 +16,9 @@ import { space } from "../../../theme/tokens";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 8;
 
+/** El mismo tope que valida el backend. */
+const ABOUT_MAX = 600;
+
 /**
  * Alta de un profesional hecha por el admin. La cuenta nace habilitada, a diferencia de
  * la que se crea desde el registro público, que queda esperando aprobación.
@@ -33,6 +36,7 @@ export default function NewProfessionalScreen() {
   const [docNumber, setDocNumber] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [speciality, setSpeciality] = useState("");
+  const [about, setAbout] = useState("");
   const [password, setPassword] = useState("");
 
   const [docSheet, setDocSheet] = useState(false);
@@ -67,6 +71,7 @@ export default function NewProfessionalScreen() {
         docNumber: docNumber.trim(),
         phoneNumber: phoneNumber.trim(),
         speciality,
+        about: about.trim() || undefined,
         password,
       });
 
@@ -131,6 +136,18 @@ export default function NewProfessionalScreen() {
             onPress={() => setSpecialitySheet(true)}
             error={errors.speciality}
             required
+          />
+
+          <Field
+            label="Acerca de mí"
+            value={about}
+            onChangeText={setAbout}
+            multiline
+            numberOfLines={4}
+            maxLength={ABOUT_MAX}
+            autoCapitalize="sentences"
+            placeholder="Con qué trabaja, con qué enfoque, a quiénes atiende…"
+            hint={`Opcional. Es lo que lee el paciente antes de elegir. ${about.length}/${ABOUT_MAX}`}
           />
 
           <Field

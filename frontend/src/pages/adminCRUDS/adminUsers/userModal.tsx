@@ -17,7 +17,10 @@ interface UserModalProps {
   onEdit: (email: string, data: Partial<Person>) => void;
 }
 
-const emptyUser = { email: "", name: "", surname: "", docType: "", docNumber: "", phoneNumber: "", speciality: "" };
+const emptyUser = { email: "", name: "", surname: "", docType: "", docNumber: "", phoneNumber: "", speciality: "", about: "" };
+
+/** El mismo tope que valida el backend. */
+const ABOUT_MAX = 600;
 
 export function UserModal({ visible, user, createdByName, onClose, onToggleState, onToggleBookable, onEdit }: UserModalProps) {
   const [userData, setUserData] = useState(emptyUser);
@@ -39,6 +42,7 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
       docNumber: user.docNumber,
       phoneNumber: user.phoneNumber,
       speciality: user.speciality ?? "",
+      about: user.about ?? "",
     });
     setEditing(false);
     setError(null);
@@ -70,6 +74,7 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
       docNumber: userData.docNumber.trim(),
       phoneNumber: userData.phoneNumber.replace(/\D/g, ""),
       speciality: userData.speciality.trim(),
+      about: userData.about.trim(),
     });
   }
 
@@ -204,6 +209,20 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
             </select>
           </label>
 
+          <label className="ui-field">
+            <span>Acerca de mí</span>
+            <textarea
+              rows={4}
+              maxLength={ABOUT_MAX}
+              placeholder="Con qué trabaja, con qué enfoque, a quiénes atiende…"
+              value={userData.about}
+              onChange={(e) => setUserData({ ...userData, about: e.target.value })}
+            />
+            <small>
+              Opcional. Es lo que lee el paciente antes de elegir con quién atenderse. {userData.about.length}/{ABOUT_MAX}
+            </small>
+          </label>
+
           {error && <p className="ui-alert ui-alert-error">{error}</p>}
         </div>
       ) : (
@@ -257,6 +276,12 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
               <div className="ui-detail-row">
                 <span>Especialidad</span>
                 <strong>{userData.speciality || <span className="ui-detail-empty">sin cargar</span>}</strong>
+              </div>
+            )}
+            {isProfessional && (
+              <div className="ui-detail-row">
+                <span>Acerca de mí</span>
+                <strong>{userData.about || <span className="ui-detail-empty">sin cargar</span>}</strong>
               </div>
             )}
           </div>

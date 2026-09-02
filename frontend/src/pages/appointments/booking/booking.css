@@ -232,3 +232,40 @@
 .booking-self-note {
     margin: 0 0 18px;
 }
+
+/* ── Acerca de mí ─────────────────────────────────────────────────
+   Va debajo de la fila del profesional y no adentro: un botón dentro de
+   otro botón no es HTML válido, y abrir la ficha no tiene por qué
+   desplegar los horarios. */
+.booking-about-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0 14px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  color: var(--adm-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.booking-about-btn:hover,
+.booking-about-btn:focus-visible {
+  border-color: var(--adm-green);
+  color: var(--adm-green-dark);
+  outline: none;
+}
+
+/* La presentación es texto escrito a mano: los saltos de línea que puso la persona
+   son parte de lo que quiso decir. */
+.booking-about {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  color: var(--adm-text);
+}

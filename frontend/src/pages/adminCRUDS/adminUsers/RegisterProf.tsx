@@ -17,6 +17,9 @@ import {
 } from "../../register/registerFields.ts";
 import { SPECIALITIES } from "../../specialities.ts";
 
+/** El mismo tope que valida el backend. */
+const ABOUT_MAX = 600;
+
 export function RegisterProf() {
   const navigate = useNavigate();
 
@@ -43,6 +46,7 @@ export function RegisterProf() {
       phoneNumber: form.phoneNumber.replace(/\D/g, ""),
       password: form.password,
       speciality: form.speciality.trim(),
+      about: form.about.trim() || undefined,
     })
       .then(() => {
         toast.success("Profesional registrado");
@@ -138,6 +142,20 @@ export function RegisterProf() {
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="ui-field">
+            <span>Acerca de mí</span>
+            <textarea
+              rows={4}
+              maxLength={ABOUT_MAX}
+              placeholder="Con qué trabaja, con qué enfoque, a quiénes atiende…"
+              value={form.about}
+              onChange={(e) => set("about", e.target.value)}
+            />
+            <small>
+              Opcional. Es lo que lee el paciente antes de elegir con quién atenderse. {form.about.length}/{ABOUT_MAX}
+            </small>
           </label>
 
           <label className="ui-field">

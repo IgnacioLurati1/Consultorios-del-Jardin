@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { findActiveOffices } from "../api/catalog";
-import { findProfessionalsAt } from "../api/people";
+import { findPerson, findProfessionalsAt } from "../api/people";
 import { Person } from "../api/types";
 import { ChipRow } from "../components/Chip";
 import { DataState, EmptyState } from "../components/States";
@@ -13,6 +13,7 @@ import { AppText } from "../components/Text";
 import { initials } from "../lib/appointments";
 import { matches, sameSpeciality, SPECIALITIES } from "../lib/specialities";
 import { useAsync } from "../lib/useAsync";
+import { AboutProfessional } from "./AboutProfessional";
 import { useUser } from "../session/SessionProvider";
 import { radius, SCREEN_PADDING, space, TOUCH } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
@@ -32,6 +33,8 @@ export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
 
   const [speciality, setSpeciality] = useState<string>("");
   const [search, setSearch] = useState("");
+  /** El profesional cuya ficha se está mirando. Es independiente de a quién se le pide turno. */
+  const [about, setAbout] = useState<Person | null>(null);
 
   const state = useAsync(async () => {
     const offices = await findActiveOffices();
@@ -42,6 +45,11 @@ export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
   }, []);
 
   const bookingForSelf = role === "professional";
+
+  // La sesión trae el email pero no el nombre, y el mensaje que se le manda al profesional
+  // se firma con el nombre: si no, del otro lado llega un mail de una dirección y nada más.
+  // Si falla, la ficha se abre igual y el mensaje va solo con el email.
+  const me = useAsync(() => findPerson(email), [email]);
 
   const results = useMemo(() => {
     const term = search.trim();
@@ -135,10 +143,18 @@ export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
               professional={professional}
               last={index === results.length - 1}
               onPress={() => router.push(`/(app)/pedir/${encodeURIComponent(professional.email)}`)}
+              onAbout={() => setAbout(professional)}
             />
           ))}
         </Group>
       </DataState>
+
+      <AboutProfessional
+        visible={!!about}
+        onClose={() => setAbout(null)}
+        professional={about}
+        patient={me.data}
+      />
     </ScrollView>
   );
 }
@@ -151,10 +167,13 @@ export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
 function ProfessionalCard({
   professional,
   onPress,
+  onAbout,
   last,
 }: {
   professional: Person;
   onPress: () => void;
+  /** Abre la ficha. Va aparte de tocar la fila, que lleva a elegir horario. */
+  onAbout: () => void;
   last: boolean;
 }) {
   const { colors } = useTheme();
@@ -185,6 +204,18 @@ function ProfessionalCard({
           {professional.speciality || "Sin especialidad cargada"}
         </AppText>
       </View>
+
+      {/* Fuera del área que abre los horarios: mirar la ficha y pedir turno son dos cosas. */}
+      <Pressable
+        onPress={onAbout}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={`Acerca de ${professional.name} ${professional.surname}`}
+        android_ripple={{ color: colors.border, borderless: true }}
+        style={({ pressed }) => [styles.about, pressed && Platform.OS === "ios" && styles.pressed]}
+      >
+        <FontAwesome6 name="circle-info" size={18} color={colors.muted} />
+      </Pressable>
 
       <FontAwesome6 name="chevron-right" size={13} color={colors.muted} />
     </Pressable>
@@ -217,5 +248,6 @@ const styles = StyleSheet.create({
   },
   avatar: { width: 40, height: 40, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
   cardText: { flex: 1, gap: 2 },
+  about: { padding: space.xs },
   pressed: { opacity: 0.6 },
 });

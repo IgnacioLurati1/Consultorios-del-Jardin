@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { FaChevronDown, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaChevronDown, FaCircleInfo, FaMagnifyingGlass } from "react-icons/fa6";
 import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
-import { getDecodedToken } from "../../commonServices";
+import { findPerson, getDecodedToken } from "../../commonServices";
 import { findProfessionalsOfficeSpecialty } from "../../adminCRUDS/adminUsers/usersService.ts";
 import { SPECIALITIES, sameSpeciality } from "../../specialities.ts";
 import type { Office, Person } from "../../types.ts";
+import { AboutProfessionalModal } from "./AboutProfessionalModal.tsx";
 import { ProfessionalSchedule } from "./ProfessionalSchedule.tsx";
 import "./booking.css";
 
@@ -36,6 +37,11 @@ export function BookAppointment() {
   const bookingForSelf = me?.type === "professional";
   const [office, setOffice] = useState<Office | undefined>(undefined);
   const [professionals, setProfessionals] = useState<Person[]>([]);
+  /** El profesional cuya ficha se está mirando. Es independiente de a quién se le pide turno. */
+  const [about, setAbout] = useState<Person | undefined>(undefined);
+  // El token trae el email pero no el nombre, y el mensaje que se le manda al profesional
+  // se firma con el nombre: de otra forma le llega un mail de una dirección y nada más.
+  const [profile, setProfile] = useState<Person | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   // La portada linkea cada especialidad acá: si viene en la URL, el filtro arranca puesto.
@@ -103,6 +109,13 @@ export function BookAppointment() {
       setSelected(undefined);
     }
   }, [results, selected]);
+
+  // Si falla, el modal se abre igual: el mensaje va sin nombre pero con el email, que es
+  // lo que hace falta para que le contesten.
+  useEffect(() => {
+    if (!me?.email) return;
+    findPerson(me.email).then(setProfile).catch(() => setProfile(undefined));
+  }, [me?.email]);
 
   function pick(professional: Person) {
     if (selected?.email === professional.email) {
@@ -212,6 +225,18 @@ export function BookAppointment() {
                       <FaChevronDown className={active ? "rotated" : ""} aria-hidden="true" />
                     </span>
                   </button>
+
+                  {/* Fuera del botón de arriba: un botón dentro de otro no es HTML válido,
+                      y además abrir la ficha no tiene por qué desplegar los horarios. */}
+                  <button
+                    type="button"
+                    className="booking-about-btn"
+                    onClick={() => setAbout(professional)}
+                    aria-label={`Acerca de ${professional.name} ${professional.surname}`}
+                  >
+                    <FaCircleInfo aria-hidden="true" />
+                    Acerca de mí
+                  </button>
                 </li>
               );
             })}
@@ -222,6 +247,8 @@ export function BookAppointment() {
       <div ref={scheduleRef}>
         {selected && office && <ProfessionalSchedule professional={selected} office={office} />}
       </div>
+
+      <AboutProfessionalModal open={!!about} onClose={() => setAbout(undefined)} professional={about} patient={profile} />
     </div>
   );
 }

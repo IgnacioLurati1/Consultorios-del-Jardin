@@ -38,6 +38,8 @@ export interface Person{
     /** Los pacientes anónimos no tienen contraseña. */
     password?: string | null;
     speciality: string;
+    /** Cómo se presenta el profesional. Lo lee el paciente antes de elegir con quién atenderse. */
+    about?: string | null;
     type: string;
     active: boolean;
     /**

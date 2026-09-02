@@ -96,6 +96,8 @@ export interface ProfessionalInput {
     phoneNumber: string;
     password: string;
     speciality: string;
+    /** Su presentación, opcional. Vacío no se manda. */
+    about?: string;
 }
 
 // Va por /people/professional y no por el registro público: ese devuelve un token y
