@@ -116,7 +116,9 @@ export class PeopleService {
       .join("s.person", "p")
       .join("s.room", "r")
       .join("r.office", "o")
-      .where({ "o.idOffice": officeId, "p.type": "professional", "p.active": true });
+      // `bookable` en false lo saca de acá y de ningún otro lado: es la búsqueda que hace
+      // un paciente para sacar turno. El admin lo sigue viendo entero en sus pantallas.
+      .where({ "o.idOffice": officeId, "p.type": "professional", "p.active": true, "p.bookable": true });
 
     if (speciality) {
       query.andWhere({ "p.speciality": speciality });
@@ -206,6 +208,8 @@ export class PeopleService {
       speciality: null as any,
       type: "client",
       active: true,
+      // Solo significa algo en un profesional, pero la columna no admite nulos.
+      bookable: true,
       anonymous: true,
       createdBy: data.createdBy,
     });
@@ -275,6 +279,22 @@ export class PeopleService {
     } catch (error) {
       console.error("No se pudo registrar el acceso:", error);
     }
+  }
+
+  /**
+   * Muestra o esconde a un profesional de la búsqueda de turnos.
+   *
+   * No toca `active`: el profesional sigue entrando, viendo su agenda y cargando turnos.
+   * Lo único que cambia es que deja de ofrecerse cuando alguien busca con quién atenderse.
+   */
+  async toggleBookable(email: string): Promise<Person> {
+    const person = await em.findOneOrFail(Person, { email });
+
+    if (person.type !== "professional") throw badRequest("Esto es solo para profesionales");
+
+    person.bookable = !person.bookable;
+    await em.flush();
+    return person;
   }
 
   async updatePerson(data: Partial<Person>, email: string) {

@@ -10,6 +10,9 @@ import { AppointmentEngine } from "./appointments.engine.js";
 import MailService from "../config/mailer.js";
 import { button, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
 import { badRequest, conflict, notFound } from "../shared/errors.js";
+import { Denial } from "./denials.entity.js";
+import { Person } from "../people/people.entity.js";
+import { monthKey, startOfDay } from "../shared/dates.js";
 
 const em = orm.em;
 
@@ -217,7 +220,17 @@ export class AppointmentService {
     );
   }
 
-  async deleteAppointment(num: number, professionalEmail: string) {
+  /**
+   * Rechaza un pedido de turno: lo saca de la agenda y le avisa al paciente.
+   *
+   * El turno se borra, no se marca. Un pendiente todavía no era un turno de nadie: la
+   * franja tiene que quedar libre para el que venga después, y el índice único de
+   * (fecha, hora, profesional, estado) no admite dos filas iguales.
+   *
+   * `deniedByProfessional` en false es el paciente dando de baja su propio pedido. Pasa
+   * por el mismo borrado, pero no es una negativa y no tiene que contarse como tal.
+   */
+  async deleteAppointment(num: number, professionalEmail: string, deniedByProfessional = true) {
     const appointment = await em.findOne(
       Appointment,
       {
@@ -231,9 +244,84 @@ export class AppointmentService {
     if (!appointment) throw notFound("Ese turno no existe, ya no está pendiente o no es tuyo");
 
     await this.sendAppointmentRejectedEmails(appointment);
+
+    // Antes de borrar: después de esto no queda nada que contar.
+    if (deniedByProfessional) await this.countDenial(appointment.professional, false);
+
     em.remove(appointment);
     await em.flush();
     return appointment; // Not used for now
+  }
+
+  /**
+   * Suma uno al contador de rechazos del mes.
+   *
+   * Cuenta en el mes en que se rechaza, no en el del turno rechazado. La pregunta que
+   * contesta es sobre el profesional —cuántos pedidos está dejando pasar— y no sobre la
+   * agenda de un mes: contándolo del otro lado, un pedido para diciembre rechazado hoy
+   * quedaría invisible hasta diciembre. Para los que vencen solos da igual, porque
+   * vencen a las horas de su propio horario.
+   *
+   * No hace fallar lo que la llamó. Es un número para el panel; si el contador no se
+   * puede guardar, el turno igual tiene que quedar rechazado.
+   */
+  private async countDenial(professional: Person, automatic: boolean): Promise<void> {
+    try {
+      const month = monthKey(new Date());
+      let tally = await em.findOne(Denial, { professional, month });
+
+      if (!tally) tally = em.create(Denial, { professional, month, denied: 0, expired: 0 });
+
+      tally.denied += 1;
+      if (automatic) tally.expired += 1;
+
+      await em.flush();
+    } catch (error) {
+      console.error("No se pudo contar el rechazo:", error);
+    }
+  }
+
+  /**
+   * Da de baja los pedidos que nadie contestó.
+   *
+   * Un turno pendiente al que se le pasó la hora ya no puede ocurrir: dejarlo ahí ensucia
+   * la agenda y le hace creer al paciente que todavía puede salir. Se borra y se cuenta
+   * aparte, como rechazo automático, que es lo que efectivamente fue.
+   *
+   * No se manda mail: el horario ya pasó, así que avisar ahora no le sirve a nadie.
+   */
+  async expirePendingAppointments(): Promise<number> {
+    const today = startOfDay(new Date());
+
+    const pending = await em.find(
+      Appointment,
+      { state: "pending", date: { $lte: today } },
+      { populate: ["professional"] }
+    );
+
+    const now = new Date();
+    let expired = 0;
+
+    for (const appointment of pending) {
+      const day = startOfDay(appointment.date);
+      const [hour, minute] = appointment.initialHour.slice(0, 5).split(":").map(Number);
+      const startsAt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute);
+
+      if (startsAt > now) continue;
+
+      await this.countDenial(appointment.professional, true);
+      em.remove(appointment);
+      expired++;
+    }
+
+    if (expired > 0) await em.flush();
+    return expired;
+  }
+
+  /** Los rechazos de un profesional, mes por mes. Los meses sin rechazos no tienen fila. */
+  async denialsByMonth(professionalEmail: string): Promise<Map<string, { denied: number; expired: number }>> {
+    const rows = await em.find(Denial, { professional: { email: professionalEmail } });
+    return new Map(rows.map((row) => [row.month, { denied: row.denied, expired: row.expired }]));
   }
 
   async updateAppointment(num: number, professionalEmail: string, data: Partial<Appointment>) {
@@ -479,7 +567,9 @@ export class AppointmentService {
     if (appointment.state === "missed") throw badRequest("No se puede cancelar un turno marcado como 'No vino'");
 
     if (appointment.state === "pending") {
-      await this.deleteAppointment(num, appointment.professional.email);
+      // Solo cuenta como rechazo si lo baja el profesional. Que el paciente se arrepienta
+      // de su propio pedido no dice nada de quién iba a atenderlo.
+      await this.deleteAppointment(num, appointment.professional.email, type === "professional");
       return appointment;
     }
 

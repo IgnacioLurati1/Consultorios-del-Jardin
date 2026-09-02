@@ -1,4 +1,5 @@
 import { orm } from "../shared/db/orm.js";
+import { AppointmentService } from "../appointments/appointments.service.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import { Person } from "../people/people.entity.js";
 import { AssistantUsage } from "../assistant/assistant.entity.js";
@@ -188,6 +189,8 @@ function closedMonths(): { key: string; label: string; from: Date; to: Date }[] 
 }
 
 export class AnalyticsService {
+  private appointments = new AppointmentService();
+
   /** Turnos de un rango, con lo justo para calcular las métricas. */
   private async loadRows(from: Date, to: Date, professionalEmail?: string): Promise<Row[]> {
     const appointments = await em.find(
@@ -243,6 +246,12 @@ export class AnalyticsService {
 
     const closed = rows.filter((row) => startOfDay(row.date) < currentFrom);
 
+    // Los rechazos no salen de los turnos: rechazar un pedido lo borra de la base, así
+    // que vienen de un contador aparte. Por eso van en su propio campo y no mezclados
+    // con las métricas, que sí cierran todas entre sí.
+    const denials = await this.appointments.denialsByMonth(professionalEmail);
+    const deniedIn = (key: string) => denials.get(key) ?? { denied: 0, expired: 0 };
+
     const report = {
       professional: {
         email: professional.email,
@@ -258,6 +267,7 @@ export class AnalyticsService {
           inProgress: month.inProgress,
           ...summarize(subset),
           ...loadByDay(subset),
+          denials: deniedIn(month.key),
         };
       }),
       // Acumulado de los meses cerrados: es el número que se lee "en general".
@@ -265,6 +275,13 @@ export class AnalyticsService {
         months: months.length,
         ...summarize(closed),
         ...loadByDay(closed),
+        denials: months.reduce(
+          (sum, month) => {
+            const entry = deniedIn(month.key);
+            return { denied: sum.denied + entry.denied, expired: sum.expired + entry.expired };
+          },
+          { denied: 0, expired: 0 }
+        ),
       },
       months: months.map((month) => ({
         key: month.key,

@@ -308,6 +308,21 @@ async function toggleState(req: Request, res: Response) {
   }
 }
 
+/** Mostrar o esconder a un profesional de la búsqueda de turnos. No lo deshabilita. */
+async function toggleBookable(req: Request, res: Response) {
+  try {
+    const person = await peopleService.toggleBookable(req.params.email);
+    res.status(200).json({
+      message: person.bookable
+        ? "El profesional vuelve a aparecer cuando se busca turno"
+        : "El profesional deja de aparecer cuando se busca turno",
+      data: { bookable: person.bookable },
+    });
+  } catch (error: any) {
+    sendError(res, error, { missing: "Ese profesional no existe" });
+  }
+}
+
 async function changePassword(req: Request, res: Response) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -362,6 +377,7 @@ export {
   loginWithEmailAndPassword,
   logOut,
   toggleState,
+  toggleBookable,
   changePassword,
   sendPasswordMail,
   findAllPerType,

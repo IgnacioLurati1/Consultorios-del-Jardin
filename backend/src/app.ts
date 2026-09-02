@@ -18,6 +18,7 @@ import cookieParser from "cookie-parser";
 import { appointmentRouter } from "./appointments/appointments.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
 import { startRecurrenceJob } from "./jobs/recurrence.job.js";
+import { startExpiryJob } from "./jobs/expiry.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { analyticsRouter } from "./analytics/analytics.routes.js";
 import { agendaRouter } from "./agenda/agenda.routes.js";
@@ -107,6 +108,7 @@ if (!isProduction){
 
 startReminderJob();
 startRecurrenceJob();
+startExpiryJob();
 
 app.listen(3000, () => {
   console.log("Server runnning on http://localhost:3000/");

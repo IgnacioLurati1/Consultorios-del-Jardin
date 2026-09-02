@@ -11,6 +11,7 @@ import {
   addProfessional,
   remove,
   toggleState,
+  toggleBookable,
   changePassword,
   sendPasswordMail,
   findAllPerType,
@@ -529,6 +530,33 @@ personRouter.delete("/:email", verifyToken, verifyAdmin, sanitizePersonInput, re
  *         description: Error interno
  */
 personRouter.patch("/:email/toggleState", verifyToken, verifyAdmin, sanitizePersonInput, toggleState);
+
+/**
+ * @swagger
+ * /api/people/{email}/toggleBookable:
+ *   patch:
+ *     summary: Mostrar o esconder a un profesional en la búsqueda de turnos (solo admin)
+ *     description: >
+ *       No lo deshabilita: sigue entrando, viendo su agenda y cargando turnos a mano. Lo
+ *       único que cambia es si se ofrece cuando un paciente busca con quién atenderse.
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cambiado con éxito
+ *       400:
+ *         description: Esa persona no es un profesional
+ *       403:
+ *         description: Acceso denegado
+ */
+personRouter.patch("/:email/toggleBookable", verifyToken, verifyAdmin, sanitizePersonInput, toggleBookable);
 
 /**
  * @swagger

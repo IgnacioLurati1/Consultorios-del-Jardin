@@ -1,16 +1,29 @@
 import rateLimit from "express-rate-limit";
 
+/**
+ * En desarrollo los topes se multiplican por veinte.
+ *
+ * El límite es por IP, y en la máquina de desarrollo la web, la app y el navegador con
+ * Swagger son todos la misma IP: entre las tres se comen quinientas requests en un rato
+ * de trabajo. Cuando eso pasa el servidor contesta 429 a todo y parece que se cayó, que
+ * es la peor forma de enterarse.
+ *
+ * No se apaga del todo a propósito: así el camino del limitador se sigue ejecutando y un
+ * error de configuración aparece acá y no recién en producción.
+ */
+const RELAX = process.env.NODE_ENV === "production" ? 1 : 20;
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // ventana de 15 minutos
-  max: 500,                  
-  standardHeaders: true,     
+  max: 500 * RELAX,
+  standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes, intentá más tarde.' },
 });
 
 const authLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // ventana de 10 minutos
-  max: 10,
+  max: 10 * RELAX,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes, intentá más tarde.' },
@@ -22,7 +35,7 @@ const authLimiter = rateLimit({
 // están registrados.
 const lookupLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 60,
+  max: 60 * RELAX,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas consultas, intentá más tarde.' },

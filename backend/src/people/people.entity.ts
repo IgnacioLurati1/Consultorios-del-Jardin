@@ -42,6 +42,17 @@ export class Person {
   @Property({ nullable: false })
   active!: boolean;
 
+  // Si aparece entre las opciones cuando un paciente saca turno.
+  //
+  // Es distinto de `active`, que lo saca del sistema entero. Un profesional con la agenda
+  // llena, de licencia corta, o que solo quiere seguir atendiendo a los pacientes que ya
+  // tiene, deja de figurar en la búsqueda y sigue trabajando igual: entra, ve su agenda,
+  // carga turnos a mano y cobra como siempre.
+  //
+  // Solo tiene sentido en un profesional. En el resto queda en true y no molesta a nadie.
+  @Property({ default: true })
+  bookable: boolean = true;
+
   // Paciente "dummy" cargado por un profesional. No puede iniciar sesión.
   // Si alguien se registra con este mismo email, la cuenta se convierte en real
   // y conserva todo lo que el profesional ya le había cargado (el PK es el email).
