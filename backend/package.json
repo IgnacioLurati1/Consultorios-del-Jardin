@@ -5,6 +5,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "prebuild": "node -e \"const {rmSync}=require('fs'); for (const p of ['dist','tsconfig.tsbuildinfo']) rmSync(p, { recursive: true, force: true })\"",
     "build": "tsc -p ./tsconfig.json",
     "start": "node dist/app.js",
     "bootstrap": "node dist/scripts/bootstrap.js",

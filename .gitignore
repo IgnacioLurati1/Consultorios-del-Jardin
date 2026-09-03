@@ -16,6 +16,11 @@ Thumbs.db
 # ignore built ts files
 **/dist/**
 
+# Caché de la compilación incremental de TypeScript. Es estado local de una máquina:
+# versionarlo hace que otra compile a partir de lo que se compiló acá, y con dist/
+# ignorado eso significa arrancar creyendo que ya existe lo que no existe.
+*.tsbuildinfo
+
 # vscode
 .vscode/*
 !.vscode/settings.json
