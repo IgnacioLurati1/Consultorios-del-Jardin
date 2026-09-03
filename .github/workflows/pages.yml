@@ -1,0 +1,74 @@
+# Publica la web en GitHub Pages cada vez que entra algo a la rama de producción.
+#
+# Se construye acá y no se sube el resultado al repo: lo compilado es una consecuencia
+# del código, y tenerlo versionado obliga a acordarse de regenerarlo y deja diffs
+# ilegibles en cada cambio.
+name: Publicar la web
+
+on:
+  push:
+    branches: [prod_Mobile]
+    # La app móvil no se publica acá, así que un cambio suyo no tiene por qué
+    # reconstruir el sitio.
+    paths:
+      - "frontend/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Si se pushea dos veces seguidas, vale la última: publicar la versión vieja arriba de
+# la nueva sería peor que cancelar.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Construir
+        run: npm run build
+        env:
+          # Pages sirve el sitio colgado del nombre del repo, no de la raíz del dominio.
+          VITE_BASE: /${{ github.event.repository.name }}/
+          # La dirección del backend. Se configura en el repo (Settings → Secrets and
+          # variables → Actions → Variables) para no dejarla escrita en el código: cambia
+          # con el deploy y no es lo mismo en una prueba que en producción.
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - name: Fallback para las rutas de la aplicación
+        # Pages no sabe de rutas: pide un archivo y si no está devuelve 404.html. Con una
+        # copia del index ahí, entrar directo a /preguntas o refrescar la página carga la
+        # aplicación igual, y el router resuelve la ruta del lado del navegador.
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
