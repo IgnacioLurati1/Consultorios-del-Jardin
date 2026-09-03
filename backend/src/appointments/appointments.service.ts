@@ -13,7 +13,7 @@ import { button, factsCard, note, paragraph, title, warning } from "../config/ma
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
-import { monthKey, parseISODate, startOfDay } from "../shared/dates.js";
+import { addDays, monthKey, parseISODate, startOfDay } from "../shared/dates.js";
 import { SecurityService } from "../security/security.service.js";
 
 const em = orm.em;
@@ -955,8 +955,8 @@ export class AppointmentService {
    * "martes 2 de septiembre". En un mail la fecha se lee de un vistazo y no se confunde
    * con el formato de otro país, cosa que 02/09/2026 no garantiza.
    *
-   * Se arma al mediodía UTC igual que `formatDateArgentina`: la fecha se guarda sola, sin
-   * hora, y a las 00:00 UTC en Buenos Aires todavía es el día anterior.
+   * Se arma al mediodía UTC a propósito: la fecha del turno se guarda sola, sin hora, y
+   * a las 00:00 UTC en Buenos Aires todavía es el día anterior.
    */
   private formatDateLong(date: Date): string {
     if (!date) return "";
@@ -970,28 +970,18 @@ export class AppointmentService {
     }).format(noonUtc);
   }
 
-  private formatDateArgentina(date: Date): string {
-    if (!date) return "";
-    const d = new Date(date);
-    const year = d.getUTCFullYear();
-    const month = d.getUTCMonth();
-    const day = d.getUTCDate();
-    const noonUtc = new Date(Date.UTC(year, month, day, 12, 0, 0));
-    return new Intl.DateTimeFormat("es-AR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "America/Argentina/Buenos_Aires",
-    }).format(noonUtc);
-  }
-
+  /**
+   * Los turnos de mañana que todavía no recibieron su recordatorio.
+   *
+   * El día de hoy sale de `startOfDay`, que lee la hora local. Antes se armaba con los
+   * componentes UTC del reloj: de las nueve de la noche en adelante en Argentina ya es el
+   * día siguiente en UTC, así que el job creía que hoy era mañana y buscaba los turnos de
+   * pasado mañana. Corre cada hora, así que las corridas de las 21, 22 y 23 avisaban con
+   * dos días de anticipación —y como el turno queda marcado como avisado, esa gente se
+   * quedaba después sin el recordatorio de la víspera, que es el que sirve—.
+   */
   async getAppointmentsForReminder(): Promise<Appointment[]> {
-    const now = new Date();
-    const argentinaTz = this.formatDateArgentina(now);
-    const [day, month, year] = argentinaTz.split("/");
-    const today = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
-
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrow = addDays(startOfDay(new Date()), 1);
     const tomorrow2359 = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000 - 1000);
 
     return await em.find(
