@@ -94,6 +94,16 @@ const NIGHT_POINTS: Record<string, number> = {
 
 const NIGHT_FALLBACK = 6;
 
+/**
+ * A partir de qué parte del límite la actividad se escribe en el log de la plataforma.
+ *
+ * Cerrar una cuenta ya se anota. Lo que faltaba era lo de antes: alguien que junta puntos
+ * y se queda a un paso, y que hoy solo existía como filas en la base que nadie mira.
+ * Puesto en seis décimos porque el uso normal ni se acerca —un admin recorriendo todas
+ * sus pantallas suma un punto de treinta—, así que lo que llegue acá vale la pena leerlo.
+ */
+const WARN_FRACTION = 0.6;
+
 /** Lo que se decidió sobre una request vigilada. */
 export interface AccessVerdict {
   locked: boolean;
@@ -376,6 +386,28 @@ export class SecurityService {
 
         return { hit, verdict: await this.lockForCompromise(email, reason) };
       }
+    }
+
+    // No alcanzó para cerrar nada, pero si algo se está gestando el registro es lo único
+    // que después permite reconstruirlo.
+    if (burst >= burstLimit * WARN_FRACTION) {
+      console.warn(
+        "SEGURIDAD: " +
+          email +
+          " (" +
+          describeRole(role) +
+          ") acumuló " +
+          burst +
+          " de " +
+          burstLimit +
+          " puntos en un minuto sobre datos ajenos. Última operación: " +
+          action.label +
+          " (" +
+          request.method +
+          " " +
+          request.path +
+          ")"
+      );
     }
 
     return { hit, verdict: null };
