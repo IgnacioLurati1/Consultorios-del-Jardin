@@ -1,6 +1,7 @@
 import { EntityManager } from "@mikro-orm/mysql";
 import { OfficeService } from "../offices/offices.service.js";
 import { PeopleService } from "../people/people.service.js";
+import { Person } from "../people/people.entity.js";
 import { RoomService } from "../rooms/rooms.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "./appointments.service.js";
@@ -128,7 +129,7 @@ export class AppointmentEngine {
   ) {
     const professional = await this.peopleService.findPersonByEmail(professionalEmail, this.em);
 
-    if (professional.type !== "professional") throw badRequest("La persona elegida no es un profesional");
+    this.assertCanTakeAppointments(professional);
 
     // El profesional puede sacar turno como paciente, pero no consigo mismo: estaría
     // ocupando su propio módulo con un turno que no atiende nadie. La pantalla ya no lo
@@ -212,13 +213,38 @@ export class AppointmentEngine {
     return appointment;
   }
 
+  /**
+   * Que el profesional elegido pueda recibir turnos.
+   *
+   * Se llama en los dos momentos del circuito —cuando se arma la lista de horarios y
+   * cuando se confirma— y no solo en el primero: entre que el paciente ve los horarios y
+   * toca confirmar pasan minutos, y en el medio el admin pudo darlo de baja. Es el mismo
+   * cuidado que unas líneas más abajo ya tenían las licencias.
+   *
+   * La lista de profesionales de la sucursal ya filtra por esto, así que por la pantalla
+   * no se llega; lo que faltaba era que fuera cierto también para quien entra por otro
+   * lado —una pantalla vieja, un link directo, la ruta de la app que nombra al
+   * profesional en la dirección—.
+   *
+   * `active` y `bookable` son cosas distintas —una cuenta cerrada y alguien que por ahora
+   * no toma turnos— pero para quien quiere sacar uno significan lo mismo, y el mensaje no
+   * las distingue a propósito: si la cuenta de una persona está dada de baja no es asunto
+   * de un paciente.
+   */
+  private assertCanTakeAppointments(professional: Person): void {
+    if (professional.type !== "professional") throw badRequest("La persona elegida no es un profesional");
+
+    if (!professional.active || !professional.bookable)
+      throw badRequest("Ese profesional no está tomando turnos. Elegí otro");
+  }
+
   async getAvailableAppointmentsForPatient(
     patientEmail: string,
     professionalEmail: string,
     officeId: number
   ): Promise<Array<{ date: Date; initialHour: string; finalHour: string }>> {
     const professional = await this.peopleService.findPersonByEmail(professionalEmail, this.em);
-    if (professional.type !== "professional") throw badRequest("La persona elegida no es un profesional");
+    this.assertCanTakeAppointments(professional);
 
     const office = await this.officeService.findOficeById(officeId, this.em);
     if (!office.active) throw badRequest("El consultorio que elegiste está dado de baja");
