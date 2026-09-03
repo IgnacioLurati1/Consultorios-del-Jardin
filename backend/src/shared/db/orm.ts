@@ -67,6 +67,19 @@ if (!clientUrl && process.env.NODE_ENV === 'production') {
     }
     console.error('')
 
+    // Y el valor de las candidatas a conexión, cortado. Los primeros caracteres alcanzan
+    // para ver todo lo que importa —si está vacía, si quedaron las llaves de una
+    // referencia sin resolver, si es el nombre de la base en vez de la cadena— y el
+    // largo confirma que no está truncada. Entera no, porque adentro va la contraseña
+    // de la base y esto queda escrito en el registro del servidor.
+    console.error('Qué traen las variables de conexión:')
+    for (const name of URL_VARS) {
+        const raw = process.env[name]
+        if (raw === undefined) continue
+        console.error(`  ${name} = "${raw.slice(0, 20)}${raw.length > 20 ? '…' : ''}" (${raw.length} caracteres)`)
+    }
+    console.error('')
+
     // Los nombres de lo que sí llegó, nunca los valores: alcanzan para ver si la variable
     // está y se llama distinto, o si directamente no está, y no arrastran la contraseña
     // a un registro que queda guardado.
