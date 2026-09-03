@@ -44,16 +44,20 @@ const peopleService = new PeopleService();
 // Las mismas opciones se usan para setearla y para borrarla; si no coinciden, el browser
 // no la borra en el logout.
 //
-// Dev local sobre http://localhost: el front pega a /api a través del proxy de Vite, así que
-// las requests son same-origin y alcanza con "lax". La combinación secure + sameSite "none"
-// es para un front en otro dominio por HTTPS, y sobre http local no funciona parejo entre
-// browsers. Si algún día hay deploy con dominios separados, vuelve a ser
-// { secure: true, sameSite: "none" }.
-const REFRESH_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: false,
-  sameSite: "lax",
-} as const;
+// Las opciones cambian según dónde corra, porque el navegador aplica reglas distintas.
+//
+// Desplegado, el front vive en un dominio y el backend en otro, así que la cookie es
+// cross-site: el navegador solo la manda con sameSite "none", y solo acepta "none" si
+// además es secure. Sin las dos, el refresh token nunca llega y la sesión se corta a los
+// quince minutos, cuando vence el token de acceso.
+//
+// En local el front pega a /api por el proxy de Vite, así que las requests son
+// same-origin y alcanza con "lax". "none" no serviría: sobre http sin secure, los
+// navegadores la descartan.
+const REFRESH_COOKIE_OPTIONS =
+  process.env.NODE_ENV === "production"
+    ? ({ httpOnly: true, secure: true, sameSite: "none" } as const)
+    : ({ httpOnly: true, secure: false, sameSite: "lax" } as const);
 
 /**
  * Entrega el refresh token por la vía que le sirve a cada cliente: cookie para el

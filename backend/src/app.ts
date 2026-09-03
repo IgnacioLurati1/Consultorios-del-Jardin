@@ -34,11 +34,25 @@ import { authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
 const app = express();
 
-// Sin deploy: el proyecto corre solo en local.
-// Nota: no se setea "trust proxy". Sin un proxy adelante, confiar en X-Forwarded-For
-// permitiría falsear la IP y esquivar el rate limiter. Si algún día se despliega
-// detrás de un proxy, hay que volver a poner app.set("trust proxy", 1).
+// Desplegado, el servidor no ve al visitante: ve al proxy de la plataforma. Sin esto la
+// IP de todas las requests es la misma y el limitador de intentos de login cuenta a todo
+// el mundo junto —o sea, no limita a nadie—. En local no va: sin un proxy adelante,
+// confiar en X-Forwarded-For deja falsear la IP y esquivar el limitador escribiendo un
+// header.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+// De dónde se acepta que venga el navegador. La dirección del front cambia con el
+// deploy, así que viaja en una variable y no acá adentro; se pueden poner varias
+// separadas por coma (la de producción y una de prueba, por ejemplo).
+const configuredOrigins = (process.env.WEB_ORIGIN ?? "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
 const allowedOrigins = [
+  ...configuredOrigins,
   "http://localhost:5173", // Vite (front)
   "http://localhost:3000"  // el propio backend (Swagger)
 ];
@@ -118,7 +132,11 @@ startRecurrenceJob();
 startExpiryJob();
 startAttendanceJob();
 
-app.listen(3000, () => {
-  console.log("Server runnning on http://localhost:3000/");
+// El puerto lo asigna la plataforma y llega por variable; en local no está y sigue
+// siendo 3000, que es lo que espera el proxy de Vite.
+const port = Number(process.env.PORT) || 3000;
+
+app.listen(port, () => {
+  console.log(`Server runnning on http://localhost:${port}/`);
 });
 
