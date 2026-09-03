@@ -56,6 +56,15 @@ if (!clientUrl && process.env.NODE_ENV === 'production') {
     const presentes = Object.keys(process.env)
         .filter((name) => /mysql|database|db_/i.test(name))
         .sort()
+        .map((name) => {
+            // Por qué no sirvió, que es lo que hay que saber para arreglarla. Una variable
+            // vacía —el resultado de una referencia que no resolvió— y una con un valor que
+            // no es una cadena de conexión se ven igual desde afuera y se arreglan distinto.
+            const value = process.env[name]?.trim().replace(/^["']|["']$/g, '')
+            if (!value) return `${name} (vacía)`
+            if (!/^mysql:\/\//i.test(value)) return `${name} (su valor no arranca con mysql://)`
+            return name
+        })
 
     const encontradas = presentes.length
         ? `Variables con pinta de base que sí llegaron: ${presentes.join(', ')}.`
