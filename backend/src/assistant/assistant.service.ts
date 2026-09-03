@@ -474,7 +474,7 @@ export class AssistantService {
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const response = (await groqClient.chat.completions.create({
+        const response = (await groqClient().chat.completions.create({
           ...GROQ_CONFIG,
           messages,
           tools: toolsFor(role, pending),
