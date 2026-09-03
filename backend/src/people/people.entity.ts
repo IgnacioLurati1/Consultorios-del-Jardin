@@ -127,6 +127,16 @@ export class Person {
   @Property({ nullable: true, type: "datetime" })
   autoMarkSince?: Date | null;
 
+  // Qué avisos por mail apagó, como claves separadas por coma ("slot-freed").
+  //
+  // Una columna de texto y no una por aviso: la lista de avisos va a cambiar, y cada uno
+  // nuevo sería otra columna en una tabla que ya es larga. Acá nunca se filtra por este
+  // campo: se lee junto con la persona, justo antes de mandarle algo.
+  //
+  // En null recibe todo, que es como venía funcionando.
+  @Property({ nullable: true, type: "text" })
+  mailOptOut?: string | null;
+
   // Paciente "dummy" cargado por un profesional. No puede iniciar sesión.
   // Si alguien se registra con este mismo email, la cuenta se convierte en real
   // y conserva todo lo que el profesional ya le había cargado (el PK es el email).

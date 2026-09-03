@@ -1,6 +1,7 @@
 import type { FilterQuery } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { Appointment } from "./appointments.entity.js";
+import { wantsMail } from "../people/mailPreferences.js";
 import { PeopleService } from "../people/people.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { OfficeService } from "../offices/offices.service.js";
@@ -12,7 +13,7 @@ import { button, factsCard, note, paragraph, title, warning } from "../config/ma
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
-import { monthKey, startOfDay } from "../shared/dates.js";
+import { monthKey, parseISODate, startOfDay } from "../shared/dates.js";
 import { SecurityService } from "../security/security.service.js";
 
 const em = orm.em;
@@ -225,10 +226,8 @@ export class AppointmentService {
    * único que el admin puede anticipar el día anterior.
    */
   async findDayAgenda(day: string, crowdLimit = CROWD_LIMIT) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(day ?? "")) throw badRequest("La fecha tiene que venir como AAAA-MM-DD");
-
-    const date = startOfDay(day);
-    if (Number.isNaN(date.getTime())) throw badRequest("Esa fecha no existe");
+    const date = parseISODate(day);
+    if (!date) throw badRequest("Esa fecha no existe. Tiene que venir como AAAA-MM-DD");
 
     const rows = await em.find(
       Appointment,
@@ -886,6 +885,12 @@ export class AppointmentService {
   }
 
   private async sendAppointmentCanceledToProfessional(appointment: Appointment, email: string) {
+    // El único mail que le llega al profesional por la actividad de todos los días, y el
+    // único que puede apagar desde su configuración. Se pregunta acá, en el que manda, y
+    // no en el que cancela: así el que cancela no tiene que acordarse de una preferencia
+    // que no es suya.
+    if (!wantsMail(appointment.professional, "slot-freed")) return;
+
     const patient = appointment.patient as any;
     const patientName = patient?.name ? `${patient.name} ${patient.surname ?? ""}`.trim() : "";
 

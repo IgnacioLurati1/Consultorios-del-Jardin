@@ -5,6 +5,7 @@ import { Appointment } from "../appointments/appointments.entity.js";
 import { Recurrence } from "../recurrences/recurrences.entity.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
+import { professionalMailSettings, setMailPreference } from "../people/mailPreferences.js";
 
 const em = orm.em;
 
@@ -18,6 +19,8 @@ export interface ProfessionalSettings {
   autoMarkWhen: AutoMarkWhen;
   /** Cuántos pedidos están esperando respuesta ahora mismo. */
   pending: number;
+  /** Los avisos por mail que se pueden apagar, con el estado de cada uno. */
+  mails: Array<{ key: string; label: string; description: string; enabled: boolean }>;
   vacations: Array<{ id: number; fromDate: string; toDate: string; reason: string | null; current: boolean }>;
 }
 
@@ -51,6 +54,7 @@ export class SettingsService {
       autoMark: (person.autoMark as AutoMark) ?? null,
       autoMarkWhen: person.autoMarkWhen,
       pending,
+      mails: professionalMailSettings(person),
       vacations: vacations.map((vacation) => ({
         id: vacation.id!,
         fromDate: toISODate(startOfDay(vacation.fromDate)),
@@ -63,7 +67,7 @@ export class SettingsService {
 
   async update(
     email: string,
-    data: { autoAccept?: boolean; autoMark?: AutoMark | null; autoMarkWhen?: AutoMarkWhen }
+    data: { autoAccept?: boolean; autoMark?: AutoMark | null; autoMarkWhen?: AutoMarkWhen; mails?: Record<string, boolean> }
   ): Promise<ProfessionalSettings> {
     const person = await this.professional(email);
 
@@ -87,6 +91,10 @@ export class SettingsService {
 
       person.autoMarkWhen = data.autoMarkWhen;
     }
+
+    // De a un aviso por vez, sin pisar los demás: la pantalla manda solo el switch que
+    // se tocó, y una clave desconocida corta acá en vez de guardarse como basura.
+    for (const [key, enabled] of Object.entries(data.mails ?? {})) setMailPreference(person, key, !!enabled);
 
     await em.flush();
     return this.forProfessional(email);

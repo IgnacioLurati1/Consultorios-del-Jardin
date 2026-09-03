@@ -20,7 +20,8 @@ settingsRouter.use(onlyProfessional);
  *     summary: Configuración del consultorio del profesional logueado
  *     description: >
  *       Las dos automatizaciones (confirmar pedidos y cerrar turnos vencidos), cuántos
- *       pedidos están esperando respuesta ahora, y los períodos de licencia cargados.
+ *       pedidos están esperando respuesta ahora, los períodos de licencia cargados y los
+ *       avisos por mail que se pueden apagar.
  *     tags: [Settings]
  *     security:
  *       - bearerAuth: []
@@ -61,6 +62,14 @@ settingsRouter.get("/", getSettings);
  *                 type: string
  *                 enum: [appointment, day]
  *                 description: Al terminar el turno, o al terminar el día.
+ *               mails:
+ *                 type: object
+ *                 additionalProperties:
+ *                   type: boolean
+ *                 description: >
+ *                   Qué avisos por mail quiere recibir, por clave (`slot-freed`). Solo se
+ *                   tocan las claves que vengan. Los mails de la cuenta (contraseña,
+ *                   bienvenida, aviso de seguridad) no se pueden apagar y no están acá.
  *     responses:
  *       200:
  *         description: Configuración guardada

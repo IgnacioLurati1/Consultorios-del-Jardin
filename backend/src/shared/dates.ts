@@ -42,6 +42,21 @@ export function startOfDay(value: Date | string): Date {
     : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 }
 
+/**
+ * El día de calendario de un "AAAA-MM-DD", o null si ese día no existe.
+ *
+ * `new Date(2026, 1, 30)` no falla: el 30 de febrero se desborda al 2 de marzo, y el mes
+ * 13 al enero siguiente. Una fecha escrita a mano en la URL entraba así y devolvía la
+ * agenda de otro día con el rótulo de uno imposible. La única forma de detectarlo es
+ * volver a escribir la fecha construida y ver si dice lo mismo que entró.
+ */
+export function parseISODate(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value ?? "")) return null;
+
+  const date = startOfDay(value);
+  return toISODate(date) === value ? date : null;
+}
+
 export function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setDate(result.getDate() + days);

@@ -24,12 +24,15 @@ export async function getSettings(req: RequestWithUser, res: Response) {
 
 export async function updateSettings(req: RequestWithUser, res: Response) {
   try {
-    const { autoAccept, autoMark, autoMarkWhen } = req.body;
+    const { autoAccept, autoMark, autoMarkWhen, mails } = req.body;
 
     const settings = await settingsService.update(req.user.email, {
       autoAccept: autoAccept === undefined ? undefined : !!autoAccept,
       autoMark: autoMark === undefined ? undefined : autoMark,
       autoMarkWhen: autoMarkWhen === undefined ? undefined : autoMarkWhen,
+      // Un objeto y no un array: lo que llega es "esta clave queda así", y cualquier otra
+      // cosa (un string, un array) no tiene entradas y no cambia nada.
+      mails: mails && typeof mails === "object" && !Array.isArray(mails) ? mails : undefined,
     });
 
     res.status(200).json({ message: "Configuración guardada", data: settings });

@@ -96,7 +96,11 @@ const securityService = new SecurityService();
  * no se cae porque el registro de seguridad tuvo un problema.
  */
 async function guardSensitiveAccess(req: RequestWithUser, res: Response): Promise<boolean> {
-  const path = req.originalUrl.split("?")[0];
+  // Con `?? req.url` y no a secas: el comentario de arriba promete que este control no
+  // voltea una request legítima, y leer `originalUrl` de algo que no lo tenga la volteaba
+  // antes de llegar al try. Express siempre lo pone; los tests que arman un req a mano,
+  // no, y ahí saltó.
+  const path = (req.originalUrl ?? req.url ?? "").split("?")[0];
   const action = classify(req.method, path, req.user?.email);
   if (!action) return false;
 

@@ -179,6 +179,15 @@ export class AppointmentEngine {
 
     if (!room.active) throw badRequest("El consultorio asignado a ese horario está dado de baja");
 
+    // El mismo control que filtra la lista de horarios libres, otra vez al confirmar. La
+    // lista se arma una vez y el paciente puede tardar en elegir; entre medio el admin
+    // pudo cambiar el horario de la sucursal. Y sin esto el control vivía solo en lo que
+    // se muestra: una request armada a mano entraba igual.
+    if (initialHour < office.openingTime || finalHour > office.closingTime)
+      throw badRequest(
+        `La sucursal abre de ${office.openingTime} a ${office.closingTime}: a esa hora no hay nadie para atenderte`
+      );
+
     if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
       throw conflict("Ese horario ya está ocupado. Elegí otro");
 
@@ -223,6 +232,18 @@ export class AppointmentEngine {
 
     const availableSlots: Array<{ date: Date; initialHour: string; finalHour: string }> = [];
 
+    // La sucursal manda por encima del horario que tenga cargado el profesional. Los dos
+    // se editan por separado —el admin cambia el horario del edificio, el profesional sus
+    // módulos— y nadie vuelve a revisar al otro, así que un módulo de 08:00 sobrevive a
+    // que la sucursal pase a abrir 10:00. Ofrecerlo manda a alguien a una puerta cerrada.
+    const minutesOf = (hour: string) => {
+      const [hours, minutes] = String(hour ?? "").split(":").map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const officeOpens = minutesOf(office.openingTime);
+    const officeCloses = minutesOf(office.closingTime);
+
     const now = new Date();
 
     const today = new Date(now);
@@ -255,6 +276,15 @@ export class AppointmentEngine {
             if (isToday && currentMinutes < realCurrentMinutes) {
               currentMinutes += schedule.duration; // Avanza al siguiente slot
               continue; // Omite el resto del código y sigue con el próximo slot
+            }
+
+            // Se saltea el turno en vez de arrancar el bucle en la hora de apertura: al
+            // reservar se controla que la hora sea un múltiplo exacto de la duración
+            // contado desde el arranque del módulo, y correr el arranque ofrecería
+            // horarios que después el propio sistema rechaza.
+            if (currentMinutes < officeOpens || currentMinutes + schedule.duration > officeCloses) {
+              currentMinutes += schedule.duration;
+              continue;
             }
 
             const slotHours = Math.floor(currentMinutes / 60);

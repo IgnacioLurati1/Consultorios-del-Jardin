@@ -1,12 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import { AppointmentService } from "./appointments.service.js";
-import { sendError } from "../shared/errors.js";
+import { badRequest, sendError } from "../shared/errors.js";
 
 interface RequestWithUser extends Request {
   user?: any;
 }
 
 const appointmentService = new AppointmentService();
+
+/**
+ * El número de página que viene en la URL.
+ *
+ * Una página negativa terminaba en OFFSET negativo, que MySQL rechaza, y el usuario veía
+ * el cartel genérico de "algo salió mal" en vez de saber qué pidió mal. Una que no era un
+ * número entraba como NaN y se comportaba como la primera, callada.
+ */
+function pageFrom(value: unknown): number {
+  if (value === undefined || value === "") return 0;
+
+  const page = Number(value);
+  if (!Number.isInteger(page) || page < 0) throw badRequest("El número de página no es válido");
+
+  return page;
+}
 
 function sanitizeAppointmentInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -45,7 +61,7 @@ function wantsCancelled(req: RequestWithUser): boolean {
 async function getPatientAppointments(req: RequestWithUser, res: Response) {
   // Email is obtained from the authenticated user token
   try {
-    const page = Number.parseInt((req.params.page as string) || "0");
+    const page = pageFrom(req.params.page);
     const appointments = await appointmentService.findPatientAppointmentsByEmail(req.user.email, page, wantsCancelled(req));
     res.status(200).json({ data: appointments });
   } catch (error: any) {
@@ -88,7 +104,7 @@ async function getProfessionalAppointments(req: RequestWithUser, res: Response) 
   // Additionally, it populates the room and diagnostics data for each appointment
   try {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
-    const page = Number.parseInt((req.params.page as string) || "0");
+    const page = pageFrom(req.params.page);
     const appointments = await appointmentService.findProfessionalAppointmentsByEmail(req.user.email, page, wantsCancelled(req));
     res.status(200).json({ data: appointments });
   } catch (error: any) {
@@ -102,7 +118,7 @@ async function getAppointmentsByProfessional(req: RequestWithUser, res: Response
   try {
     if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
 
-    const page = Number.parseInt((req.params.page as string) || "0");
+    const page = pageFrom(req.params.page);
     // ?kind=overbooked | normal | all (por defecto, todos)
     const kind = req.query.kind === "overbooked" || req.query.kind === "normal" ? req.query.kind : "all";
 
