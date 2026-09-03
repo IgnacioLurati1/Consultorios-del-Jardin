@@ -8,7 +8,10 @@ import axios from "axios";
 // Desplegado no hay proxy —el front es un puñado de archivos estáticos— así que la
 // dirección del backend llega en VITE_API_URL al compilar. Sin eso, cada request pegaría
 // contra el propio dominio del front y volvería un 404.
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
+// `||` y no `??`: una variable declarada pero vacía llega como "" y no como undefined,
+// y `??` la dejaría pasar. El resultado sería una URL base vacía, o sea todas las
+// requests contra el propio dominio del front, que es exactamente lo que esto evita.
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 // Endpoints donde un 401 significa "los datos están mal", no "se venció la sesión".
 // Sin esta lista, un login fallido disparaba el refresh, el refresh también fallaba
