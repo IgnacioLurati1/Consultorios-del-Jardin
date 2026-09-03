@@ -50,36 +50,6 @@ const clientUrl = resolveClientUrl()
  * palabras. En local se deja pasar, porque ahí localhost es exactamente lo que se quiere.
  */
 if (!clientUrl && process.env.NODE_ENV === 'production') {
-    // Todo lo que hay en el ambiente, por nombre. Nunca los valores: adentro viven la
-    // contraseña de la base y las claves de los servicios, y esto va a un registro que
-    // queda guardado. Con los nombres alcanza para ver si una variable llegó o no.
-    console.error('')
-    console.error('Variables presentes en el contenedor (solo nombres):')
-    for (const name of Object.keys(process.env).sort()) console.error(`  ${name}`)
-
-    // Estas tres sí van con su valor: dicen a qué servicio, a qué ambiente y a qué commit
-    // corresponde este contenedor. Es lo primero a mirar cuando una variable está cargada
-    // en la pantalla y no aparece en la lista de arriba. No son secretas.
-    console.error('')
-    console.error('De qué deploy se trata:')
-    for (const name of ['RAILWAY_SERVICE_NAME', 'RAILWAY_ENVIRONMENT_NAME', 'RAILWAY_GIT_COMMIT_SHA']) {
-        console.error(`  ${name} = ${process.env[name] ?? '(no está)'}`)
-    }
-    console.error('')
-
-    // Y el valor de las candidatas a conexión, cortado. Los primeros caracteres alcanzan
-    // para ver todo lo que importa —si está vacía, si quedaron las llaves de una
-    // referencia sin resolver, si es el nombre de la base en vez de la cadena— y el
-    // largo confirma que no está truncada. Entera no, porque adentro va la contraseña
-    // de la base y esto queda escrito en el registro del servidor.
-    console.error('Qué traen las variables de conexión:')
-    for (const name of URL_VARS) {
-        const raw = process.env[name]
-        if (raw === undefined) continue
-        console.error(`  ${name} = "${raw.slice(0, 20)}${raw.length > 20 ? '…' : ''}" (${raw.length} caracteres)`)
-    }
-    console.error('')
-
     // Los nombres de lo que sí llegó, nunca los valores: alcanzan para ver si la variable
     // está y se llama distinto, o si directamente no está, y no arrastran la contraseña
     // a un registro que queda guardado.
