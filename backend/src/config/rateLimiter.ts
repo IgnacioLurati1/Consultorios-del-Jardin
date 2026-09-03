@@ -13,12 +13,18 @@ import rateLimit from "express-rate-limit";
  */
 const RELAX = process.env.NODE_ENV === "production" ? 1 : 20;
 
+/**
+ * Los cuatro contestan bajo la clave `message`, que es la que lee el front en cada
+ * pantalla. Con cualquier otra la persona veía el texto en inglés que arma axios solo
+ * —"Request failed with status code 429"— en lugar de lo que dice acá.
+ */
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // ventana de 15 minutos
   max: 500 * RELAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Demasiadas solicitudes, intentá más tarde.' },
+  message: { message: 'Demasiadas solicitudes, intentá más tarde.' },
 });
 
 // Diez intentos por minuto y por IP. La ventana corta es deliberada: frena de igual
@@ -31,7 +37,7 @@ const authLimiter = rateLimit({
   max: 10 * RELAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Demasiadas solicitudes, intentá más tarde.' },
+  message: { message: 'Probaste varias veces seguidas. Esperá un minuto y volvé a intentar.' },
 });
 
 // Consultas de solo lectura sin sesión (¿este email ya tiene cuenta?). Es más
@@ -43,7 +49,7 @@ const lookupLimiter = rateLimit({
   max: 60 * RELAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Demasiadas consultas, intentá más tarde.' },
+  message: { message: 'Demasiadas consultas, intentá más tarde.' },
 });
 
 // Formulario de contacto. Cada envío dispara mails de verdad, así que es la ruta
