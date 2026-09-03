@@ -50,6 +50,67 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Dónde guarda la web el refresh token.
+ *
+ * Antes no lo guardaba en ningún lado: llegaba en una cookie httpOnly que el JS de la
+ * página no podía leer, y el navegador la mandaba solo. Desplegada, la web y el backend
+ * quedaron en dominios distintos y esa cookie pasó a ser de terceros: Safari y Firefox
+ * la bloquean, así que en un iPhone la sesión moría a los quince minutos. Ahora el
+ * backend lo manda en el cuerpo, igual que a la app, y viaja de vuelta en un header.
+ */
+const REFRESH_KEY = "refreshToken";
+
+/**
+ * El refresh token llega en el cuerpo de cualquier respuesta que abra sesión —entrar,
+ * registrarse—. Guardarlo acá y no en cada pantalla evita que la próxima que abra
+ * sesión se olvide de hacerlo.
+ */
+function keepSessionFrom(data: any): void {
+  if (data && typeof data.refreshToken === "string" && data.refreshToken) {
+    localStorage.setItem(REFRESH_KEY, data.refreshToken);
+  }
+}
+
+/** Se va todo junto: un token de acceso sin el de refresh no sirve para nada. */
+export function clearSession(): void {
+  localStorage.removeItem("token");
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+/**
+ * Pide un token de acceso nuevo con el de refresh guardado. Devuelve el token, o null si
+ * no hay con qué pedirlo o el backend lo rechaza.
+ *
+ * La usa el arranque de la aplicación: el token de acceso dura quince minutos y el de
+ * refresh treinta días, así que sin esto volver a la página después de un rato era
+ * empezar de nuevo desde el login aunque la sesión siguiera viva.
+ *
+ * Va por `axios` pelado y no por `api`: el interceptor de `api` reacciona a un 401
+ * renovando la sesión, que es justo lo que estamos haciendo acá.
+ */
+export async function renewSession(): Promise<string | null> {
+  const refresh = localStorage.getItem(REFRESH_KEY);
+  if (!refresh) return null;
+
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, {
+      withCredentials: true,
+      headers: { ...CLIENT_HEADER, "X-Refresh-Token": refresh },
+    });
+
+    if (!data?.token) return null;
+
+    localStorage.setItem("token", data.token);
+    keepSessionFrom(data);
+    return data.token as string;
+  } catch {
+    // Vencido, revocado o la cuenta ya no está habilitada: no hay sesión que recuperar.
+    clearSession();
+    return null;
+  }
+}
+
 /** Dónde se guarda el motivo, para que el login lo pueda contar después de la patada. */
 export const LOCKOUT_KEY = "cierre-de-sesion";
 
@@ -67,7 +128,10 @@ function alreadyOnLogin(): boolean {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    keepSessionFrom(response.data);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
@@ -82,7 +146,7 @@ api.interceptors.response.use(
         // Sin sessionStorage el login muestra su texto por defecto, que dice lo mismo.
       }
 
-      localStorage.removeItem("token");
+      clearSession();
       if (!alreadyOnLogin()) window.location.href = LOGIN_URL;
 
       return Promise.reject(error);
@@ -92,12 +156,14 @@ api.interceptors.response.use(
       originalRequest._retry = true; // marca este request como retry
 
       try {
+        const refresh = localStorage.getItem(REFRESH_KEY);
         const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, {
           withCredentials: true,
-          headers: { ...CLIENT_HEADER },
+          headers: { ...CLIENT_HEADER, ...(refresh ? { "X-Refresh-Token": refresh } : {}) },
         });
 
         localStorage.setItem("token", data.token);
+        keepSessionFrom(data);
         // Reintenta **solo una vez**
         originalRequest.headers.Authorization = `Bearer ${data.token}`; //Actualiza el header del request original
         return api(originalRequest);
@@ -107,7 +173,7 @@ api.interceptors.response.use(
         } catch (logoutError) {
           console.error("Error cerrando sesión:", logoutError);
         } finally {
-          localStorage.removeItem("token");
+          clearSession();
           window.location.href = LOGIN_URL;
         }
       }

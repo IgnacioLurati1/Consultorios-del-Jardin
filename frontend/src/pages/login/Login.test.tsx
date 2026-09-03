@@ -5,6 +5,7 @@ import { Login } from "./Login";
 import { BrowserRouter } from "react-router-dom";
 import * as jwtDecodeModule from "jwt-decode";
 import * as AuthContextModule from "../../context/AuthContext";
+import { ThemeProvider } from "../../context/ThemeContext";
 import * as LoginServiceModule from "./loginServices";
 
 // --- MOCKS ---
@@ -27,6 +28,7 @@ vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
   login: mockedLoginContext,
   logout: vi.fn(),
   token: null,
+  restoring: false,
 });
 
 vi.mock("./loginServices", () => ({
@@ -39,10 +41,14 @@ describe("Login", () => {
     localStorage.clear();
   });
 
+  // El logo del formulario cambia con el tema, así que la pantalla necesita el proveedor
+  // del tema además del router. Sin él no se dibuja nada y fallan las siete pruebas.
   const renderComponent = () => {
     render(
       <BrowserRouter>
-        <Login />
+        <ThemeProvider>
+          <Login />
+        </ThemeProvider>
       </BrowserRouter>
     );
   };

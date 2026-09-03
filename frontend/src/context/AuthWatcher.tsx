@@ -7,14 +7,16 @@ interface AuthWatcherProps {
 }
 
 export function AuthWatcher({children}:AuthWatcherProps) {
-  const { token } = useAuth();
+  const { token, restoring } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!token) {
+    // Mientras se recupera la sesión no hay token todavía, y eso no quiere decir que no
+    // haya sesión: quiere decir que falta un instante para saberlo.
+    if (!token && !restoring) {
       navigate("/login");
     }
-  }, [token, navigate]);
+  }, [token, restoring, navigate]);
 
   return <>{children}</>; 
 }

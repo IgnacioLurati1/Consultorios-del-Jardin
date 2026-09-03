@@ -1,4 +1,5 @@
 import {Navigate} from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 
 interface PrivateRouteProps {
     allowedTypes: string[];
@@ -6,7 +7,13 @@ interface PrivateRouteProps {
 }
 
 export function PrivateRoutes({ allowedTypes, children }: PrivateRouteProps) {
-    const token = localStorage.getItem("token");
+    // El token sale del contexto y no de localStorage: cuando la sesión se recupera al
+    // abrir la aplicación, esto tiene que volver a dibujarse con el token nuevo.
+    const { token, restoring } = useAuth();
+
+    // Todavía se está averiguando si hay sesión. Mandar al login ahora sería echar a
+    // alguien que en un instante va a estar adentro.
+    if (restoring) return null;
     let userType : string | null = null;
 
     if (token) {
