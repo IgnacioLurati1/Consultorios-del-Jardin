@@ -4,18 +4,55 @@ import { MikroORM } from '@mikro-orm/core'
 import { SqlHighlighter } from '@mikro-orm/sql-highlighter'
 import { MySqlDriver } from '@mikro-orm/mysql'
 
+/** Los nombres con los que puede llegar la cadena de conexión entera. */
+const URL_VARS = ['DATABASE_URL', 'MYSQL_URL', 'MYSQL_DATABASE', 'MYSQLDATABASE']
+
 /**
- * La conexión sale de DATABASE_URL, y el nombre de la base sale de adentro de esa URL.
+ * Cómo llegar a la base.
  *
- * Escribir `dbName` acá además de la URL no es redundante: gana sobre lo que diga la
- * URL. En local no se notaba porque las dos decían `gardenOfficedb`, pero contra una
- * base creada por una plataforma —que le pone el nombre que quiere— el servidor se
- * conecta bien y después pide una base que no existe.
+ * No hay un solo nombre de variable posible: cada plataforma publica el suyo, y algunas
+ * no dejan elegirlo. Así que se busca la cadena de conexión en varios nombres y, si no
+ * aparece entera, se arma con las piezas sueltas.
  *
- * El nombre fijo queda solo para cuando no hay URL, que es el caso de quien clona el
- * repo y levanta MySQL en su máquina sin configurar nada.
+ * La condición para aceptar un valor es que empiece con `mysql://`, no que la variable
+ * se llame de cierta forma. Es la diferencia entre una cadena de conexión y el solo
+ * nombre de la base: hay variables que se llaman parecido y contienen una cosa o la
+ * otra, y tomar la equivocada terminaba en una conexión a localhost que nadie pidió.
  */
-const clientUrl = process.env.DATABASE_URL;
+function resolveClientUrl(): string | undefined {
+    for (const name of URL_VARS) {
+        const value = process.env[name]?.trim()
+        if (value && /^mysql:\/\//i.test(value)) return value
+    }
+
+    // Sin cadena entera, se arma con lo que haya suelto.
+    const host = process.env.MYSQLHOST
+    const user = process.env.MYSQLUSER
+    const database = process.env.MYSQLDATABASE ?? process.env.MYSQL_DATABASE
+
+    if (!host || !user || !database) return undefined
+
+    const password = encodeURIComponent(process.env.MYSQLPASSWORD ?? '')
+    const port = process.env.MYSQLPORT ?? '3306'
+
+    return `mysql://${encodeURIComponent(user)}:${password}@${host}:${port}/${database}`
+}
+
+const clientUrl = resolveClientUrl()
+
+/**
+ * Sin conexión configurada, MikroORM cae en localhost y el servidor muere con un
+ * "connect ECONNREFUSED 127.0.0.1:3306" que no dice qué falta. Desplegado eso no es un
+ * descuido recuperable: es que nadie cargó la variable, y conviene decirlo con esas
+ * palabras. En local se deja pasar, porque ahí localhost es exactamente lo que se quiere.
+ */
+if (!clientUrl && process.env.NODE_ENV === 'production') {
+    throw new Error(
+        `No hay conexión a la base configurada. Definí una variable con la cadena entera ` +
+            `(${URL_VARS.join(', ')}), con la forma mysql://usuario:contraseña@host:puerto/base, ` +
+            `o bien MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT y MYSQLDATABASE por separado.`
+    )
+}
 
 export const orm = await MikroORM.init({
     entities: ['dist/**/*.entity.js'],
