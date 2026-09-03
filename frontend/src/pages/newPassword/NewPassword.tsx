@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { FaCircleCheck, FaEye, FaEyeSlash, FaRegCircle, FaTriangleExclamation } from "react-icons/fa6";
 import { Toasts } from "../../components/toast/Toasts.tsx";
+import { API_BASE_URL } from "../../axios.ts";
 import { useLogo } from "../../lib/useLogo";
 import "./passwordPages.css";
 
@@ -39,10 +40,12 @@ export function NewPassword() {
     setSaving(true);
 
     // No va por `api`: su interceptor pone el token de la sesión en el header, y acá
-    // el que vale es el del link del mail. Son dos tokens distintos.
+    // el que vale es el del link del mail. Son dos tokens distintos. Pero la dirección
+    // del backend sí es la misma: escribirla a mano dejaba esta llamada —y solo esta—
+    // pegando contra el dominio del front, que desplegado no tiene backend detrás.
     axios
       .patch(
-        "/api/people/changePassword",
+        `${API_BASE_URL}/people/changePassword`,
         { password },
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       )
