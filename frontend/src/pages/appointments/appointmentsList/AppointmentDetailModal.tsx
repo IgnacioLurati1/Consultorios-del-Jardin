@@ -6,6 +6,18 @@ import { getPatientMedicalHistory } from "../appointmentsService.ts";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton.tsx";
 import { Modal } from "../../../components/modal/Modal.tsx";
 
+/**
+ * Cuánto entra en una observación.
+ *
+ * Es el mismo tope que la app, que ya cortaba en 600 y mostraba el contador. Sin esto el
+ * campo del navegador aceptaba lo que fuera, así que el mismo dato tenía dos límites
+ * distintos según por dónde se cargara.
+ *
+ * Seiscientos alcanzan para un plan o unas indicaciones. Lo que no entra es una historia
+ * clínica entera, que además el paciente lee de un renglón en su ficha del turno.
+ */
+const OBSERVATIONS_MAX = 600;
+
 interface AppointmentDetailModalProps {
   appointment: Appointment | undefined;
   user: Person;
@@ -368,10 +380,19 @@ export function AppointmentDetailModal({
                 <span>Observaciones</span>
                 <textarea
                   rows={4}
+                  maxLength={OBSERVATIONS_MAX}
                   value={observations}
-                  onChange={(e) => setObservations(e.target.value)}
+                  onChange={(e) => setObservations(e.target.value.slice(0, OBSERVATIONS_MAX))}
                   placeholder="Qué trabajaron y qué sigue hasta la próxima…"
                 />
+                {/* El contador aparece recién sobre el final: mientras sobra lugar es un
+                    número que no le sirve a nadie, y avisar cuando ya no entra más es
+                    tarde. */}
+                {observations.length >= OBSERVATIONS_MAX - 100 && (
+                  <small className={observations.length >= OBSERVATIONS_MAX ? "ui-hint appt-count-full" : "ui-hint"}>
+                    {observations.length} de {OBSERVATIONS_MAX} caracteres
+                  </small>
+                )}
               </label>
 
               {/* Antes esto no se le mostraba a nadie más y era fácil escribirlo como una

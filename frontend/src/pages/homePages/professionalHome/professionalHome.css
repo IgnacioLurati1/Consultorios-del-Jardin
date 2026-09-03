@@ -346,6 +346,61 @@
   animation: adm-enter 0.26s ease-out 0.08s backwards;
 }
 
+/* El renglón que abre una lista. Es un botón para que lo abra el Enter y no solo el
+   click, pero tiene que verse igual que el label de al lado: sin fondo, sin borde y con
+   el texto alineado a la izquierda como cualquier otro renglón. */
+.prof-setting-toggle {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.prof-setting-toggle:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -2px;
+}
+
+.prof-setting-caret {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: var(--adm-muted);
+  overflow: visible;
+  transition: transform 0.2s ease;
+}
+
+.prof-setting-caret.open {
+  transform: rotate(180deg);
+}
+
+/* ---------- avisos por mail ---------- */
+
+.prof-mail {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.prof-mail:hover {
+  background: var(--adm-surface-alt);
+  border-color: var(--adm-border-strong);
+}
+
+/* Un peso menos que el del renglón de arriba: adentro del desplegable el título es
+   "Avisos por mail" y estos son sus renglones, no otros tantos títulos. */
+.prof-mail-label {
+  font-weight: 600;
+  font-size: 0.97rem;
+}
+
 .prof-setting-inline {
   display: flex;
   align-items: center;

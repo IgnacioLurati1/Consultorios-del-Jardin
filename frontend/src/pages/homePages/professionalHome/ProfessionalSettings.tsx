@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { FaChevronRight, FaPlaneDeparture, FaRepeat, FaTrashCan } from "react-icons/fa6";
+import { FaChevronDown, FaChevronRight, FaEnvelope, FaPlaneDeparture, FaRepeat, FaTrashCan } from "react-icons/fa6";
 import { Link } from "react-router-dom";
 import { Modal } from "../../../components/modal/Modal";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton";
@@ -16,6 +16,7 @@ import {
   type AutoMark,
   type AutoMarkWhen,
   type DeleteScope,
+  type MailSetting,
   type ProfessionalSettings as Settings,
 } from "./settingsService";
 
@@ -78,6 +79,86 @@ function Switch({
 }
 
 /**
+ * Un renglón que se abre, con la misma caja que los switches de al lado.
+ *
+ * Lo que hay adentro no es una opción sino una lista, y una lista siempre desplegada
+ * arriba de las dos automatizaciones las empuja fuera de la pantalla. Cerrado ocupa un
+ * renglón y dice en qué estado está, que es lo que se mira de reojo.
+ */
+function Dropdown({
+  label,
+  description,
+  icon,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="prof-setting">
+      <button type="button" className="prof-setting-main prof-setting-toggle" aria-expanded={open} onClick={onToggle}>
+        <span className="prof-setting-icon" aria-hidden="true">
+          {icon}
+        </span>
+        <span className="prof-setting-text">
+          <span className="prof-setting-label">{label}</span>
+          <span className="prof-setting-desc">{description}</span>
+        </span>
+        <FaChevronDown className={`prof-setting-caret ${open ? "open" : ""}`} aria-hidden="true" />
+      </button>
+
+      <div className={`adm-collapsible ${open ? "open" : ""}`}>
+        <div>
+          <div className="prof-setting-extra" inert={!open}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Un aviso por mail, con su switch.
+ *
+ * El texto lo escribe el backend y no esta pantalla: el que sabe cuándo sale cada mail
+ * es el que lo manda, y si mañana deja de mandarse tiene que desaparecer de acá sin que
+ * nadie se acuerde de venir a borrarlo.
+ */
+function MailRow({
+  mail,
+  disabled,
+  onChange,
+}: {
+  mail: MailSetting;
+  disabled: boolean;
+  onChange: (enabled: boolean) => void;
+}) {
+  return (
+    <label className="prof-mail">
+      <span className="prof-setting-text">
+        <span className="prof-mail-label">{mail.label}</span>
+        <span className="prof-setting-desc">{mail.description}</span>
+      </span>
+      <input
+        type="checkbox"
+        className="prof-switch"
+        role="switch"
+        checked={mail.enabled}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+    </label>
+  );
+}
+
+/**
  * Lo que el consultorio hace solo, y las dos operaciones que no se pueden deshacer.
  *
  * Va al final del panel a propósito: son decisiones que se toman una vez y después se
@@ -86,6 +167,7 @@ function Switch({
 export function ProfessionalSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [mailsOpen, setMailsOpen] = useState(false);
   const [vacationsOpen, setVacationsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -97,7 +179,12 @@ export function ProfessionalSettings() {
 
   useEffect(load, []);
 
-  function save(data: { autoAccept?: boolean; autoMark?: AutoMark | null; autoMarkWhen?: AutoMarkWhen }) {
+  function save(data: {
+    autoAccept?: boolean;
+    autoMark?: AutoMark | null;
+    autoMarkWhen?: AutoMarkWhen;
+    mails?: Record<string, boolean>;
+  }) {
     setSaving(true);
     updateSettings(data)
       .then(setSettings)
@@ -121,6 +208,16 @@ export function ProfessionalSettings() {
   }
 
   const onVacation = settings?.vacations.find((vacation) => vacation.current);
+
+  // Cerrado, el renglón tiene que decir si hay algo apagado: es el único momento en que
+  // alguien se entera de que dejó de recibir un aviso hace tres meses.
+  const mutedMails = settings?.mails.filter((mail) => !mail.enabled).length ?? 0;
+  const mailsState =
+    mutedMails === 0
+      ? "Ahora te llegan todos."
+      : mutedMails === 1
+        ? "Apagaste uno."
+        : `Apagaste ${mutedMails}.`;
 
   return (
     <section className="prof-today">
@@ -233,6 +330,23 @@ export function ProfessionalSettings() {
                 Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.
               </p>
             </Switch>
+
+            <Dropdown
+              label="Avisos por mail"
+              description={`Cuáles te llegan a la casilla. ${mailsState}`}
+              icon={<FaEnvelope />}
+              open={mailsOpen}
+              onToggle={() => setMailsOpen(!mailsOpen)}
+            >
+              {settings.mails.map((mail) => (
+                <MailRow
+                  key={mail.key}
+                  mail={mail}
+                  disabled={saving}
+                  onChange={(enabled) => save({ mails: { [mail.key]: enabled } })}
+                />
+              ))}
+            </Dropdown>
 
             <div className="prof-setting-actions">
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setVacationsOpen(true)}>

@@ -13,6 +13,14 @@ export interface VacationPeriod {
   current: boolean;
 }
 
+/** Un aviso por mail que el profesional puede apagar. El texto lo arma el backend. */
+export interface MailSetting {
+  key: string;
+  label: string;
+  description: string;
+  enabled: boolean;
+}
+
 export interface ProfessionalSettings {
   autoAccept: boolean;
   autoMark: AutoMark | null;
@@ -20,6 +28,7 @@ export interface ProfessionalSettings {
   /** Pedidos esperando respuesta ahora mismo. */
   pending: number;
   vacations: VacationPeriod[];
+  mails: MailSetting[];
 }
 
 export function getSettings(): Promise<ProfessionalSettings> {
@@ -30,6 +39,8 @@ export function saveSettings(data: {
   autoAccept?: boolean;
   autoMark?: AutoMark | null;
   autoMarkWhen?: AutoMarkWhen;
+  /** Solo los avisos que se tocaron: los que no vengan quedan como estaban. */
+  mails?: Record<string, boolean>;
 }): Promise<ProfessionalSettings> {
   return api.patch("/settings", data).then((response) => response.data.data);
 }

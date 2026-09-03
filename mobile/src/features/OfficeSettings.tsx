@@ -21,6 +21,7 @@ import {
   type AutoMark,
   type AutoMarkWhen,
   type DeleteScope,
+  type MailSetting,
   type ProfessionalSettings,
 } from "../api/settings";
 import type { Person } from "../api/types";
@@ -72,6 +73,7 @@ export function OfficeSettings() {
 
   const [settings, setSettings] = useState<ProfessionalSettings | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mailsOpen, setMailsOpen] = useState(false);
   const [vacationsOpen, setVacationsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -83,7 +85,12 @@ export function OfficeSettings() {
 
   useEffect(load, [load]);
 
-  function save(data: { autoAccept?: boolean; autoMark?: AutoMark | null; autoMarkWhen?: AutoMarkWhen }) {
+  function save(data: {
+    autoAccept?: boolean;
+    autoMark?: AutoMark | null;
+    autoMarkWhen?: AutoMarkWhen;
+    mails?: Record<string, boolean>;
+  }) {
     setBusy(true);
     saveSettings(data)
       .then((next) => {
@@ -113,6 +120,10 @@ export function OfficeSettings() {
   if (!settings) return null;
 
   const onVacation = settings.vacations.find((vacation) => vacation.current);
+
+  // Cerrado, el renglón tiene que decir si hay algo apagado: es el único momento en que
+  // alguien se entera de que dejó de recibir un aviso hace tres meses.
+  const muted = settings.mails.filter((mail) => !mail.enabled).length;
 
   return (
     <Section title="Configuración">
@@ -151,6 +162,19 @@ export function OfficeSettings() {
               trackColor={{ true: colors.green, false: colors.border }}
             />
           }
+        />
+
+        <Row
+          title="Avisos por mail"
+          subtitle={
+            muted === 0
+              ? "Ahora te llegan todos"
+              : muted === 1
+                ? "Apagaste uno"
+                : `Apagaste ${muted}`
+          }
+          icon="envelope"
+          onPress={() => setMailsOpen(true)}
         />
 
         <Row
@@ -218,6 +242,14 @@ export function OfficeSettings() {
         </Reveal>
       ) : null}
 
+      <MailsSheet
+        visible={mailsOpen}
+        onClose={() => setMailsOpen(false)}
+        mails={settings.mails}
+        busy={busy}
+        onChange={(key, enabled) => save({ mails: { [key]: enabled } })}
+      />
+
       <VacationsSheet
         visible={vacationsOpen}
         onClose={() => setVacationsOpen(false)}
@@ -227,6 +259,55 @@ export function OfficeSettings() {
 
       <DeletePatientSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </Section>
+  );
+}
+
+/**
+ * Qué mails le llegan a la casilla.
+ *
+ * Los de la cuenta —contraseña, bienvenida, aviso de seguridad— no están: apagarlos
+ * dejaría a alguien sin poder volver a entrar o sin enterarse de que le tocaron la
+ * cuenta.
+ */
+function MailsSheet({
+  visible,
+  onClose,
+  mails,
+  busy,
+  onChange,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  mails: MailSetting[];
+  busy: boolean;
+  onChange: (key: string, enabled: boolean) => void;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title="Avisos por mail">
+      <View style={{ gap: space.lg, paddingBottom: space.md }}>
+        <Group>
+          {mails.map((mail, index) => (
+            <Row
+              key={mail.key}
+              title={mail.label}
+              subtitle={mail.description}
+              icon="envelope"
+              last={index === mails.length - 1}
+              right={
+                <Switch
+                  value={mail.enabled}
+                  disabled={busy}
+                  onValueChange={(value) => onChange(mail.key, value)}
+                  trackColor={{ true: colors.green, false: colors.border }}
+                />
+              }
+            />
+          ))}
+        </Group>
+      </View>
+    </Sheet>
   );
 }
 

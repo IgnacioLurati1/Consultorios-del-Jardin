@@ -423,3 +423,10 @@
   margin-top: 8px;
   color: var(--adm-muted);
 }
+
+/* El contador de la observación cuando ya no entra nada más. Ámbar y no rojo: no hay
+   ningún error, solo se llegó al tope. */
+.appt-count-full {
+  color: var(--adm-warn);
+  font-weight: 600;
+}

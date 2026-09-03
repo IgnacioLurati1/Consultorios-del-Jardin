@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { longDate, sentenceCase } from "../lib/dates";
+import { longDate, sentenceCase, today } from "../lib/dates";
 import { palette, radius, SCREEN_PADDING, space, TOUCH } from "../theme/tokens";
 import { AppText } from "./Text";
 
@@ -44,7 +44,11 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
       </View>
 
       <AppText variant="display" tone="cream">
-        {sentenceCase(longDate(new Date()))}
+        {/* today() antes de formatear, y no un Date a secas: los formateadores de
+            lib/dates leen en UTC —es lo que necesitan las fechas de turno, que vienen
+            sin hora— y en Argentina eso adelanta el día a partir de las nueve de la
+            noche. El encabezado decía mañana todas las noches. */}
+        {sentenceCase(longDate(today()))}
       </AppText>
 
       {children}

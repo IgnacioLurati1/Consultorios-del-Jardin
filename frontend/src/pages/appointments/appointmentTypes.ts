@@ -89,10 +89,28 @@ export function formatShortDate(date: Date): string {
   return new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(date);
 }
 
+/**
+ * "1 al 7 · septiembre de 2026", y cuando la semana cambia de mes, "31 ago al 6 sept ·
+ * 2026".
+ *
+ * El mes al final solo aparece cuando los siete días caen adentro del mismo. Antes se
+ * ponía siempre, y salía del lunes: la semana del 31 de agosto al 6 de septiembre se
+ * titulaba "agosto de 2026" con seis días de septiembre adentro. Cuando la semana se
+ * parte, el mes ya está dicho en los dos extremos y repetirlo solo puede mentir.
+ */
 export function formatWeekRange(monday: Date): string {
   const sunday = addDays(monday, 6);
   const sameMonth = monday.getMonth() === sunday.getMonth();
-  const fmt = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: sameMonth ? undefined : "short" });
-  const month = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(monday);
-  return `${fmt.format(monday)} al ${new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(sunday)} · ${month}`;
+  const sameYear = monday.getFullYear() === sunday.getFullYear();
+
+  const from = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: sameMonth ? undefined : "short" }).format(monday);
+  const to = new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(sunday);
+
+  const tail = sameMonth
+    ? new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(monday)
+    : sameYear
+      ? String(monday.getFullYear())
+      : `${monday.getFullYear()} – ${sunday.getFullYear()}`;
+
+  return `${from} al ${to} · ${tail}`;
 }

@@ -29,6 +29,10 @@ function format(value: string | Date, options: Intl.DateTimeFormatOptions): stri
  *
  * El formateador del sistema mete una coma despues del dia de la semana ("jueves, 4 de
  * septiembre"), que en castellano no va en esta construccion.
+ *
+ * Va una fecha del backend, no un momento: como todo lo de acá se lee en UTC, pasarle
+ * `new Date()` devuelve el día siguiente desde las nueve de la noche hora argentina.
+ * Para el día de hoy, `longDate(today())`.
  */
 export function longDate(value: string | Date): string {
   return format(value, { weekday: "long", day: "numeric", month: "long" }).replace(",", "");
