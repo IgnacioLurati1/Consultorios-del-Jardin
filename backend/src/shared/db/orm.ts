@@ -21,7 +21,10 @@ const URL_VARS = ['DATABASE_URL', 'MYSQL_URL', 'MYSQL_DATABASE', 'MYSQLDATABASE'
  */
 function resolveClientUrl(): string | undefined {
     for (const name of URL_VARS) {
-        const value = process.env[name]?.trim()
+        // Las comillas se sacan porque un valor copiado de un archivo .env se pega con
+        // ellas puestas, y entonces no empieza con "mysql://" sino con una comilla: el
+        // valor es correcto y aun así se descarta.
+        const value = process.env[name]?.trim().replace(/^["']|["']$/g, '')
         if (value && /^mysql:\/\//i.test(value)) return value
     }
 
