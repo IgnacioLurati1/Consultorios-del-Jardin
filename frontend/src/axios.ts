@@ -53,6 +53,19 @@ api.interceptors.request.use((config) => {
 /** Dónde se guarda el motivo, para que el login lo pueda contar después de la patada. */
 export const LOCKOUT_KEY = "cierre-de-sesion";
 
+// A dónde se manda a alguien cuando se le corta la sesión.
+//
+// No alcanza con "/login": publicada, la aplicación no vive en la raíz del dominio sino
+// bajo el nombre del repositorio, y una dirección absoluta se sale de la aplicación y
+// cae en el 404 del hosting. BASE_URL es ese prefijo, y en desarrollo es "/", así que la
+// misma cuenta sirve en los dos lados.
+const LOGIN_URL = `${import.meta.env.BASE_URL.replace(/\/+$/, "")}/Login`;
+
+/** Ya estamos en el login: recargar solo borraría el mensaje que se acaba de guardar. */
+function alreadyOnLogin(): boolean {
+  return window.location.pathname.toLowerCase().startsWith(LOGIN_URL.toLowerCase());
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -70,7 +83,7 @@ api.interceptors.response.use(
       }
 
       localStorage.removeItem("token");
-      if (!window.location.pathname.startsWith("/login")) window.location.href = "/login";
+      if (!alreadyOnLogin()) window.location.href = LOGIN_URL;
 
       return Promise.reject(error);
     }
@@ -95,7 +108,7 @@ api.interceptors.response.use(
           console.error("Error cerrando sesión:", logoutError);
         } finally {
           localStorage.removeItem("token");
-          window.location.href = "/login";
+          window.location.href = LOGIN_URL;
         }
       }
     }

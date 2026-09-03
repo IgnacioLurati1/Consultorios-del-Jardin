@@ -2,6 +2,12 @@ import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { FaHouse, FaLeaf, FaRepeat } from "react-icons/fa6";
 import "./ErrorPage.css";
 
+// La aplicación no siempre vive en la raíz del dominio: publicada cuelga del nombre del
+// repositorio. Estos dos links recargan la página entera a propósito —es la forma de salir
+// de un router roto— y por eso no pueden pasar por el router: hay que ponerles el prefijo
+// a mano o terminan en el 404 del hosting, fuera de la aplicación.
+const HOME = import.meta.env.BASE_URL;
+
 /** El texto crudo del error, para que sirva si alguien nos lo copia y pega. */
 function detailOf(error: unknown): string {
   if (isRouteErrorResponse(error)) return `${error.status} ${error.statusText}`;
@@ -40,7 +46,7 @@ export function ErrorPage() {
             <FaRepeat aria-hidden="true" />
             Volver a cargar
           </button>
-          <a className="er-btn" href="/">
+          <a className="er-btn" href={HOME}>
             <FaHouse aria-hidden="true" />
             Ir al inicio
           </a>
@@ -50,7 +56,7 @@ export function ErrorPage() {
           <summary>Ver el detalle técnico</summary>
           <code>{detailOf(error)}</code>
           <p className="er-detail-note">
-            Si vuelve a pasar, copiá esta línea y <a href="/contacto">contanos</a>.
+            Si vuelve a pasar, copiá esta línea y <a href={`${HOME}contacto`}>contanos</a>.
           </p>
         </details>
       </div>
