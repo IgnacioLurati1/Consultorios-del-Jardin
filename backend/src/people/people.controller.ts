@@ -82,7 +82,7 @@ async function findAll(req: Request, res: Response) {
     const safeData = people.map((person) => ({ ...person, password: undefined })); // no devolvemos la contraseña al front
     res.status(200).json({ message: "Personas encontradas", data: safeData });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -92,7 +92,7 @@ async function findAllPerType(req: Request, res: Response) {
     const safeData = people.map((person) => ({ ...person, password: undefined }));
     res.status(200).json({ message: `Personas encontradas del tipo ${req.params.peopleType}`, data: safeData });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -102,7 +102,7 @@ async function findAllPerTypeActive(req: Request, res: Response) {
     const safeData = people.map((person) => ({ ...person, password: undefined }));
     res.status(200).json({ message: `Personas activas encontradas del tipo ${req.params.peopleType}`, data: safeData });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -112,7 +112,7 @@ async function findAllNoAdmin(req: Request, res: Response) {
     const safeData = people.map((person) => ({ ...person, password: undefined }));
     res.status(200).json({ message: `Personas no administrador encontradas`, data: safeData });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -123,7 +123,7 @@ async function findProfesionalByOffice(req: Request, res: Response) {
     const safeData = people.map((person) => ({ ...person, password: undefined }));
     res.status(200).json({ message: "Personas profesionales encontradas en el consultorio", data: safeData });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -133,7 +133,7 @@ async function findOne(req: Request, res: Response) {
     const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
     res.status(200).json({ message: "Persona encontrada", data: safeData });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -255,7 +255,7 @@ async function remove(req: Request, res: Response) {
     }
     return res.status(401).json({ message: "La persona no puede ser removida" });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -297,7 +297,7 @@ async function loginWithEmailAndPassword(req: Request, res: Response) {
 
     res.status(200).json({ message: "Login exitoso", token, ...session });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 

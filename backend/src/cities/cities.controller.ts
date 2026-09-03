@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { CityService } from "./cities.service.js";
 import { wrap } from "@mikro-orm/core";
+import { sendError } from "../shared/errors.js";
 
 const cityService = new CityService();
 
@@ -26,7 +27,7 @@ export async function findAll(req: Request, res: Response) {
     const cities = await cityService.findAllCities();
     res.status(200).json({ message: "Localidades encontradas", data: cities });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -35,7 +36,7 @@ export async function findAllActive(req: Request, res: Response) {
     const cities = await cityService.findAllActiveCities();
     res.status(200).json({ message: "Localidades activas encontradas", data: cities });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -45,7 +46,7 @@ export async function findOne(req: Request, res: Response) {
     const city = await cityService.findCityById(id);
     res.status(200).json({ message: "Localidad encontrada", data: city });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -57,7 +58,7 @@ export async function add(req: Request, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "La localidad ya existe en esa provincia" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -70,7 +71,7 @@ export async function update(req: Request, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "La localidad ya existe en esa provincia" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -80,6 +81,6 @@ export async function toggleCityState(req: Request, res: Response) {
     const city = await cityService.toggleCityState(idCity);
     res.status(200).json({ message: "Estado de la localidad y consultorios actualizado", data: city });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }

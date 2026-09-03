@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ProvinceService } from "./provinces.service.js";
+import { sendError } from "../shared/errors.js";
 
 function sanitizeProvinceInput(req: Request, res: Response, next: NextFunction) {
   req.body.sanitizedInput = {
@@ -24,7 +25,7 @@ async function findAll(req: Request, res: Response) {
     const provinces = await provinceService.findAllProvinces();
     res.status(200).json({ message: "Provincias encontradas", data: provinces });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -33,7 +34,7 @@ export async function findAllActive(req: Request, res: Response) {
     let provinces = await provinceService.findAllActiveProvinces();
     res.status(200).json({ message: "Provincias activas encontradas", data: provinces });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -43,7 +44,7 @@ async function findOne(req: Request, res: Response) {
     const province = await provinceService.findProvinceById(id);
     res.status(200).json({ message: "Provincia encontrada", data: province });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -55,7 +56,7 @@ async function add(req: Request, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "La provincia ya existe" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -69,7 +70,7 @@ async function update(req: Request, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "La provincia ya existe" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -79,7 +80,7 @@ async function toggleProvinceState(req: Request, res: Response) {
     const province = await provinceService.toggleProvinceState(id);
     res.status(200).json({ message: "Provincia y ciudades actualizadas", data: province });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 

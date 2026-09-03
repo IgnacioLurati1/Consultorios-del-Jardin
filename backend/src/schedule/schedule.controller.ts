@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ScheduleService } from "./schedule.service.js";
+import { sendError } from "../shared/errors.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -30,7 +31,7 @@ async function findAll(req: Request, res: Response) {
     const schedules = await scheduleService.findAllSchedules();
     res.status(200).json({ message: "Horarios encontrados", data: schedules });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -44,7 +45,7 @@ async function findOne(req: Request, res: Response) {
     const schedule = await scheduleService.findScheduleByPK(day, initialHour, person);
     res.status(200).json({ message: "Horario encontrado", data: schedule });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -54,7 +55,7 @@ async function findByProfesionalLogged(req: RequestWithUser, res: Response) {
     const schedule = await scheduleService.findScheduleByEmail(email);
     res.status(200).json({ message: "Horarios del profesional encontrado", data: schedule });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -65,7 +66,7 @@ async function findByEmail(req: Request, res: Response) {
     const schedule = await scheduleService.findScheduleByEmail(email);
     res.status(200).json({ message: "Horario encontrado", data: schedule });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -75,7 +76,7 @@ async function findByRoom(req: Request, res: Response) {
     const schedules = await scheduleService.findSchedulesByRoom(idRoom);
     res.status(200).json({ message: "Horarios del consultorio encontrados", data: schedules });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -97,7 +98,7 @@ async function add(req: RequestWithUser, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "El horario ya existe" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -114,7 +115,7 @@ async function update(req: RequestWithUser, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "El horario ya existe" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -129,7 +130,7 @@ async function remove(req: RequestWithUser, res: Response) {
     await scheduleService.removeSchedule(day, initialHour, person);
     res.status(200).json({ message: "Horario eliminado" });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 /*
@@ -141,7 +142,7 @@ async function toggleScheduleState(req: Request, res: Response) {
     res.status(200).json({ message: 'Estado actualizado', data: schedule })
 
   } catch (error : any) {
-    res.status(500).json({ message : error.message })
+    sendError(res, error)
   }
 }
 */

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { RoomService } from "./rooms.service.js";
 import { wrap } from "@mikro-orm/core";
+import { sendError } from "../shared/errors.js";
 
 const roomService = new RoomService();
 
@@ -25,7 +26,7 @@ async function findAll(req: Request, res: Response) {
     let rooms = await roomService.findAllRooms();
     res.status(200).json({ message: "Consultorios encontrados", data: rooms });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -34,7 +35,7 @@ async function findAllActive(req: Request, res: Response) {
     let rooms = await roomService.findAllActiveRooms();
     res.status(200).json({ message: "Consultorios activos encontrados", data: rooms });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -44,7 +45,7 @@ async function findOne(req: Request, res: Response) {
     const room = await roomService.findRoomById(id);
     res.status(200).json({ message: "Consultorio encontrado", data: room });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -55,7 +56,7 @@ async function findRoomsByOfficeAndProfessional(req: Request, res: Response) {
     const rooms = await roomService.findRoomsByOfficeAndProfessional(officeId, professionalEmail);
     res.status(200).json({ message: "Consultorios encontrados para la sucursal y el profesional", data: rooms });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -67,7 +68,7 @@ async function add(req: Request, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "Ese consultorio ya existe" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -80,7 +81,7 @@ async function update(req: Request, res: Response) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
       return res.status(409).json({ message: "Ese consultorio ya existe" });
     }
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
@@ -90,7 +91,7 @@ async function toggleRoomState(req: Request, res: Response) {
     const room = await roomService.toggleRoomState(id);
     res.status(200).json({ message: "Estado del consultorio actualizado", data: room });
   } catch (error: any) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 }
 
