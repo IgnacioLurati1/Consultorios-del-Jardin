@@ -47,10 +47,22 @@ const clientUrl = resolveClientUrl()
  * palabras. En local se deja pasar, porque ahí localhost es exactamente lo que se quiere.
  */
 if (!clientUrl && process.env.NODE_ENV === 'production') {
+    // Los nombres de lo que sí llegó, nunca los valores: alcanzan para ver si la variable
+    // está y se llama distinto, o si directamente no está, y no arrastran la contraseña
+    // a un registro que queda guardado.
+    const presentes = Object.keys(process.env)
+        .filter((name) => /mysql|database|db_/i.test(name))
+        .sort()
+
+    const encontradas = presentes.length
+        ? `Variables con pinta de base que sí llegaron: ${presentes.join(', ')}.`
+        : `No llegó ninguna variable con pinta de base de datos.`
+
     throw new Error(
         `No hay conexión a la base configurada. Definí una variable con la cadena entera ` +
             `(${URL_VARS.join(', ')}), con la forma mysql://usuario:contraseña@host:puerto/base, ` +
-            `o bien MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT y MYSQLDATABASE por separado.`
+            `o bien MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT y MYSQLDATABASE por separado. ` +
+            encontradas
     )
 }
 
