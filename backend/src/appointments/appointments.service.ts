@@ -450,18 +450,24 @@ export class AppointmentService {
     return appointment;
   }
 
-  isValidDate(date: Date): boolean {
-    const inputDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    inputDate.setHours(0, 0, 0, 0);
-    return !isNaN(inputDate.getTime()) && inputDate >= today;
+  /**
+   * Que la fecha sea de hoy o de más adelante.
+   *
+   * Pasa por `startOfDay` y no por `new Date(fecha)` porque un "AAAA-MM-DD" pelado se
+   * interpreta como medianoche UTC, que en UTC-3 cae el día anterior a las nueve de la
+   * noche: comparado contra hoy, un turno para hoy quedaba "en una fecha que ya pasó" y
+   * no entraba ninguno de los horarios que la propia lista ofrecía. El motor ya parseaba
+   * bien la misma cadena; era esta comparación la que leía otro día.
+   */
+  isValidDate(date: Date | string): boolean {
+    const day = startOfDay(date);
+    return !Number.isNaN(day.getTime()) && day >= startOfDay(new Date());
   }
 
   // Separa los dos motivos por los que una fecha puede no servir, para poder decirle al
   // usuario cual de los dos le paso. Un turno de hoy mas tarde sigue siendo valido.
-  private assertBookableDate(date: Date) {
-    if (Number.isNaN(new Date(date).getTime())) throw badRequest("La fecha del turno no es válida");
+  private assertBookableDate(date: Date | string) {
+    if (Number.isNaN(startOfDay(date).getTime())) throw badRequest("La fecha del turno no es válida");
     if (!this.isValidDate(date)) throw badRequest("No se puede sacar un turno en una fecha que ya pasó");
   }
 
