@@ -43,6 +43,18 @@ jobs:
 
       - run: npm ci
 
+      - name: Comprobar que está la dirección del backend
+        # Sin esta variable el sitio compila igual y se publica igual: lo único que pasa
+        # es que cada pedido sale contra el propio dominio de Pages, que no tiene backend
+        # detrás, y nada funciona. Es la clase de error que no se ve hasta que alguien
+        # intenta entrar, así que se falla acá, con el motivo escrito.
+        run: |
+          if [ -z "${{ vars.VITE_API_URL }}" ]; then
+            echo "Falta la variable VITE_API_URL del repositorio (Settings -> Secrets and variables -> Actions -> Variables)."
+            echo "Tiene que ser la dirección del backend terminada en /api."
+            exit 1
+          fi
+
       - name: Construir
         run: npm run build
         env:
