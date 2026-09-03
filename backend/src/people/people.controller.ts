@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
 import { sendError } from "../shared/errors.js";
-import { clientChannel, isMobileClient } from "../config/clients.js";
+import { clientChannel } from "../config/clients.js";
 import { describeLockout } from "../config/middlewares.js";
 
 dotenv.config();
@@ -60,18 +60,20 @@ const REFRESH_COOKIE_OPTIONS =
     : ({ httpOnly: true, secure: false, sameSite: "lax" } as const);
 
 /**
- * Entrega el refresh token por la vía que le sirve a cada cliente: cookie para el
- * navegador, cuerpo de la respuesta para la app, que lo guarda en el llavero del
- * sistema. Devuelve lo que hay que sumarle al JSON.
+ * Entrega el refresh token en el cuerpo de la respuesta, para los dos clientes.
  *
- * Uno solo de los dos caminos se usa por request: al navegador no se le manda el token
- * en el cuerpo, donde cualquier script de la página podría leerlo.
+ * Antes el navegador lo recibía en una cookie httpOnly, que el JS de la página no puede
+ * leer: mejor defensa ante un XSS. Dejó de servir al desplegar. La web y el backend
+ * quedaron en dominios distintos, así que esa cookie pasó a ser de terceros, y Safari y
+ * Firefox las bloquean: en un iPhone la sesión se cortaba a los quince minutos, cuando
+ * vence el token de acceso, sin forma de renovarla.
+ *
+ * El precio está asumido: en el navegador el token queda al alcance de un script, igual
+ * que el de acceso, que ya vivía ahí. Se recupera entero el día que la web y el backend
+ * compartan dominio; ahí alcanza con volver a poner la cookie acá.
  */
-function deliverRefreshToken(req: Request, res: Response, refreshToken: string): Record<string, string> {
-  if (isMobileClient(req)) return { refreshToken };
-
-  res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
-  return {};
+function deliverRefreshToken(_req: Request, _res: Response, refreshToken: string): Record<string, string> {
+  return { refreshToken };
 }
 
 async function findAll(req: Request, res: Response) {

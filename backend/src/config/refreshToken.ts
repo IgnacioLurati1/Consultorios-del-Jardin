@@ -16,20 +16,19 @@ interface AuthRequest extends Request {
 }
 
 /**
- * En el navegador el refresh token viaja en la cookie httpOnly, para que el JS de la
- * página no pueda leerlo (defensa ante XSS): por eso el front llama a este endpoint con
- * withCredentials. La app nativa no tiene cookies, así que lo manda en un header; lo
- * guarda en el llavero del sistema, que es su equivalente del httpOnly.
+ * Los dos clientes mandan el refresh token en un header: la app lo saca del llavero del
+ * sistema y la web de su propio almacenamiento. Ver deliverRefreshToken en el
+ * controlador de personas, que explica por qué el navegador dejó de usar la cookie.
  *
- * El endpoint no cambia según quién llame: acepta las dos formas y valida igual. La
- * cookie tiene prioridad, así el navegador nunca depende de un header que podría llegar
- * pisado.
+ * La cookie se sigue aceptando, y de segunda: hay sesiones abiertas de antes que todavía
+ * la tienen, y son válidas hasta que venzan. Va segunda y no primera justamente por eso
+ * —una cookie vieja no puede tapar el token que el cliente está mandando recién ahora—.
  */
 function readRefreshToken(req: AuthRequest): string | undefined {
-  if (req.cookies?.refreshToken) return req.cookies.refreshToken;
-
   const fromHeader = req.headers?.[REFRESH_TOKEN_HEADER];
-  return typeof fromHeader === "string" && fromHeader.length > 0 ? fromHeader : undefined;
+  if (typeof fromHeader === "string" && fromHeader.length > 0) return fromHeader;
+
+  return req.cookies?.refreshToken;
 }
 
 export default function refreshToken(req: AuthRequest, res: Response) {

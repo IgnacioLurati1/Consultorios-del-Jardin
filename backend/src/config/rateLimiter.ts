@@ -21,8 +21,13 @@ const generalLimiter = rateLimit({
   message: { error: 'Demasiadas solicitudes, intentá más tarde.' },
 });
 
+// Diez intentos por minuto y por IP. La ventana corta es deliberada: frena de igual
+// forma a quien prueba contraseñas —que necesita miles, no diez— pero a alguien que se
+// equivocó de tecla lo deja reintentando en menos de lo que tarda en releer el mail,
+// en vez de dejarlo afuera diez minutos. La misma ventana cubre renovar la sesión, que
+// desde una red compartida son varias personas sumando contra la misma IP.
 const authLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // ventana de 10 minutos
+  windowMs: 60 * 1000, // ventana de 1 minuto
   max: 10 * RELAX,
   standardHeaders: true,
   legacyHeaders: false,
