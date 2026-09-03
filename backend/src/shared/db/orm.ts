@@ -50,6 +50,23 @@ const clientUrl = resolveClientUrl()
  * palabras. En local se deja pasar, porque ahí localhost es exactamente lo que se quiere.
  */
 if (!clientUrl && process.env.NODE_ENV === 'production') {
+    // Todo lo que hay en el ambiente, por nombre. Nunca los valores: adentro viven la
+    // contraseña de la base y las claves de los servicios, y esto va a un registro que
+    // queda guardado. Con los nombres alcanza para ver si una variable llegó o no.
+    console.error('')
+    console.error('Variables presentes en el contenedor (solo nombres):')
+    for (const name of Object.keys(process.env).sort()) console.error(`  ${name}`)
+
+    // Estas tres sí van con su valor: dicen a qué servicio, a qué ambiente y a qué commit
+    // corresponde este contenedor. Es lo primero a mirar cuando una variable está cargada
+    // en la pantalla y no aparece en la lista de arriba. No son secretas.
+    console.error('')
+    console.error('De qué deploy se trata:')
+    for (const name of ['RAILWAY_SERVICE_NAME', 'RAILWAY_ENVIRONMENT_NAME', 'RAILWAY_GIT_COMMIT_SHA']) {
+        console.error(`  ${name} = ${process.env[name] ?? '(no está)'}`)
+    }
+    console.error('')
+
     // Los nombres de lo que sí llegó, nunca los valores: alcanzan para ver si la variable
     // está y se llama distinto, o si directamente no está, y no arrastran la contraseña
     // a un registro que queda guardado.
