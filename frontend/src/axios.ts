@@ -1,9 +1,14 @@
 import axios from "axios";
 
-// Sin deploy: el back siempre corre en localhost:3000 y el front le pega a /api
-// a través del proxy de Vite (ver vite.config.ts). Al ser same-origin, la cookie
-// httpOnly del refresh token viaja sola.
-const API_BASE_URL = "/api";
+// Dónde está el backend.
+//
+// En desarrollo, "/api" a secas: el proxy de Vite lo redirige a localhost:3000 (ver
+// vite.config.ts), y al ser same-origin la cookie httpOnly del refresh token viaja sola.
+//
+// Desplegado no hay proxy —el front es un puñado de archivos estáticos— así que la
+// dirección del backend llega en VITE_API_URL al compilar. Sin eso, cada request pegaría
+// contra el propio dominio del front y volvería un 404.
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 
 // Endpoints donde un 401 significa "los datos están mal", no "se venció la sesión".
 // Sin esta lista, un login fallido disparaba el refresh, el refresh también fallaba
@@ -23,6 +28,11 @@ const CLIENT_HEADER = { "X-Client": "web" } as const;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  // Con el backend en otro dominio, el navegador no manda ni recibe cookies salvo que se
+  // le pida. Sin esto la cookie del refresh nunca se guarda y la sesión se corta a los
+  // quince minutos, cuando vence el token de acceso. En local no cambia nada: same-origin
+  // ya las mandaba.
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
     ...CLIENT_HEADER,

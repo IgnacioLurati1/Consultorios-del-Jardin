@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages sirve el sitio colgado del nombre del repo
+  // (usuario.github.io/Consultorios-del-Jardin/), no de la raíz del dominio. Sin esto
+  // el HTML pide sus propios archivos a /assets/... y el servidor no encuentra ninguno:
+  // la página carga en blanco. Llega al compilar, así que en desarrollo sigue en "/".
+  base: process.env.VITE_BASE ?? "/",
   plugins: [react()],
   server: {
     proxy: {

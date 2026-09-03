@@ -150,7 +150,12 @@ const router = createBrowserRouter([
       { path: "*", element: <NotFoundPage /> },
     ],
   },
-]);
+], {
+  // La dirección del sitio no arranca en la raíz del dominio cuando se publica colgado
+  // del nombre del repo. Vite deja acá el mismo prefijo que usó para los archivos, así
+  // que las rutas del router y las de los assets no se pueden ir cada una por su lado.
+  basename: import.meta.env.BASE_URL,
+});
 
 function App() {
   return <RouterProvider router={router} />;
