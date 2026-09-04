@@ -1,17 +1,38 @@
 import { FaCalendarAlt, FaClipboardList, FaUserInjured } from "react-icons/fa";
-import { FaArrowRight, FaChartColumn, FaChevronLeft, FaChevronRight, FaRegClock } from "react-icons/fa6";
+import {
+  FaArrowRight,
+  FaChartColumn,
+  FaCheck,
+  FaChevronDown,
+  FaChevronLeft,
+  FaChevronRight,
+  FaRegClock,
+} from "react-icons/fa6";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { findPerson, getDecodedToken } from "../../commonServices";
-import { findPendingAppointments, findProfessionalAppointmentsInRange } from "../../appointments/appointmentsService.ts";
+import {
+  findPendingAppointments,
+  findProfessionalAppointmentsInRange,
+  findUnpaidAppointments,
+} from "../../appointments/appointmentsService.ts";
 import { useAppointmentActions } from "../../appointments/useAppointmentActions.ts";
 import { AppointmentDetailModal } from "../../appointments/appointmentsList/AppointmentDetailModal.tsx";
-import { appointmentDate, describeState, formatDayLabel, shortHour, toISODate } from "../../appointments/appointmentTypes.ts";
+import {
+  appointmentDate,
+  describePayment,
+  describeState,
+  formatDayLabel,
+  pendingAmount,
+  shortHour,
+  toISODate,
+} from "../../appointments/appointmentTypes.ts";
 import type { Appointment, Person } from "../../types";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton";
 import { ProfessionalSettings } from "./ProfessionalSettings.tsx";
+import { acceptPendingAppointments } from "./settingsService.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import "./professionalHome.css";
@@ -56,6 +77,11 @@ export function ProfessionalHome() {
   const [today, setToday] = useState<Appointment[] | null>(null);
   const [pending, setPending] = useState<Appointment[] | null>(null);
   const [pendingPage, setPendingPage] = useState(0);
+  const [accepting, setAccepting] = useState(false);
+  const [unpaid, setUnpaid] = useState<Appointment[] | null>(null);
+  // Arranca cerrada. Es una cuenta pendiente, no algo que haya que hacer hoy: se abre
+  // cuando uno viene a reclamar, y mientras tanto alcanza con el número del renglón.
+  const [unpaidOpen, setUnpaidOpen] = useState(false);
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -94,9 +120,38 @@ export function ProfessionalHome() {
 
   useEffect(loadPending, []);
 
+  // Lo que ya se atendió y todavía no se cobró. Va junto con lo demás porque cobrar un
+  // turno desde su ficha lo saca de esta lista.
+  function loadUnpaid() {
+    findUnpaidAppointments()
+      .then(setUnpaid)
+      .catch(() => setUnpaid([]));
+  }
+
+  useEffect(loadUnpaid, []);
+
   function refresh() {
     loadToday();
     loadPending();
+    loadUnpaid();
+  }
+
+  /**
+   * Confirma de una todos los pedidos que están esperando.
+   *
+   * No tiene nada que ver con la confirmación automática, que vale para lo que entre de
+   * acá en adelante: esto se lleva puesto lo que ya está en la lista, y por eso el botón
+   * vive acá arriba y no en la configuración.
+   */
+  function acceptAll() {
+    setAccepting(true);
+    acceptPendingAppointments()
+      .then((accepted) => {
+        toast.success(accepted === 1 ? "Confirmaste el turno" : `Confirmaste ${accepted} turnos`);
+        refresh();
+      })
+      .catch((err) => toast.error(err.message))
+      .finally(() => setAccepting(false));
   }
 
   // Tocar un turno de hoy abre la misma ficha que en la lista de turnos: se acepta, se
@@ -112,6 +167,10 @@ export function ProfessionalHome() {
   const pendingPages = Math.ceil(pendingCount / PER_PAGE);
   const page = Math.min(pendingPage, Math.max(0, pendingPages - 1));
   const pendingSlice = pending?.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE) ?? [];
+
+  // Lo que falta cobrar, sumado. Es el número que hace que valga la pena abrir la lista.
+  const unpaidCount = unpaid?.length ?? 0;
+  const owed = unpaid?.reduce((total, appointment) => total + pendingAmount(appointment), 0) ?? 0;
 
   return (
     <div className="adm-page">
@@ -220,10 +279,16 @@ export function ProfessionalHome() {
                 {pendingCount === 1 ? "Un turno espera tu respuesta" : `${pendingCount} turnos esperan tu respuesta`}
               </p>
             </div>
-            <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
-              Ver toda la agenda
-              <FaArrowRight />
-            </Link>
+            <div className="prof-pending-actions">
+              <button type="button" className="adm-btn adm-btn-primary" disabled={accepting} onClick={acceptAll}>
+                <FaCheck />
+                {pendingCount === 1 ? "Confirmar el turno" : "Confirmar turnos"}
+              </button>
+              <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
+                Ver toda la agenda
+                <FaArrowRight />
+              </Link>
+            </div>
           </div>
 
           <div className="adm-panel">
@@ -280,6 +345,67 @@ export function ProfessionalHome() {
                 </button>
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+
+      {/* Debajo de los pedidos y con la misma caja: es la otra cosa que quedó abierta,
+          pero de otra clase. Un pedido espera una respuesta hoy; una consulta sin cobrar
+          espera una conversación, y por eso esta caja arranca plegada y solo muestra el
+          número. Los dos colores del listado son los del cobro: rojo lo que no se pagó,
+          ámbar lo que se pagó a medias. */}
+      {unpaidCount > 0 && (
+        <section className="prof-today prof-unpaid">
+          <div className="prof-today-head">
+            <button
+              type="button"
+              className="prof-unpaid-toggle"
+              aria-expanded={unpaidOpen}
+              onClick={() => setUnpaidOpen(!unpaidOpen)}
+            >
+              <span className="prof-unpaid-text">
+                <span className="prof-today-title">Sin cobrar</span>
+                <span className="prof-today-date">
+                  {unpaidCount === 1 ? "Un turno atendido sin cobrar" : `${unpaidCount} turnos atendidos sin cobrar`}
+                  {owed > 0 ? ` · faltan $${owed}` : ""}
+                </span>
+              </span>
+              <FaChevronDown className={`prof-unpaid-caret ${unpaidOpen ? "open" : ""}`} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className={`adm-collapsible ${unpaidOpen ? "open" : ""}`}>
+            <div>
+              <div className="adm-panel" inert={!unpaidOpen}>
+                <ul className="prof-today-list">
+                  {unpaid?.map((appointment) => {
+                    const payment = describePayment(appointment);
+
+                    return (
+                      <li key={appointment.numAppointment}>
+                        <button type="button" className="prof-today-item" onClick={() => open(appointment)}>
+                          <span className="prof-today-hour">
+                            <FaRegClock aria-hidden="true" />
+                            {shortHour(appointment.initialHour)}
+                          </span>
+                          <span className="prof-today-person">
+                            {appointment.patient
+                              ? `${appointment.patient.surname}, ${appointment.patient.name}`
+                              : "Sin paciente asignado"}
+                            <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
+                          </span>
+                          {pendingAmount(appointment) > 0 && (
+                            <span className="prof-unpaid-owed">Debe ${pendingAmount(appointment)}</span>
+                          )}
+                          {payment && <span className={payment.className}>{payment.label}</span>}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
           </div>
         </section>
       )}

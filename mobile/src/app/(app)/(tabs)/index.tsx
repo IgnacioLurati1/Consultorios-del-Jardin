@@ -1,11 +1,13 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { myPatientAppointments, myProfessionalAppointments, professionalRange } from "../../../api/appointments";
+import { myPatientAppointments, myProfessionalAppointments, professionalRange, unpaidAppointments } from "../../../api/appointments";
 import { officeAnalytics } from "../../../api/analytics";
 import { Appointment } from "../../../api/types";
 import { AppointmentRow } from "../../../components/AppointmentRow";
+import { Tag } from "../../../components/Chip";
 import { Button } from "../../../components/Button";
 import { BandHeadline, DayBand } from "../../../components/DayBand";
 import { DataState, EmptyState, SkeletonList } from "../../../components/States";
@@ -14,8 +16,8 @@ import { AppText } from "../../../components/Text";
 import { AnnouncementBanner } from "../../../features/Announcements";
 import { OfficeSettings } from "../../../features/OfficeSettings";
 import { WeekSummary } from "../../../features/WeekSummary";
-import { isUpcoming, stateOf } from "../../../lib/appointments";
-import { money, today } from "../../../lib/dates";
+import { describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
+import { money, numericDate, today } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { SCREEN_PADDING, space } from "../../../theme/tokens";
@@ -123,6 +125,14 @@ function ProfessionalHome() {
 
   const day = useAsync(() => professionalRange(today(), today()), []);
   const all = useAsync(() => myProfessionalAppointments(0), []);
+  const unpaid = useAsync(() => unpaidAppointments(), []);
+
+  // Arranca cerrada. Es una cuenta pendiente, no algo que haya que hacer hoy: se abre
+  // cuando uno viene a reclamar, y mientras tanto alcanza con el número del renglón.
+  const [unpaidOpen, setUnpaidOpen] = useState(false);
+
+  const unpaidList = unpaid.data ?? [];
+  const owed = unpaidList.reduce((total, appointment) => total + pendingAmount(appointment), 0);
 
   const agenda = (day.data ?? []).filter((appointment) => stateOf(appointment) !== "cancelled");
   const toConfirm = (all.data ?? []).filter(
@@ -135,6 +145,7 @@ function ProfessionalHome() {
       onRefresh={() => {
         day.refresh();
         all.reload();
+        unpaid.reload();
       }}
       band={<BandHeadline>{headlineFor(agenda, day.loading)}</BandHeadline>}
     >
@@ -150,6 +161,49 @@ function ProfessionalHome() {
                 onPress={() => router.push("/(app)/(tabs)/turnos")}
               />
             </Group>
+          </Section>
+        ) : null}
+
+        {/* Debajo de los pedidos y de la misma forma, pero es otra cosa: un pedido espera
+            una respuesta hoy, una consulta sin cobrar espera una conversación. Por eso se
+            abre plegada y muestra solo el número. Los colores son los del cobro: rojo lo
+            que no se pagó, ámbar lo que se pagó a medias. */}
+        {unpaidList.length > 0 ? (
+          <Section title="Sin cobrar">
+            <Group>
+              <Row
+                title={
+                  unpaidList.length === 1
+                    ? "Un turno atendido sin cobrar"
+                    : `${unpaidList.length} turnos atendidos sin cobrar`
+                }
+                subtitle={owed > 0 ? `Faltan ${money(owed)}` : "Con pagos parciales registrados"}
+                icon={unpaidOpen ? "chevron-up" : "chevron-down"}
+                last
+                onPress={() => setUnpaidOpen(!unpaidOpen)}
+              />
+            </Group>
+
+            {unpaidOpen ? (
+              <View style={{ marginTop: space.md }}>
+                <Group>
+                  {unpaidList.map((appointment, index) => {
+                    const payment = describePayment(appointment);
+
+                    return (
+                      <Row
+                        key={appointment.numAppointment}
+                        title={appointment.patient ? fullName(appointment.patient) : "Sin paciente"}
+                        subtitle={`${numericDate(appointment.date)} · debe ${money(pendingAmount(appointment))}`}
+                        right={payment ? <Tag label={payment.label} tone={payment.tone} /> : undefined}
+                        last={index === unpaidList.length - 1}
+                        onPress={() => router.push(`/(app)/turno/${appointment.numAppointment}`)}
+                      />
+                    );
+                  })}
+                </Group>
+              </View>
+            ) : null}
           </Section>
         ) : null}
 

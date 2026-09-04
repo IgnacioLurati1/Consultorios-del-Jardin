@@ -15,7 +15,12 @@ export interface Activity {
 
 /** La plata del mismo recorte. */
 export interface Billing {
-  /** Plata de los turnos ya marcados como asistidos. */
+  /**
+   * Plata que entró: los turnos atendidos y cobrados, más lo cobrado de los parciales.
+   *
+   * Los turnos anteriores al registro de cobro cuentan completos: de esos no se sabe si
+   * se cobraron, y darlos por impagos borraría la facturación de toda la historia.
+   */
   billed: number;
   /** Plata de los que siguen en pie pero todavía no se cerraron. */
   scheduled: number;
@@ -61,12 +66,22 @@ export interface RecentMonth extends Metrics, DayLoad {
   inProgress: boolean;
 }
 
+/** Lo que le quedaron debiendo. Solo viaja cuando el profesional mira lo suyo. */
+export interface Debt {
+  /** Cuánta gente le debe al menos un turno, contando los pagos a medias. */
+  people: number;
+  appointments: number;
+  amount: number;
+}
+
 /** Los números propios del profesional: acá la plata siempre viene. */
 export interface SelfAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
-  recent: (RecentMonth & { denials: Denials })[];
+  /** Cada mes trae además lo que quedó sin cobrar de ese mes. */
+  recent: (RecentMonth & { denials: Denials; debt?: Debt })[];
   total: Metrics & DayLoad & { months: number; denials: Denials };
   months: MonthPoint[];
+  debt?: Debt;
 }
 
 export interface ProfessionalAnalytics {

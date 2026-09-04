@@ -1,5 +1,5 @@
 import api from "./client";
-import { Appointment, Person, Slot } from "./types";
+import { Appointment, PaymentState, Person, Slot } from "./types";
 
 /** Un turno solo, por su número. Es lo que abre la pantalla de detalle. */
 export async function findAppointment(numAppointment: number): Promise<Appointment> {
@@ -72,6 +72,26 @@ export async function appointmentsByProfessional(
 }
 
 /* ---------- acciones sobre un turno ---------- */
+
+/** Los turnos que ya se dieron y todavía no se cobraron del todo. Solo del profesional. */
+export async function unpaidAppointments(): Promise<Appointment[]> {
+  const response = await api.get("/appointments/unpaid");
+  return response.data.data;
+}
+
+/**
+ * Registra el cobro de un turno.
+ *
+ * El monto va solo con "partial": en los otros dos el backend lo guarda en null, así no
+ * queda un número viejo colgado de un turno que ya se saldó.
+ */
+export async function updatePayment(
+  numAppointment: number,
+  paymentState: PaymentState,
+  paidAmount: number | null
+): Promise<void> {
+  await api.patch(`/appointments/${numAppointment}/payment`, { paymentState, paidAmount });
+}
 
 export async function acceptAppointment(numAppointment: number): Promise<void> {
   await api.patch(`/appointments/${numAppointment}/accept`);

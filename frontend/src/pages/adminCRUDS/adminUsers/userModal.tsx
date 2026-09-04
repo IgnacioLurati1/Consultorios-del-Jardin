@@ -7,6 +7,8 @@ import { SPECIALITIES } from "../../specialities.ts";
 interface UserModalProps {
   visible: boolean;
   user: Person | undefined;
+  /** Si la ficha abierta es la del administrador que está mirando. */
+  isSelf?: boolean;
   /** Nombre del profesional que cargó a este paciente, si fue cargado a mano. */
   createdByName?: string;
   onClose: () => void;
@@ -22,7 +24,16 @@ const emptyUser = { email: "", name: "", surname: "", docType: "", docNumber: ""
 /** El mismo tope que valida el backend. */
 const ABOUT_MAX = 600;
 
-export function UserModal({ visible, user, createdByName, onClose, onToggleState, onToggleBookable, onEdit }: UserModalProps) {
+export function UserModal({
+  visible,
+  user,
+  isSelf = false,
+  createdByName,
+  onClose,
+  onToggleState,
+  onToggleBookable,
+  onEdit,
+}: UserModalProps) {
   const [userData, setUserData] = useState(emptyUser);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +41,7 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
   // El admin solo edita profesionales. Los pacientes quedan en modo lectura: los suyos
   // los mantiene cada persona, y los anónimos, el profesional que los cargó.
   const isProfessional = user?.type === "professional";
+  const isAdmin = user?.type === "admin";
 
   useEffect(() => {
     if (!visible || !user) return;
@@ -119,7 +131,10 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
         </button>
       )}
 
-      {user.active ? (
+      {/* La propia cuenta no se deshabilita desde acá: quien queda afuera no puede pedir
+          volver, ni siquiera para sí mismo. El backend lo rechaza igual; esto es para no
+          ofrecer un botón que solo puede terminar en un error. */}
+      {user.active && isSelf ? null : user.active ? (
         <button
           type="button"
           className="adm-btn adm-btn-danger"
@@ -230,7 +245,7 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
           <div className="ui-detail-list">
             <div className="ui-detail-row">
               <span>Tipo</span>
-              <strong>{isProfessional ? "Profesional" : "Paciente"}</strong>
+              <strong>{isAdmin ? "Administración" : isProfessional ? "Profesional" : "Paciente"}</strong>
             </div>
             <div className="ui-detail-row">
               <span>Estado</span>
@@ -290,6 +305,13 @@ export function UserModal({ visible, user, createdByName, onClose, onToggleState
             <p className="ui-alert ui-alert-info">
               Lo cargó un profesional para poder darle turnos. Si la persona se registra con este email, la cuenta pasa a ser real y
               conserva su historial.
+            </p>
+          )}
+
+          {isSelf && user.active && (
+            <p className="ui-alert ui-alert-info">
+              Es tu propia cuenta. Deshabilitarla tiene que hacerlo otro administrador: desde afuera no podrías volver a entrar ni
+              pedir que te habiliten.
             </p>
           )}
         </div>

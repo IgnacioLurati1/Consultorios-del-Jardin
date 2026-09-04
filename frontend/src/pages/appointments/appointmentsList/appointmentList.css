@@ -430,3 +430,61 @@
   color: var(--adm-warn);
   font-weight: 600;
 }
+
+/* ---------- secciones plegables de la ficha del turno ---------- */
+
+/* La ficha juntó todo lo que se puede hacer con un turno. Lo que se usa de vez en cuando
+   —el cobro, la repetición— vive plegado, con el renglón diciendo en qué estado está para
+   no obligar a abrirlo solo para mirar. */
+.appt-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* El título ya viene en gris apagado; al pasar por encima se enciende para que se lea
+   como algo que se puede tocar y no como un rótulo. */
+.appt-fold-head:hover .ui-section-title {
+  color: var(--adm-text);
+}
+
+.appt-fold-head:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Empuja la flecha contra el borde derecho, quede o no un cartelito en el medio. */
+.appt-fold-caret {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: var(--adm-muted);
+  transition: transform 0.2s ease;
+}
+
+.appt-fold-caret.open {
+  transform: rotate(180deg);
+}
+
+/* Cuando no hay nada que contar todavía: ni cartelito de color ni alarma, un gris. */
+.appt-fold-hint {
+  font-size: 0.86rem;
+  color: var(--adm-muted);
+}
+
+.appt-fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-top: 13px;
+}

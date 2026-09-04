@@ -36,6 +36,15 @@
     text-decoration: none;
 }
 
+/* Los dos botones de la bandeja de pedidos: primero el que despacha todo de una, después
+   el que lleva a la agenda. En pantalla angosta se apilan sin romper el encabezado. */
+.prof-pending-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .prof-today-loading {
     display: flex;
     flex-direction: column;
@@ -267,6 +276,44 @@
   background: var(--adm-surface-alt);
 }
 
+/* El renglón de una automatización: a la izquierda lo que despliega el detalle, a la
+   derecha el switch. Son dos controles separados a propósito. Cuando eran uno solo (un
+   label envolviendo al checkbox) el detalle se veía únicamente mientras la opción estaba
+   prendida, así que cerrarlo obligaba a apagarla. */
+.prof-setting-row {
+  display: flex;
+  align-items: center;
+}
+
+/* El resaltado al pasar por encima lo pinta el renglón entero y no el botón, que llega
+   hasta el switch y nada más: pintando solo el botón quedaba media franja iluminada y
+   media oscura, con el corte justo al lado del switch. Se dispara únicamente cuando el
+   mouse está sobre lo que despliega, así que pasar por el switch no lo enciende. */
+.prof-setting-row:has(.prof-setting-toggle:hover) {
+  background: var(--adm-surface-alt);
+}
+
+.prof-setting-row .prof-setting-main:hover {
+  background: none;
+}
+
+.prof-setting-row .prof-setting-main {
+  flex: 1;
+  min-width: 0;
+  /* Menos aire del lado del switch: el que separa a los dos es el margen de acá abajo. */
+  padding-right: 14px;
+}
+
+.prof-setting-row .prof-switch {
+  margin-right: 22px;
+}
+
+/* Sin nada abajo no hay nada que desplegar, así que el renglón no se ofrece como
+   clickeable: el único control es el switch. */
+.prof-setting-static {
+  cursor: default;
+}
+
 .prof-setting-text {
   display: flex;
   flex-direction: column;
@@ -338,6 +385,13 @@
   flex-direction: column;
   gap: 16px;
   padding: 4px 22px 20px;
+}
+
+/* Desplegado con la opción apagada. Se muestra para que se vea qué se va a configurar,
+   pero no se toca: mover un radio ahí adentro prendería la automatización sin que nadie
+   hubiera tocado el switch. El `inert` lo hace de verdad; esto lo hace evidente. */
+.prof-setting-extra.locked {
+  opacity: 0.55;
 }
 
 /* Lo de adentro entra un toque después de que se abrió el alto: primero se hace lugar,
@@ -493,11 +547,16 @@
   }
 }
 
-/* ---------- pendientes de confirmación ----------
-   Misma caja que la agenda del día. Lo único propio es la fecha en la fila (un
-   pendiente puede ser de cualquier día) y el paginador de abajo. */
+/* ---------- pendientes de confirmación y turnos sin cobrar ----------
+   Misma caja que la agenda del día. Lo único propio es la fecha en la fila (los dos
+   listados pueden traer turnos de cualquier día) y el paginador de abajo.
 
-.prof-pending .prof-today-person {
+   Las dos listas comparten esta regla y no una sola: sin ella el nombre y la fecha son
+   dos spans sueltos que el navegador acomoda en el mismo renglón, y sale
+   "Pedro, Juanjueves, 27 de agosto". */
+
+.prof-pending .prof-today-person,
+.prof-unpaid .prof-today-person {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -528,4 +587,53 @@
     font-size: 0.88rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+}
+
+/* ---------- lo que quedó sin cobrar ---------- */
+
+/* El encabezado entero abre y cierra la lista. Es un botón y no un renglón con una flecha
+   chiquita: lo que se toca tiene que ser lo que se ve. */
+.prof-unpaid-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* Lo que falta cobrar, en la fila. Es el gris del consultorio pero sin su regla de
+   pantalla angosta: el nombre del consultorio se puede esconder en un teléfono, el monto
+   que falta es justamente lo que se viene a mirar acá. */
+.prof-unpaid-owed {
+    flex-shrink: 0;
+    color: var(--adm-muted);
+    font-size: 0.92rem;
+}
+
+/* El título y la línea de abajo son spans (van adentro de un botón, donde un h2 no es
+   HTML válido), así que hay que apilarlos a mano: si no, salen pegados en un renglón. */
+.prof-unpaid-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.prof-unpaid-caret {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    color: var(--adm-muted);
+    transition: transform 0.2s ease;
+}
+
+.prof-unpaid-caret.open {
+    transform: rotate(180deg);
 }

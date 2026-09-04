@@ -62,6 +62,13 @@ export interface Person{
     bannedAt?: string | null;
     /** Qué regla saltó, si la deshabilitó el sistema. */
     banReason?: string | null;
+    /**
+     * Si le quedó algún turno sin pagar con el profesional que está mirando la lista.
+     * Solo viene en "mis pacientes": la deuda es con ese profesional, no de la persona.
+     */
+    owesPayment?: boolean;
+    owedAppointments?: number;
+    owedAmount?: number;
 }
 
 export interface Schedule {
@@ -111,6 +118,9 @@ export interface Recurrence {
     upcoming: { numAppointment: number; date: string }[];
 }
 
+/** Cómo quedó el cobro de un turno. */
+export type PaymentState = "unpaid" | "partial" | "paid";
+
 export interface Appointment {
     numAppointment: number;
     date: string;
@@ -120,6 +130,13 @@ export interface Appointment {
     /** pending | accepted | assisted | missed, o un ISO timestamp si fue cancelado. */
     state: string;
     observations?: string | null;
+    /**
+     * Si el turno se cobró. Ausente o null en los turnos anteriores a que existiera el
+     * registro de cobro: de esos no se sabe, y no cuentan como deuda en ningún lado.
+     */
+    paymentState?: PaymentState | null;
+    /** Cuánto se cobró, solo cuando el pago fue parcial. */
+    paidAmount?: number | null;
     /** Sobreturno: el profesional lo dio fuera de sus módulos de atención. */
     overbooked?: boolean;
     /** Si salió de un turno repetible, la configuración que lo generó. */

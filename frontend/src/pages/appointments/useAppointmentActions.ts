@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import type { Appointment, Person, RecurrenceFrequency, Room } from "../types.ts";
+import type { Appointment, PaymentState, Person, RecurrenceFrequency, Room } from "../types.ts";
 import {
   acceptAppointment,
   addPatientToAppointment,
   cancelAppointmentService,
   updateAppointment,
   updateAppointmentRecord,
+  updateAppointmentPayment,
 } from "./appointmentsService.ts";
 import { createRecurrence, stopRecurrence } from "./recurrencesService.ts";
 import { findAllPatients } from "../patients/patientsService.ts";
@@ -68,6 +69,12 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       "Registro guardado"
     );
 
+  const onSavePayment = (appointment: Appointment, paymentState: PaymentState, paidAmount: number | null) =>
+    refreshAfter(
+      updateAppointmentPayment(appointment.numAppointment, paymentState, paidAmount),
+      paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Pago parcial registrado" : "Turno marcado como impago"
+    );
+
   const onAddPatient = (appointment: Appointment, patientEmail: string) =>
     refreshAfter(addPatientToAppointment(appointment.numAppointment, patientEmail), "Paciente asignado");
 
@@ -118,6 +125,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       onUpdate,
       onRepeat,
       onStopRepeat,
+      onSavePayment,
     },
   };
 }

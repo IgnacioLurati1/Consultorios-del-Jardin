@@ -1,5 +1,5 @@
 import api from "../../axios";
-import type { Appointment } from "../types.ts";
+import type { Appointment, PaymentState } from "../types.ts";
 import type { partialAppointment } from "./appointmentTypes.ts";
 
 function backendError(err: any): never {
@@ -45,6 +45,31 @@ export function findPendingAppointments(): Promise<Appointment[]> {
 /* ============================================================
    Acciones sobre un turno
    ============================================================ */
+
+/** Los turnos que ya se dieron y todavía no se cobraron del todo. Solo del profesional. */
+export function findUnpaidAppointments(): Promise<Appointment[]> {
+  return api
+    .get("/appointments/unpaid")
+    .then((response) => response.data.data)
+    .catch(backendError);
+}
+
+/**
+ * Registra el cobro de un turno.
+ *
+ * El monto va solo con "partial": en los otros dos el backend lo ignora y lo guarda en
+ * null, así no queda un número viejo colgado de un turno que ya se saldó.
+ */
+export function updateAppointmentPayment(
+  numAppointment: number,
+  paymentState: PaymentState,
+  paidAmount?: number | null
+): Promise<{ paymentState: PaymentState; paidAmount: number | null }> {
+  return api
+    .patch(`/appointments/${numAppointment}/payment`, { paymentState, paidAmount })
+    .then((response) => response.data.data)
+    .catch(backendError);
+}
 
 export function acceptAppointment(numAppointment: number): Promise<boolean> {
   return api

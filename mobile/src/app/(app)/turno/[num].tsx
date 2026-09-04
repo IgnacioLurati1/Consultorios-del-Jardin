@@ -5,11 +5,12 @@ import {
   acceptAppointment,
   cancelAppointment,
   findAppointment,
+  updatePayment,
   updateRecord,
 } from "../../../api/appointments";
 import { errorMessage } from "../../../api/client";
 import { createRecurrence, FREQUENCY_LABELS, stopRecurrence } from "../../../api/misc";
-import { RecurrenceFrequency } from "../../../api/types";
+import { PaymentState, RecurrenceFrequency } from "../../../api/types";
 import { Button } from "../../../components/Button";
 import { StateBadge, Tag } from "../../../components/Chip";
 import { useFeedback } from "../../../components/Feedback";
@@ -18,13 +19,14 @@ import { OptionSheet } from "../../../components/Sheet";
 import { ErrorState, Loading } from "../../../components/States";
 import { Group, Note, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
-import { fullName, isUpcoming, stateOf } from "../../../lib/appointments";
+import { describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
 import { hourRange, longDate, money, numericDate, sentenceCase } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { space } from "../../../theme/tokens";
 import { ObservationsSheet } from "../../../features/ObservationsSheet";
 import { RepeatSheet } from "../../../features/RepeatSheet";
+import { PaymentSheet } from "../../../features/PaymentSheet";
 
 /**
  * Un turno, con lo que cada uno puede hacerle. El paciente lo mira y lo cancela; el
@@ -42,6 +44,7 @@ export default function AppointmentScreen() {
   const [observationsOpen, setObservationsOpen] = useState(false);
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const appointment = state.data;
 
@@ -73,6 +76,10 @@ export default function AppointmentScreen() {
       setBusy(false);
     }
   }
+
+  // Los turnos anteriores a que existiera el registro de cobro no dicen nada: null.
+  const payment = describePayment(appointment);
+  const owed = pendingAmount(appointment);
 
   function confirmCancel() {
     const asPatient = appointment!.patient?.email === email;
@@ -113,6 +120,9 @@ export default function AppointmentScreen() {
             <StateBadge state={key} />
             {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
             {appointment.recurrence?.active ? <Tag label="Se repite" tone="green" /> : null}
+            {/* Solo del lado del profesional: el cobro es asunto suyo con el paciente, y
+                el paciente ya sabe si pagó o no. */}
+            {isProfessional && payment ? <Tag label={payment.label} tone={payment.tone} /> : null}
           </View>
         </View>
 
@@ -151,6 +161,29 @@ export default function AppointmentScreen() {
                   Lo escribió {fullName(appointment.professional)} después de la consulta.
                 </AppText>
               </View>
+            </Group>
+          </Section>
+        ) : null}
+
+        {/* Va después del registro de la consulta y antes de la repetición, con el mismo
+            orden que en la web. Es una decisión aparte de cómo terminó el turno: se toma
+            en otro momento, cuando la persona paga. */}
+        {isProfessional && key !== "cancelled" ? (
+          <Section title="Cobro">
+            <Group>
+              <Row
+                title={payment ? payment.label : "Sin registrar"}
+                subtitle={
+                  payment
+                    ? owed > 0
+                      ? `Queda debiendo ${money(owed)} de ${money(appointment.value)}`
+                      : "No queda nada por cobrar"
+                    : "Este turno es anterior al registro de cobros: elegí cómo quedó."
+                }
+                icon="money-bill-wave"
+                last
+                onPress={() => setPaymentOpen(true)}
+              />
             </Group>
           </Section>
         ) : null}
@@ -256,6 +289,19 @@ export default function AppointmentScreen() {
             const result = await createRecurrence(number, frequency, endDate);
             feedback.done(`Dejamos ${result.created} turnos creados`);
           }, "Listo, se va a repetir")
+        }
+      />
+
+      <PaymentSheet
+        visible={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        value={appointment.value ?? 0}
+        initialState={appointment.paymentState ?? null}
+        initialAmount={appointment.paidAmount ?? null}
+        onSave={(paymentState: PaymentState, paidAmount: number | null) =>
+          run(async () => {
+            await updatePayment(number, paymentState, paidAmount);
+          }, paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Anotamos el pago parcial" : "Queda sin cobrar")
         }
       />
 

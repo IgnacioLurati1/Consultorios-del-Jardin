@@ -42,6 +42,9 @@ export default function PatientsScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<Scope>("mine");
+  // Filtrar por deuda es un recorte de lo que ya se está mirando, no otra lista, y por
+  // eso vive aparte del alcance y no como una opción más de la fila de arriba.
+  const [onlyDebtors, setOnlyDebtors] = useState(false);
   const [contacting, setContacting] = useState<Person | null>(null);
   const me = useUser();
 
@@ -54,15 +57,21 @@ export default function PatientsScreen() {
     }, [scope])
   );
 
+  // Cuántos le quedaron debiendo. Solo tiene sentido en los propios: la deuda es con
+  // este profesional, y el listado de todos ni siquiera la trae.
+  const debtors = useMemo(() => (state.data ?? []).filter((person) => person.owesPayment).length, [state.data]);
+
   const results = useMemo(() => {
     const term = search.trim();
     const list = state.data ?? [];
 
-    if (!term) return list;
-    return list.filter(
-      (person) => matches(person.name, term) || matches(person.surname, term) || matches(person.email, term)
-    );
-  }, [state.data, search]);
+    return list.filter((person) => {
+      if (onlyDebtors && !person.owesPayment) return false;
+      if (!term) return true;
+
+      return matches(person.name, term) || matches(person.surname, term) || matches(person.email, term);
+    });
+  }, [state.data, search, onlyDebtors]);
 
   return (
     <ScrollView
@@ -76,7 +85,40 @@ export default function PatientsScreen() {
       <AppText variant="display">Pacientes</AppText>
 
       <View style={styles.filters}>
-        <ChipRow options={SCOPES} value={scope} onChange={setScope} />
+        <View style={styles.scopes}>
+          <ChipRow
+            options={SCOPES}
+            value={scope}
+            onChange={(key) => {
+              // Ver a todos no trae la deuda: dejar el filtro puesto vaciaría la lista
+              // sin que se entienda por qué.
+              if (key === "all") setOnlyDebtors(false);
+              setScope(key);
+            }}
+          />
+        </View>
+
+        {scope === "mine" && debtors > 0 ? (
+          <Pressable
+            onPress={() => setOnlyDebtors(!onlyDebtors)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: onlyDebtors }}
+            accessibilityLabel="Ver solo los que te quedaron debiendo"
+            hitSlop={8}
+            style={[
+              styles.debtFilter,
+              {
+                backgroundColor: onlyDebtors ? colors.dangerSoft : colors.surface,
+                borderColor: onlyDebtors ? colors.danger : colors.border,
+              },
+            ]}
+          >
+            <FontAwesome6 name="money-bill-wave" size={13} color={onlyDebtors ? colors.danger : colors.muted} />
+            <AppText variant="caption" tone={onlyDebtors ? "danger" : "muted"} chrome>
+              Adeudan {debtors}
+            </AppText>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -211,6 +253,14 @@ function PatientRow({
       </View>
 
       {person.anonymous ? <Tag label="Sin cuenta" /> : null}
+      {/* Un pago a medias también es una deuda: lo que se mira es si quedó algo sin
+          cobrar, no si no pagó nada. */}
+      {person.owesPayment ? (
+        <Tag
+          label={(person.owedAppointments ?? 0) === 1 ? "Adeuda un pago" : `Adeuda ${person.owedAppointments}`}
+          tone="danger"
+        />
+      ) : null}
 
       {/* Va por fuera del Pressable de la fila en cuanto a intención, aunque esté
           adentro: el hitSlop y el stopPropagation del onPress alcanzan para que tocar el
@@ -245,7 +295,24 @@ const styles = StyleSheet.create({
     minHeight: TOUCH + 4,
   },
   searchInput: { flex: 1, fontSize: 16, paddingVertical: space.md },
-  filters: { marginTop: space.md, marginHorizontal: -SCREEN_PADDING, paddingHorizontal: SCREEN_PADDING },
+  filters: {
+    marginTop: space.md,
+    marginHorizontal: -SCREEN_PADDING,
+    paddingHorizontal: SCREEN_PADDING,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+  },
+  scopes: { flex: 1 },
+  debtFilter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderWidth: 1,
+    borderRadius: 999,
+  },
   list: { marginTop: space.lg },
   newButton: { marginTop: space.xl },
   row: {

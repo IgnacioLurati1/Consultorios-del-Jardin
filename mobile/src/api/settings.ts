@@ -2,6 +2,8 @@ import api from "./client";
 
 export type AutoMark = "assisted" | "missed";
 export type AutoMarkWhen = "appointment" | "day";
+/** El cobro automático se decide con el mismo criterio que el cierre. */
+export type AutoPayWhen = AutoMarkWhen;
 export type DeleteScope = "future" | "all";
 
 export interface VacationPeriod {
@@ -25,6 +27,9 @@ export interface ProfessionalSettings {
   autoAccept: boolean;
   autoMark: AutoMark | null;
   autoMarkWhen: AutoMarkWhen;
+  /** Dar por cobrado el turno que ya pasó, sin marcarlo a mano. */
+  autoPay: boolean;
+  autoPayWhen: AutoPayWhen;
   /** Pedidos esperando respuesta ahora mismo. */
   pending: number;
   vacations: VacationPeriod[];
@@ -39,6 +44,8 @@ export function saveSettings(data: {
   autoAccept?: boolean;
   autoMark?: AutoMark | null;
   autoMarkWhen?: AutoMarkWhen;
+  autoPay?: boolean;
+  autoPayWhen?: AutoPayWhen;
   /** Solo los avisos que se tocaron: los que no vengan quedan como estaban. */
   mails?: Record<string, boolean>;
 }): Promise<ProfessionalSettings> {

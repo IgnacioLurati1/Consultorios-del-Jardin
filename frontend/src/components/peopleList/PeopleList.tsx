@@ -47,7 +47,7 @@ interface PersonRowProps {
   meta: ReactNode;
   badges?: PersonBadge[];
   /** Color de las iniciales. Sirve para distinguir de un vistazo el tipo de persona. */
-  tone?: "green" | "amber" | "grey";
+  tone?: "green" | "amber" | "grey" | "slate";
   onClick?: () => void;
   /**
    * Un botón propio de la fila, al costado.

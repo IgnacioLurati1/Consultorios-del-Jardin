@@ -106,6 +106,13 @@ button.people-row:focus-visible {
   background: var(--adm-muted-soft);
 }
 
+/* Administración. Es el gris azulado que ya usan los gráficos: no compite con el verde
+   del profesional ni con el ámbar del anónimo, y no se confunde con el gris del
+   paciente, que es el neutro apagado. */
+.people-avatar.slate {
+  background: var(--adm-slate);
+}
+
 .people-row-text {
   display: flex;
   flex-direction: column;
@@ -171,8 +178,22 @@ button.people-row:focus-visible {
 .patients-scope {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     margin: 0 0 16px;
+}
+
+/* Contra el borde derecho: no es otra lista como los dos de la izquierda, es un recorte
+   de la que ya se está mirando, y separarlo lo dice sin tener que explicarlo. */
+.patients-debt-filter {
+    margin-left: auto;
+}
+
+/* Sin nadie debiendo, el filtro no se ofrece como algo para tocar, pero se queda en su
+   lugar: que desaparezca y vuelva según el mes es peor que verlo apagado. */
+.patients-debt-filter:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .patients-history {

@@ -4,8 +4,8 @@ import { Kpi, KpiGrid, AnalyticsSection, MonthTabs } from "./Kpi.tsx";
 import { decimal, money, type Denials, type ProfessionalAnalytics } from "./analyticsService.ts";
 
 const BILLING_BANDS: Band[] = [
-  { key: "billed", label: "Cobrado (turnos asistidos)", color: "#3b7658" },
-  { key: "scheduled", label: "Agendado sin cerrar", color: "#9db8ab", hatched: true },
+  { key: "billed", label: "Cobrado", color: "#3b7658" },
+  { key: "scheduled", label: "Agendado sin cobrar", color: "#9db8ab", hatched: true },
 ];
 
 const APPOINTMENT_BANDS: Band[] = [
@@ -58,10 +58,10 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
               note={
                 (month.scheduled ?? 0) > 0 ? (
                   <>
-                    <span className="an-muted">{money(month.scheduled ?? 0)}</span> agendados sin cerrar
+                    <span className="an-muted">{money(month.scheduled ?? 0)}</span> por cobrar de lo agendado
                   </>
                 ) : (
-                  "de los turnos marcados como asistidos"
+                  "de los turnos que ya cobraste"
                 )
               }
             />
@@ -83,6 +83,23 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             value={month.cancelled + month.missed}
             note={`${month.cancelled} cancelados · ${month.missed} no vinieron`}
           />
+          {/* Lo que quedó sin cobrar de este mes. Va en rojo solo cuando hay algo que
+              cobrar: un cero en rojo asusta sin motivo, y si todas las tarjetas gritan,
+              ninguna grita. Como la facturación, el administrador no la ve. */}
+          {month.debt && (
+            <Kpi
+              label="Te quedaron debiendo"
+              value={money(month.debt.amount)}
+              tone={month.debt.amount > 0 ? "danger" : undefined}
+              note={
+                month.debt.appointments === 0
+                  ? "cobraste todo lo que atendiste"
+                  : `${month.debt.appointments} ${month.debt.appointments === 1 ? "turno" : "turnos"} · ${
+                      month.debt.people
+                    } ${month.debt.people === 1 ? "persona" : "personas"}`
+              }
+            />
+          )}
           <Kpi label="Sobreturnos" value={month.overbooked} note="dados fuera de tus módulos" />
           <Kpi label="Pedidos rechazados" value={month.denials.denied} note={splitOf(month.denials)} />
         </KpiGrid>
@@ -116,11 +133,27 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
       <AnalyticsSection title="Acumulado" scope={`Últimos ${total.months} meses cerrados`}>
         <KpiGrid>
           {showsBilling ? (
-            <Kpi lead label="Cobrado" value={money(total.billed ?? 0)} note={`${total.assisted} turnos asistidos`} />
+            <Kpi lead label="Cobrado" value={money(total.billed ?? 0)} note="pagos completos y parciales, se hayan atendido o no" />
           ) : (
             <Kpi lead label="Turnos asistidos" value={total.assisted} note={`${total.appointments} turnos en pie`} />
           )}
           <Kpi label="Pacientes distintos" value={total.patients} />
+          {/* Solo cuando el profesional mira lo suyo: quién le debe es plata suya con sus
+              pacientes, igual que lo cobrado. El backend directamente no lo manda cuando
+              el que mira es un administrador. */}
+          {data.debt && (
+            <Kpi
+              label="Te quedaron debiendo"
+              value={data.debt.people}
+              note={
+                data.debt.people === 0
+                  ? "nadie te debe un turno"
+                  : `${data.debt.people === 1 ? "persona" : "personas"} · ${data.debt.appointments} ${
+                      data.debt.appointments === 1 ? "turno" : "turnos"
+                    } por ${money(data.debt.amount)}`
+              }
+            />
+          )}
           <Kpi label="Cancelados o ausentes" value={lost} note={`${lostRate}% de los ${given} turnos dados`} />
           <Kpi label="Sobreturnos" value={total.overbooked} />
           <Kpi label="Pedidos rechazados" value={total.denials.denied} note={splitOf(total.denials)} />

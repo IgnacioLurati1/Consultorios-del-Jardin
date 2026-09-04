@@ -23,8 +23,8 @@ import "../adminCRUDS/adminPanel.css";
 import "./analytics.css";
 
 const BILLING_BANDS: Band[] = [
-  { key: "billed", label: "Cobrado (turnos asistidos)", color: "#3b7658" },
-  { key: "scheduled", label: "Agendado sin cerrar", color: "#9db8ab", hatched: true },
+  { key: "billed", label: "Cobrado", color: "#3b7658" },
+  { key: "scheduled", label: "Agendado sin cobrar", color: "#9db8ab", hatched: true },
 ];
 
 const ORIGIN_BANDS: Band[] = [
@@ -179,7 +179,7 @@ export function OfficeAnalyticsPage() {
             note={
               month.scheduled > 0 ? (
                 <>
-                  <span className="an-muted">{money(month.scheduled)}</span> agendados sin cerrar
+                  <span className="an-muted">{money(month.scheduled)}</span> por cobrar de lo agendado
                 </>
               ) : (
                 average(month.billed)

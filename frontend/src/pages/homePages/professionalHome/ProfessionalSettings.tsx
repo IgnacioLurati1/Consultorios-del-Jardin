@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { FaChevronDown, FaChevronRight, FaEnvelope, FaPlaneDeparture, FaRepeat, FaTrashCan } from "react-icons/fa6";
+import {
+  FaChevronDown,
+  FaChevronRight,
+  FaCircleCheck,
+  FaClipboardCheck,
+  FaEnvelope,
+  FaMoneyBillWave,
+  FaPlaneDeparture,
+  FaRepeat,
+  FaTrashCan,
+} from "react-icons/fa6";
 import { Link } from "react-router-dom";
 import { Modal } from "../../../components/modal/Modal";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton";
@@ -9,12 +19,12 @@ import type { Person } from "../../types";
 import {
   findSettings,
   updateSettings,
-  acceptPendingAppointments,
   addVacation,
   removeVacation,
   deletePatientAppointments,
   type AutoMark,
   type AutoMarkWhen,
+  type AutoPayWhen,
   type DeleteScope,
   type MailSetting,
   type ProfessionalSettings as Settings,
@@ -30,11 +40,20 @@ function today(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+/**
+ * Una automatización: el switch que la prende y, abajo, cómo se configura.
+ *
+ * Son dos controles y no uno. Tocar el renglón despliega el detalle; tocar el switch
+ * prende o apaga. Antes el renglón entero era el switch y el detalle se veía solo
+ * mientras estaba prendido: cerrarlo obligaba a apagar la opción, que es lo último que
+ * quiere el que solo venía a dejar de mirarlo.
+ */
 function Switch({
   checked,
   onChange,
   label,
   description,
+  icon,
   disabled,
   children,
 }: {
@@ -42,33 +61,79 @@ function Switch({
   onChange: (value: boolean) => void;
   label: string;
   description: string;
+  /** El mismo círculo verde que llevan los renglones de arriba y abajo. */
+  icon: React.ReactNode;
   disabled?: boolean;
-  /** Las opciones que solo tienen sentido con el switch prendido. */
+  /** Cómo se configura. Solo se puede tocar con el switch prendido. */
   children?: React.ReactNode;
 }) {
+  // Siempre arranca cerrado, esté prendida o no. Es el punto de todo esto: la pantalla
+  // se abre corta y cada detalle se mira cuando se lo va a mirar.
+  const [open, setOpen] = useState(false);
+
+  const expandable = Boolean(children);
+  // Desplegado pero apagado: se ve qué se va a configurar y no se toca. Cambiar un
+  // radio ahí adentro prendería la automatización sin que nadie tocara el switch.
+  const locked = !checked;
+
+  function flip(value: boolean) {
+    // Prenderla es el momento en que alguien viene a configurarla, así que se abre
+    // sola. Apagarla no cierra nada: cerrar es decisión del que aprieta el renglón.
+    if (value) setOpen(true);
+    onChange(value);
+  }
+
   return (
     <div className="prof-setting">
-      <label className="prof-setting-main">
-        <span className="prof-setting-text">
-          <span className="prof-setting-label">{label}</span>
-          <span className="prof-setting-desc">{description}</span>
-        </span>
+      <div className="prof-setting-row">
+        {expandable ? (
+          <button
+            type="button"
+            className="prof-setting-main prof-setting-toggle"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            <span className="prof-setting-icon" aria-hidden="true">
+              {icon}
+            </span>
+            <span className="prof-setting-text">
+              <span className="prof-setting-label">{label}</span>
+              <span className="prof-setting-desc">{description}</span>
+            </span>
+            <FaChevronDown className={`prof-setting-caret ${open ? "open" : ""}`} aria-hidden="true" />
+          </button>
+        ) : (
+          <div className="prof-setting-main prof-setting-static">
+            <span className="prof-setting-icon" aria-hidden="true">
+              {icon}
+            </span>
+            <span className="prof-setting-text">
+              <span className="prof-setting-label">{label}</span>
+              <span className="prof-setting-desc">{description}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Fuera del botón de al lado: un control adentro de otro control no es HTML
+            válido, y el click terminaría en cualquiera de los dos. */}
         <input
           type="checkbox"
           className="prof-switch"
           role="switch"
+          aria-label={label}
           checked={checked}
           disabled={disabled}
-          onChange={(event) => onChange(event.target.checked)}
+          onChange={(event) => flip(event.target.checked)}
         />
-      </label>
+      </div>
 
       {/* Siempre montado: es lo que deja que se abra y se cierre con animacion, en vez
           de aparecer de golpe. `inert` lo saca del tab mientras esta cerrado. */}
-      {children && (
-        <div className={`adm-collapsible ${checked ? "open" : ""}`}>
+      {expandable && (
+        <div className={`adm-collapsible ${open ? "open" : ""}`}>
           <div>
-            <div className="prof-setting-extra" inert={!checked}>
+            <div className={`prof-setting-extra ${locked ? "locked" : ""}`} inert={!open || locked}>
+              {locked && <p className="ui-hint">Prendé la opción de arriba para configurarla.</p>}
               {children}
             </div>
           </div>
@@ -183,26 +248,13 @@ export function ProfessionalSettings() {
     autoAccept?: boolean;
     autoMark?: AutoMark | null;
     autoMarkWhen?: AutoMarkWhen;
+    autoPay?: boolean;
+    autoPayWhen?: AutoPayWhen;
     mails?: Record<string, boolean>;
   }) {
     setSaving(true);
     updateSettings(data)
       .then(setSettings)
-      .catch((err) => toast.error(err.message))
-      .finally(() => setSaving(false));
-  }
-
-  /**
-   * Prender la confirmación automática y vaciar la bandeja son dos decisiones: la
-   * primera vale para lo que entre después, y esta se lleva puesto lo que ya está.
-   */
-  function acceptBacklog() {
-    setSaving(true);
-    acceptPendingAppointments()
-      .then((accepted) => {
-        toast.success(accepted === 0 ? "No tenías pedidos esperando" : `Confirmaste ${accepted} pedidos`);
-        load();
-      })
       .catch((err) => toast.error(err.message))
       .finally(() => setSaving(false));
   }
@@ -249,30 +301,24 @@ export function ProfessionalSettings() {
               <FaChevronRight className="prof-setting-chevron" aria-hidden="true" />
             </Link>
 
+            {/* Solo vale para lo que entre de acá en adelante. Lo que ya está esperando se
+                despacha desde la bandeja de pedidos, arriba de todo, que es donde se lo
+                está mirando. */}
             <Switch
               checked={settings.autoAccept}
               disabled={saving}
               onChange={(value) => save({ autoAccept: value })}
               label="Confirmar turnos automáticamente"
+              icon={<FaCircleCheck />}
               description="Cuando un paciente pide un horario tuyo, queda confirmado sin que tengas que aprobarlo."
-            >
-              {settings.pending > 0 && (
-                <div className="prof-setting-inline">
-                  <span>
-                    Tenés {settings.pending} {settings.pending === 1 ? "pedido esperando" : "pedidos esperando"} de antes.
-                  </span>
-                  <button type="button" className="adm-btn adm-btn-ghost" disabled={saving} onClick={acceptBacklog}>
-                    Confirmarlos también
-                  </button>
-                </div>
-              )}
-            </Switch>
+            />
 
             <Switch
               checked={settings.autoMark !== null}
               disabled={saving}
               onChange={(value) => save({ autoMark: value ? "assisted" : null })}
               label="Cerrar los turnos que ya pasaron automáticamente"
+              icon={<FaClipboardCheck />}
               description="Al turno que quedó sin marcar se le pone asistencia solo. Podés corregir el que no dé."
             >
               <div className="ui-field">
@@ -328,6 +374,48 @@ export function ProfessionalSettings() {
 
               <p className="ui-alert ui-alert-info">
                 Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.
+              </p>
+            </Switch>
+
+            {/* Para el consultorio donde se cobra en el momento y siempre: ahí registrar
+                cada pago es escribir dos veces lo mismo, y lo único que importa es la
+                excepción. Con esto la excepción es lo único que se marca a mano. */}
+            <Switch
+              checked={settings.autoPay}
+              disabled={saving}
+              onChange={(value) => save({ autoPay: value })}
+              label="Considerar pagado un turno automáticamente"
+              icon={<FaMoneyBillWave />}
+              description="Al turno que ya pasó se le da por cobrado el valor. Podés corregir el que quedó debiendo."
+            >
+              <div className="ui-field">
+                <span>¿Cuándo?</span>
+                <div className="ui-choice-row">
+                  <label className="ui-choice">
+                    <input
+                      type="radio"
+                      name="auto-pay-when"
+                      checked={settings.autoPayWhen === "appointment"}
+                      onChange={() => save({ autoPayWhen: "appointment" })}
+                    />
+                    <span>Al terminar cada turno</span>
+                  </label>
+                  <label className="ui-choice">
+                    <input
+                      type="radio"
+                      name="auto-pay-when"
+                      checked={settings.autoPayWhen === "day"}
+                      onChange={() => save({ autoPayWhen: "day" })}
+                    />
+                    <span>Al terminar el día</span>
+                  </label>
+                </div>
+                <small>Al terminar el día te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.</small>
+              </div>
+
+              <p className="ui-alert ui-alert-info">
+                Solo toca los turnos que figuran como atendidos y sin cobrar. Un pago parcial que hayas registrado queda como
+                está, y lo de antes de prender esto no se toca.
               </p>
             </Switch>
 

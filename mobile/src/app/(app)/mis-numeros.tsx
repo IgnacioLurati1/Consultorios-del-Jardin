@@ -15,7 +15,7 @@ type Metric = "appointments" | "billed" | "patients";
 
 const METRICS: { key: Metric; label: string }[] = [
   { key: "appointments", label: "Turnos" },
-  { key: "billed", label: "Facturado" },
+  { key: "billed", label: "Cobrado" },
   { key: "patients", label: "Pacientes" },
 ];
 
@@ -57,7 +57,7 @@ export default function MyNumbersScreen() {
     );
   }
 
-  const { recent, total, months } = state.data;
+  const { recent, total, months, debt } = state.data;
   const current = recent.find((month) => month.inProgress) ?? recent[0];
   const previous = recent.find((month) => month !== current);
 
@@ -70,8 +70,8 @@ export default function MyNumbersScreen() {
             value={money(current.billed)}
             note={
               current.scheduled > 0
-                ? `Más ${money(current.scheduled)} en turnos que todavía no cerraste.`
-                : "De los turnos que marcaste como asistidos."
+                ? `Faltan ${money(current.scheduled)} por cobrar de turnos ya agendados.`
+                : "Pagos completos y parciales, se hayan atendido o no."
             }
           />
 
@@ -93,8 +93,25 @@ export default function MyNumbersScreen() {
                   title="Pedidos rechazados"
                   subtitle={splitOf(current.denials)}
                   value={String(current.denials.denied)}
-                  last
+                  last={!current.debt}
                 />
+                {/* Lo que quedó sin cobrar del mes. En rojo solo cuando hay algo que
+                    cobrar: un cero en rojo asusta sin motivo. */}
+                {current.debt ? (
+                  <Row
+                    title="Te quedaron debiendo"
+                    subtitle={
+                      current.debt.appointments === 0
+                        ? "Cobraste todo lo que atendiste"
+                        : `${current.debt.appointments} ${current.debt.appointments === 1 ? "turno" : "turnos"} · ${
+                            current.debt.people
+                          } ${current.debt.people === 1 ? "persona" : "personas"}`
+                    }
+                    value={money(current.debt.amount)}
+                    destructive={current.debt.amount > 0}
+                    last
+                  />
+                ) : null}
               </Group>
             </View>
           </Section>
@@ -105,7 +122,7 @@ export default function MyNumbersScreen() {
         <Section title={`Contra ${previous.label.toLowerCase()}`}>
           <Group>
             <Row title="Turnos" value={`${previous.appointments} → ${current?.appointments ?? 0}`} />
-            <Row title="Facturado" value={`${money(previous.billed)} → ${money(current?.billed ?? 0)}`} last />
+            <Row title="Cobrado" value={`${money(previous.billed)} → ${money(current?.billed ?? 0)}`} last />
           </Group>
         </Section>
       ) : null}
@@ -121,6 +138,30 @@ export default function MyNumbersScreen() {
           format={(value) => (metric === "billed" ? money(value) : String(value))}
         />
       </Section>
+
+      {/* Quien te debe es plata tuya con tus pacientes, igual que lo facturado: el
+          backend directamente no manda esto cuando el que mira es un administrador. */}
+      {debt ? (
+        <Section title="Lo que falta cobrar">
+          <Group>
+            <Row
+              title="Te quedaron debiendo"
+              value={debt.people === 1 ? "1 persona" : `${debt.people} personas`}
+            />
+            <Row
+              title="En turnos"
+              value={debt.appointments === 1 ? "1 turno" : `${debt.appointments} turnos`}
+            />
+            <Row title="Por un total de" value={money(debt.amount)} last />
+          </Group>
+
+          {debt.people > 0 ? (
+            <View style={styles.spaced}>
+              <Note>Se registra desde la ficha de cada turno, en Cobro. Los pagos parciales cuentan por lo que falta.</Note>
+            </View>
+          ) : null}
+        </Section>
+      ) : null}
 
       <Section title="Tu agenda">
         <Group>

@@ -7,11 +7,17 @@ interface KpiProps {
   note?: ReactNode;
   /** Destaca la tarjeta principal del bloque. */
   lead?: boolean;
+  /**
+   * Pinta el número de rojo. Para lo que no está bien y hay que hacer algo al respecto,
+   * no para lo que es simplemente un número alto: si todas las tarjetas gritan, ninguna
+   * grita. Hoy lo usa una sola, la plata que quedó sin cobrar.
+   */
+  tone?: "danger";
 }
 
-export function Kpi({ label, value, note, lead }: KpiProps) {
+export function Kpi({ label, value, note, lead, tone }: KpiProps) {
   return (
-    <div className={`an-kpi ${lead ? "an-kpi-lead" : ""}`}>
+    <div className={`an-kpi ${lead ? "an-kpi-lead" : ""} ${tone === "danger" ? "an-kpi-danger" : ""}`}>
       <span className="an-kpi-label">{label}</span>
       <strong className="an-kpi-value">{value}</strong>
       {note && <span className="an-kpi-note">{note}</span>}

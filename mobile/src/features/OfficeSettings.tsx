@@ -20,6 +20,7 @@ import {
   saveSettings,
   type AutoMark,
   type AutoMarkWhen,
+  type AutoPayWhen,
   type DeleteScope,
   type MailSetting,
   type ProfessionalSettings,
@@ -89,6 +90,8 @@ export function OfficeSettings() {
     autoAccept?: boolean;
     autoMark?: AutoMark | null;
     autoMarkWhen?: AutoMarkWhen;
+    autoPay?: boolean;
+    autoPayWhen?: AutoPayWhen;
     mails?: Record<string, boolean>;
   }) {
     setBusy(true);
@@ -159,6 +162,20 @@ export function OfficeSettings() {
               value={settings.autoMark !== null}
               disabled={busy}
               onValueChange={(value) => save({ autoMark: value ? "assisted" : null })}
+              trackColor={{ true: colors.green, false: colors.border }}
+            />
+          }
+        />
+
+        <Row
+          title="Considerar pagado un turno automáticamente"
+          subtitle="Al turno que ya pasó se le da por cobrado el valor."
+          icon="money-bill-wave"
+          right={
+            <Switch
+              value={settings.autoPay}
+              disabled={busy}
+              onValueChange={(value) => save({ autoPay: value })}
               trackColor={{ true: colors.green, false: colors.border }}
             />
           }
@@ -238,6 +255,31 @@ export function OfficeSettings() {
           />
 
             <Note>Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.</Note>
+          </View>
+        </Reveal>
+      ) : null}
+
+      {settings.autoPay ? (
+        <Reveal>
+          <View style={{ marginTop: space.md, gap: space.md }}>
+            <Choice
+              label="¿Cuándo lo doy por cobrado?"
+              value={settings.autoPayWhen}
+              onChange={(key) => save({ autoPayWhen: key as AutoPayWhen })}
+              options={[
+                { key: "appointment", label: "Al terminar cada turno" },
+                {
+                  key: "day",
+                  label: "Al terminar el día",
+                  description: "Te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.",
+                },
+              ]}
+            />
+
+            <Note>
+              Solo toca los turnos que figuran como atendidos y sin cobrar. Un pago parcial que hayas registrado queda
+              como está, y lo de antes de prender esto no se toca.
+            </Note>
           </View>
         </Reveal>
       ) : null}

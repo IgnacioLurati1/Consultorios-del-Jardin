@@ -7,19 +7,21 @@ import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow, type PersonBadge } from "../../../components/peopleList/PeopleList.tsx";
 import { getAllUsers, toggleBookable, toggleState, updatePerson } from "./usersService";
+import { getDecodedToken } from "../../commonServices.ts";
 import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
 import { explainCompromise } from "../../analytics/compromisedService.ts";
 import { UserModal } from "./userModal";
 import type { Person } from "../../types";
 
-/** Los tres tipos de fila que puede haber en el listado. */
-type UserFilter = "all" | "client" | "anonymous" | "professional";
+/** Los tipos de fila que puede haber en el listado. */
+type UserFilter = "all" | "client" | "anonymous" | "professional" | "admin";
 
 const FILTERS: { key: UserFilter; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "client", label: "Pacientes" },
   { key: "anonymous", label: "Anónimos" },
   { key: "professional", label: "Profesionales" },
+  { key: "admin", label: "Administración" },
 ];
 
 /** Un paciente anónimo es un paciente, pero se cuenta y se filtra aparte. */
@@ -31,6 +33,8 @@ function matchesFilter(user: Person, filter: UserFilter): boolean {
       return !!user.anonymous;
     case "professional":
       return user.type === "professional";
+    case "admin":
+      return user.type === "admin";
     default:
       return true;
   }
@@ -66,6 +70,10 @@ export function UsersAdmin() {
   const [modalData, setModalData] = useState<Person>();
   const [modalVisible, setModalVisible] = useState(false);
   const navigate = useNavigate();
+
+  // Quién está mirando. Ahora que los administradores salen en el listado, uno se ve a sí
+  // mismo, y su propia fila es la única que no ofrece el botón de deshabilitar.
+  const self = useMemo(() => getDecodedToken()?.email ?? "", []);
 
   useEffect(() => {
     getAllUsers()
@@ -149,8 +157,14 @@ export function UsersAdmin() {
 
   function badgesFor(user: Person): PersonBadge[] {
     const badges: PersonBadge[] = [
-      user.type === "professional" ? { label: "Profesional", tone: "green" } : { label: "Paciente", tone: "grey" },
+      user.type === "admin"
+        ? { label: "Administración", tone: "grey", hint: "Maneja el panel. No atiende ni saca turnos." }
+        : user.type === "professional"
+        ? { label: "Profesional", tone: "green" }
+        : { label: "Paciente", tone: "grey" },
     ];
+
+    if (user.email === self) badges.push({ label: "Sos vos", tone: "grey" });
 
     if (user.anonymous) badges.push({ label: "Anónimo", tone: "amber" });
 
@@ -239,7 +253,9 @@ export function UsersAdmin() {
                   name={user.name}
                   surname={user.surname}
                   meta={origin ? `${user.email} · ${origin}` : user.email}
-                  tone={user.anonymous ? "amber" : user.type === "professional" ? "green" : "grey"}
+                  tone={
+                    user.anonymous ? "amber" : user.type === "professional" ? "green" : user.type === "admin" ? "slate" : "grey"
+                  }
                   badges={badgesFor(user)}
                   onClick={() => {
                     setModalData(user);
@@ -255,6 +271,7 @@ export function UsersAdmin() {
       <UserModal
         visible={modalVisible}
         user={modalData}
+        isSelf={!!modalData && modalData.email === self}
         createdByName={modalData?.createdBy ? nameByEmail.get(modalData.createdBy) ?? modalData.createdBy : undefined}
         onClose={() => setModalVisible(false)}
         onToggleState={toggleStateUser}

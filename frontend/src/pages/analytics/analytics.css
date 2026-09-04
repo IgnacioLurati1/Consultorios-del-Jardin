@@ -105,6 +105,16 @@
   border-left: 4px solid var(--adm-green);
 }
 
+/* Plata que falta cobrar. Solo se pinta cuando hay algo que cobrar: en cero es una
+   tarjeta más, y un cero rojo asusta sin motivo. */
+.an-kpi-danger {
+  border-left: 4px solid var(--adm-danger);
+}
+
+.an-kpi-danger .an-kpi-value {
+  color: var(--adm-danger);
+}
+
 .an-kpi-label {
   color: var(--adm-muted);
   font-size: 0.82rem;

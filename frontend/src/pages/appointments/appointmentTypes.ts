@@ -1,4 +1,4 @@
-import type { Office, Person } from "../types.ts";
+import type { Office, PaymentState, Person } from "../types.ts";
 
 /** Slot libre devuelto por /appointments/getAppointments (ya no tiene tipo de turno). */
 export type partialAppointment = { date: Date; initialHour: string; finalHour: string };
@@ -27,6 +27,53 @@ export const CLOSING_STATES: AppointmentState[] = ["assisted", "missed"];
 
 export function isCancelled(state: string): boolean {
   return !APPOINTMENT_STATES.includes(state as AppointmentState);
+}
+
+/* ============================================================
+   Cobro de un turno.
+   ============================================================ */
+
+/** Lo que se ofrece elegir, en el orden en que se elige. */
+export const PAYMENT_OPTIONS: { value: PaymentState; label: string }[] = [
+  { value: "unpaid", label: "No pagó" },
+  { value: "partial", label: "Pagó una parte" },
+  { value: "paid", label: "Pagó" },
+];
+
+/**
+ * Cómo se lee el cobro de un turno, con su color.
+ *
+ * Devuelve null cuando no hay nada que decir: los turnos anteriores a que existiera este
+ * registro no tienen estado de cobro, y mostrarlos como impagos sería afirmar algo que
+ * nadie sabe. Sin cobrar y cobrado a medias van en colores distintos porque son dos
+ * conversaciones distintas con el paciente.
+ */
+export function describePayment(appointment: {
+  paymentState?: PaymentState | null;
+  paidAmount?: number | null;
+  value?: number | null;
+}): { label: string; className: string } | null {
+  switch (appointment.paymentState) {
+    case "paid":
+      return { label: "Pagado", className: "adm-badge adm-badge-green" };
+    case "partial":
+      return {
+        label: `Pagó $${appointment.paidAmount ?? 0} de $${appointment.value ?? 0}`,
+        className: "adm-badge adm-badge-amber",
+      };
+    case "unpaid":
+      return { label: "Sin cobrar", className: "adm-badge adm-badge-red" };
+    default:
+      return null;
+  }
+}
+
+/** Lo que falta cobrar de un turno. Es el mismo cálculo que hace el backend. */
+export function pendingAmount(appointment: { paymentState?: PaymentState | null; paidAmount?: number | null; value?: number | null }): number {
+  const value = appointment.value ?? 0;
+  if (appointment.paymentState === "partial") return Math.max(0, value - (appointment.paidAmount ?? 0));
+  if (appointment.paymentState === "unpaid") return value;
+  return 0;
 }
 
 export function describeState(state: string): { label: string; className: string } {

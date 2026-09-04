@@ -1,4 +1,4 @@
-import { Appointment } from "../api/types";
+import { Appointment, PaymentState } from "../api/types";
 import { Colors } from "../theme/tokens";
 
 /**
@@ -39,6 +39,50 @@ export function stateColors(key: StateKey, colors: Colors): { bg: string; fg: st
       return { bg: colors.dangerSoft, fg: colors.danger };
     default:
       return { bg: colors.sunken, fg: colors.muted };
+  }
+}
+
+/* ---------- cobro ---------- */
+
+export const PAYMENT_LABELS: Record<PaymentState, string> = {
+  unpaid: "Sin cobrar",
+  partial: "Pagó una parte",
+  paid: "Pagado",
+};
+
+/** Lo que se ofrece elegir, en el orden en que se elige. */
+export const PAYMENT_OPTIONS: { key: PaymentState; label: string; description: string }[] = [
+  { key: "unpaid", label: "No pagó", description: "Queda en la lista de lo que falta cobrar." },
+  { key: "partial", label: "Pagó una parte", description: "Se anota cuánto entró y cuánto queda debiendo." },
+  { key: "paid", label: "Pagó", description: "El turno queda saldado." },
+];
+
+/** Lo que falta cobrar de un turno. Es el mismo cálculo que hace el backend. */
+export function pendingAmount(appointment: Pick<Appointment, "paymentState" | "paidAmount" | "value">): number {
+  const value = appointment.value ?? 0;
+  if (appointment.paymentState === "partial") return Math.max(0, value - (appointment.paidAmount ?? 0));
+  if (appointment.paymentState === "unpaid") return value;
+  return 0;
+}
+
+/**
+ * Cómo se lee el cobro, con el color de su etiqueta.
+ *
+ * Null cuando no hay nada que decir: los turnos anteriores a este registro no tienen
+ * estado de cobro, y mostrarlos como impagos sería afirmar algo que nadie sabe.
+ */
+export function describePayment(
+  appointment: Pick<Appointment, "paymentState" | "paidAmount" | "value">
+): { label: string; tone: "green" | "warn" | "danger" } | null {
+  switch (appointment.paymentState) {
+    case "paid":
+      return { label: "Pagado", tone: "green" };
+    case "partial":
+      return { label: `Pagó $${appointment.paidAmount ?? 0} de $${appointment.value ?? 0}`, tone: "warn" };
+    case "unpaid":
+      return { label: "Sin cobrar", tone: "danger" };
+    default:
+      return null;
   }
 }
 

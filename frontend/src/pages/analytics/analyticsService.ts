@@ -17,9 +17,14 @@ export interface Activity {
 
 /** La plata del mismo recorte. */
 export interface Billing {
-  /** Plata de los turnos ya marcados como asistidos. */
+  /**
+   * Plata que entró: los turnos atendidos y cobrados, más lo cobrado de los parciales.
+   *
+   * Los turnos anteriores al registro de cobro cuentan completos. De esos no se sabe si
+   * se cobraron, y darlos por impagos borraría la facturación de toda la historia.
+   */
   billed: number;
-  /** Plata de los turnos que siguen en pie pero todavía no se cerraron. */
+  /** Lo que falta cobrar de los turnos que siguen en pie y todavía no se cerraron. */
   scheduled: number;
 }
 
@@ -70,14 +75,31 @@ export interface RecentMonth extends Metrics, DayLoad {
   inProgress: boolean;
 }
 
+/** Lo que le quedaron debiendo. Solo viaja cuando el profesional mira lo suyo. */
+export interface Debt {
+  /** Cuánta gente le debe al menos un turno, contando los pagos a medias. */
+  people: number;
+  appointments: number;
+  amount: number;
+}
+
 export type ProfessionalRecentMonth = ProfessionalMetrics &
-  DayLoad & { key: string; label: string; inProgress: boolean; denials: Denials };
+  DayLoad & {
+    key: string;
+    label: string;
+    inProgress: boolean;
+    denials: Denials;
+    /** Lo que quedó sin cobrar de ese mes. Ausente cuando el que mira es un administrador. */
+    debt?: Debt;
+  };
 
 export interface ProfessionalAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
   recent: ProfessionalRecentMonth[];
   total: ProfessionalMetrics & DayLoad & { months: number; denials: Denials };
   months: ProfessionalMonthPoint[];
+  /** Ausente para el administrador que mira los números de un profesional. */
+  debt?: Debt;
 }
 
 export interface OfficeMetrics extends Metrics, DayLoad {

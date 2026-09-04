@@ -1,8 +1,15 @@
 import api from "../../../axios"
 import type { Person } from "../../types";
 
+/**
+ * Todas las personas del sistema, administradores incluidos.
+ *
+ * Va por /people y no por /people/NoAdmin, que es lo que pedía antes: ese listado
+ * escondía a los administradores, y con eso se escondía también el único lugar desde
+ * donde se los puede volver a habilitar si el sistema de seguridad cierra a uno.
+ */
 export function getAllUsers(): Promise<Person[]>{
-    return api.get('/people/NoAdmin')
+    return api.get('/people')
     .then(response => response.data.data)
     .catch(err => {
         const backendMsg = err.response?.data?.message || err.message;

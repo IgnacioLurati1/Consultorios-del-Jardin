@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaAddressBook, FaPlus } from "react-icons/fa6";
+import { FaAddressBook, FaMoneyBillWave, FaPlus } from "react-icons/fa6";
 import { AdminHeader } from "../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
@@ -78,6 +78,9 @@ export function PatientsPage() {
   const [contacting, setContacting] = useState<Person | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  // Filtrar por deuda. Vive aparte del alcance porque es un recorte de lo que ya se
+  // está mirando, y no otra lista.
+  const [onlyDebtors, setOnlyDebtors] = useState(false);
   const [scope, setScope] = useState<Scope>("mine");
   // El historial del paciente abierto: los turnos que tuvo con este profesional.
   const [history, setHistory] = useState<Appointment[] | null>(null);
@@ -120,14 +123,24 @@ export function PatientsPage() {
     };
   }, [scope]);
 
+  // Cuántos le quedaron debiendo algo. Solo tiene sentido en los propios: la deuda es
+  // con este profesional, y el listado de todos ni siquiera la trae.
+  const debtors = useMemo(() => patients.filter((patient) => patient.owesPayment).length, [patients]);
+
   const filtered = useMemo(() => {
     const term = normalize(search.trim());
-    if (!term) return patients;
 
-    return patients.filter(
-      (p) => normalize(p.name).includes(term) || normalize(p.surname).includes(term) || normalize(p.email).includes(term)
-    );
-  }, [search, patients]);
+    return patients.filter((patient) => {
+      if (onlyDebtors && !patient.owesPayment) return false;
+      if (!term) return true;
+
+      return (
+        normalize(patient.name).includes(term) ||
+        normalize(patient.surname).includes(term) ||
+        normalize(patient.email).includes(term)
+      );
+    });
+  }, [search, patients, onlyDebtors]);
 
   function openNew() {
     setEditing(null);
@@ -246,10 +259,31 @@ export function PatientsPage() {
           type="button"
           className={`adm-btn adm-btn-ghost ${scope === "all" ? "active" : ""}`}
           aria-pressed={scope === "all"}
-          onClick={() => setScope("all")}
+          onClick={() => {
+            // Ver a todos no trae la deuda: dejar el filtro puesto vaciaría la lista sin
+            // que se entienda por qué.
+            setOnlyDebtors(false);
+            setScope("all");
+          }}
         >
           Todos los pacientes
         </button>
+
+        {/* Contra el borde derecho y solo entre los propios: es un recorte de esa lista. */}
+        {scope === "mine" && (
+          <button
+            type="button"
+            className={`adm-btn adm-btn-ghost patients-debt-filter ${onlyDebtors ? "active" : ""}`}
+            aria-pressed={onlyDebtors}
+            disabled={debtors === 0 && !onlyDebtors}
+            title={debtors === 0 ? "Nadie te quedó debiendo" : "Solo los que te quedaron debiendo"}
+            onClick={() => setOnlyDebtors(!onlyDebtors)}
+          >
+            <FaMoneyBillWave />
+            Adeudan
+            <span className="adm-chip-count">{debtors}</span>
+          </button>
+        )}
       </div>
 
       <PeopleSearch value={search} onChange={setSearch} placeholder="Buscar por nombre, apellido o email" />
@@ -278,6 +312,18 @@ export function PatientsPage() {
                   patient.anonymous
                     ? { label: "Anónimo", tone: "amber" as const }
                     : { label: "Con cuenta", tone: "green" as const },
+                  // Un pago a medias también es una deuda: lo que se mira es si quedó algo
+                  // sin cobrar, no si no pagó nada.
+                  ...(patient.owesPayment
+                    ? [
+                        {
+                          label:
+                            (patient.owedAppointments ?? 0) === 1 ? "Adeuda un pago" : `Adeuda ${patient.owedAppointments} pagos`,
+                          tone: "red" as const,
+                          hint: `Le quedaron $${patient.owedAmount ?? 0} sin pagar. Se registra desde la ficha de cada turno.`,
+                        },
+                      ]
+                    : []),
                 ]}
                 onClick={() => openPatient(patient)}
                 // Solo en los propios: contactar a alguien que nunca atendiste no es
