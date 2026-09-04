@@ -23,7 +23,7 @@ const INSTAGRAM = "consultorios_jardin";
 /** Los datos fijos del consultorio. `href` los vuelve accionables desde el celular. */
 const OFFICE = [
   { icon: FaLocationDot, label: "Dónde estamos", value: "9 de Julio 3672" },
-  { icon: FaClock, label: "Cuándo atendemos", value: "Lunes a viernes, de 8 a 20" },
+  { icon: FaClock, label: "Cuándo atendemos", value: "Lunes a viernes, de 9 a 20" },
   { icon: FaEnvelope, label: "Nuestro mail", value: MAIL, href: `mailto:${MAIL}`, small: true },
   {
     icon: FaInstagram,

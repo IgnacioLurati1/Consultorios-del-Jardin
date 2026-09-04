@@ -23,7 +23,7 @@ const QUESTIONS: Question[] = [
     q: "¿Dónde están?",
     a: (
       <p>
-        En 9 de Julio 3672. Atendemos de lunes a viernes, de 8 a 20, aunque cada profesional tiene sus propios días y
+        En 9 de Julio 3672. Atendemos de lunes a viernes, de 9 a 20, aunque cada profesional tiene sus propios días y
         horarios y los vas a ver al pedir el turno.
       </p>
     ),
@@ -165,7 +165,7 @@ export function FaqPage() {
               </li>
               <li>
                 <FaClock aria-hidden="true" />
-                Lunes a viernes, de 8 a 20
+                Lunes a viernes, de 9 a 20
               </li>
               <li>
                 <FaEnvelope aria-hidden="true" />

@@ -1,8 +1,10 @@
+import { FontAwesome6 } from "@expo/vector-icons";
 import { ScrollView, StyleSheet, View } from "react-native";
 import type { AgendaAppointment, AgendaDay, AgendaSchedule } from "../api/agenda";
 import { AppText } from "../components/Text";
 import { radius, space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
+import { roomLook } from "../lib/roomLook";
 
 /**
  * Dos puntos por minuto. Con menos, un turno de media hora no da para tres renglones
@@ -86,6 +88,22 @@ function kindOf(appointment: AgendaAppointment): string {
  * porque en un teléfono no entran de otra forma; la columna de horas se queda quieta, que
  * es lo que hace que se pueda leer a qué altura está cada bloque.
  */
+/**
+ * La marca de la sala al lado de su nombre: un punto de su color, o el dibujo del lugar
+ * si se llama "Jardín", "Calle" o "Planta Alta". Ver roomLook.
+ */
+function RoomMark({ name, color, border }: { name?: string | null; color: string; border: string }) {
+  const look = roomLook(name);
+  if (!look) return null;
+
+  if (look.icon) {
+    const glyph = { leaf: "leaf", road: "road", stairs: "stairs" }[look.icon];
+    return <FontAwesome6 name={glyph as any} size={11} color={color} />;
+  }
+
+  return <View style={[styles.dot, { backgroundColor: look.background, borderColor: border }]} />;
+}
+
 export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "appointments" }) {
   const { colors } = useTheme();
 
@@ -134,9 +152,14 @@ export function DayGrid({ data, mode }: { data: AgendaDay; mode: "schedules" | "
                   { width: COLUMN_WIDTH, height: HEADER_HEIGHT, borderColor: colors.border, backgroundColor: colors.sunken },
                 ]}
               >
-                <AppText variant="caption" chrome numberOfLines={1} style={{ color: colors.text, fontWeight: "700" }}>
-                  {room.description}
-                </AppText>
+                {/* Un punto del color de la sala cuando se llama como uno: es como las
+                    distingue el que trabaja ahí. Ver roomAccent. */}
+                <View style={styles.headName}>
+                  <RoomMark name={room.description} color={colors.muted} border={colors.border} />
+                  <AppText variant="caption" chrome numberOfLines={1} style={{ color: colors.text, fontWeight: "700" }}>
+                    {room.description}
+                  </AppText>
+                </View>
                 <AppText variant="caption" tone="muted" numberOfLines={1}>
                   {room.office.description}
                 </AppText>
@@ -209,6 +232,10 @@ const styles = StyleSheet.create({
   frame: { flexDirection: "row" },
   gutter: { borderRightWidth: StyleSheet.hairlineWidth },
   hour: { position: "absolute", right: space.sm, fontVariant: ["tabular-nums"] },
+  headName: { flexDirection: "row", alignItems: "center", gap: 6 },
+  // El borde tenue evita que el blanco y el negro —que también son nombres de color— se
+  // pierdan contra el fondo del tema que toque.
+  dot: { width: 8, height: 8, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth },
   head: {
     justifyContent: "center",
     gap: 1,

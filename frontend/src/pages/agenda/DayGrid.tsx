@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import type { AgendaAppointment, AgendaDay, AgendaSchedule } from "./agendaService.ts";
 import "./dayGrid.css";
+import { roomLook } from "../../lib/roomLook.ts";
+import { FaLeaf, FaRoad, FaStairs } from "react-icons/fa6";
 
 /**
  * Alto de la grilla: dos píxeles por minuto. Con menos, un turno de media hora no da
@@ -89,6 +91,24 @@ interface DayGridProps {
  * la semana, y esta qué pasa en el edificio un día. Por eso las columnas son salas: la
  * pregunta que contesta es "¿qué sala queda libre el martes a las diez?".
  */
+/**
+ * La marca de la sala al lado de su nombre: un punto de su color, o el dibujo del lugar.
+ *
+ * Acá no hay iniciales que pintar como en el selector, así que lo que identifica va
+ * aparte del nombre y no encima.
+ */
+function RoomMark({ name }: { name?: string | null }) {
+  const look = roomLook(name);
+  if (!look) return null;
+
+  if (look.icon) {
+    const Pictogram = { leaf: FaLeaf, road: FaRoad, stairs: FaStairs }[look.icon];
+    return <Pictogram className="dg-head-icon" aria-hidden="true" />;
+  }
+
+  return <span className="dg-head-dot" style={{ background: look.background }} />;
+}
+
 export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
   const from = minutes(data.opening);
   const to = minutes(data.closing);
@@ -128,7 +148,10 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
         <div className="dg-corner" />
         {data.rooms.map((room) => (
           <div key={room.idRoom} className="dg-head">
-            <span className="dg-head-name">{room.description}</span>
+            <span className="dg-head-name">
+              <RoomMark name={room.description} />
+              {room.description}
+            </span>
             <span className="dg-head-office">{room.office.description}</span>
           </div>
         ))}

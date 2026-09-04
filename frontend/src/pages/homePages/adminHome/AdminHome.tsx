@@ -25,7 +25,7 @@ const mainEntries: MenuEntry[] = [
   {
     icon: FaUser,
     title: "Usuarios",
-    description: "Pacientes y profesionales: alta, edición y habilitación.",
+    description: "Pacientes y profesionales. Alta, edición y habilitación.",
     link: "/AdminHome/UsersAdmin",
   },
   {

@@ -54,7 +54,7 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
       phone: !phone.trim() || /^[\d\s()+-]{6,30}$/.test(phone.trim()) ? null : "Ese teléfono no parece válido",
       message:
         message.trim().length < MIN_MESSAGE
-          ? "Contanos un poco más: el mensaje es muy corto"
+          ? "El mensaje es muy corto. Contanos un poco más"
           : message.trim().length > MAX_MESSAGE
             ? "El mensaje es demasiado largo. Probá resumirlo"
             : null,

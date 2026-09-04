@@ -28,7 +28,7 @@ export function matches(haystack: string, needle: string): boolean {
 export const OFFICE_INFO = {
   name: "Consultorios del Jardín",
   address: "9 de Julio 3672",
-  hours: "Lunes a viernes, de 8 a 20",
+  hours: "Lunes a viernes, de 9 a 20",
   instagram: "consultorios_jardin",
 } as const;
 

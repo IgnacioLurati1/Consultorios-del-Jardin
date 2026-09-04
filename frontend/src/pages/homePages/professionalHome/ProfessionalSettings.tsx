@@ -497,7 +497,7 @@ function VacationsModal({
     setSaving(true);
     removeVacation(id)
       .then(() => {
-        toast.success(current ? "Bienvenido de vuelta: ya aparecés en las búsquedas" : "Período borrado");
+        toast.success(current ? "Bienvenido de vuelta. Ya aparecés en las búsquedas" : "Período borrado");
         onChanged();
       })
       .catch((err) => toast.error(err.message))
@@ -716,7 +716,7 @@ function DeletePatientModal({ open, onClose }: { open: boolean; onClose: () => v
             <small>
               {scope === "future"
                 ? "Lo que ya atendiste queda registrado, con sus observaciones."
-                : "Se lleva también lo ya atendido: no vas a poder consultar qué pasó en esas sesiones."}
+                : "Se lleva también lo ya atendido. No vas a poder consultar qué pasó en esas sesiones."}
             </small>
           </div>
         </div>

@@ -4,7 +4,7 @@ import LogoHojas from "../../../../assets/LogoHojasRecortado.PNG";
 
 const CONTACT = [
   { icon: FaLocationDot, text: "9 de Julio 3672" },
-  { icon: FaClock, text: "Lunes a viernes, de 8 a 20" },
+  { icon: FaClock, text: "Lunes a viernes, de 9 a 20" },
   { icon: FaEnvelope, text: "consultoriosjardinok@gmail.com", href: "mailto:consultoriosjardinok@gmail.com" },
   { icon: FaInstagram, text: "@consultorios_jardin", href: "https://instagram.com/consultorios_jardin", external: true },
 ];

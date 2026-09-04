@@ -178,7 +178,7 @@ export default function AppointmentScreen() {
                     ? owed > 0
                       ? `Queda debiendo ${money(owed)} de ${money(appointment.value)}`
                       : "No queda nada por cobrar"
-                    : "Este turno es anterior al registro de cobros: elegí cómo quedó."
+                    : "Este turno es anterior al registro de cobros. Elegí cómo quedó."
                 }
                 icon="money-bill-wave"
                 last

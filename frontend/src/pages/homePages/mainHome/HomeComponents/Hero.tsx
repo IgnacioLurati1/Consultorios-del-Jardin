@@ -64,6 +64,15 @@ const FACTS = ["4 especialidades", "Elegís tu profesional", "Recordatorio por m
 export function Hero({ session }: HeroProps) {
   const pitch = pitchFor(session);
 
+  // A dónde lleva la muestra de agenda. Con sesión, derecho a pedir un turno; sin ella,
+  // a crear la cuenta, que es lo que hace falta antes y es lo mismo que ofrece el botón
+  // principal. Mandar a alguien sin cuenta directo a la pantalla de turnos lo deja en el
+  // login sin haber entendido por qué.
+  const booking =
+    session.type === "guest"
+      ? { to: "/Register", label: "Crear mi cuenta para pedir un turno" }
+      : { to: "/Appointment", label: "Pedir un turno" };
+
   return (
     <section className="home-hero">
       <div className="home-hero-inner">
@@ -93,7 +102,7 @@ export function Hero({ session }: HeroProps) {
           </ul>
         </div>
 
-        <AgendaPreview />
+        <AgendaPreview to={booking.to} label={booking.label} />
       </div>
     </section>
   );
@@ -104,11 +113,12 @@ interface Slot {
   taken: boolean;
 }
 
+/** Horarios de muestra. Arrancan a las 9, que es cuando abre el consultorio. */
 const SLOTS: Slot[] = [
-  { hour: "08:30", taken: true },
-  { hour: "09:30", taken: false },
-  { hour: "10:30", taken: true },
-  { hour: "11:30", taken: false },
+  { hour: "09:00", taken: true },
+  { hour: "10:00", taken: false },
+  { hour: "11:00", taken: true },
+  { hour: "12:00", taken: false },
   { hour: "15:00", taken: false },
 ];
 
@@ -131,7 +141,7 @@ function nextWeekday(): string {
  *
  * No son datos reales: es una muestra fija con la fecha del próximo día hábil.
  */
-function AgendaPreview() {
+function AgendaPreview({ to, label }: { to: string; label: string }) {
   const reduced =
     typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -147,9 +157,12 @@ function AgendaPreview() {
   }, [reduced]);
 
   return (
-    <div className={`home-agenda ${reduced ? "is-static" : ""}`} aria-hidden="true">
-      <div className="home-agenda-card">
-        <header className="home-agenda-head">
+    <div className={`home-agenda ${reduced ? "is-static" : ""}`}>
+      {/* La muestra es un dibujo, pero lleva al lugar que dibuja. Lo de adentro sigue
+          escondido para el lector de pantalla —es una agenda inventada, no la de
+          nadie— y lo único que se anuncia es a dónde lleva. */}
+      <Link className="home-agenda-card" to={to} aria-label={label}>
+        <header className="home-agenda-head" aria-hidden="true">
           <div>
             <span className="home-agenda-day">{nextWeekday()}</span>
             {/* Sin nombre propio: es una muestra y no tiene que confundirse con la
@@ -159,7 +172,7 @@ function AgendaPreview() {
           <span className="home-agenda-tag">Ejemplo</span>
         </header>
 
-        <ul className="home-agenda-list">
+        <ul className="home-agenda-list" aria-hidden="true">
           {SLOTS.map((slot, index) => {
             const mine = booked && index === PICKED;
             const free = !slot.taken && !mine;
@@ -184,9 +197,9 @@ function AgendaPreview() {
             );
           })}
         </ul>
-      </div>
+      </Link>
 
-      <p className="home-agenda-caption">Así se eligen los horarios: los libres se ven, se tocan y quedan tomados.</p>
+      <p className="home-agenda-caption">Así se eligen los horarios. Los libres se ven, se tocan y quedan tomados.</p>
     </div>
   );
 }

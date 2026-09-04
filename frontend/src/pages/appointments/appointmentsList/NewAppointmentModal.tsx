@@ -207,7 +207,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
       subtitle={
         mode === "regular"
           ? "Dentro de tus horarios de atención. Queda confirmado directamente"
-          : "Fuera de tus horarios: elegís día, hora y consultorio a mano"
+          : "Fuera de tus horarios. Elegís día, hora y consultorio a mano"
       }
       footer={
         <>

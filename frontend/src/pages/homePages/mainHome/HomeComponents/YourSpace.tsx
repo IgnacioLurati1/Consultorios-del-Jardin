@@ -128,7 +128,7 @@ export function YourSpace({ session }: YourSpaceProps) {
         <p className="home-section-lead">
           {accesses
             ? "Los mismos accesos de tu panel, sin pasar por el menú."
-            : "No hace falta llamar ni esperar a que abran: la agenda está disponible a cualquier hora."}
+            : "No hace falta llamar ni esperar a que abran. La agenda está disponible a cualquier hora."}
         </p>
       </div>
 

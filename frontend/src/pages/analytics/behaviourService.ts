@@ -60,6 +60,6 @@ export function explainSuspicion(patient: FlaggedPatient): string {
   return (
     `Asistió al ${percent}% de sus turnos cerrados (${patient.assisted} de ${patient.closed}), con ${patient.missed} ausencias. ` +
     "Puede ser que reserve y no venga, o que su profesional no esté cargando las asistencias. " +
-    "No tiene ninguna penalización: está marcado para que lo mires."
+    "No tiene ninguna penalización. Está marcado para que lo mires."
   );
 }

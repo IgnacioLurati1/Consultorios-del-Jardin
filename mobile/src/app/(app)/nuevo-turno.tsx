@@ -174,7 +174,7 @@ export default function NewAppointmentScreen() {
             label="Qué estás cargando"
             options={[
               { key: "normal", label: "Un turno", description: "Dentro de tus horarios de atención." },
-              { key: "over", label: "Un sobreturno", description: "Fuera de tus módulos: elegís hora y consultorio." },
+              { key: "over", label: "Un sobreturno", description: "Fuera de tus módulos. Elegís hora y consultorio." },
             ]}
             value={overbooked ? "over" : "normal"}
             onChange={(key) => {

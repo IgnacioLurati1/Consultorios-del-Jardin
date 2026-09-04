@@ -394,7 +394,7 @@ function VacationsSheet({
     setBusy(true);
     removeVacation(id)
       .then(() => {
-        feedback.done(current ? "Bienvenido de vuelta: ya aparecés en las búsquedas" : "Período borrado");
+        feedback.done(current ? "Bienvenido de vuelta. Ya aparecés en las búsquedas" : "Período borrado");
         onChanged();
       })
       .catch((problem) => feedback.problem(errorMessage(problem)))

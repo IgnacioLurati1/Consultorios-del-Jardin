@@ -41,9 +41,31 @@
 }
 
 .dg-head-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 700;
   font-size: 1rem;
   color: var(--adm-text);
+}
+
+/* El punto del color de la sala. Lleva un borde tenue del mismo tono del texto para que
+   el blanco y el negro —que también son nombres de color— no se pierdan contra el fondo
+   del tema que toque. */
+/* El dibujo de la sala, cuando el nombre es un lugar y no un color. */
+.dg-head-icon {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  color: var(--adm-muted);
+}
+
+.dg-head-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--adm-text) 25%, transparent);
 }
 
 .dg-head-office {

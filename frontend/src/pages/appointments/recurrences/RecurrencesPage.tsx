@@ -297,7 +297,7 @@ export function RecurrencesPage() {
             <small>
               {form.forever
                 ? "Se repite hasta que la frenes a mano."
-                : "Adelantar la fecha no borra los turnos ya creados: esos se cancelan desde la agenda."}
+                : "Adelantar la fecha no borra los turnos ya creados. Esos se cancelan desde la agenda."}
             </small>
           </div>
 

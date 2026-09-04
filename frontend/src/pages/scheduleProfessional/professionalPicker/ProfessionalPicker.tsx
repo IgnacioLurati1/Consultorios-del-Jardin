@@ -3,6 +3,8 @@ import { FaChevronRight, FaMagnifyingGlass, FaTableColumns, FaXmark } from "reac
 import type { Person, Room } from "../../types.ts";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import "./professionalPicker.css";
+import { roomLook, type RoomPictogram } from "../../../lib/roomLook.ts";
+import { FaLeaf, FaRoad, FaStairs } from "react-icons/fa6";
 
 interface ProfessionalPickerProps {
   isOpen: boolean;
@@ -33,6 +35,31 @@ const normalize = (text: string) =>
  * La del día va abajo y no en una tercera columna porque no se busca nada: es un solo
  * botón, y ponerlo al lado de dos buscadores lo haría parecer un tercer buscador vacío.
  */
+/** Los dibujos que puede llevar una sala en vez de su inicial. */
+const PICTOGRAMS: Record<RoomPictogram, typeof FaLeaf> = {
+  leaf: FaLeaf,
+  road: FaRoad,
+  stairs: FaStairs,
+};
+
+/**
+ * El iconito de una sala: su color si se llama como uno, y un dibujo en vez de la
+ * inicial si se llama como un lugar. Ver roomLook.
+ */
+function RoomAvatar({ name }: { name?: string | null }) {
+  const look = roomLook(name);
+  const Pictogram = look?.icon ? PICTOGRAMS[look.icon] : null;
+
+  return (
+    <span
+      className="picker-item-avatar picker-item-avatar-room"
+      style={look?.background ? { background: look.background, color: look.text } : undefined}
+    >
+      {Pictogram ? <Pictogram aria-hidden="true" /> : name?.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
 export function ProfessionalPicker({
   isOpen,
   professionals,
@@ -188,7 +215,7 @@ export function ProfessionalPicker({
                     {filteredRooms.map((room) => (
                       <li key={room.idRoom}>
                         <button className="picker-item" onClick={() => onSelectRoom!(room)}>
-                          <span className="picker-item-avatar picker-item-avatar-room">{room.description?.charAt(0).toUpperCase()}</span>
+                          <RoomAvatar name={room.description} />
                           <span className="picker-item-text">
                             <span className="picker-item-name">{room.description}</span>
                             <span className="picker-item-meta">Ver ocupación completa</span>

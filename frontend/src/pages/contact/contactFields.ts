@@ -50,7 +50,7 @@ export function validatePerson(form: ContactForm): string | null {
 
 export function validateMessage(form: ContactForm): string | null {
   const message = form.message.trim();
-  if (message.length < MIN_MESSAGE) return "Contanos un poco más: el mensaje es muy corto";
+  if (message.length < MIN_MESSAGE) return "El mensaje es muy corto. Contanos un poco más";
   if (message.length > MAX_MESSAGE) return "El mensaje es demasiado largo. Probá resumirlo";
   return null;
 }

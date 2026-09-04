@@ -213,12 +213,43 @@
   animation: home-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
 }
 
+/* La muestra de agenda es además el camino a pedir turno, así que se comporta como algo
+   que se toca: se levanta un poco y se enciende el borde. Es el mismo gesto que hacen las
+   tarjetas de especialidad más abajo, para que la página tenga un solo idioma. */
 .home-agenda-card {
+  display: block;
   padding: 22px;
   border-radius: 18px;
+  border: 1px solid transparent;
   background: var(--home-surface);
   color: var(--home-text);
+  text-decoration: none;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.home-agenda-card:hover,
+.home-agenda-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--home-green-light);
+  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.45);
+}
+
+.home-agenda-card:focus-visible {
+  outline: 2px solid var(--home-green-light);
+  outline-offset: 4px;
+}
+
+/* Quien pidió menos movimiento recibe el encendido del borde y nada más. */
+@media (prefers-reduced-motion: reduce) {
+  .home-agenda-card {
+    transition: border-color 0.18s ease;
+  }
+
+  .home-agenda-card:hover,
+  .home-agenda-card:focus-visible {
+    transform: none;
+  }
 }
 
 .home-agenda-head {

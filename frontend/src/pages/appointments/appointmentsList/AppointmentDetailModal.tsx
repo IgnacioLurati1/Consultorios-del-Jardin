@@ -236,7 +236,7 @@ export function AppointmentDetailModal({
           onClick={() => onCancel(appointment)}
           title={
             pendingYet
-              ? "El turno todavía no está confirmado: se borra y el horario queda libre."
+              ? "El turno todavía no está confirmado. Se borra y el horario queda libre."
               : "El turno queda cancelado y en el historial."
           }
         >
