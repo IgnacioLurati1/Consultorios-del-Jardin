@@ -56,6 +56,8 @@ export interface Metrics {
   fromApp: number;
   /** Turnos que cargó el profesional a mano. */
   fromProfessional: number;
+  /** Turnos que llegaron importados de un calendario externo. */
+  imported: number;
   /** Turnos anteriores a la columna `origin`: no se pueden clasificar. */
   unknownOrigin: number;
 }
@@ -72,6 +74,7 @@ function emptyMetrics(): Metrics {
     patients: 0,
     fromApp: 0,
     fromProfessional: 0,
+    imported: 0,
     unknownOrigin: 0,
   };
 }
@@ -116,6 +119,10 @@ function summarize(rows: Row[]): Metrics {
 
     if (row.origin === "patient") metrics.fromApp++;
     else if (row.origin === "professional") metrics.fromProfessional++;
+    else if (row.origin === "import") metrics.imported++;
+    // Los anteriores a que existiera la columna. Van aparte y no sumados a los del
+    // profesional: son turnos de los que no se sabe quién los cargó, y ponerlos en
+    // cualquiera de los dos montones inventaría el dato en vez de admitir que falta.
     else metrics.unknownOrigin++;
 
     // La plata que entró se cuenta siempre, sin importar cómo terminó el turno.
@@ -147,6 +154,12 @@ function summarize(rows: Row[]): Metrics {
  * No es el complemento exacto de "cobrado": ahí entra también lo que se pagó por
  * adelantado de turnos que todavía no se dieron, y acá no, porque de un turno que no
  * pasó todavía no se debe nada.
+ *
+ * Un turno sin paciente no cuenta. Deber es algo que hace una persona, y si no hay nadie
+ * anotado no hay a quién reclamarle: es plata que no entró, no plata que alguien debe. Es
+ * además lo que ya hacían la lista de "sin cobrar" y la marca de deuda en los pacientes,
+ * así que sin esto el mismo turno salía en un lado y no en el otro. Aparece con los turnos
+ * importados de un calendario, que entran sin paciente.
  */
 function debtOf(rows: Row[]): { people: number; appointments: number; amount: number } {
   const people = new Set<string>();
@@ -156,10 +169,11 @@ function debtOf(rows: Row[]): { people: number; appointments: number; amount: nu
   for (const row of rows) {
     if (row.state !== "assisted") continue;
     if (row.paymentState !== "unpaid" && row.paymentState !== "partial") continue;
+    if (!row.patientEmail) continue;
 
     appointments++;
     amount += row.paymentState === "partial" ? Math.max(0, (row.value ?? 0) - (row.paidAmount ?? 0)) : row.value ?? 0;
-    if (row.patientEmail) people.add(row.patientEmail);
+    people.add(row.patientEmail);
   }
 
   return { people: people.size, appointments, amount };

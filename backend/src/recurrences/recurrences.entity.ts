@@ -33,8 +33,13 @@ export class Recurrence {
   @Property({ nullable: false, type: "time" })
   finalHour!: string;
 
-  @Property({ nullable: true })
-  value!: number;
+  // Puede no estar, igual que en el turno del que sale: un turno importado de un
+  // calendario que no anotaba precios no tiene valor, y cero diría que fue gratis.
+  //
+  // Y como allá, el tipo va escrito a mano: sin esto la columna se crea como varchar y la
+  // plata pasa a ser texto.
+  @Property({ nullable: true, type: "integer" })
+  value?: number | null;
 
   @Property()
   frequency!: RecurrenceFrequency;

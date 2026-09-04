@@ -29,6 +29,7 @@ import { announcementRouter } from "./announcements/announcements.routes.js";
 import { securityRouter } from "./security/security.routes.js";
 import { contactRouter } from "./contact/contact.routes.js";
 import { assistantRouter } from "./assistant/assistant.routes.js";
+import { calendarRouter } from "./calendar/calendar.routes.js";
 import { setupSwagger } from './config/swagger.js';
 import { authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
@@ -70,6 +71,10 @@ if (process.env.NODE_ENV !== "production") {
 // refresh token, que en la app no puede viajar en una cookie. Ver config/clients.ts.
 const allowedHeaders = ["Content-Type", "Authorization", "Cookie", "X-Client", "X-Refresh-Token"];
 
+// Los encabezados de la respuesta que el navegador puede leer. Por defecto no deja ver
+// ninguno propio, y la descarga de la agenda cuenta ahi cuantos turnos entraron.
+const exposedHeaders = ["Content-Disposition", "X-Appointments"];
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -80,7 +85,8 @@ app.use(cors({
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders
+  allowedHeaders,
+  exposedHeaders
 }));
 
 app.options('*', cors());
@@ -117,6 +123,7 @@ app.use("/api/settings", verifyToken, settingsRouter);
 app.use("/api/announcements", verifyToken, announcementRouter);
 app.use("/api/security", verifyToken, securityRouter);
 app.use("/api/assistant", verifyToken, assistantRouter);
+app.use("/api/calendar", verifyToken, calendarRouter);
 // Sin verifyToken a propósito: cualquiera tiene que poder escribirle al consultorio.
 app.use("/api/contact", contactRouter);
 

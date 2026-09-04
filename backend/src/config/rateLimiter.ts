@@ -111,4 +111,16 @@ const contactLimiter = rateLimit({
   message: { message: 'Ya enviaste varias consultas. Esperá un rato antes de mandar otra.' },
 });
 
-export { generalLimiter, authLimiter, lookupLimiter, contactLimiter };
+// Importar un calendario. Cada llamada lee un archivo entero y lo cruza contra la agenda,
+// así que cuesta bastante más que cualquier otra pantalla. Veinte por hora dan de sobra
+// para probar opciones, mirar la previa y después importar de verdad, varias veces.
+const importLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // ventana de 1 hora
+  handler: announce("el limitador de importaciones", 60 * 60 * 1000),
+  max: 20 * RELAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Probaste varias importaciones seguidas. Esperá un rato antes de la próxima.' },
+});
+
+export { generalLimiter, authLimiter, lookupLimiter, contactLimiter, importLimiter };

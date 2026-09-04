@@ -18,8 +18,19 @@ export class Appointment {
   @Property({ nullable: false, type: "time" })
   finalHour!: string;
 
-  @Property({ nullable: true })
-  value!: number;
+  /**
+   * Cuánto sale el turno.
+   *
+   * Puede no estar. Un turno importado de un calendario donde nadie anotó el precio no
+   * tiene valor, y ponerle cero diría otra cosa: que se atendió gratis. Null es "no se
+   * sabe", y las cuentas del mes lo tratan como lo que es, un dato que falta.
+   */
+  // El tipo va escrito a mano por lo mismo que en `paidAmount`: de `number | null` la
+  // metadata de TypeScript no puede deducir que es un número y el ORM arma la columna como
+  // varchar. Guardada así, la plata se suma concatenando y las comparaciones ordenan
+  // alfabéticamente, con lo cual 900 es mayor que 10000.
+  @Property({ nullable: true, type: "integer" })
+  value?: number | null;
 
   // pending -> accepted -> assisted. Al cancelar se guarda un ISO timestamp,
   // para que el unique index de arriba permita volver a sacar turno en el mismo horario.
@@ -75,11 +86,15 @@ export class Appointment {
   @Property({ default: false })
   overbooked: boolean = false;
 
-  // Quién dio de alta el turno: el paciente desde la app o el profesional a mano.
-  // Es nullable porque los turnos anteriores a esta columna no se pueden clasificar
-  // con certeza: en analytics se cuentan aparte, como "sin dato".
+  // Quién dio de alta el turno: el paciente desde la app, el profesional a mano, o una
+  // importación de un calendario externo. Es nullable porque los turnos anteriores a esta
+  // columna no se pueden clasificar con certeza: en analytics se cuentan aparte, como
+  // "sin dato".
+  //
+  // "import" además marca: un turno importado se cargó tal como estaba en el calendario
+  // de origen, así que puede no encajar en la grilla de horarios ni tener paciente.
   @Property({ nullable: true })
-  origin?: "patient" | "professional" | null;
+  origin?: "patient" | "professional" | "import" | null;
 
   // Si salió de un turno repetible, apunta a la configuración que lo generó (o que se
   // creó a partir de él). Cancelar o editar el turno no toca la configuración, y

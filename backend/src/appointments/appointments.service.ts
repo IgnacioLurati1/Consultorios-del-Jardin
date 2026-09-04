@@ -564,7 +564,8 @@ export class AppointmentService {
 
     if (Object.keys(changes).length === 0) throw badRequest("No hay cambios para aplicar");
 
-    if (changes.value !== undefined && changes.value < 0) throw badRequest("El valor del turno no puede ser negativo");
+    if (changes.value !== undefined && changes.value !== null && changes.value < 0)
+      throw badRequest("El valor del turno no puede ser negativo");
 
     // Solo se revalidan horarios (y se avisa por mail) si realmente cambió la franja.
     // Cambiarle el valor a un turno no tiene por qué mandarle un mail al paciente.

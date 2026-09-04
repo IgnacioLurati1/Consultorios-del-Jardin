@@ -135,6 +135,11 @@ export class AgendaService {
         /** Fuera de los módulos del profesional: lo metió a mano. */
         overbooked: !!appointment.overbooked,
         /**
+         * Vino importado de un calendario de afuera. Explica un bloque que no arranca ni
+         * termina donde arrancan los módulos: se cargó con el horario que tenía allá.
+         */
+        imported: appointment.origin === "import",
+        /**
          * Sale de un turno que se repite solo, y esa repetición sigue andando. Frenarla no
          * le borra el puntero al turno, así que con mirar si existe se seguiría etiquetando
          * como repetido algo que ya no se repite.

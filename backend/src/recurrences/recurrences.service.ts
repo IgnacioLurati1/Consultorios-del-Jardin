@@ -302,7 +302,7 @@ export class RecurrenceService {
       recurrence.frequency = data.frequency;
     }
 
-    if (data.value !== undefined) {
+    if (data.value !== undefined && data.value !== null) {
       if (data.value < 0) throw badRequest("El valor del turno no puede ser negativo");
       recurrence.value = data.value;
     }
