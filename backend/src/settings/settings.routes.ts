@@ -4,6 +4,7 @@ import {
   getSettings,
   updateSettings,
   acceptPending,
+  settleUnpaid,
   addVacation,
   removeVacation,
   deletePatientAppointments,
@@ -92,6 +93,24 @@ settingsRouter.patch("/", updateSettings);
  *         description: Cuántos pedidos se confirmaron
  */
 settingsRouter.post("/pending", acceptPending);
+
+/**
+ * @swagger
+ * /api/settings/unpaid:
+ *   post:
+ *     summary: Dar por cobrados de una todos los turnos que quedaron sin saldar
+ *     description: >
+ *       Accion de una sola vez, independiente del cobro automatico: ese vale para los
+ *       turnos que se cierren de aca en adelante. Toca los turnos ya atendidos que tienen
+ *       paciente y quedaron sin cobrar o cobrados a medias.
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cuantos turnos se dieron por cobrados, y por cuanta plata
+ */
+settingsRouter.post("/unpaid", settleUnpaid);
 
 /**
  * @swagger

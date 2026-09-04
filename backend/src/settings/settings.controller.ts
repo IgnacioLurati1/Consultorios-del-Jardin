@@ -56,6 +56,22 @@ export async function acceptPending(req: RequestWithUser, res: Response) {
   }
 }
 
+export async function settleUnpaid(req: RequestWithUser, res: Response) {
+  try {
+    const { settled, amount } = await settingsService.settleUnpaid(req.user.email);
+
+    res.status(200).json({
+      message:
+        settled === 0
+          ? "No tenias nada sin cobrar"
+          : `Diste por cobrados ${settled} turnos${amount > 0 ? `, $${amount}` : ""}`,
+      data: { settled, amount },
+    });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 export async function addVacation(req: RequestWithUser, res: Response) {
   try {
     const { fromDate, toDate, reason } = req.body;

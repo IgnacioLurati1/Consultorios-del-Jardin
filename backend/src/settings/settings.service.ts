@@ -2,6 +2,7 @@ import { orm } from "../shared/db/orm.js";
 import { Person } from "../people/people.entity.js";
 import { Vacation } from "./vacation.entity.js";
 import { Appointment } from "../appointments/appointments.entity.js";
+import { DEBT_FILTER, pendingAmount } from "../appointments/appointments.service.js";
 import { Recurrence } from "../recurrences/recurrences.entity.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
@@ -146,6 +147,41 @@ export class SettingsService {
 
     await em.flush();
     return pending.length;
+  }
+
+  /**
+   * Da por cobrado todo lo que quedo sin saldar.
+   *
+   * Es el hermano de confirmar los pedidos de una: la misma idea, del otro lado del
+   * mostrador. El profesional que cobra en efectivo y no anota turno por turno termina con
+   * una lista larga de "sin cobrar" que no describe nada, y saldarla de a uno son cuarenta
+   * clicks.
+   *
+   * Toca exactamente lo mismo que muestra la lista: turnos ya atendidos, con paciente, sin
+   * cobrar o cobrados a medias. Los que no tienen paciente quedan afuera porque tampoco
+   * cuentan como deuda en ningun lado, y saldar algo que no figura seria mover plata que
+   * nadie estaba mirando.
+   *
+   * Al pago parcial se le borra el monto: "pagado" quiere decir que entro el valor entero,
+   * y dejar los $3000 de un pago a medias en un turno marcado como saldado deja un dato que
+   * despues hay que explicar en cada pantalla.
+   */
+  async settleUnpaid(email: string): Promise<{ settled: number; amount: number }> {
+    await this.professional(email);
+
+    const unpaid = await em.find(Appointment, { professional: { email }, patient: { $ne: null }, ...DEBT_FILTER });
+
+    let amount = 0;
+
+    for (const appointment of unpaid) {
+      amount += pendingAmount(appointment);
+      appointment.paymentState = "paid";
+      appointment.paidAmount = null;
+    }
+
+    await em.flush();
+
+    return { settled: unpaid.length, amount };
   }
 
   async addVacation(email: string, fromDate: string, toDate: string, reason?: string | null): Promise<Vacation> {

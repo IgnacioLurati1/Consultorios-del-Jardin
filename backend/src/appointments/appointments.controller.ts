@@ -203,7 +203,13 @@ async function getUnpaidAppointments(req: RequestWithUser, res: Response) {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
 
     const appointments = await appointmentService.findUnpaidAppointments(req.user.email);
-    res.status(200).json({ message: "Turnos sin cobrar", data: appointments });
+
+    // El total va aparte de la lista porque no siempre coinciden: la lista tiene tope, y
+    // quien trajo dos años de agenda puede tener más turnos sin cobrar de los que entran
+    // en una caja del panel. El número del encabezado tiene que ser el de verdad.
+    const total = await appointmentService.debtSummary(req.user.email);
+
+    res.status(200).json({ message: "Turnos sin cobrar", data: appointments, total });
   } catch (error: any) {
     sendError(res, error);
   }
