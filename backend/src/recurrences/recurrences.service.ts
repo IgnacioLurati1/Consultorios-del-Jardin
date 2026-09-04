@@ -156,6 +156,7 @@ export class RecurrenceService {
         // Nace confirmado, igual que cualquier turno que carga el profesional.
         state: "accepted",
         observations: null,
+        paymentState: "unpaid",
         reminderSent: "not sent",
         overbooked: recurrence.overbooked,
         origin: "professional",

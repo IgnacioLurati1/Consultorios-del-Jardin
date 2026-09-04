@@ -12,6 +12,8 @@ import {
   getAppointmentDiagnostics,
   createPatientAppointment,
   getPendingAppointments,
+  getUnpaidAppointments,
+  updatePayment,
   updateAppointment,
   deleteAppointment,
   sanitizeAppointmentInput,
@@ -255,6 +257,26 @@ appointmentRouter.get("/by-professional/:email/:page", getAppointmentsByProfessi
  */
 appointmentRouter.get("/my-patients", getMyPatients);
 
+/**
+ * @swagger
+ * /api/appointments/unpaid:
+ *   get:
+ *     summary: Los turnos del profesional que ya se dieron y no se cobraron del todo
+ *     description: >
+ *       Solo los que ya se atendieron y quedaron sin cobrar o con un pago parcial. Los
+ *       turnos anteriores a que existiera el registro de cobro no figuran: de esos no se
+ *       sabe si se pagaron.
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de turnos sin cobrar
+ *       403:
+ *         description: Solo para profesionales
+ */
+appointmentRouter.get("/unpaid", getUnpaidAppointments);
+
 appointmentRouter.get("/medical-history", getPersonalMedicalHistory);
 
 /**
@@ -422,6 +444,43 @@ appointmentRouter.patch("/:numAppointment/accept", sanitizeAppointmentInput, acc
  *         description: Error del servidor
  */
 appointmentRouter.patch("/:numAppointment/cancel", cancelAppointment);
+
+/**
+ * @swagger
+ * /api/appointments/{numAppointment}/payment:
+ *   patch:
+ *     summary: Registrar el cobro de un turno
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: numAppointment
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [paymentState]
+ *             properties:
+ *               paymentState: { type: string, enum: [unpaid, partial, paid] }
+ *               paidAmount:
+ *                 type: integer
+ *                 description: Solo para "partial". Mayor que cero y menor que el valor del turno.
+ *     responses:
+ *       200:
+ *         description: Cobro actualizado
+ *       400:
+ *         description: El monto no es válido para el valor de ese turno
+ *       403:
+ *         description: Solo para profesionales
+ *       404:
+ *         description: Ese turno no existe o no es tuyo
+ */
+appointmentRouter.patch("/:numAppointment/payment", updatePayment);
 
 /**
  * @swagger

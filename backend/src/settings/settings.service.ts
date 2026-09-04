@@ -11,12 +11,17 @@ const em = orm.em;
 
 export type AutoMark = "assisted" | "missed";
 export type AutoMarkWhen = "appointment" | "day";
+/** El cobro automatico se decide con el mismo criterio que el cierre. */
+export type AutoPayWhen = AutoMarkWhen;
 export type DeleteScope = "future" | "all";
 
 export interface ProfessionalSettings {
   autoAccept: boolean;
   autoMark: AutoMark | null;
   autoMarkWhen: AutoMarkWhen;
+  /** Dar por cobrado el turno que ya paso, sin marcarlo a mano. */
+  autoPay: boolean;
+  autoPayWhen: AutoPayWhen;
   /** Cuántos pedidos están esperando respuesta ahora mismo. */
   pending: number;
   /** Los avisos por mail que se pueden apagar, con el estado de cada uno. */
@@ -53,6 +58,8 @@ export class SettingsService {
       autoAccept: person.autoAccept,
       autoMark: (person.autoMark as AutoMark) ?? null,
       autoMarkWhen: person.autoMarkWhen,
+      autoPay: person.autoPay,
+      autoPayWhen: person.autoPayWhen,
       pending,
       mails: professionalMailSettings(person),
       vacations: vacations.map((vacation) => ({
@@ -67,7 +74,14 @@ export class SettingsService {
 
   async update(
     email: string,
-    data: { autoAccept?: boolean; autoMark?: AutoMark | null; autoMarkWhen?: AutoMarkWhen; mails?: Record<string, boolean> }
+    data: {
+      autoAccept?: boolean;
+      autoMark?: AutoMark | null;
+      autoMarkWhen?: AutoMarkWhen;
+      autoPay?: boolean;
+      autoPayWhen?: AutoPayWhen;
+      mails?: Record<string, boolean>;
+    }
   ): Promise<ProfessionalSettings> {
     const person = await this.professional(email);
 
@@ -90,6 +104,22 @@ export class SettingsService {
         throw badRequest("El cierre automático corre al terminar el turno o al terminar el día");
 
       person.autoMarkWhen = data.autoMarkWhen;
+    }
+
+    if (data.autoPay !== undefined) {
+      // Igual que el cierre: se sella al prender y se borra al apagar, asi prenderlo de
+      // nuevo mas adelante no da por cobrado lo que paso mientras estuvo apagado.
+      if (data.autoPay && !person.autoPay) person.autoPaySince = new Date();
+      if (!data.autoPay) person.autoPaySince = null;
+
+      person.autoPay = data.autoPay;
+    }
+
+    if (data.autoPayWhen !== undefined) {
+      if (data.autoPayWhen !== "appointment" && data.autoPayWhen !== "day")
+        throw badRequest("El cobro automatico corre al terminar el turno o al terminar el dia");
+
+      person.autoPayWhen = data.autoPayWhen;
     }
 
     // De a un aviso por vez, sin pisar los demás: la pantalla manda solo el switch que

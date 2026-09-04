@@ -30,6 +30,31 @@ export class Appointment {
   @Property({ nullable: true, type: "text" })
   observations?: string | null;
 
+  /**
+   * Si el turno se cobró, y cómo.
+   *
+   * Nullable y sin valor por defecto a propósito. Los turnos anteriores a esta columna no
+   * tienen cómo saber si se pagaron: darlos por impagos llenaría la lista de deuda con
+   * toda la historia del consultorio, y darlos por pagados sería inventar. Null quiere
+   * decir "no se registró" y no cuenta como deuda en ningún lado.
+   *
+   * Los turnos nuevos nacen en "unpaid": ahí sí se sabe que todavía no se cobró.
+   */
+  @Property({ nullable: true })
+  paymentState?: "unpaid" | "partial" | "paid" | null;
+
+  /**
+   * Cuánto se cobró, solo cuando el pago fue parcial.
+   *
+   * En "paid" no hace falta (es el valor del turno) y en "unpaid" no significa nada, así
+   * que en los dos casos se guarda en null y no queda un número viejo dando vueltas.
+   */
+  // El tipo va escrito a mano: de `number | null` la metadata de TypeScript no puede
+  // deducir que es un número, y MikroORM creaba la columna como varchar. Guardado como
+  // texto, sumar montos concatena en vez de sumar ("4500" + 2000 = "45002000").
+  @Property({ nullable: true, type: "integer" })
+  paidAmount?: number | null;
+
   @ManyToOne(() => Person, { nullable: false })
   professional!: Rel<Person>;
 

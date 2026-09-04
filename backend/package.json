@@ -12,7 +12,8 @@
     "bootstrap": "node dist/scripts/bootstrap.js",
     "start:dev": "tsc-watch --noClear -p ./tsconfig.json --onSuccess \"node ./dist/app.js\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "schema:plan": "node dist/scripts/schema-plan.js"
   },
   "keywords": [],
   "author": "",

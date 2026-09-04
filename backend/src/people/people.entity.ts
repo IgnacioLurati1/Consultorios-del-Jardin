@@ -127,6 +127,24 @@ export class Person {
   @Property({ nullable: true, type: "datetime" })
   autoMarkSince?: Date | null;
 
+  // Dar por cobrado el turno que ya pasó, en vez de ir marcándolo a mano.
+  //
+  // Sirve para el consultorio donde se cobra en el momento y siempre: ahí registrar cada
+  // pago es escribir dos veces lo mismo, y lo único que interesa es la excepción, el que
+  // quedó debiendo. Con esto la excepción es lo único que se marca.
+  @Property({ default: false })
+  autoPay: boolean = false;
+
+  // Cuándo se da por cobrado: apenas termina el turno, o al cerrar el día. Mismo criterio
+  // que el cierre automático, y por las mismas razones.
+  @Property({ default: "appointment" })
+  autoPayWhen: "appointment" | "day" = "appointment";
+
+  // Desde cuándo vale, igual que autoMarkSince: prenderlo no puede dar por cobrada toda
+  // la agenda vieja, que es justamente donde puede haber deuda de verdad.
+  @Property({ nullable: true, type: "datetime" })
+  autoPaySince?: Date | null;
+
   // Qué avisos por mail apagó, como claves separadas por coma ("slot-freed").
   //
   // Una columna de texto y no una por aviso: la lista de avisos va a cambiar, y cada uno

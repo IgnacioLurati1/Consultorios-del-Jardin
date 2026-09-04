@@ -20,6 +20,7 @@ import { startReminderJob } from "./jobs/reminder.job.js";
 import { startRecurrenceJob } from "./jobs/recurrence.job.js";
 import { startExpiryJob } from "./jobs/expiry.job.js";
 import { startAttendanceJob } from "./jobs/attendance.job.js";
+import { startPaymentJob } from "./jobs/payment.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { analyticsRouter } from "./analytics/analytics.routes.js";
 import { agendaRouter } from "./agenda/agenda.routes.js";
@@ -131,6 +132,7 @@ startReminderJob();
 startRecurrenceJob();
 startExpiryJob();
 startAttendanceJob();
+startPaymentJob();
 
 // El puerto lo asigna la plataforma y llega por variable; en local no está y sigue
 // siendo 3000, que es lo que espera el proxy de Vite.

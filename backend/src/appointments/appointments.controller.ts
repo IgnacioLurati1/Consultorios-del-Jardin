@@ -197,6 +197,18 @@ async function getPendingAppointments(req: RequestWithUser, res: Response) {
   }
 }
 
+/** Los turnos que ya se dieron y todavía no se cobraron del todo. */
+async function getUnpaidAppointments(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+
+    const appointments = await appointmentService.findUnpaidAppointments(req.user.email);
+    res.status(200).json({ message: "Turnos sin cobrar", data: appointments });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 // POST
 
 async function createPatientAppointment(req: RequestWithUser, res: Response) {
@@ -284,6 +296,30 @@ async function updateDiagnostic(req: RequestWithUser, res: Response) {
     const { observations, state, patientEmail } = req.body.sanitizedInput;
     const diagnostic = await appointmentService.updateDiagnostic(numAppointment, patientEmail, req.user.email, { observations, state });
     res.status(200).json({ message: "Diagnóstico actualizado con éxito", data: diagnostic });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
+/**
+ * Registra el cobro de un turno: pagado, no pagado o pago parcial.
+ *
+ * Va por su propio endpoint y no junto con las observaciones porque son dos decisiones
+ * distintas, se toman en momentos distintos y una no tiene por qué pisar a la otra.
+ */
+async function updatePayment(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+
+    const numAppointment = Number.parseInt(req.params.numAppointment);
+    const { paymentState, paidAmount } = req.body;
+
+    const appointment = await appointmentService.setPayment(numAppointment, req.user.email, { paymentState, paidAmount });
+
+    res.status(200).json({
+      message: "Cobro actualizado",
+      data: { paymentState: appointment.paymentState, paidAmount: appointment.paidAmount ?? null },
+    });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -384,6 +420,8 @@ export {
   getAppointmentDiagnostics,
   createPatientAppointment,
   getPendingAppointments,
+  getUnpaidAppointments,
+  updatePayment,
   updateAppointment,
   deleteAppointment,
   sanitizeAppointmentInput,

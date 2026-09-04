@@ -1,4 +1,4 @@
-import type { FilterQuery } from "@mikro-orm/core";
+import { wrap, type FilterQuery } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { Appointment } from "./appointments.entity.js";
 import { wantsMail } from "../people/mailPreferences.js";
@@ -22,6 +22,34 @@ const em = orm.em;
 // (para que el unique index deje volver a sacar turno en la misma franja),
 // así que un estado que no esté en esta lista es un turno cancelado.
 export const ACTIVE_APPOINTMENT_STATES = ["pending", "accepted", "assisted", "missed"];
+
+/** Los tres estados de cobro que puede tener un turno. */
+export const PAYMENT_STATES = ["unpaid", "partial", "paid"] as const;
+export type PaymentState = (typeof PAYMENT_STATES)[number];
+
+/**
+ * Cuándo un turno cuenta como deuda.
+ *
+ * Tienen que darse las dos cosas. Que ya se haya dado —"assisted"—, porque un turno de la
+ * semana que viene no se debe todavía, y a uno al que el paciente faltó no se le cobra
+ * salvo que el consultorio decida lo contrario y lo marque a mano. Y que no esté saldado:
+ * sin cobrar, o cobrado a medias.
+ *
+ * Los turnos anteriores a esta columna tienen `paymentState` en null y quedan afuera por
+ * definición: de esos no se sabe si se cobraron, y suponerlo sería inventar.
+ */
+export const DEBT_FILTER = {
+  state: "assisted",
+  paymentState: { $in: ["unpaid", "partial"] },
+} as const;
+
+/** Lo que falta cobrar de un turno. Un pago parcial descuenta lo que ya entró. */
+export function pendingAmount(appointment: Appointment): number {
+  const value = appointment.value ?? 0;
+  if (appointment.paymentState === "partial") return Math.max(0, value - (appointment.paidAmount ?? 0));
+  if (appointment.paymentState === "unpaid") return value;
+  return 0;
+}
 
 // Vista "diagnóstico" de un turno. El diagnóstico dejó de ser una entidad propia:
 // ahora es la parte clínica del turno (paciente + estado + observaciones).
@@ -108,9 +136,134 @@ export class AppointmentService {
       if (appointment.patient) unique.set(appointment.patient.email, appointment.patient);
     }
 
-    return [...unique.values()].sort((a, b) =>
-      `${a!.surname} ${a!.name}`.localeCompare(`${b!.surname} ${b!.name}`, "es")
+    // Quién quedó debiendo algo, para que la lista lo diga sin tener que entrar a la
+    // ficha de cada uno. Va como campo aparte y no como una columna de la persona: la
+    // deuda es con este profesional, no del paciente en general.
+    const debt = await this.debtByPatient(professionalEmail);
+
+    return [...unique.values()]
+      .sort((a, b) => `${a!.surname} ${a!.name}`.localeCompare(`${b!.surname} ${b!.name}`, "es"))
+      .map((patient) => {
+        const owed = debt.get(patient!.email);
+
+        return {
+          // `toJSON` y no `{ ...patient }`: la entidad tiene campos marcados como ocultos
+          // —la contraseña, entre ellos— y el serializador de MikroORM es el que los saca.
+          // Desparramarla con el spread devuelve un objeto plano que se los saltea, y el
+          // hash de cada paciente termina viajando al navegador.
+          ...wrap(patient!).toJSON(),
+          owesPayment: !!owed,
+          /** Cuántos turnos suyos quedaron sin saldar, y por cuánto. Cero si no debe. */
+          owedAppointments: owed?.appointments ?? 0,
+          owedAmount: owed?.amount ?? 0,
+        };
+      });
+  }
+
+  /**
+   * Cuánto le debe cada paciente a este profesional.
+   *
+   * Una sola consulta para toda la lista: preguntar de a un paciente convertía la
+   * pantalla de pacientes en cien consultas.
+   */
+  private async debtByPatient(professionalEmail: string): Promise<Map<string, { appointments: number; amount: number }>> {
+    const unpaid = await em.find(Appointment, {
+      professional: { email: professionalEmail },
+      patient: { $ne: null },
+      ...DEBT_FILTER,
+    });
+
+    const debt = new Map<string, { appointments: number; amount: number }>();
+
+    for (const appointment of unpaid) {
+      const email = appointment.patient?.email;
+      if (!email) continue;
+
+      const entry = debt.get(email) ?? { appointments: 0, amount: 0 };
+      entry.appointments++;
+      entry.amount += pendingAmount(appointment);
+      debt.set(email, entry);
+    }
+
+    return debt;
+  }
+
+  /**
+   * Los turnos que ya se dieron y todavía no se cobraron del todo.
+   *
+   * Del más nuevo al más viejo: lo de esta semana es lo que se reclama, y lo de hace tres
+   * meses ya es otra conversación. Con tope, porque esto va arriba del panel del
+   * profesional y no es la pantalla de turnos.
+   */
+  async findUnpaidAppointments(professionalEmail: string, limit = 50): Promise<Appointment[]> {
+    return em.find(
+      Appointment,
+      { professional: { email: professionalEmail }, patient: { $ne: null }, ...DEBT_FILTER },
+      { populate: ["patient", "professional", "room.office"], orderBy: { date: "DESC", initialHour: "DESC" }, limit }
     );
+  }
+
+  /** Cuánta gente le quedó debiendo, y por cuánto. Es lo que se mira en los números. */
+  async debtSummary(professionalEmail: string): Promise<{ people: number; appointments: number; amount: number }> {
+    const debt = await this.debtByPatient(professionalEmail);
+
+    let appointments = 0;
+    let amount = 0;
+    for (const entry of debt.values()) {
+      appointments += entry.appointments;
+      amount += entry.amount;
+    }
+
+    return { people: debt.size, appointments, amount };
+  }
+
+  /**
+   * Registra si el turno se cobró.
+   *
+   * Es del profesional sobre sus propios turnos, igual que las observaciones. El pago
+   * parcial es el único que lleva monto, y se valida contra el valor del turno: aceptar
+   * un pago mayor que la consulta deja una deuda negativa dando vueltas por los números.
+   */
+  async setPayment(
+    num: number,
+    professionalEmail: string,
+    data: { paymentState: PaymentState; paidAmount?: number | null }
+  ): Promise<Appointment> {
+    const appointment = await em.findOne(
+      Appointment,
+      { numAppointment: num, professional: { email: professionalEmail } },
+      { populate: ["patient"] }
+    );
+
+    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    if (!ACTIVE_APPOINTMENT_STATES.includes(appointment.state))
+      throw badRequest("Ese turno está cancelado: no hay nada que cobrar");
+
+    const state = data.paymentState;
+    if (!PAYMENT_STATES.includes(state))
+      throw badRequest("El cobro tiene que quedar como pagado, no pagado o pago parcial");
+
+    if (state === "partial") {
+      const value = appointment.value ?? 0;
+      if (value <= 0) throw badRequest("Para registrar un pago parcial el turno tiene que tener un valor cargado");
+
+      const amount = Number(data.paidAmount);
+      if (!Number.isFinite(amount) || amount <= 0)
+        throw badRequest("Escribí cuánto pagó: tiene que ser un número mayor que cero");
+      if (amount > value) throw badRequest(`El pago no puede superar el valor del turno, que es $${value}`);
+      // Pagó todo: es un pago completo y no uno parcial. Guardarlo como parcial deja un
+      // turno que figura debiendo cero, y eso después hay que explicarlo en cada pantalla.
+      if (amount === value) throw badRequest(`Pagó los $${value} completos: marcalo como pagado`);
+
+      appointment.paidAmount = Math.round(amount);
+    } else {
+      appointment.paidAmount = null;
+    }
+
+    appointment.paymentState = state;
+    await em.flush();
+
+    return appointment;
   }
 
   async getPatientMedicalHistory(professionalEmail: string, patientEmail: string) {

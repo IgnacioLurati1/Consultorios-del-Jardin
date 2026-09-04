@@ -26,6 +26,9 @@ interface Row {
   origin: string | null;
   patientEmail: string | null;
   professionalEmail: string;
+  /** Null en los turnos anteriores al registro de cobro: de esos no se sabe nada. */
+  paymentState: string | null;
+  paidAmount: number | null;
 }
 
 /** Cancelar escribe un ISO timestamp en `state`, así que un estado que no está acá es cancelado. */
@@ -43,9 +46,9 @@ export interface Metrics {
   missed: number;
   cancelled: number;
   overbooked: number;
-  /** Plata de los turnos ya marcados como asistidos. */
+  /** Plata que entró: todo lo marcado como pagado, más lo cobrado de los pagos parciales. */
   billed: number;
-  /** Plata de los turnos que siguen en pie pero todavía no se cerraron. */
+  /** Lo que falta cobrar de los turnos que siguen en pie y todavía no se cerraron. */
   scheduled: number;
   /** Pacientes distintos con al menos un turno sin cancelar. */
   patients: number;
@@ -73,6 +76,30 @@ function emptyMetrics(): Metrics {
   };
 }
 
+/**
+ * Cuánta plata entró por un turno.
+ *
+ * Lo que manda es el cobro y no el estado del turno: si está marcado como pagado, esa
+ * plata entró, lo haya atendido o no todavía. Un turno de la semana que viene que el
+ * paciente pagó por adelantado es plata en el bolsillo, y contarla recién cuando la
+ * persona se siente en la silla no describe ningún mes de verdad.
+ *
+ * El pago parcial suma solo lo que se cobró. El que quedó debiendo no suma nada: eso está
+ * del otro lado, en la deuda.
+ *
+ * El caso sin registro de cobro es el único que mira el estado. Son los turnos anteriores
+ * a que existiera esta columna: de esos no se sabe nada, así que se sigue haciendo lo que
+ * se hacía antes —el atendido cuenta completo— y el que todavía no pasó no cuenta, porque
+ * suponer que se cobró por adelantado un turno de hace un año sería inventar plata.
+ */
+function collected(row: Row): number {
+  if (row.paymentState === "paid") return row.value ?? 0;
+  if (row.paymentState === "partial") return row.paidAmount ?? 0;
+  if (row.paymentState === "unpaid") return 0;
+
+  return row.state === "assisted" ? row.value ?? 0 : 0;
+}
+
 function summarize(rows: Row[]): Metrics {
   const metrics = emptyMetrics();
   const patients = new Set<string>();
@@ -91,18 +118,51 @@ function summarize(rows: Row[]): Metrics {
     else if (row.origin === "professional") metrics.fromProfessional++;
     else metrics.unknownOrigin++;
 
+    // La plata que entró se cuenta siempre, sin importar cómo terminó el turno.
+    const entered = collected(row);
+    metrics.billed += entered;
+
     if (row.state === "assisted") {
       metrics.assisted++;
-      metrics.billed += row.value ?? 0;
     } else if (row.state === "missed") {
       metrics.missed++;
     } else {
-      metrics.scheduled += row.value ?? 0;
+      // Lo que falta cobrar de un turno que todavía no se dio. Se descuenta lo que ya
+      // entró: si no, un turno pagado por adelantado aparecería entero en las dos barras
+      // del gráfico —cobrado y agendado— y el mes se leería con el doble de plata.
+      metrics.scheduled += Math.max(0, (row.value ?? 0) - entered);
     }
   }
 
   metrics.patients = patients.size;
   return metrics;
+}
+
+/**
+ * Lo que quedó sin cobrar de un recorte de turnos.
+ *
+ * Sale de las mismas filas que el resto de las métricas. Cuenta igual que en todo el
+ * sistema —turno ya atendido y sin saldar— y un pago parcial pesa solo por lo que falta.
+ *
+ * No es el complemento exacto de "cobrado": ahí entra también lo que se pagó por
+ * adelantado de turnos que todavía no se dieron, y acá no, porque de un turno que no
+ * pasó todavía no se debe nada.
+ */
+function debtOf(rows: Row[]): { people: number; appointments: number; amount: number } {
+  const people = new Set<string>();
+  let appointments = 0;
+  let amount = 0;
+
+  for (const row of rows) {
+    if (row.state !== "assisted") continue;
+    if (row.paymentState !== "unpaid" && row.paymentState !== "partial") continue;
+
+    appointments++;
+    amount += row.paymentState === "partial" ? Math.max(0, (row.value ?? 0) - (row.paidAmount ?? 0)) : row.value ?? 0;
+    if (row.patientEmail) people.add(row.patientEmail);
+  }
+
+  return { people: people.size, appointments, amount };
 }
 
 /**
@@ -210,6 +270,8 @@ export class AnalyticsService {
       origin: appointment.origin ?? null,
       patientEmail: appointment.patient?.email ?? null,
       professionalEmail: appointment.professional.email,
+      paymentState: appointment.paymentState ?? null,
+      paidAmount: appointment.paidAmount ?? null,
     }));
   }
 
@@ -268,6 +330,7 @@ export class AnalyticsService {
           ...summarize(subset),
           ...loadByDay(subset),
           denials: deniedIn(month.key),
+          debt: debtOf(subset),
         };
       }),
       // Acumulado de los meses cerrados: es el número que se lee "en general".
@@ -291,11 +354,16 @@ export class AnalyticsService {
     };
 
     // Se saca acá y no en la pantalla: si viaja en la respuesta, está publicado.
-    if (billing) return report;
+    //
+    // La deuda va del mismo lado que la facturación, y por la misma razón: es plata del
+    // profesional con sus pacientes. El administrador que mira sus números no ve ni lo
+    // que facturó ni quién le quedó debiendo.
+    if (billing) return { ...report, debt: await this.appointments.debtSummary(professionalEmail) };
 
     return {
       ...report,
-      recent: report.recent.map(withoutBilling),
+      // La deuda del mes se va con la facturación: es la misma plata mirada del otro lado.
+      recent: report.recent.map(({ debt, ...month }) => withoutBilling(month)),
       total: withoutBilling(report.total),
       months: report.months.map(withoutBilling),
     };

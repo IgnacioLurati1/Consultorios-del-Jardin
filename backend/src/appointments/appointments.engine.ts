@@ -83,6 +83,8 @@ export class AppointmentEngine {
       value,
       state: "accepted",
       observations: null,
+      // Nace sin cobrar. Es lo que lo pone en la lista de lo que falta cobrar.
+      paymentState: "unpaid",
       reminderSent: "not sent",
       overbooked,
       origin: "professional",
@@ -204,6 +206,8 @@ export class AppointmentEngine {
       // pasar por la bandeja de pedidos del profesional.
       state: professional.autoAccept ? "accepted" : "pending",
       observations: null,
+      // Nace sin cobrar. Es lo que lo pone en la lista de lo que falta cobrar.
+      paymentState: "unpaid",
       reminderSent: "not sent",
       // El paciente solo puede sacar turno en las franjas que el profesional publica.
       overbooked: false,

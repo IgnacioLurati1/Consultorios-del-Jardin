@@ -225,6 +225,8 @@ export class PeopleService {
       bookable: true,
       autoAccept: false,
       autoMarkWhen: "appointment" as const,
+      autoPay: false,
+      autoPayWhen: "appointment" as const,
       anonymous: true,
       createdBy: data.createdBy,
     });
@@ -393,6 +395,10 @@ export class PeopleService {
    * volver a abrir otra persona. En la práctica ya se cumple solo —una cuenta cerrada no
    * puede pedir nada, así que no puede levantarse a sí misma— pero dejarlo escrito acá
    * hace que siga siendo verdad si mañana alguien cambia cómo se autentica.
+   *
+   * Del lado de cerrar hay dos puertas que no se pueden cruzar, y las dos son la misma
+   * idea: deshabilitar es fácil de deshacer *desde afuera*, y nada más. Quien queda del
+   * otro lado no puede pedir nada, ni siquiera que lo vuelvan a abrir.
    */
   async toggleState(email: string, actorEmail?: string) {
     const person = await em.findOneOrFail(Person, { email });
@@ -403,6 +409,24 @@ export class PeopleService {
 
       if (actorEmail.toLowerCase() === email.toLowerCase()) {
         throw forbidden("Una cuenta cerrada por posible intrusión la tiene que revisar y reabrir otro administrador");
+      }
+    }
+
+    if (!active) {
+      // Nadie se cierra a sí mismo. Es un clic sin vuelta atrás: la cuenta queda afuera y
+      // desde afuera no se puede pedir volver, así que hace falta que lo haga otro.
+      if (actorEmail && actorEmail.toLowerCase() === email.toLowerCase()) {
+        throw forbidden("No podés deshabilitar tu propia cuenta. Tiene que hacerlo otro administrador");
+      }
+
+      // Y no puede quedar el sistema sin ninguno. Es la misma razón por la que la regla
+      // de intrusión no cierra al último administrador activo (ver lockForCompromise):
+      // sin nadie que pueda habilitar, no hay forma de volver desde la aplicación.
+      if (person.type === "admin" && (await em.count(Person, { type: "admin", active: true })) <= 1) {
+        throw forbidden(
+          "Es el único administrador activo. Si se deshabilita no queda nadie que pueda volver a habilitar cuentas, " +
+            "ni siquiera la suya"
+        );
       }
     }
 

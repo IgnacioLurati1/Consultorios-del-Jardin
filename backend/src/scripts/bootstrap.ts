@@ -71,6 +71,8 @@ async function bootstrap(): Promise<void> {
       bookable: false,
       autoAccept: false,
       autoMarkWhen: "appointment" as const,
+      autoPay: false,
+      autoPayWhen: "appointment" as const,
       anonymous: false,
     });
 
