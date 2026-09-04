@@ -13,7 +13,8 @@
     "start:dev": "tsc-watch --noClear -p ./tsconfig.json --onSuccess \"node ./dist/app.js\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "schema:plan": "node dist/scripts/schema-plan.js"
+    "schema:plan": "node dist/scripts/schema-plan.js",
+    "deploy:migrate": "node dist/scripts/deploy-migrate.js"
   },
   "keywords": [],
   "author": "",
