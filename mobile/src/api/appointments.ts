@@ -1,5 +1,6 @@
 import api from "./client";
 import { Appointment, PaymentState, Person, Slot } from "./types";
+import { pendingAmount } from "../lib/appointments";
 
 /** Un turno solo, por su número. Es lo que abre la pantalla de detalle. */
 export async function findAppointment(numAppointment: number): Promise<Appointment> {
@@ -73,10 +74,30 @@ export async function appointmentsByProfessional(
 
 /* ---------- acciones sobre un turno ---------- */
 
-/** Los turnos que ya se dieron y todavía no se cobraron del todo. Solo del profesional. */
-export async function unpaidAppointments(): Promise<Appointment[]> {
+/**
+ * Los turnos que ya se dieron y todavía no se cobraron del todo. Solo del profesional.
+ *
+ * La lista tiene tope, así que el total viene aparte: quien trajo dos años de agenda puede
+ * tener más turnos sin cobrar de los que entran en la caja, y el número del encabezado
+ * tiene que ser el de verdad.
+ */
+export async function unpaidAppointments(): Promise<{
+  appointments: Appointment[];
+  total: { people: number; appointments: number; amount: number };
+}> {
   const response = await api.get("/appointments/unpaid");
-  return response.data.data;
+  const appointments: Appointment[] = response.data.data;
+
+  // Si el backend todavía no manda el total (una versión anterior, o una marcha atrás),
+  // se cuenta la lista. Queda corto cuando hay más de los que entran en ella, pero es lo
+  // que se podía contar antes; sin esto la pantalla de inicio se rompe al dibujarse.
+  const total = response.data.total ?? {
+    people: new Set(appointments.map((appointment) => appointment.patient?.email).filter(Boolean)).size,
+    appointments: appointments.length,
+    amount: appointments.reduce((suma, appointment) => suma + pendingAmount(appointment), 0),
+  };
+
+  return { appointments, total };
 }
 
 /**

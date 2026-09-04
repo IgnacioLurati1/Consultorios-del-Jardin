@@ -304,7 +304,7 @@
   padding-right: 14px;
 }
 
-.prof-setting-row .prof-switch {
+.prof-setting-row .adm-switch {
   margin-right: 22px;
 }
 
@@ -331,53 +331,6 @@
   color: var(--adm-muted);
   font-size: 0.92rem;
   line-height: 1.45;
-}
-
-/* El switch es un checkbox de verdad: llega el foco por teclado y la barra
-   espaciadora lo cambia, sin tener que reimplementar nada de eso. */
-.prof-switch {
-  appearance: none;
-  -webkit-appearance: none;
-  position: relative;
-  flex-shrink: 0;
-  width: 50px;
-  height: 28px;
-  margin: 0;
-  border-radius: 999px;
-  background: var(--adm-border-strong);
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-
-.prof-switch::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--adm-surface);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.28);
-  transition: transform 0.18s ease;
-}
-
-.prof-switch:checked {
-  background: var(--adm-green);
-}
-
-.prof-switch:checked::after {
-  transform: translateX(22px);
-}
-
-.prof-switch:focus-visible {
-  outline: 2px solid var(--adm-green-dark);
-  outline-offset: 2px;
-}
-
-.prof-switch:disabled {
-  opacity: 0.55;
-  cursor: default;
 }
 
 .prof-setting-extra {
@@ -624,6 +577,32 @@
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
+}
+
+/* El cartel que pregunta antes de saldar todo. La primera linea es el dato que se mira
+   para decidir, asi que va mas grande que el resto. */
+.prof-confirm-lead {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--adm-text);
+}
+
+.prof-confirm-note {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+/* Con el boton de saldar al lado, el que despliega deja de ocupar todo el ancho: comparte
+   la fila con el, igual que el titulo y "Confirmar turnos" en la bandeja de pedidos. La
+   flechita pasa a ir pegada al titulo en vez de empujada al borde, que si no queda al lado
+   del boton y se leen como un solo control. */
+.prof-unpaid .prof-unpaid-toggle {
+    width: auto;
+    justify-content: flex-start;
+    gap: 10px;
 }
 
 .prof-unpaid-caret {

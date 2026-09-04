@@ -118,7 +118,7 @@ function Switch({
             válido, y el click terminaría en cualquiera de los dos. */}
         <input
           type="checkbox"
-          className="prof-switch"
+          className="adm-switch"
           role="switch"
           aria-label={label}
           checked={checked}
@@ -213,7 +213,7 @@ function MailRow({
       </span>
       <input
         type="checkbox"
-        className="prof-switch"
+        className="adm-switch"
         role="switch"
         checked={mail.enabled}
         disabled={disabled}

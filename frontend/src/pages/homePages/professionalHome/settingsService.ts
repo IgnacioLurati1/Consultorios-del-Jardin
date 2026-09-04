@@ -70,6 +70,20 @@ export function acceptPendingAppointments(): Promise<number> {
     .catch(unwrap);
 }
 
+/**
+ * Da por cobrado de una todo lo que quedó sin saldar.
+ *
+ * Devuelve cuántos turnos tocó y por cuánta plata, que es lo que después se le dice al
+ * profesional: "diste por cobrados 12 turnos" sin el monto no le permite darse cuenta de
+ * que apretó el botón equivocado.
+ */
+export function settleUnpaidAppointments(): Promise<{ settled: number; amount: number }> {
+  return api
+    .post("/settings/unpaid")
+    .then((response) => response.data.data)
+    .catch(unwrap);
+}
+
 export function addVacation(fromDate: string, toDate: string, reason?: string): Promise<void> {
   return api
     .post("/settings/vacations", { fromDate, toDate, reason })

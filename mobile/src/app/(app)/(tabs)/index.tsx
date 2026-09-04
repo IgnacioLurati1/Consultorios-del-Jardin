@@ -131,8 +131,11 @@ function ProfessionalHome() {
   // cuando uno viene a reclamar, y mientras tanto alcanza con el número del renglón.
   const [unpaidOpen, setUnpaidOpen] = useState(false);
 
-  const unpaidList = unpaid.data ?? [];
-  const owed = unpaidList.reduce((total, appointment) => total + pendingAmount(appointment), 0);
+  // El total viene aparte de la lista porque no siempre coinciden: la lista tiene tope, y
+  // el que trajo dos años de agenda puede tener más turnos sin cobrar de los que entran.
+  const unpaidList = unpaid.data?.appointments ?? [];
+  const unpaidCount = unpaid.data?.total.appointments ?? 0;
+  const owed = unpaid.data?.total.amount ?? 0;
 
   const agenda = (day.data ?? []).filter((appointment) => stateOf(appointment) !== "cancelled");
   const toConfirm = (all.data ?? []).filter(
@@ -168,16 +171,18 @@ function ProfessionalHome() {
             una respuesta hoy, una consulta sin cobrar espera una conversación. Por eso se
             abre plegada y muestra solo el número. Los colores son los del cobro: rojo lo
             que no se pagó, ámbar lo que se pagó a medias. */}
-        {unpaidList.length > 0 ? (
+        {unpaidCount > 0 ? (
           <Section title="Sin cobrar">
             <Group>
               <Row
-                title={
-                  unpaidList.length === 1
-                    ? "Un turno atendido sin cobrar"
-                    : `${unpaidList.length} turnos atendidos sin cobrar`
+                title={unpaidCount === 1 ? "Un turno atendido sin cobrar" : `${unpaidCount} turnos atendidos sin cobrar`}
+                subtitle={
+                  unpaidList.length < unpaidCount
+                    ? `Faltan ${money(owed)}. Acá se ven los ${unpaidList.length} más recientes`
+                    : owed > 0
+                      ? `Faltan ${money(owed)}`
+                      : "Con pagos parciales registrados"
                 }
-                subtitle={owed > 0 ? `Faltan ${money(owed)}` : "Con pagos parciales registrados"}
                 icon={unpaidOpen ? "chevron-up" : "chevron-down"}
                 last
                 onPress={() => setUnpaidOpen(!unpaidOpen)}

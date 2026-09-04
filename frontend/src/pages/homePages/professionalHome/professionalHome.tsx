@@ -6,6 +6,7 @@ import {
   FaChevronDown,
   FaChevronLeft,
   FaChevronRight,
+  FaMoneyBillWave,
   FaRegClock,
 } from "react-icons/fa6";
 import { Link } from "react-router-dom";
@@ -32,7 +33,8 @@ import {
 import type { Appointment, Person } from "../../types";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton";
 import { ProfessionalSettings } from "./ProfessionalSettings.tsx";
-import { acceptPendingAppointments } from "./settingsService.ts";
+import { Modal } from "../../../components/modal/Modal.tsx";
+import { acceptPendingAppointments, settleUnpaidAppointments } from "./settingsService.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import "./professionalHome.css";
@@ -78,6 +80,10 @@ export function ProfessionalHome() {
   const [pending, setPending] = useState<Appointment[] | null>(null);
   const [pendingPage, setPendingPage] = useState(0);
   const [accepting, setAccepting] = useState(false);
+  const [settling, setSettling] = useState(false);
+  const [confirmingSettle, setConfirmingSettle] = useState(false);
+  /** Lo que hay sin cobrar en total, que puede ser más de lo que trae la lista. */
+  const [unpaidTotal, setUnpaidTotal] = useState({ appointments: 0, amount: 0 });
   const [unpaid, setUnpaid] = useState<Appointment[] | null>(null);
   // Arranca cerrada. Es una cuenta pendiente, no algo que haya que hacer hoy: se abre
   // cuando uno viene a reclamar, y mientras tanto alcanza con el número del renglón.
@@ -124,8 +130,14 @@ export function ProfessionalHome() {
   // turno desde su ficha lo saca de esta lista.
   function loadUnpaid() {
     findUnpaidAppointments()
-      .then(setUnpaid)
-      .catch(() => setUnpaid([]));
+      .then(({ appointments, total }) => {
+        setUnpaid(appointments);
+        setUnpaidTotal(total);
+      })
+      .catch(() => {
+        setUnpaid([]);
+        setUnpaidTotal({ appointments: 0, amount: 0 });
+      });
   }
 
   useEffect(loadUnpaid, []);
@@ -154,6 +166,29 @@ export function ProfessionalHome() {
       .finally(() => setAccepting(false));
   }
 
+  /**
+   * Da por cobrado todo lo que quedó sin saldar.
+   *
+   * El gemelo de confirmar los pedidos de una, del otro lado del mostrador: el que cobra en
+   * efectivo y no anota turno por turno junta una lista larga que no describe nada, y
+   * saldarla de a uno son cuarenta clicks.
+   */
+  function settleAll() {
+    setConfirmingSettle(false);
+    setSettling(true);
+    settleUnpaidAppointments()
+      .then(({ settled, amount }) => {
+        toast.success(
+          settled === 1
+            ? `Diste por cobrado el turno${amount > 0 ? `, $${amount}` : ""}`
+            : `Diste por cobrados ${settled} turnos${amount > 0 ? `, $${amount}` : ""}`
+        );
+        refresh();
+      })
+      .catch((err) => toast.error(err.message))
+      .finally(() => setSettling(false));
+  }
+
   // Tocar un turno de hoy abre la misma ficha que en la lista de turnos: se acepta, se
   // cancela, se carga el registro y se repite igual que allá.
   const { open, detailProps } = useAppointmentActions(professional, refresh);
@@ -168,9 +203,17 @@ export function ProfessionalHome() {
   const page = Math.min(pendingPage, Math.max(0, pendingPages - 1));
   const pendingSlice = pending?.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE) ?? [];
 
-  // Lo que falta cobrar, sumado. Es el número que hace que valga la pena abrir la lista.
-  const unpaidCount = unpaid?.length ?? 0;
-  const owed = unpaid?.reduce((total, appointment) => total + pendingAmount(appointment), 0) ?? 0;
+  /*
+   * Lo que falta cobrar, sumado. Es el número que hace que valga la pena abrir la lista.
+   *
+   * Sale del total que manda el servidor y no de sumar la lista: la lista tiene tope, y el
+   * que trajo dos años de agenda puede tener más turnos sin cobrar de los que entran acá.
+   * Con el botón de saldar todo al lado, ese número dejó de ser informativo y pasó a ser el
+   * que alguien mira para decidir.
+   */
+  const unpaidCount = unpaidTotal.appointments;
+  const owed = unpaidTotal.amount;
+  const unpaidShown = unpaid?.length ?? 0;
 
   return (
     <div className="adm-page">
@@ -369,9 +412,22 @@ export function ProfessionalHome() {
                 <span className="prof-today-date">
                   {unpaidCount === 1 ? "Un turno atendido sin cobrar" : `${unpaidCount} turnos atendidos sin cobrar`}
                   {owed > 0 ? ` · faltan $${owed}` : ""}
+                  {unpaidShown < unpaidCount ? ` · acá se ven los ${unpaidShown} más recientes` : ""}
                 </span>
               </span>
               <FaChevronDown className={`prof-unpaid-caret ${unpaidOpen ? "open" : ""}`} aria-hidden="true" />
+            </button>
+
+            {/* Va afuera del que despliega la caja: un botón adentro de otro no es válido,
+                y además son dos acciones distintas que conviene no confundir de un toque. */}
+            <button
+              type="button"
+              className="adm-btn adm-btn-primary"
+              disabled={settling}
+              onClick={() => setConfirmingSettle(true)}
+            >
+              <FaMoneyBillWave />
+              {unpaidCount === 1 ? "Considerar cobrado" : "Considerar todos cobrados"}
             </button>
           </div>
 
@@ -413,6 +469,40 @@ export function ProfessionalHome() {
       <ProfessionalSettings />
 
       {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
+
+      {/*
+        Preguntar antes de saldar todo.
+        ------------------------------
+        Confirmar los pedidos de una no lo pregunta, y acá sí, porque no es lo mismo: esto
+        declara plata como cobrada, y para volver atrás hay que abrir los turnos de a uno.
+        El cartel dice el número y el monto porque es lo único que deja darse cuenta de que
+        se apretó el botón equivocado antes de que sea tarde.
+      */}
+      <Modal
+        open={confirmingSettle}
+        onClose={() => setConfirmingSettle(false)}
+        title="¿Darlos todos por cobrados?"
+        size="sm"
+        footer={
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingSettle(false)}>
+              Volver
+            </button>
+            <button type="button" className="adm-btn adm-btn-primary" onClick={settleAll} disabled={settling}>
+              <FaMoneyBillWave />
+              Sí, darlos por cobrados
+            </button>
+          </>
+        }
+      >
+        <p className="prof-confirm-lead">
+          {unpaidCount === 1 ? "Vas a marcar como cobrado 1 turno" : `Vas a marcar como cobrados ${unpaidCount} turnos`}
+          {owed > 0 ? `, $${owed}` : ""}.
+        </p>
+        <p className="prof-confirm-note">
+          Son todos los que ya atendiste y quedaron sin saldar. Para volver atrás hay que abrir cada turno y cambiarlo a mano.
+        </p>
+      </Modal>
 
       <Toasts />
     </div>

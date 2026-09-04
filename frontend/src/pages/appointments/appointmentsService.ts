@@ -1,6 +1,6 @@
 import api from "../../axios";
 import type { Appointment, PaymentState } from "../types.ts";
-import type { partialAppointment } from "./appointmentTypes.ts";
+import { pendingAmount, type partialAppointment } from "./appointmentTypes.ts";
 
 function backendError(err: any): never {
   const backendMsg = err.response?.data?.message || err.message;
@@ -47,11 +47,42 @@ export function findPendingAppointments(): Promise<Appointment[]> {
    ============================================================ */
 
 /** Los turnos que ya se dieron y todavía no se cobraron del todo. Solo del profesional. */
-export function findUnpaidAppointments(): Promise<Appointment[]> {
+export interface UnpaidSummary {
+  /** Los más recientes, con tope: es una caja del panel y no la pantalla de turnos. */
+  appointments: Appointment[];
+  /** Cuántos hay en total y por cuánto. Puede ser más de lo que trae la lista. */
+  total: { people: number; appointments: number; amount: number };
+}
+
+export function findUnpaidAppointments(): Promise<UnpaidSummary> {
   return api
     .get("/appointments/unpaid")
-    .then((response) => response.data.data)
+    .then((response) => ({
+      appointments: response.data.data,
+      total: response.data.total ?? sumOf(response.data.data),
+    }))
     .catch(backendError);
+}
+
+/*
+ * El total sacado de la lista, para cuando el backend no lo manda.
+ *
+ * Pasa en el rato entre que se publica la web y termina de subir el backend, y volvería a
+ * pasar si alguna vez hay que dar marcha atrás con una versión. Sin esto la pantalla del
+ * profesional no muestra un número de menos: se rompe entera al dibujarse.
+ *
+ * Queda corto cuando hay más turnos sin cobrar de los que entran en la lista, que es
+ * justamente lo que el total del servidor vino a arreglar. Es lo que se podía contar antes
+ * y sigue siendo mejor que una pantalla en blanco.
+ */
+function sumOf(appointments: Appointment[]): UnpaidSummary["total"] {
+  const people = new Set(appointments.map((appointment) => appointment.patient?.email).filter(Boolean));
+
+  return {
+    people: people.size,
+    appointments: appointments.length,
+    amount: appointments.reduce((total, appointment) => total + pendingAmount(appointment), 0),
+  };
 }
 
 /**
