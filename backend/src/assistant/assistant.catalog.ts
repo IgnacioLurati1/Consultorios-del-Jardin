@@ -14,7 +14,7 @@ export type Role = "client" | "professional" | "admin";
 export const OFFICE_INFO = {
   name: "Consultorios del Jardín",
   address: "9 de Julio 3672",
-  hours: "Lunes a viernes, de 8 a 20",
+  hours: "Lunes a viernes, de 9 a 20",
   mail: process.env.MAIL ?? "consultoriosjardinok@gmail.com",
   instagram: "@consultorios_jardin",
   specialities: ["Psicopedagogía", "Psicología", "Nutrición", "Fonoaudiología"],
