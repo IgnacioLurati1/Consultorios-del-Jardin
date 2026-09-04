@@ -30,6 +30,7 @@ const BILLING_BANDS: Band[] = [
 const ORIGIN_BANDS: Band[] = [
   { key: "app", label: "Sacados por la app", color: "#3b7658" },
   { key: "manual", label: "Cargados por el profesional", color: "#6c788e" },
+  { key: "imported", label: "Importados de un calendario", color: "#a58bc4" },
   { key: "unknown", label: "Sin dato de origen", color: "#cbd5e1" },
 ];
 
@@ -98,7 +99,7 @@ export function OfficeAnalyticsPage() {
 
   const originColumns = months.map((month) => ({
     label: shortMonth(month.label),
-    values: [month.fromApp, month.fromProfessional, month.unknownOrigin],
+    values: [month.fromApp, month.fromProfessional, month.imported, month.unknownOrigin],
   }));
   const average = (value: number) => (perProfessional ? `${money(perProfessional(value))} por profesional` : "");
   const averageCount = (value: number) =>
@@ -238,7 +239,13 @@ export function OfficeAnalyticsPage() {
           <Kpi
             label="Cargados a mano"
             value={total.fromProfessional}
-            note={total.unknownOrigin > 0 ? `${total.unknownOrigin} sin dato de origen` : averageCount(total.fromProfessional)}
+            note={
+              total.imported > 0
+                ? `${total.imported} importados de un calendario`
+                : total.unknownOrigin > 0
+                  ? `${total.unknownOrigin} sin dato de origen`
+                  : averageCount(total.fromProfessional)
+            }
           />
           <Kpi label="Sacados por la app" value={total.fromApp} note={averageCount(total.fromApp)} />
           <Kpi

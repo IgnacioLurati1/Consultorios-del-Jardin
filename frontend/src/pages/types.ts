@@ -106,7 +106,8 @@ export interface Recurrence {
     frequency: RecurrenceFrequency;
     initialHour: string;
     finalHour: string;
-    value: number;
+    /** Puede faltar: un turno importado de un calendario sin precios no tiene valor. */
+    value: number | null;
     overbooked: boolean;
     /** Fecha del turno que la originó: define el día de la semana. */
     startDate: string;
@@ -126,9 +127,16 @@ export interface Appointment {
     date: string;
     initialHour: string;
     finalHour: string;
-    value: number;
+    /** Puede faltar: un turno importado de un calendario sin precios no tiene valor. */
+    value: number | null;
     /** pending | accepted | assisted | missed, o un ISO timestamp si fue cancelado. */
     state: string;
+    /**
+     * Quién lo dio de alta. "import" son los que vinieron de un calendario externo: se
+     * cargaron tal como estaban ahí, así que pueden no tener paciente ni valor y pueden
+     * no encajar en la grilla de horarios. Null son los anteriores a este dato.
+     */
+    origin?: "patient" | "professional" | "import" | null;
     observations?: string | null;
     /**
      * Si el turno se cobró. Ausente o null en los turnos anteriores a que existiera el

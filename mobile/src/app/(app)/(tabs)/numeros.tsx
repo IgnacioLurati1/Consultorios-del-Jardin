@@ -147,7 +147,8 @@ export default function OfficeNumbersScreen() {
           <Row title="Turnos por día" value={total.averagePerDay.toFixed(1).replace(".", ",")} />
           <Row title="Día más cargado" value={total.busiestDay ?? "Sin datos"} />
           <Row title="Los pidió el paciente" value={String(total.fromApp)} />
-          <Row title="Los cargó el profesional" value={String(total.fromProfessional)} last />
+          <Row title="Los cargó el profesional" value={String(total.fromProfessional)} last={total.imported === 0} />
+          {total.imported > 0 ? <Row title="Importados de un calendario" value={String(total.imported)} last /> : null}
         </Group>
       </Section>
 

@@ -178,7 +178,8 @@ export default function MyNumbersScreen() {
       <Section title="De dónde salen los turnos">
         <Group>
           <Row title="Los pidió el paciente" value={String(total.fromApp)} />
-          <Row title="Los cargaste vos" value={String(total.fromProfessional)} last />
+          <Row title="Los cargaste vos" value={String(total.fromProfessional)} last={total.imported === 0} />
+          {total.imported > 0 ? <Row title="Importados de un calendario" value={String(total.imported)} last /> : null}
         </Group>
 
         <View style={styles.spaced}>

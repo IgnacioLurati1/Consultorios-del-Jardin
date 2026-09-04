@@ -1,0 +1,365 @@
+/*
+ * La ventana de importar un calendario.
+ *
+ * Es una pantalla con dos caras: primero un formulario común, después una tabla larga
+ * para revisar. Lo que las une es que en las dos hay que poder leer rápido cuántos son y
+ * qué les pasa, así que los números van grandes y el texto de al lado chico.
+ */
+
+.imp-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--adm-radius-sm);
+  border-left: 3px solid var(--adm-danger);
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+  font-size: 0.9rem;
+}
+
+.imp-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+/* Una opción de sí o no, con el mismo switch que el panel: el texto a la izquierda y el
+   control a la derecha, que es donde la mano ya lo busca. */
+.imp-check {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.imp-check > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.imp-check small {
+  display: block;
+  margin-top: 3px;
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+/* Las reglas del importador. Van al final del formulario, en gris: se leen una vez. */
+.imp-rules h3 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+}
+
+.imp-rules ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--adm-muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.imp-rules li + li {
+  margin-top: 4px;
+}
+
+/*
+ * El campo del archivo.
+ *
+ * El input sigue ahí, con su tamaño y su foco: solo se le saca el color y se lo pone
+ * encima de la caja dibujada. Escondiéndolo con `display: none` dejaría de recibir el
+ * teclado, y este es el único control obligatorio de la pantalla.
+ */
+.imp-file {
+  position: relative;
+}
+
+.imp-file-input {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 42px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.imp-file-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  min-height: 42px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface-alt);
+}
+
+.imp-file-input:focus-visible + .imp-file-box {
+  border-color: var(--adm-green);
+  box-shadow: 0 0 0 3px var(--adm-green-glow);
+}
+
+.imp-file-btn {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border-strong);
+  color: var(--adm-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.imp-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--adm-text);
+  font-size: 0.88rem;
+}
+
+.imp-file-none {
+  color: var(--adm-muted-soft);
+  font-size: 0.88rem;
+}
+
+/* ---------- la previa ---------- */
+
+.imp-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--adm-radius);
+  background: var(--adm-green-soft);
+  border-left: 3px solid var(--adm-green);
+}
+
+.imp-summary strong {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--adm-green-dark);
+}
+
+.imp-summary span {
+  color: var(--adm-text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* Cuando no hay nada que avisar, la lista no ocupa lugar. */
+.imp-flags:empty {
+  display: none;
+}
+
+/* No entró ninguno: el mismo bloque, pero no da para festejarlo en verde. */
+.imp-summary-empty {
+  background: var(--adm-surface-alt);
+  border-left-color: var(--adm-border-strong);
+}
+
+.imp-summary-empty strong {
+  color: var(--adm-muted);
+}
+
+.imp-flags {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--adm-muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.imp-flags li + li {
+  margin-top: 4px;
+}
+
+.imp-flag-warn {
+  color: var(--adm-warn-dark);
+}
+
+.imp-flag-warn svg {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
+/*
+ * La tabla scrollea sola y no estira la ventana.
+ *
+ * Traer dos años son cientos de filas: sin este alto, el pie con el botón de importar
+ * queda a mil pixeles de distancia y hay que bajar hasta el fondo para llegar.
+ */
+.imp-table-wrap {
+  margin-top: 14px;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+}
+
+.imp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.imp-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+  background: var(--adm-surface-alt);
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.imp-table td {
+  padding: 7px 10px;
+  border-top: 1px solid var(--adm-border);
+  color: var(--adm-text);
+  white-space: nowrap;
+}
+
+.imp-table tbody tr:first-child td {
+  border-top: none;
+}
+
+/* El horario que no encaja en un módulo, y el valor que falta: los dos se marcan igual
+   de suave, porque ninguno de los dos impide importar. */
+.imp-offgrid {
+  color: var(--adm-warn-dark);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.imp-empty {
+  color: var(--adm-muted-soft);
+  font-style: italic;
+}
+
+/* El título del evento es lo único de largo variable, así que es lo que se corta. */
+.imp-title {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--adm-muted);
+}
+
+/* ---------- lo que se saltea ---------- */
+
+.imp-skipped h3 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+}
+
+.imp-skip-group + .imp-skip-group {
+  margin-top: 6px;
+}
+
+.imp-skip-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface-alt);
+  color: var(--adm-text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.imp-skip-head:hover {
+  border-color: var(--adm-border-strong);
+}
+
+.imp-skip-count {
+  flex: none;
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--adm-surface-sunken);
+  color: var(--adm-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.imp-skip-list {
+  margin: 4px 0 0;
+  padding: 4px 10px 4px 18px;
+  max-height: 180px;
+  overflow: auto;
+  list-style: none;
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.imp-skip-when {
+  display: inline-block;
+  min-width: 118px;
+  color: var(--adm-muted-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- el final ---------- */
+
+.imp-done {
+  padding: 22px 8px;
+  text-align: center;
+}
+
+.imp-done-icon {
+  font-size: 2.2rem;
+  color: var(--adm-green);
+}
+
+.imp-done-count {
+  margin: 12px 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+.imp-done-note {
+  margin: 6px auto 0;
+  max-width: 420px;
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .imp-table-wrap {
+    max-height: 260px;
+  }
+
+  .imp-title {
+    max-width: 140px;
+  }
+
+  .imp-skip-when {
+    min-width: 0;
+    margin-right: 8px;
+  }
+}

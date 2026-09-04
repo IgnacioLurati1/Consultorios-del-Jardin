@@ -10,6 +10,7 @@ export interface Activity {
   patients: number;
   fromApp: number;
   fromProfessional: number;
+  imported: number;
   unknownOrigin: number;
 }
 

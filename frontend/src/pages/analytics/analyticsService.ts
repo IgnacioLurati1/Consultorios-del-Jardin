@@ -11,6 +11,7 @@ export interface Activity {
   patients: number;
   fromApp: number;
   fromProfessional: number;
+  imported: number;
   /** Turnos anteriores a que se guardara el origen: no se pueden clasificar. */
   unknownOrigin: number;
 }

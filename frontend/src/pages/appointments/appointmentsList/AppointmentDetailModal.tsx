@@ -352,6 +352,15 @@ export function AppointmentDetailModal({
                 <span>Valor</span>
                 <strong>{appointment.value ? `$${appointment.value}` : <span className="ui-detail-empty">Sin definir</span>}</strong>
               </div>
+              {/* De dónde salió el turno se dice solo cuando explica algo. En uno importado
+                  explica bastante: por qué no tiene paciente, por qué puede no tener valor,
+                  y por qué está corrido de la grilla. */}
+              {appointment.origin === "import" && (
+                <div className="ui-detail-row">
+                  <span>Origen</span>
+                  <strong>Importado de un calendario</strong>
+                </div>
+              )}
             </div>
           </div>
 

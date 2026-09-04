@@ -133,7 +133,12 @@ export default function AppointmentScreen() {
             <Row title="Paciente" value={appointment.patient ? fullName(appointment.patient) : "Sin asignar"} />
             <Row title="Consultorio" value={appointment.room?.description ?? "Sin asignar"} />
             <Row title="Fecha" value={numericDate(appointment.date)} last={!isProfessional} />
-            {isProfessional ? <Row title="Valor" value={money(appointment.value)} last /> : null}
+            {isProfessional ? <Row title="Valor" value={money(appointment.value)} last={appointment.origin !== "import"} /> : null}
+            {/* De dónde salió el turno se dice solo cuando explica algo. En uno importado
+                explica por qué no tiene paciente y por qué puede no tener valor. */}
+            {isProfessional && appointment.origin === "import" ? (
+              <Row title="Origen" value="Importado de un calendario" last />
+            ) : null}
           </Group>
         </Section>
 

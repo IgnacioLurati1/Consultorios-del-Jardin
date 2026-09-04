@@ -1,13 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { toast } from "react-toastify";
-import { FaBorderAll, FaList, FaChevronLeft, FaChevronRight, FaEye, FaEyeSlash, FaPlus } from "react-icons/fa6";
+import {
+  FaBorderAll,
+  FaList,
+  FaChevronLeft,
+  FaChevronRight,
+  FaEye,
+  FaEyeSlash,
+  FaPlus,
+  FaFileArrowUp,
+  FaFileArrowDown,
+} from "react-icons/fa6";
 import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList, SkeletonGrid } from "../../../components/skeleton/Skeleton.tsx";
 import { AppointmentCard } from "./AppointmentCard.tsx";
 import { AppointmentWeekGrid } from "./AppointmentWeekGrid.tsx";
 import { AppointmentDetailModal } from "./AppointmentDetailModal.tsx";
 import { NewAppointmentModal } from "./NewAppointmentModal.tsx";
+import { ImportCalendarModal } from "./ImportCalendarModal.tsx";
+import { ExportCalendarModal } from "./ExportCalendarModal.tsx";
 import type { Appointment, Person, RecurrenceFrequency, Schedule } from "../../types.ts";
 import { createRecurrence } from "../recurrencesService.ts";
 import {
@@ -38,6 +50,8 @@ export function AppointmentsList() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [newModalOpen, setNewModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   // La grilla es la vista por defecto. El paciente no la tiene (no hay endpoint de
   // rango para su lado), así que para él siempre se resuelve en lista.
@@ -207,6 +221,28 @@ export function AppointmentsList() {
                 Nuevo turno
               </button>
             )}
+            {isProfessional && (
+              <button
+                type="button"
+                className="adm-btn adm-btn-accent"
+                onClick={() => setImportModalOpen(true)}
+                title="Traer turnos desde un calendario exportado de Google"
+              >
+                <FaFileArrowUp />
+                Importar
+              </button>
+            )}
+            {isProfessional && (
+              <button
+                type="button"
+                className="adm-btn adm-btn-accent"
+                onClick={() => setExportModalOpen(true)}
+                title="Bajar tu agenda como archivo de calendario"
+              >
+                <FaFileArrowDown />
+                Exportar
+              </button>
+            )}
             <button
               type="button"
               className={`adm-btn adm-btn-ghost ${includeCancelled ? "active" : ""}`}
@@ -335,6 +371,16 @@ export function AppointmentsList() {
           onCreate={handleCreate}
         />
       )}
+
+      {isProfessional && (
+        <ImportCalendarModal
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImported={loadAppointments}
+        />
+      )}
+
+      {isProfessional && <ExportCalendarModal isOpen={exportModalOpen} onClose={() => setExportModalOpen(false)} />}
     </div>
   );
 }

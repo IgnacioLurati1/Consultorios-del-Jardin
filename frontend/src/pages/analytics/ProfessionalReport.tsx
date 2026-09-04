@@ -161,9 +161,11 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             label="Turnos sacados por la app"
             value={total.fromApp}
             note={
-              total.unknownOrigin > 0
-                ? `${total.unknownOrigin} turnos sin dato de origen`
-                : `${total.fromProfessional} los cargaste vos`
+              total.imported > 0
+                ? `${total.fromProfessional} los cargaste vos y ${total.imported} vinieron importados`
+                : total.unknownOrigin > 0
+                  ? `${total.unknownOrigin} turnos sin dato de origen`
+                  : `${total.fromProfessional} los cargaste vos`
             }
           />
           <Kpi

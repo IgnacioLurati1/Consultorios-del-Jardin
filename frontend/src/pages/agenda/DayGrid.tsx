@@ -73,6 +73,9 @@ function pack<T extends Span>(items: T[]): { item: T; lane: number; lanes: numbe
 /** Qué clase de turno es, en una palabra. Los normales no dicen nada: son la mayoría. */
 function kindOf(appointment: AgendaAppointment): string {
   if (appointment.overbooked) return "sobreturno";
+  // Antes que "repetido" porque un importado no se repite, y porque es lo que explica que
+  // el bloque esté corrido respecto de los módulos de al lado.
+  if (appointment.imported) return "importado";
   if (appointment.recurring) return "repetido";
   return "";
 }

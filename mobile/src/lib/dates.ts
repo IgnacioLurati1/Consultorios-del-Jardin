@@ -123,13 +123,21 @@ export function relativeDay(value: string | Date): string {
   return longDate(date);
 }
 
-/** Plata, sin centavos: los valores del consultorio son redondos. */
-export function money(amount: number): string {
+/**
+ * Plata, sin centavos: los valores del consultorio son redondos.
+ *
+ * Un valor que no está no es cero. Pasa con los turnos importados de un calendario que no
+ * anotaba precios, y mostrarlos en $0 diría que se atendió gratis, que es un dato y no la
+ * ausencia de uno.
+ */
+export function money(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return "Sin valor";
+
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
-  }).format(amount ?? 0);
+  }).format(amount);
 }
 
 /** Cantidades grandes que no entran en una tarjeta: 12400 se lee 12,4 k. */

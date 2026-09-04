@@ -243,9 +243,95 @@ textarea::placeholder {
   color: var(--adm-text);
 }
 
+/*
+ * Los botones que no pueden pasar desapercibidos, sin gritar más fuerte que el principal.
+ *
+ * Mismo tamaño y misma tipografía que los de al lado: lo único que cambia es el borde,
+ * que va en degradado del verde de la marca a un verde azulado. La técnica son dos fondos
+ * —uno para adentro del borde y otro para el borde— porque `border-color` no acepta un
+ * degradado. El de adentro va con el color de la superficie, así que el botón sigue
+ * leyéndose como un botón secundario y no compite con "Nuevo turno".
+ *
+ * Lo usan importar y exportar, que son la ida y la vuelta de lo mismo y conviene que se
+ * lean como un par.
+ */
+.adm-btn-accent {
+  color: var(--adm-green-dark);
+  border-color: transparent;
+  background:
+    linear-gradient(var(--adm-surface), var(--adm-surface)) padding-box,
+    linear-gradient(120deg, var(--adm-green), #2f8f8f 55%, var(--adm-green)) border-box;
+}
+
+.adm-btn-accent:hover {
+  background:
+    linear-gradient(var(--adm-green-soft), var(--adm-green-soft)) padding-box,
+    linear-gradient(120deg, var(--adm-green), #2f8f8f 55%, var(--adm-green)) border-box;
+  box-shadow: 0 0 0 3px var(--adm-green-glow);
+}
+
+.adm-btn-accent svg {
+  color: var(--adm-green);
+}
+
 .adm-btn-ghost:hover {
   background: var(--adm-green-soft);
   border-color: var(--adm-green);
+}
+
+/*
+ * El switch de la aplicación.
+ *
+ * Es un checkbox de verdad, con la apariencia cambiada: así llega el foco por teclado y
+ * la barra espaciadora lo cambia, sin tener que reimplementar nada de eso a mano.
+ *
+ * Vive acá y no en la hoja del panel del profesional porque lo usan también las ventanas
+ * de importar y exportar, y dos copias del mismo control terminan separándose sin que
+ * nadie se entere.
+ */
+.adm-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 50px;
+  height: 28px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--adm-border-strong);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.adm-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--adm-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.28);
+  transition: transform 0.18s ease;
+}
+
+.adm-switch:checked {
+  background: var(--adm-green);
+}
+
+.adm-switch:checked::after {
+  transform: translateX(22px);
+}
+
+.adm-switch:focus-visible {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+.adm-switch:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .adm-btn-danger {
@@ -571,6 +657,19 @@ textarea::placeholder {
   border-radius: 999px;
   border: 1px dashed var(--adm-warn);
   color: var(--adm-warn);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Vino de un calendario de afuera. Va en gris y no en color: no es una alerta ni una
+   excepción, es de dónde salió el dato. Lo que explica es por qué a ese turno le puede
+   faltar el paciente o el valor. */
+.appt-tag-import {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--adm-border-strong);
+  color: var(--adm-muted);
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;

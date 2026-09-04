@@ -45,6 +45,7 @@ export function AppointmentCard({ appointment, user, onOpen }: AppointmentCardPr
       </span>
 
       <span className="appt-card-tags">
+        {appointment.origin === "import" && <span className="appt-tag-import">Importado</span>}
         {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
         <span className={state.className}>{state.label}</span>
       </span>
