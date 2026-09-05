@@ -32,6 +32,19 @@
     background-color: var(--adm-green-dark);
 }
 
+/*
+ * Con una ventana abierta, la burbuja se va.
+ *
+ * En un teléfono la ventana ocupa de lado a lado y su pie queda pegado al borde de abajo,
+ * justo donde flota la burbuja: el botón principal quedaba tapado a medias. Y aunque
+ * entrara, el chat no es algo que se pueda usar mientras hay una ventana encima, que es
+ * modal y no deja tocar lo de atrás.
+ */
+body.ui-modal-open .chat-assistant-fab,
+body.ui-modal-open .chat-assistant-panel {
+    display: none;
+}
+
 /* ── Chat panel ──────────────────────────────────────────────────── */
 .chat-assistant-panel {
     position: fixed;

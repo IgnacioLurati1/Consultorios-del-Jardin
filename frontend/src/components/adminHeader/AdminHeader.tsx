@@ -24,7 +24,7 @@ export function AdminHeader({ title, subtitle, backTo = "/AdminHome", backLabel 
         {subtitle && <p className="adm-subtitle">{subtitle}</p>}
       </div>
 
-      <div className="adm-toolbar" style={{ margin: 0 }}>
+      <div className="adm-toolbar adm-btn-row" style={{ margin: 0 }}>
         {actions}
         <Link className="adm-back" to={backTo}>
           <FaArrowLeft />

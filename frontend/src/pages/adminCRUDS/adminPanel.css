@@ -221,6 +221,68 @@ textarea::placeholder {
   font-family: inherit;
 }
 
+/*
+ * Una fila de botones que se acomoda sola.
+ *
+ * Mientras entran, van uno al lado del otro. Cuando no entran, cada uno se queda con su
+ * propia línea y la ocupa entera, que en un teléfono es más fácil de apretar.
+ *
+ * La alternativa que había era apilarlos siempre abajo de cierto ancho, y el problema de
+ * eso no es cómo se ve sino que decide por adelantado algo que depende del texto: "Cerrar"
+ * y "Cargar" entran juntos en un teléfono de 320px, y se apilaban igual. Cada vez que
+ * pasaba eran 56px de alto tirados, y en un modal que ya ocupa casi toda la pantalla eso
+ * se paga empujando el contenido fuera de vista.
+ *
+ * Acá la cuenta la hace el navegador con el ancho real de cada etiqueta, así que no queda
+ * un ancho de pantalla elegido a mano que envejezca mal el día que un texto cambie.
+ */
+.adm-btn-row {
+  flex-wrap: wrap;
+}
+
+/*
+ * En pantalla angosta los botones ocupan menos.
+ *
+ * El texto es el mismo; lo que se achica es el aire de los costados y un punto de
+ * tipografía. Sirve para que un par de botones que en la compu conviven en una línea
+ * sigan conviviendo en un teléfono en vez de apilarse: la mayoría de las veces les
+ * faltaban treinta o cuarenta píxeles, no la mitad del ancho.
+ *
+ * En la compu no cambia nada, que es donde el tamaño grande se disfruta.
+ */
+@media (max-width: 640px) {
+  .adm-btn {
+    padding: 11px 13px;
+    gap: 7px;
+    font-size: 0.94rem;
+  }
+
+  /* Lo que se recorta es el ancho, no el alto: un control que se aprieta con el dedo no
+     puede bajar de unos 40px de lado, y estos ya andaban justos. */
+  .adm-btn-sm {
+    padding: 8px 11px;
+    font-size: 0.85rem;
+  }
+
+  /* Acá solo se recorta el ancho. Bajarles también la tipografía les comía un pixel de
+     alto y los dejaba en 39, justo del lado equivocado del límite. */
+  .adm-chips button {
+    padding: 10px 13px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* `min-width` con `max-content` es lo que impide que el navegador los meta a la fuerza
+     en una línea partiendo el texto en dos renglones; el `min(100%, ...)` es para el caso
+     contrario, una etiqueta tan larga que sola no entra, donde sí hay que dejarla partir
+     antes que desbordar la pantalla. */
+  .adm-btn-row > * {
+    flex: 1 1 auto;
+    min-width: min(100%, max-content);
+  }
+}
+
 /* Chico, para cuando el botón vive adentro de una fila de un listado y no en la barra
    de acciones de la pantalla. */
 .adm-btn-sm {

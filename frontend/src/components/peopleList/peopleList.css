@@ -189,6 +189,16 @@ button.people-row:focus-visible {
     margin-left: auto;
 }
 
+/* Salvo cuando la fila no entra y se parte en dos renglones. Ahí el margen lo manda solo
+   al extremo derecho del renglón de abajo, colgado, y lo que se lee no es "esto es
+   aparte" sino que algo se acomodó mal. Pegado a la izquierda vuelve a leerse como lo
+   que es, el tercero de la lista. */
+@media (max-width: 640px) {
+    .patients-debt-filter {
+        margin-left: 0;
+    }
+}
+
 /* Sin nadie debiendo, el filtro no se ofrece como algo para tocar, pero se queda en su
    lugar: que desaparezca y vuelva según el mes es peor que verlo apagado. */
 .patients-debt-filter:disabled {

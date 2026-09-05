@@ -42,8 +42,12 @@
   background: linear-gradient(90deg, var(--adm-green), var(--adm-green-glow));
 }
 
+/* Los 520px no son un redondeo: es lo que necesita el pie mas cargado que tenemos, el de
+   las fichas de administracion, para que "Dar de baja", "Cancelar" y "Guardar cambios"
+   entren en una linea. Con 460 el ultimo caia solo a un segundo renglon y la ventana
+   terminaba en un escalon que parecia un error de armado. */
 .ui-modal-sm {
-  width: min(460px, 100%);
+  width: min(520px, 100%);
 }
 
 .ui-modal-lg {
@@ -319,11 +323,6 @@
 
   .ui-modal-foot {
     padding: 14px 18px;
-    flex-direction: column-reverse;
-  }
-
-  .ui-modal-foot .adm-btn {
-    width: 100%;
   }
 
   .ui-field-row {

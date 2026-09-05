@@ -85,7 +85,7 @@ export function Hero({ session }: HeroProps) {
           <h1 className="home-title">{pitch.title}</h1>
           <p className="home-lead">{pitch.lead}</p>
 
-          <div className="home-actions">
+          <div className="home-actions adm-btn-row">
             <Link className="home-btn home-btn-primary" to={pitch.primary.to}>
               {pitch.primary.label}
               <FaArrowRight aria-hidden="true" />

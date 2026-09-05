@@ -840,11 +840,6 @@
 }
 
 @media (max-width: 560px) {
-  .home-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .home-btn {
     justify-content: center;
   }

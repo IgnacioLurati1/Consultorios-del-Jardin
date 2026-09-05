@@ -17,6 +17,11 @@
     flex-direction: column;
     gap: 22px;
     width: min(560px, 100%);
+    /* La tarjeta es un item de grilla, y esos no se achican por debajo de su contenido
+       salvo que se diga. Sin esto, la cinta de pasos de aca abajo -que mide el ancho de
+       todos los pasos juntos- le pone un piso, y en un telefono angosto la tarjeta se
+       sale de la pantalla y aparece scroll horizontal. */
+    min-width: 0;
     box-sizing: border-box;
     padding: 32px 30px 28px;
     background: var(--adm-surface);
@@ -160,6 +165,10 @@
 
 .sf-viewport {
     overflow: hidden;
+    /* La cinta de adentro es a proposito mas ancha que esta ventana: son todos los pasos
+       en fila y se ve uno por vez. Recortarla no alcanza, ademas hay que decir que ese
+       ancho no cuenta para lo que mide la ventana. */
+    min-width: 0;
     /* El margen negativo deja que el foco de un input dibuje su contorno completo
        sin que el overflow lo recorte. */
     margin: -6px;

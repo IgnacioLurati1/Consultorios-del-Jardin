@@ -19,6 +19,15 @@ interface ModalProps {
  * pasarse del alto de la pantalla (la cabecera y los botones quedan fijos y lo que
  * scrollea es el contenido).
  */
+/*
+ * Cuántas ventanas hay abiertas a la vez.
+ *
+ * Es un contador y no un sí/no porque una ventana puede abrir otra encima, y al cerrar la
+ * de arriba la de abajo sigue abierta: con un booleano, la de arriba al irse apagaría la
+ * marca y el fondo volvería a comportarse como si no hubiera ninguna.
+ */
+let ventanasAbiertas = 0;
+
 export function Modal({ open, title, subtitle, onClose, children, footer, size = "md" }: ModalProps) {
   const titleId = useId();
 
@@ -34,9 +43,15 @@ export function Modal({ open, title, subtitle, onClose, children, footer, size =
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    // Y esto es para que lo que flota sobre la página sepa que hay una ventana abierta.
+    ventanasAbiertas += 1;
+    document.body.classList.add("ui-modal-open");
+
     return () => {
       document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = previousOverflow;
+      ventanasAbiertas -= 1;
+      if (ventanasAbiertas === 0) document.body.classList.remove("ui-modal-open");
     };
   }, [open, onClose]);
 
@@ -65,7 +80,7 @@ export function Modal({ open, title, subtitle, onClose, children, footer, size =
 
         <div className="ui-modal-body">{children}</div>
 
-        {footer && <div className="ui-modal-foot">{footer}</div>}
+        {footer && <div className="ui-modal-foot adm-btn-row">{footer}</div>}
       </div>
     </div>
   );

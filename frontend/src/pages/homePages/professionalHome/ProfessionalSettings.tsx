@@ -436,7 +436,7 @@ export function ProfessionalSettings() {
               ))}
             </Dropdown>
 
-            <div className="prof-setting-actions">
+            <div className="prof-setting-actions adm-btn-row">
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setVacationsOpen(true)}>
                 <FaPlaneDeparture />
                 {onVacation ? `De vacaciones hasta el ${shortDate(onVacation.toDate)}` : "Tomarme vacaciones"}

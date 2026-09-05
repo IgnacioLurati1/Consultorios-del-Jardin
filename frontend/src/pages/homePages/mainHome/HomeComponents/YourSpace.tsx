@@ -171,7 +171,7 @@ export function YourSpace({ session }: YourSpaceProps) {
               <FaRegCircleCheck aria-hidden="true" />
               Podés cancelar un turno desde la misma pantalla, hasta el día anterior.
             </p>
-            <div className="home-actions">
+            <div className="home-actions adm-btn-row">
               <Link className="home-btn home-btn-primary" to="/Register">
                 <FaUserPlus aria-hidden="true" />
                 Crear mi cuenta

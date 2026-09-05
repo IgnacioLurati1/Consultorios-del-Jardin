@@ -322,7 +322,7 @@ export function ProfessionalHome() {
                 {pendingCount === 1 ? "Un turno espera tu respuesta" : `${pendingCount} turnos esperan tu respuesta`}
               </p>
             </div>
-            <div className="prof-pending-actions">
+            <div className="prof-pending-actions adm-btn-row">
               <button type="button" className="adm-btn adm-btn-primary" disabled={accepting} onClick={acceptAll}>
                 <FaCheck />
                 {pendingCount === 1 ? "Confirmar el turno" : "Confirmar turnos"}

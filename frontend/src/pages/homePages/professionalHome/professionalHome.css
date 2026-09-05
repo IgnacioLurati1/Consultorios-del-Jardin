@@ -485,11 +485,6 @@
     padding: 16px;
   }
 
-  .prof-setting-actions .adm-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
   .prof-vacation-item {
     flex-wrap: wrap;
   }
