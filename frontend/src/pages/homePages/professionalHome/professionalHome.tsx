@@ -37,6 +37,7 @@ import { Modal } from "../../../components/modal/Modal.tsx";
 import { acceptPendingAppointments, settleUnpaidAppointments } from "./settingsService.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import "../../adminCRUDS/adminPanel.css";
+import { useSimpleText } from "../../../lib/textMode";
 import "./professionalHome.css";
 
 interface MenuEntry {
@@ -74,6 +75,7 @@ const entries: MenuEntry[] = [
 ];
 
 export function ProfessionalHome() {
+  const [simple] = useSimpleText();
   const [professional, setProfessional] = useState<Person | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [today, setToday] = useState<Appointment[] | null>(null);
@@ -248,7 +250,8 @@ export function ProfessionalHome() {
                 <Icon />
               </span>
               <span className="adm-card-title">{entry.title}</span>
-              <span className="adm-card-desc">{entry.description}</span>
+              {/* El título de la tarjeta ya dice a dónde lleva; esto lo desarrolla. */}
+              {!simple && <span className="adm-card-desc">{entry.description}</span>}
             </Link>
           );
         })}

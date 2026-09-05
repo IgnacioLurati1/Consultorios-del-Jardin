@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { useSimpleText } from "../../../lib/textMode.ts";
 import { downloadCalendar, type ExportOptions } from "../importService.ts";
 import "./importCalendar.css";
 
@@ -44,6 +45,7 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
     withPatientName: true,
   });
 
+  const [simple] = useSimpleText();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -80,7 +82,7 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
       open={isOpen}
       onClose={close}
       title="Llevar la agenda a otro calendario"
-      subtitle="Un archivo para Google Calendar, Outlook o el calendario del teléfono"
+      subtitle={simple ? "Un archivo para tu calendario" : "Un archivo para Google Calendar, Outlook o el calendario del teléfono"}
       footer={
         <>
           <button type="button" className="adm-btn adm-btn-ghost" onClick={close} disabled={busy}>
@@ -109,7 +111,7 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
         <label className="imp-check">
           <span>
             Poner el nombre del paciente en el título
-            <small>Sin esto, cada evento dice sólo «Turno».</small>
+            {!simple && <small>Sin esto, cada evento dice sólo «Turno».</small>}
           </span>
           <input
             type="checkbox"
@@ -122,7 +124,7 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
         <label className="imp-check">
           <span>
             Incluir los turnos cancelados
-            <small>Entran marcados como cancelados.</small>
+            {!simple && <small>Entran marcados como cancelados.</small>}
           </span>
           <input
             type="checkbox"
@@ -133,6 +135,7 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
         </label>
       </div>
 
+{!simple && (
       <div className="ui-section imp-rules">
         <h3>Cómo se usa el archivo</h3>
         <ul>
@@ -141,6 +144,7 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
           <li>Lo que cambies allá no vuelve.</li>
         </ul>
       </div>
+      )}
     </Modal>
   );
 }

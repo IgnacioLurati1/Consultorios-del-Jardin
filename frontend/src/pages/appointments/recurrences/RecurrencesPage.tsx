@@ -100,7 +100,7 @@ export function RecurrencesPage() {
       endDate: form.forever ? null : form.endDate,
     })
       .then(() => {
-        toast.success("Listo: los próximos turnos se van a generar así");
+        toast.success("Listo. Los próximos turnos se van a generar así");
         setEditing(undefined);
         load();
       })
@@ -124,6 +124,7 @@ export function RecurrencesPage() {
     <div className="adm-page">
       <AdminHeader
         title="Turnos repetibles"
+        subtitleIsData={total > 0}
         subtitle={
           total === 0
             ? "Los turnos que se agendan solos"
@@ -243,7 +244,7 @@ export function RecurrencesPage() {
         }
       >
         <p className="ui-alert ui-alert-info">
-          Lo que cambies vale para los turnos que falta generar. Los que ya están agendados quedan como están: se editan
+          Lo que cambies vale para los turnos que falta generar. Los que ya están agendados quedan como están. Se editan
           o se cancelan desde la agenda, uno por uno.
         </p>
 

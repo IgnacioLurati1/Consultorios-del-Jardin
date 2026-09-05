@@ -7,6 +7,7 @@ import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { updatePerson } from "./editProfileServices";
 import { findPerson, getDecodedToken } from "../commonServices";
 import type { Person } from "../types";
+import { useSimpleText } from "../../lib/textMode";
 import "./EditProfile.css";
 
 const DOC_TYPES = ["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"];
@@ -29,6 +30,7 @@ const emptyForm = { name: "", surname: "", email: "", phoneNumber: "", docType: 
 const ABOUT_MAX = 600;
 
 export function EditProfile() {
+  const [simple] = useSimpleText();
   const [person, setPerson] = useState<Person | undefined>(undefined);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -212,8 +214,11 @@ export function EditProfile() {
                       value={form.about}
                       onChange={(e) => setForm({ ...form, about: e.target.value })}
                     />
+                    {/* Con "menos texto" queda el contador solo: es lo único de acá que
+                        cambia mientras se escribe, y lo otro ya lo dice el título del campo. */}
                     <small>
-                      Es lo que lee el paciente antes de elegir con quién atenderse. {form.about.length}/{ABOUT_MAX}
+                      {!simple && "Es lo que lee el paciente antes de elegir con quién atenderse. "}
+                      {form.about.length}/{ABOUT_MAX}
                     </small>
                   </label>
                 </div>

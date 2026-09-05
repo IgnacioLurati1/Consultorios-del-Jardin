@@ -105,6 +105,7 @@ export function ControlPanel() {
     <div className="adm-page">
       <AdminHeader
         title="Control de turnos"
+        subtitleIsData={view !== "day" && Boolean(professional)}
         subtitle={
           view === "day"
             ? "Todo lo que pasa en el consultorio un día"

@@ -205,6 +205,7 @@ export function AppointmentsList() {
 
       <AdminHeader
         title="Turnos"
+        subtitleIsData={effectiveMode === "grid"}
         subtitle={
           effectiveMode === "grid"
             ? formatWeekRange(monday)

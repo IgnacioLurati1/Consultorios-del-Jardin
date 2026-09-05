@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import {
+  FaAlignLeft,
   FaChevronDown,
   FaChevronRight,
   FaCircleCheck,
@@ -29,6 +30,7 @@ import {
   type MailSetting,
   type ProfessionalSettings as Settings,
 } from "./settingsService";
+import { useSimpleText } from "../../../lib/textMode";
 
 /** "14/09" alcanza dentro de un renglón que ya dice de qué se trata. */
 function shortDate(value: string): string {
@@ -54,6 +56,7 @@ function Switch({
   label,
   description,
   icon,
+  simple,
   disabled,
   children,
 }: {
@@ -63,6 +66,8 @@ function Switch({
   description: string;
   /** El mismo círculo verde que llevan los renglones de arriba y abajo. */
   icon: React.ReactNode;
+  /** Con "menos texto" prendido, la descripción no se dibuja: el título ya la dice. */
+  simple?: boolean;
   disabled?: boolean;
   /** Cómo se configura. Solo se puede tocar con el switch prendido. */
   children?: React.ReactNode;
@@ -98,7 +103,7 @@ function Switch({
             </span>
             <span className="prof-setting-text">
               <span className="prof-setting-label">{label}</span>
-              <span className="prof-setting-desc">{description}</span>
+              {!simple && <span className="prof-setting-desc">{description}</span>}
             </span>
             <FaChevronDown className={`prof-setting-caret ${open ? "open" : ""}`} aria-hidden="true" />
           </button>
@@ -109,7 +114,7 @@ function Switch({
             </span>
             <span className="prof-setting-text">
               <span className="prof-setting-label">{label}</span>
-              <span className="prof-setting-desc">{description}</span>
+              {!simple && <span className="prof-setting-desc">{description}</span>}
             </span>
           </div>
         )}
@@ -159,6 +164,7 @@ function Dropdown({
   children,
 }: {
   label: string;
+  /** Acá no se esconde entera: lleva en qué estado está la lista, que es un dato. */
   description: string;
   icon: React.ReactNode;
   open: boolean;
@@ -198,10 +204,12 @@ function Dropdown({
  */
 function MailRow({
   mail,
+  simple,
   disabled,
   onChange,
 }: {
   mail: MailSetting;
+  simple: boolean;
   disabled: boolean;
   onChange: (enabled: boolean) => void;
 }) {
@@ -209,7 +217,7 @@ function MailRow({
     <label className="prof-mail">
       <span className="prof-setting-text">
         <span className="prof-mail-label">{mail.label}</span>
-        <span className="prof-setting-desc">{mail.description}</span>
+        {!simple && <span className="prof-setting-desc">{mail.description}</span>}
       </span>
       <input
         type="checkbox"
@@ -235,6 +243,7 @@ export function ProfessionalSettings() {
   const [mailsOpen, setMailsOpen] = useState(false);
   const [vacationsOpen, setVacationsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [simple, setSimple] = useSimpleText();
 
   function load() {
     findSettings()
@@ -276,7 +285,7 @@ export function ProfessionalSettings() {
       <div className="prof-today-head">
         <div>
           <h2 className="prof-today-title">Configuración</h2>
-          <p className="prof-today-date">Lo que la app hace sola, para que no lo hagas vos</p>
+          {!simple && <p className="prof-today-date">Lo que la app hace sola, para que no lo hagas vos</p>}
         </div>
       </div>
 
@@ -294,9 +303,11 @@ export function ProfessionalSettings() {
               </span>
               <span className="prof-setting-text">
                 <span className="prof-setting-label">Turnos repetibles</span>
-                <span className="prof-setting-desc">
-                  Los que se agendan solos todas las semanas, con quién son y hasta cuándo van.
-                </span>
+                {!simple && (
+                  <span className="prof-setting-desc">
+                    Los que se agendan solos todas las semanas, con quién son y hasta cuándo van.
+                  </span>
+                )}
               </span>
               <FaChevronRight className="prof-setting-chevron" aria-hidden="true" />
             </Link>
@@ -310,6 +321,7 @@ export function ProfessionalSettings() {
               onChange={(value) => save({ autoAccept: value })}
               label="Confirmar turnos automáticamente"
               icon={<FaCircleCheck />}
+              simple={simple}
               description="Cuando un paciente pide un horario tuyo, queda confirmado sin que tengas que aprobarlo."
             />
 
@@ -319,6 +331,7 @@ export function ProfessionalSettings() {
               onChange={(value) => save({ autoMark: value ? "assisted" : null })}
               label="Cerrar los turnos que ya pasaron automáticamente"
               icon={<FaClipboardCheck />}
+              simple={simple}
               description="Al turno que quedó sin marcar se le pone asistencia solo. Podés corregir el que no dé."
             >
               <div className="ui-field">
@@ -367,9 +380,11 @@ export function ProfessionalSettings() {
                     <span>Al terminar el día</span>
                   </label>
                 </div>
-                <small>
-                  Al terminar el día te da tiempo a cargar a mano el que se estiró o el que llegó tarde.
-                </small>
+                {!simple && (
+                  <small>
+                    Al terminar el día te da tiempo a cargar a mano el que se estiró o el que llegó tarde.
+                  </small>
+                )}
               </div>
 
               <p className="ui-alert ui-alert-info">
@@ -386,6 +401,7 @@ export function ProfessionalSettings() {
               onChange={(value) => save({ autoPay: value })}
               label="Considerar pagado un turno automáticamente"
               icon={<FaMoneyBillWave />}
+              simple={simple}
               description="Al turno que ya pasó se le da por cobrado el valor. Podés corregir el que quedó debiendo."
             >
               <div className="ui-field">
@@ -410,7 +426,9 @@ export function ProfessionalSettings() {
                     <span>Al terminar el día</span>
                   </label>
                 </div>
-                <small>Al terminar el día te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.</small>
+                {!simple && (
+                  <small>Al terminar el día te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.</small>
+                )}
               </div>
 
               <p className="ui-alert ui-alert-info">
@@ -421,7 +439,7 @@ export function ProfessionalSettings() {
 
             <Dropdown
               label="Avisos por mail"
-              description={`Cuáles te llegan a la casilla. ${mailsState}`}
+              description={simple ? mailsState : `Cuáles te llegan a la casilla. ${mailsState}`}
               icon={<FaEnvelope />}
               open={mailsOpen}
               onToggle={() => setMailsOpen(!mailsOpen)}
@@ -430,11 +448,52 @@ export function ProfessionalSettings() {
                 <MailRow
                   key={mail.key}
                   mail={mail}
+                  simple={simple}
                   disabled={saving}
                   onChange={(enabled) => save({ mails: { [mail.key]: enabled } })}
                 />
               ))}
             </Dropdown>
+
+            {/*
+              Menos texto.
+              ------------
+              Va al final y no arriba de todo porque no es una automatización: no cambia
+              nada de lo que el consultorio hace, solo cómo se lee esta pantalla. Y va
+              acá abajo también por otra razón: el que llega hasta el fondo leyendo es
+              justamente el que ya se cansó de leer.
+
+              Lo que apaga son las descripciones que repiten lo que el título ya dice.
+              Lo que dice qué pasa con lo que ya estaba cargado se queda siempre: eso no
+              es una explicación de más, es la diferencia entre entender y no entender
+              qué va a tocar el día que se prenda.
+            */}
+            <div className="prof-setting">
+              <div className="prof-setting-row">
+                <div className="prof-setting-main prof-setting-static">
+                  <span className="prof-setting-icon" aria-hidden="true">
+                    <FaAlignLeft />
+                  </span>
+                  <span className="prof-setting-text">
+                    <span className="prof-setting-label">Menos texto</span>
+                    {!simple && (
+                      <span className="prof-setting-desc">
+                        Deja los títulos y esconde las explicaciones. Los avisos de qué se toca y qué no se quedan.
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <input
+                  type="checkbox"
+                  className="adm-switch"
+                  role="switch"
+                  aria-label="Menos texto"
+                  checked={simple}
+                  onChange={(event) => setSimple(event.target.checked)}
+                />
+              </div>
+            </div>
 
             <div className="prof-setting-actions adm-btn-row">
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setVacationsOpen(true)}>
@@ -585,7 +644,7 @@ function VacationsModal({
             value={form.reason}
             onChange={(event) => setForm({ ...form, reason: event.target.value })}
           />
-          <small>Es para vos: el paciente no lo ve.</small>
+          <small>Es para vos. El paciente no lo ve.</small>
         </label>
 
         <p className="ui-alert ui-alert-info">

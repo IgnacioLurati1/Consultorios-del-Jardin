@@ -18,6 +18,7 @@ import { ContactPatientModal } from "./ContactPatientModal.tsx";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
 import type { Appointment } from "../types.ts";
 import type { Person } from "../types.ts";
+import { useSimpleText } from "../../lib/textMode.ts";
 
 const emptyForm: AnonymousPatientInput = {
   email: "",
@@ -72,6 +73,7 @@ function historyDate(value: string): string {
 }
 
 export function PatientsPage() {
+  const [simple] = useSimpleText();
   const [patients, setPatients] = useState<Person[]>([]);
   // Quién está logueado: firma el borrador del mail que se le abre al paciente.
   const [me, setMe] = useState<Person | undefined>(undefined);
@@ -238,11 +240,13 @@ export function PatientsPage() {
 
       <Toasts />
 
-      <p className="people-note">
-        Un paciente <strong>anónimo</strong> no tiene cuenta ni contraseña: sirve para anotarlo sin que tenga que registrarse. Podés
-        corregirle los datos cuando quieras. Si más adelante se registra con ese mismo email, la cuenta pasa a ser real y conserva todo
-        lo que le hayas cargado.
-      </p>
+      {!simple && (
+        <p className="people-note">
+          Un paciente <strong>anónimo</strong> no tiene cuenta ni contraseña. Sirve para anotarlo sin que tenga que registrarse. Podés
+          corregirle los datos cuando quieras. Si más adelante se registra con ese mismo email, la cuenta pasa a ser real y conserva
+          todo lo que le hayas cargado.
+        </p>
+      )}
 
       {/* Arranca en los propios: es lo que se busca casi siempre. Ver a todos sirve
           cuando hay que darle turno a alguien que todavía no se atendió acá. */}

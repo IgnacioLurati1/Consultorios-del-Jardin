@@ -67,7 +67,7 @@ export function Specialities({ session }: SpecialitiesProps) {
         </h2>
         <p className="home-section-lead">
           Cada profesional tiene su propia agenda y sus horarios cargados, y todas las especialidades comparten el
-          mismo consultorio: los turnos quedan siempre en la misma lista.
+          mismo consultorio. Los turnos quedan siempre en la misma lista.
         </p>
       </div>
 

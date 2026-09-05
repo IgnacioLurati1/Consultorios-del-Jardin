@@ -310,7 +310,7 @@ export function UserModal({
 
           {isSelf && user.active && (
             <p className="ui-alert ui-alert-info">
-              Es tu propia cuenta. Deshabilitarla tiene que hacerlo otro administrador: desde afuera no podrías volver a entrar ni
+              Es tu propia cuenta. Deshabilitarla tiene que hacerlo otro administrador. Desde afuera no podrías volver a entrar ni
               pedir que te habiliten.
             </p>
           )}

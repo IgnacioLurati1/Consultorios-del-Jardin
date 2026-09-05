@@ -5,6 +5,7 @@ import { FaChartColumn, FaHouse, FaMountainCity } from "react-icons/fa6";
 import { WeekSummary } from "../../agenda/WeekSummary.tsx";
 import { AnnouncementComposer } from "../../announcements/AnnouncementComposer.tsx";
 import "../../adminCRUDS/adminPanel.css";
+import { useSimpleText } from "../../../lib/textMode.ts";
 import "./AdminHome.css";
 
 interface MenuEntry {
@@ -73,6 +74,7 @@ const catalogEntries: MenuEntry[] = [
 
 function MenuCard({ entry }: { entry: MenuEntry }) {
   const Icon = entry.icon;
+  const [simple] = useSimpleText();
 
   return (
     <Link className="adm-card adm-enter" to={entry.link}>
@@ -80,7 +82,7 @@ function MenuCard({ entry }: { entry: MenuEntry }) {
         <Icon />
       </span>
       <span className="adm-card-title">{entry.title}</span>
-      <span className="adm-card-desc">{entry.description}</span>
+      {!simple && <span className="adm-card-desc">{entry.description}</span>}
     </Link>
   );
 }

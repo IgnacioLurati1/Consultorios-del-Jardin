@@ -109,6 +109,7 @@ export function OfficeAnalyticsPage() {
     <div className="adm-page an-page">
       <AdminHeader
         title="Números del consultorio"
+        subtitleIsData={!selected}
         subtitle={
           selected
             ? "Actividad de un profesional, sin lo que factura"

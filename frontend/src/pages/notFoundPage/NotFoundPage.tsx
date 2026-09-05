@@ -57,7 +57,7 @@ export function NotFoundPage() {
         <h1 className="nf-title">Esta página no existe</h1>
 
         <p className="nf-text">
-          Puede que el link esté viejo o que hayamos movido algo de lugar. Nada de lo tuyo se perdió: seguís
+          Puede que el link esté viejo o que hayamos movido algo de lugar. Nada de lo tuyo se perdió. Seguís
           teniendo tus turnos y tus datos donde estaban.
         </p>
 

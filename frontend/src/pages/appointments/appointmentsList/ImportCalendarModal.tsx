@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { FaCircleCheck, FaTriangleExclamation } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { useSimpleText } from "../../../lib/textMode.ts";
 import { PAYMENT_LABELS, previewCalendarImport, runCalendarImport, STATE_LABELS } from "../importService.ts";
 import type {
   ImportOptions,
@@ -83,6 +84,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
     outsideSchedule: false,
   });
 
+  const [simple] = useSimpleText();
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -183,8 +185,11 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
         step === "done"
           ? "Ya está"
           : step === "preview"
-            ? "Esto es lo que entraría. Todavía no se guardó nada"
-            : "Traé tu agenda de siempre. Los turnos entran sin paciente y ninguno queda repitiéndose solo"
+            ? // Que todavía no se guardó nada no se acorta nunca: es lo que deja mirar sin miedo.
+              "Esto es lo que entraría. Todavía no se guardó nada"
+            : simple
+              ? "Traé tu agenda de siempre"
+              : "Traé tu agenda de siempre. Los turnos entran sin paciente y ninguno queda repitiéndose solo"
       }
       footer={footer}
     >
@@ -212,8 +217,17 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                 <span className="imp-file-btn">Elegir archivo</span>
                 <span className={file ? "imp-file-name" : "imp-file-none"}>{file ? file.name : "Ninguno todavía"}</span>
               </span>
+              {/* Se acorta pero no se saca: es lo único que dice que el zip sirve sin abrir. */}
               <small>
-                El <strong>.ics</strong> de Google Calendar, o el <strong>.zip</strong> de Takeout sin abrir.
+                {simple ? (
+                  <>
+                    <strong>.ics</strong> o <strong>.zip</strong> de Takeout
+                  </>
+                ) : (
+                  <>
+                    El <strong>.ics</strong> de Google Calendar, o el <strong>.zip</strong> de Takeout sin abrir.
+                  </>
+                )}
               </small>
             </label>
 
@@ -243,7 +257,8 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                   </option>
                 ))}
               </select>
-              <small>{STATE_LABELS.find((choice) => choice.value === options.state)?.hint}</small>
+              {/* La opción elegida se lee entera ahí arriba; esto la reformula. */}
+              {!simple && <small>{STATE_LABELS.find((choice) => choice.value === options.state)?.hint}</small>}
             </label>
 
             <label className="ui-field">
@@ -258,13 +273,18 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                   </option>
                 ))}
               </select>
-              <small>{PAYMENT_LABELS.find((choice) => choice.value === options.payment)?.hint}</small>
+              {!simple && <small>{PAYMENT_LABELS.find((choice) => choice.value === options.payment)?.hint}</small>}
             </label>
 
             <label className="imp-check">
               <span>
                 Guardar el título del evento en las observaciones
-                <small>Es lo único que queda para reconocer cada turno. Ojo, el paciente lee las observaciones.</small>
+                {/* Lo que puede salir mal se queda; lo que explica para qué sirve, no. */}
+                <small>
+                  {simple
+                    ? "Ojo, el paciente lee las observaciones."
+                    : "Es lo único que queda para reconocer cada turno. Ojo, el paciente lee las observaciones."}
+                </small>
               </span>
               <input
                 type="checkbox"
@@ -277,7 +297,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
             <label className="imp-check">
               <span>
                 Traer también los turnos fuera de tu horario de atención
-                <small>Van al consultorio donde más atendés. Sirve para agendas viejas.</small>
+                {!simple && <small>Van al consultorio donde más atendés. Sirve para agendas viejas.</small>}
               </span>
               <input
                 type="checkbox"
@@ -288,6 +308,15 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
             </label>
           </div>
 
+          {/*
+            Con "menos texto" este bloque no se dibuja.
+            ------------------------------------------
+            Es el pedazo más largo de la pantalla y describe cómo se comporta la
+            importación. Se puede sacar sin dejar a nadie a ciegas porque el paso
+            siguiente muestra la cuenta de lo que entra y el motivo de cada uno que no,
+            antes de guardar nada: lo que acá se cuenta, allá se ve.
+          */}
+          {!simple && (
           <div className="ui-section imp-rules">
             <h3>Qué hace y qué no</h3>
             <ul>
@@ -297,6 +326,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
               <li>El valor sale de algún número del texto. Si no hay, queda sin valor.</li>
             </ul>
           </div>
+          )}
         </>
       )}
 

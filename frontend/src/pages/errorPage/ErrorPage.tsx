@@ -34,8 +34,8 @@ export function ErrorPage() {
         <h1 className="er-title">Se nos trabó algo</h1>
 
         <p className="er-text">
-          El problema es nuestro, no tuyo. Tus turnos y tus datos siguen guardados tal como estaban:
-          nada de lo que hiciste se perdió.
+          El problema es nuestro, no tuyo. Tus turnos y tus datos siguen guardados tal como estaban.
+          Nada de lo que hiciste se perdió.
         </p>
 
         <p className="er-text er-text-quiet">Casi siempre se arregla volviendo a cargar la pantalla.</p>
