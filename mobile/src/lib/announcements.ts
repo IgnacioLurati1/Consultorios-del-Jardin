@@ -1,7 +1,7 @@
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { Announcement } from "../api/announcements";
 import { secureStorage } from "../api/secureStorage";
+import { notifications } from "./notifications";
 
 /**
  * Los avisos del consultorio en el teléfono.
@@ -54,7 +54,8 @@ export async function markClosed(id: number): Promise<number[]> {
 }
 
 async function ensureChannel(): Promise<void> {
-  if (Platform.OS !== "android") return;
+  const Notifications = notifications();
+  if (!Notifications || Platform.OS !== "android") return;
 
   await Notifications.setNotificationChannelAsync(CHANNEL, {
     name: "Avisos del consultorio",
@@ -72,6 +73,9 @@ async function ensureChannel(): Promise<void> {
  * no se pidió que suene es la forma más rápida de que se apaguen todas las notificaciones.
  */
 export async function notifyNew(announcements: Announcement[]): Promise<number> {
+  const Notifications = notifications();
+  if (!Notifications) return 0;
+
   const wanted = announcements.filter((item) => item.channel !== "banner");
   if (wanted.length === 0) return 0;
 

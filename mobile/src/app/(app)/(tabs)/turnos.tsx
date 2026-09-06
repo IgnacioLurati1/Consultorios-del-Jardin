@@ -4,12 +4,16 @@ import { useCallback, useMemo, useState } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { myPatientAppointments, myProfessionalAppointments, professionalRange } from "../../../api/appointments";
+import { errorMessage } from "../../../api/client";
+import { acceptPending, getSettings } from "../../../api/settings";
 import { Appointment } from "../../../api/types";
 import { AppointmentRow } from "../../../components/AppointmentRow";
 import { Button } from "../../../components/Button";
 import { ChipRow } from "../../../components/Chip";
+import { useFeedback } from "../../../components/Feedback";
+import { Sheet } from "../../../components/Sheet";
 import { DataState, EmptyState, SkeletonList } from "../../../components/States";
-import { Group, Section } from "../../../components/Surfaces";
+import { Group, Note, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { isUpcoming, stateOf } from "../../../lib/appointments";
 import { addDays, longDate, onDay, relativeDay, sentenceCase, toISODate, today } from "../../../lib/dates";
@@ -139,20 +143,55 @@ function ProfessionalAgenda() {
   const { email } = useUser();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const feedback = useFeedback();
 
   const [day, setDay] = useState(() => today());
   const [onlyPending, setOnlyPending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const agenda = useAsync(() => professionalRange(day, day, true), [day]);
   const pending = useAsync(() => myProfessionalAppointments(0), []);
+
+  /*
+   * Cuántos pedidos sin responder hay de verdad.
+   *
+   * La lista de abajo trae una página de quince turnos, así que lo que se ve no siempre
+   * es todo. Y "Confirmar todos" no confirma lo que se ve: confirma todo lo que esté
+   * esperando. El número del cartel tiene que ser ese, o estaría pidiendo permiso para
+   * una cosa y haciendo otra.
+   */
+  const settings = useAsync(() => getSettings(), []);
+  const waiting = settings.data?.pending ?? 0;
 
   useFocusEffect(
     useCallback(() => {
       agenda.reload();
       pending.reload();
+      settings.reload();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [day])
   );
+
+  function confirmAll() {
+    setBusy(true);
+    acceptPending()
+      .then((accepted) => {
+        feedback.done(
+          accepted === 0
+            ? "No tenías pedidos esperando"
+            : accepted === 1
+              ? "Confirmaste un turno"
+              : `Confirmaste ${accepted} turnos`
+        );
+        setConfirming(false);
+        pending.reload();
+        agenda.reload();
+        settings.reload();
+      })
+      .catch((problem) => feedback.problem(errorMessage(problem)))
+      .finally(() => setBusy(false));
+  }
 
   const toConfirm = (pending.data ?? []).filter(
     (appointment) => stateOf(appointment) === "pending" && isUpcoming(appointment)
@@ -224,11 +263,55 @@ function ProfessionalAgenda() {
         </Group>
       </DataState>
 
-      {list.length > 0 ? (
+      {/* Una acción por vista. Mirando los pedidos que esperan, cargar un turno nuevo no
+          es lo que nadie vino a hacer. */}
+      {onlyPending ? (
+        toConfirm.length > 0 ? (
+          <Section>
+            <Button label="Confirmar todos" icon="circle-check" block onPress={() => setConfirming(true)} />
+          </Section>
+        ) : null
+      ) : list.length > 0 ? (
         <Section>
           <Button label="Cargar un turno" icon="plus" variant="secondary" block onPress={() => router.push("/(app)/nuevo-turno")} />
         </Section>
       ) : null}
+
+      {/*
+        Preguntar antes de confirmar todo.
+        ----------------------------------
+        Aceptar de a uno no lo pregunta y acá sí, porque no es lo mismo: esto le dice que
+        sí a gente que quizás no pensabas atender, y para volver atrás hay que abrir turno
+        por turno y rechazarlos a mano.
+      */}
+      <Sheet visible={confirming} onClose={() => setConfirming(false)} title="¿Confirmar todos?">
+        <View style={{ gap: space.lg, paddingBottom: space.md }}>
+          <AppText variant="body">
+            {waiting === 1
+              ? "Vas a aceptar el pedido que tenés esperando."
+              : `Vas a aceptar los ${waiting} pedidos que tenés esperando.`}
+          </AppText>
+
+          {waiting > toConfirm.length ? (
+            <Note>
+              Son todos los que quedaron sin responder, también los de días que ya pasaron. Acá abajo se ven{" "}
+              {toConfirm.length}.
+            </Note>
+          ) : null}
+
+          <Note tone="warn">Al confirmar de esta forma no se enviarán mails a los pacientes.</Note>
+
+          <Button
+            label="Sí, confirmar todos"
+            icon="circle-check"
+            block
+            loading={busy}
+            disabled={busy}
+            onPress={confirmAll}
+          />
+          <Button label="Volver" variant="ghost" block onPress={() => setConfirming(false)} />
+        </View>
+      </Sheet>
     </ScrollView>
   );
 }

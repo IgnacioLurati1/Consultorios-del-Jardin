@@ -1,6 +1,7 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, View, ViewStyle } from "react-native";
+import { useSimpleText } from "../lib/textMode";
 import { elevation, radius, space, TOUCH } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 import { AppText } from "./Text";
@@ -63,6 +64,15 @@ interface RowProps {
   value?: string;
   icon?: React.ComponentProps<typeof FontAwesome6>["name"];
   onPress?: () => void;
+  /**
+   * El subtítulo trae un dato y no una explicación, así que "menos texto" no lo saca.
+   *
+   * La diferencia es qué pasa si no está. Una explicación dice de nuevo, con otras
+   * palabras, lo que el título ya dijo: sacarla no le quita nada a nadie. Un dato —un
+   * importe, una fecha, un mail, en qué estado quedó algo— es la única forma de
+   * enterarse, y sin él la fila deja de servir.
+   */
+  subtitleIsData?: boolean;
   /** Última fila del grupo: no lleva línea abajo. */
   last?: boolean;
   right?: ReactNode;
@@ -73,9 +83,12 @@ interface RowProps {
  * Una fila de lista. Lleva ícono solo cuando el ícono dice algo que el texto no dice;
  * una columna de cuadraditos de color delante de cada fila es decoración, no información.
  */
-export function Row({ title, subtitle, value, icon, onPress, last, right, destructive }: RowProps) {
+export function Row({ title, subtitle, subtitleIsData, value, icon, onPress, last, right, destructive }: RowProps) {
   const { colors } = useTheme();
+  const [simple] = useSimpleText();
   const tint = destructive ? colors.danger : colors.text;
+
+  const shown = subtitle && (!simple || subtitleIsData) ? subtitle : undefined;
 
   const body = (
     <View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
@@ -85,9 +98,9 @@ export function Row({ title, subtitle, value, icon, onPress, last, right, destru
         <AppText variant="body" numberOfLines={1} style={{ color: tint }}>
           {title}
         </AppText>
-        {subtitle ? (
+        {shown ? (
           <AppText variant="caption" tone="muted" numberOfLines={2}>
-            {subtitle}
+            {shown}
           </AppText>
         ) : null}
       </View>
@@ -101,7 +114,8 @@ export function Row({ title, subtitle, value, icon, onPress, last, right, destru
       {right}
 
       {/* La flecha promete "esto te lleva a otro lado". Una acción destructiva no
-          lleva a ningún lado: abre una confirmación. */}
+          lleva a ningún lado: abre una confirmación. Y cuando la fila ya trae algo a la
+          derecha, esa cosa manda: la flecha la pone quien la armó, si hace falta. */}
       {onPress && !right && !destructive ? <FontAwesome6 name="chevron-right" size={13} color={colors.muted} /> : null}
     </View>
   );
@@ -111,7 +125,7 @@ export function Row({ title, subtitle, value, icon, onPress, last, right, destru
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
+      accessibilityLabel={shown ? `${title}. ${shown}` : title}
       onPress={onPress}
       android_ripple={{ color: colors.border }}
       style={({ pressed }) => (pressed && Platform.OS === "ios" ? styles.pressed : undefined)}

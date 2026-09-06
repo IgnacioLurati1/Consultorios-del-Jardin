@@ -1,8 +1,8 @@
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { secureStorage } from "../api/secureStorage";
 import { Appointment } from "../api/types";
 import { counterpart, stateOf } from "./appointments";
+import { notifications } from "./notifications";
 
 /**
  * El aviso de "tenés un turno en cinco minutos".
@@ -81,6 +81,9 @@ export async function saveAlertPrefs(prefs: AlertPrefs): Promise<void> {
  * iOS no se puede volver a preguntar.
  */
 export async function ensurePermission(): Promise<boolean> {
+  const Notifications = notifications();
+  if (!Notifications) return false;
+
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   if (!current.canAskAgain) return false;
@@ -97,7 +100,8 @@ export async function ensurePermission(): Promise<boolean> {
  * llamar en cada arranque.
  */
 async function ensureChannels(): Promise<void> {
-  if (Platform.OS !== "android") return;
+  const Notifications = notifications();
+  if (!Notifications || Platform.OS !== "android") return;
 
   await Notifications.setNotificationChannelAsync(CHANNEL_LOUD, {
     name: "Turnos",
@@ -148,6 +152,9 @@ function startsAt(appointment: Appointment): Date {
  * para que se pueda ver que quedó andando.
  */
 export async function syncAlerts(appointments: Appointment[], prefs: AlertPrefs, viewerEmail: string): Promise<number> {
+  const Notifications = notifications();
+  if (!Notifications) return 0;
+
   await Notifications.cancelAllScheduledNotificationsAsync();
   if (!prefs.notify) return 0;
 
@@ -198,5 +205,5 @@ export async function syncAlerts(appointments: Appointment[], prefs: AlertPrefs,
 
 /** Apaga todo lo programado. Se llama al cerrar sesión: la agenda ya no es de este teléfono. */
 export async function clearAlerts(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await notifications()?.cancelAllScheduledNotificationsAsync();
 }

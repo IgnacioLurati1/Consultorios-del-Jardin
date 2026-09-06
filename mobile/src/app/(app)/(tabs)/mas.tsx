@@ -97,12 +97,14 @@ export default function MoreScreen() {
           <Row
             title="Cómo llegar"
             subtitle={OFFICE_INFO.address}
+            subtitleIsData
             icon="location-dot"
             onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(OFFICE_INFO.address)}`)}
           />
           <Row
             title="Instagram"
             subtitle={`@${OFFICE_INFO.instagram}`}
+            subtitleIsData
             icon="instagram"
             last
             onPress={() => Linking.openURL(`https://instagram.com/${OFFICE_INFO.instagram}`)}

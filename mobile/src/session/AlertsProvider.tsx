@@ -1,4 +1,3 @@
-import * as Notifications from "expo-notifications";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, View } from "react-native";
 import { professionalRange } from "../api/appointments";
@@ -19,6 +18,7 @@ import {
   syncAlerts,
 } from "../lib/alerts";
 import { addDays, today, toISODate } from "../lib/dates";
+import { canNotify, notifications } from "../lib/notifications";
 import { space } from "../theme/tokens";
 import { useSession } from "./SessionProvider";
 
@@ -27,7 +27,7 @@ import { useSession } from "./SessionProvider";
  * llega en silencio si el profesional justo está mirando la pantalla, que es cuando más
  * probable es que esté por empezar el turno.
  */
-Notifications.setNotificationHandler({
+notifications()?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -69,7 +69,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
   const [prefs, setPrefs] = useState<AlertPrefs>(DEFAULT_PREFS);
   const [scheduled, setScheduled] = useState(0);
-  const [allowed, setAllowed] = useState(true);
+  const [allowed, setAllowed] = useState(canNotify);
   const [asking, setAsking] = useState(false);
 
   // Sin esto, dos vueltas al frente seguidas dispararían dos reprogramaciones que se
@@ -82,6 +82,9 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
 
       syncing.current = true;
       try {
+        const Notifications = notifications();
+        if (!Notifications) return;
+
         if (!next.notify) {
           await clearAlerts();
           setScheduled(0);
@@ -116,7 +119,10 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     readAlertPrefs().then((saved) => {
       if (!alive) return;
       setPrefs(saved);
-      if (!saved.asked) setAsking(true);
+
+      // No se pregunta lo que no se va a poder cumplir: donde los avisos no existen, la
+      // pantalla de Avisos explica por que, y el cartel al entrar solo estorbaria.
+      if (!saved.asked && canNotify) setAsking(true);
       else void sync(saved);
     });
 

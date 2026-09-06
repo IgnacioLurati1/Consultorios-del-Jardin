@@ -120,6 +120,7 @@ export default function OfficeNumbersScreen() {
                   <Row
                     title="Quien más sobreturnos da"
                     subtitle={current.topOverbooker.name}
+                    subtitleIsData
                     value={String(current.topOverbooker.count)}
                     last
                   />
@@ -168,6 +169,7 @@ export default function OfficeNumbersScreen() {
             <Row
               title="Sin registro"
               subtitle="No entraron desde que se mide"
+              subtitleIsData
               value={String(channels.unknown)}
               last
             />
@@ -190,6 +192,7 @@ export default function OfficeNumbersScreen() {
               key={person.email}
               title={`${person.name} ${person.surname}`}
               subtitle={person.speciality ?? "Sin especialidad"}
+              subtitleIsData
               last={index === office.data!.professionals.length - 1}
               onPress={() => router.push("/(app)/admin/control")}
             />
@@ -228,6 +231,7 @@ export default function OfficeNumbersScreen() {
                       key={entry.role}
                       title={ROLE_LABELS[entry.role] ?? entry.role}
                       subtitle={`${compactNumber(entry.tokens)} tokens`}
+                      subtitleIsData
                       value={`${entry.consultas} ${entry.consultas === 1 ? "consulta" : "consultas"}`}
                       last={index === spend.porRol.length - 1}
                     />

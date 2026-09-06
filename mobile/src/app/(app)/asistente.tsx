@@ -126,11 +126,27 @@ export default function AssistantScreen() {
           android_ripple={{ color: colors.border, borderless: true }}
           style={({ pressed }) => [
             styles.send,
-            { backgroundColor: canSend ? colors.green : colors.border },
+            /*
+             * Escribir lo pinta de verde: el contorno, el avión y un fondo apenas teñido.
+             *
+             * El avión no puede oscurecerse al habilitarse, y eso descarta el círculo
+             * verde lleno: en oscuro el verde de marca se aclara para llegar al contraste
+             * mínimo sobre negro, así que encima de ese verde el símbolo tiene que ser casi
+             * negro. El fondo suba lo que suba, lo que el ojo sigue es el avión, y el
+             * avión se veía apagarse justo cuando recién se había habilitado.
+             *
+             * Teñido no pasa: el verde de marca es el color del avión en los dos modos y
+             * queda igual de claro que el gris de apagado, o más. Es además el mismo
+             * tratamiento que tienen los botones que el asistente ofrece abajo de cada
+             * respuesta, en esta misma pantalla.
+             */
+            canSend
+              ? { backgroundColor: colors.greenSoft, borderColor: colors.green }
+              : { backgroundColor: "transparent", borderColor: colors.border },
             pressed && Platform.OS === "ios" && styles.pressed,
           ]}
         >
-          <FontAwesome6 name="paper-plane" size={16} color={canSend ? colors.onGreen : colors.muted} />
+          <FontAwesome6 name="paper-plane" size={16} color={canSend ? colors.green : colors.muted} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -295,6 +311,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 21,
   },
-  send: { width: TOUCH, height: TOUCH, borderRadius: radius.full, alignItems: "center", justifyContent: "center" },
+  send: {
+    width: TOUCH,
+    height: TOUCH,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   pressed: { opacity: 0.7 },
 });

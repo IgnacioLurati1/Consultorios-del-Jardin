@@ -148,6 +148,7 @@ export default function AppointmentScreen() {
               <Row
                 title={appointment.observations ? "Observaciones" : "Todavía no anotaste nada"}
                 subtitle={appointment.observations ?? "Lo que escribas acá lo lee también el paciente."}
+                subtitleIsData={Boolean(appointment.observations)}
                 icon="pen"
                 last
                 onPress={() => setObservationsOpen(true)}
@@ -185,6 +186,7 @@ export default function AppointmentScreen() {
                       : "No queda nada por cobrar"
                     : "Este turno es anterior al registro de cobros. Elegí cómo quedó."
                 }
+                subtitleIsData={Boolean(payment)}
                 icon="money-bill-wave"
                 last
                 onPress={() => setPaymentOpen(true)}
@@ -206,6 +208,7 @@ export default function AppointmentScreen() {
                     ? `Hasta el ${numericDate(appointment.recurrence.endDate)}`
                     : "Sin fecha de corte"
                 }
+                subtitleIsData
                 icon="repeat"
                 last
               />

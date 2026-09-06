@@ -1,5 +1,6 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { useSimpleText } from "../lib/textMode";
 import { radius, space, TOUCH } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 import { AppText } from "./Text";
@@ -13,16 +14,24 @@ export function Choice({
   options,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   options: { key: string; label: string; description?: string }[];
   value: string;
   onChange: (key: string) => void;
+  /**
+   * Se ve pero no se toca. Es para cuando la elección existe y todavía no corresponde
+   * hacerla: así se entiende qué se va a poder configurar, sin que tocar una opción
+   * prenda de costado algo que nadie prendió.
+   */
+  disabled?: boolean;
 }) {
   const { colors } = useTheme();
+  const [simple] = useSimpleText();
 
   return (
-    <View style={styles.choice}>
+    <View style={[styles.choice, disabled && styles.locked]}>
       <AppText variant="caption" tone="muted" chrome>
         {label}
       </AppText>
@@ -35,8 +44,9 @@ export function Choice({
             <Pressable
               key={option.key}
               onPress={() => onChange(option.key)}
+              disabled={disabled}
               accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
+              accessibilityState={{ selected: active, disabled }}
               accessibilityLabel={option.label}
               android_ripple={{ color: colors.border }}
               style={({ pressed }) => [
@@ -58,7 +68,7 @@ export function Choice({
                 <AppText variant="body" tone={active ? "green" : "default"}>
                   {option.label}
                 </AppText>
-                {option.description ? (
+                {option.description && !simple ? (
                   <AppText variant="caption" tone="muted">
                     {option.description}
                   </AppText>
@@ -74,6 +84,7 @@ export function Choice({
 
 const styles = StyleSheet.create({
   choice: { gap: space.sm },
+  locked: { opacity: 0.45 },
   options: { gap: space.sm },
   option: {
     flexDirection: "row",

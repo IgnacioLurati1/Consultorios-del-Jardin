@@ -5,6 +5,7 @@ import { Screen } from "../../components/Screen";
 import { Note, Section } from "../../components/Surfaces";
 import { AppText } from "../../components/Text";
 import { AlertChoice, choiceOf } from "../../lib/alerts";
+import { canNotify } from "../../lib/notifications";
 import { ALERT_OPTIONS, useAlerts } from "../../session/AlertsProvider";
 import { space } from "../../theme/tokens";
 
@@ -36,11 +37,20 @@ export default function AlertsScreen() {
         </AppText>
       </Section>
 
+      {!canNotify ? (
+        <Section>
+          <Note tone="warn">
+            Estás entrando desde Expo Go, que en Android no deja programar avisos. Lo que elijas acá queda
+            guardado, pero no va a sonar nada hasta que uses la app instalada.
+          </Note>
+        </Section>
+      ) : null}
+
       <Section>
         <Choice label="Cómo te avisamos" options={ALERT_OPTIONS} value={choiceOf(prefs)} onChange={pick} />
       </Section>
 
-      {!allowed && prefs.notify ? (
+      {canNotify && !allowed && prefs.notify ? (
         <Section>
           <Note tone="warn">
             El teléfono tiene los avisos bloqueados para esta app, así que no va a llegar ninguno. Se prende desde
@@ -54,17 +64,19 @@ export default function AlertsScreen() {
         </Section>
       ) : null}
 
-      <Section title="Estado">
-        <Note>
-          {saving
-            ? "Reprogramando los avisos…"
-            : !prefs.notify
-              ? "No vas a recibir avisos."
-              : scheduled === 0
-                ? "No hay turnos en los próximos siete días para avisar."
-                : `${scheduled} ${scheduled === 1 ? "aviso programado" : "avisos programados"} para los próximos siete días.`}
-        </Note>
-      </Section>
+      {canNotify ? (
+        <Section title="Estado">
+          <Note>
+            {saving
+              ? "Reprogramando los avisos…"
+              : !prefs.notify
+                ? "No vas a recibir avisos."
+                : scheduled === 0
+                  ? "No hay turnos en los próximos siete días para avisar."
+                  : `${scheduled} ${scheduled === 1 ? "aviso programado" : "avisos programados"} para los próximos siete días.`}
+          </Note>
+        </Section>
+      ) : null}
 
       <Section>
         <AppText variant="caption" tone="muted">

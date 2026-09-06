@@ -129,6 +129,7 @@ export default function SchedulesScreen() {
                       key={`${day}-${schedule.initialHour}`}
                       title={`${hhmm(schedule.initialHour)} a ${hhmm(schedule.finalHour)}`}
                       subtitle={`${schedule.room?.description ?? "Sin consultorio"} · turnos de ${schedule.duration} min`}
+                      subtitleIsData
                       last={index === modules.length - 1}
                       onPress={
                         role === "admin"

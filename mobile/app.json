@@ -19,7 +19,6 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
@@ -31,8 +30,8 @@
         {
           "backgroundColor": "#12211a",
           "dark": { "backgroundColor": "#12211a" },
-          "image": "./assets/images/leaf.png",
-          "imageWidth": 96
+          "image": "./assets/images/leaf-mark.png",
+          "imageWidth": 124
         }
       ]
     ],

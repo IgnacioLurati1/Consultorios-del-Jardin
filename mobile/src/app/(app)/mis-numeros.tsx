@@ -92,6 +92,7 @@ export default function MyNumbersScreen() {
                 <Row
                   title="Pedidos rechazados"
                   subtitle={splitOf(current.denials)}
+                  subtitleIsData
                   value={String(current.denials.denied)}
                   last={!current.debt}
                 />
@@ -107,6 +108,7 @@ export default function MyNumbersScreen() {
                             current.debt.people
                           } ${current.debt.people === 1 ? "persona" : "personas"}`
                     }
+                    subtitleIsData
                     value={money(current.debt.amount)}
                     destructive={current.debt.amount > 0}
                     last

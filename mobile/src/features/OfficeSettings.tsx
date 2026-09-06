@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, LayoutAnimation, Switch, View } from "react-native";
+import { FontAwesome6 } from "@expo/vector-icons";
+import { useCallback, useEffect, useState } from "react";
+import { LayoutAnimation, StyleSheet, Switch, View } from "react-native";
 import { router } from "expo-router";
 import { Button } from "../components/Button";
 import { Choice } from "../components/Choice";
@@ -12,7 +13,6 @@ import { DateField } from "./DateField";
 import { errorMessage } from "../api/client";
 import { myPatients } from "../api/appointments";
 import {
-  acceptPending,
   addVacation,
   deletePatientAppointments,
   getSettings,
@@ -26,6 +26,7 @@ import {
   type ProfessionalSettings,
 } from "../api/settings";
 import type { Person } from "../api/types";
+import { useSimpleText } from "../lib/textMode";
 import { space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 
@@ -35,31 +36,6 @@ function shortDate(value: string): string {
     day: "2-digit",
     month: "2-digit",
   });
-}
-
-/**
- * Lo que aparece al prender un switch.
- *
- * El alto lo anima LayoutAnimation cuando cambia la configuración; esto se encarga de
- * que el contenido entre en vez de aparecer de golpe contra el borde.
- */
-function Reveal({ children }: { children: React.ReactNode }) {
-  const enter = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(enter, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-  }, [enter]);
-
-  return (
-    <Animated.View
-      style={{
-        opacity: enter,
-        transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }],
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
 }
 
 /**
@@ -77,6 +53,9 @@ export function OfficeSettings() {
   const [mailsOpen, setMailsOpen] = useState(false);
   const [vacationsOpen, setVacationsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [closingOpen, setClosingOpen] = useState(false);
+  const [payingOpen, setPayingOpen] = useState(false);
+  const [simple, setSimple] = useSimpleText();
 
   const load = useCallback(() => {
     getSettings()
@@ -101,21 +80,6 @@ export function OfficeSettings() {
         return next;
       })
       .then(setSettings)
-      .catch((problem) => feedback.problem(errorMessage(problem)))
-      .finally(() => setBusy(false));
-  }
-
-  /**
-   * Prender la confirmación automática y vaciar la bandeja son dos decisiones: la
-   * primera vale para lo que entre después, y esta se lleva puesto lo que ya está.
-   */
-  function acceptBacklog() {
-    setBusy(true);
-    acceptPending()
-      .then((accepted) => {
-        feedback.done(accepted === 0 ? "No tenías pedidos esperando" : `Confirmaste ${accepted} pedidos`);
-        load();
-      })
       .catch((problem) => feedback.problem(errorMessage(problem)))
       .finally(() => setBusy(false));
   }
@@ -152,33 +116,40 @@ export function OfficeSettings() {
           }
         />
 
-        <Row
-          title="Cerrar los turnos que ya pasaron automáticamente"
-          subtitle="Al turno que quedó sin marcar se le pone asistencia solo."
-          icon="clipboard-check"
-          last={!settings.autoAccept && settings.autoMark === null}
-          right={
-            <Switch
-              value={settings.autoMark !== null}
-              disabled={busy}
-              onValueChange={(value) => save({ autoMark: value ? "assisted" : null })}
-              trackColor={{ true: colors.green, false: colors.border }}
-            />
+        <AutoRow
+          title="Cerrar los turnos pasados"
+          subtitle={
+            settings.autoMark === null
+              ? "Al turno que quedó sin marcar se le pone asistencia solo."
+              : `${settings.autoMark === "assisted" ? "Como que vino" : "Como que no vino"}, ${whenLabel(settings.autoMarkWhen)}`
           }
+          subtitleIsData={settings.autoMark !== null}
+          icon="clipboard-check"
+          on={settings.autoMark !== null}
+          busy={busy}
+          onToggle={(value) => {
+            save({ autoMark: value ? "assisted" : null });
+            if (value) setClosingOpen(true);
+          }}
+          onOpen={() => setClosingOpen(true)}
         />
 
-        <Row
-          title="Considerar pagado un turno automáticamente"
-          subtitle="Al turno que ya pasó se le da por cobrado el valor."
-          icon="money-bill-wave"
-          right={
-            <Switch
-              value={settings.autoPay}
-              disabled={busy}
-              onValueChange={(value) => save({ autoPay: value })}
-              trackColor={{ true: colors.green, false: colors.border }}
-            />
+        <AutoRow
+          title="Considerar pagado un turno"
+          subtitle={
+            settings.autoPay
+              ? capitalize(whenLabel(settings.autoPayWhen))
+              : "Al turno que ya pasó se le da por cobrado el valor."
           }
+          subtitleIsData={settings.autoPay}
+          icon="money-bill-wave"
+          on={settings.autoPay}
+          busy={busy}
+          onToggle={(value) => {
+            save({ autoPay: value });
+            if (value) setPayingOpen(true);
+          }}
+          onOpen={() => setPayingOpen(true)}
         />
 
         <Row
@@ -190,8 +161,22 @@ export function OfficeSettings() {
                 ? "Apagaste uno"
                 : `Apagaste ${muted}`
           }
+          subtitleIsData
           icon="envelope"
           onPress={() => setMailsOpen(true)}
+        />
+
+        <Row
+          title="Menos texto"
+          subtitle="Saca las explicaciones y deja el nombre de cada cosa"
+          icon="align-left"
+          right={
+            <Switch
+              value={simple}
+              onValueChange={setSimple}
+              trackColor={{ true: colors.green, false: colors.border }}
+            />
+          }
         />
 
         <Row
@@ -201,6 +186,7 @@ export function OfficeSettings() {
               ? `No aparecés en las búsquedas hasta el ${shortDate(onVacation.toDate)}`
               : "Los días que no atendés"
           }
+          subtitleIsData={Boolean(onVacation)}
           icon="plane-departure"
           onPress={() => setVacationsOpen(true)}
         />
@@ -215,74 +201,9 @@ export function OfficeSettings() {
         />
       </Group>
 
-      {settings.autoAccept && settings.pending > 0 ? (
-        <Reveal>
-          <View style={{ marginTop: space.md, gap: space.sm }}>
-          <Note>
-            Tenés {settings.pending} {settings.pending === 1 ? "pedido esperando" : "pedidos esperando"} de antes. La
-            confirmación automática vale para los que entren de ahora en más.
-          </Note>
-            <Button label="Confirmarlos también" variant="secondary" block disabled={busy} onPress={acceptBacklog} />
-          </View>
-        </Reveal>
-      ) : null}
+      <ClosingSheet visible={closingOpen} onClose={() => setClosingOpen(false)} settings={settings} onChange={save} />
 
-      {settings.autoMark !== null ? (
-        <Reveal>
-          <View style={{ marginTop: space.md, gap: space.md }}>
-          <Choice
-            label="¿Cómo los cierro?"
-            value={settings.autoMark}
-            onChange={(key) => save({ autoMark: key as AutoMark })}
-            options={[
-              { key: "assisted", label: "Como que vino" },
-              { key: "missed", label: "Como que no vino" },
-            ]}
-          />
-
-          <Choice
-            label="¿Cuándo?"
-            value={settings.autoMarkWhen}
-            onChange={(key) => save({ autoMarkWhen: key as AutoMarkWhen })}
-            options={[
-              { key: "appointment", label: "Al terminar cada turno" },
-              {
-                key: "day",
-                label: "Al terminar el día",
-                description: "Te da tiempo a cargar a mano el que se estiró o el que llegó tarde.",
-              },
-            ]}
-          />
-
-            <Note>Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.</Note>
-          </View>
-        </Reveal>
-      ) : null}
-
-      {settings.autoPay ? (
-        <Reveal>
-          <View style={{ marginTop: space.md, gap: space.md }}>
-            <Choice
-              label="¿Cuándo lo doy por cobrado?"
-              value={settings.autoPayWhen}
-              onChange={(key) => save({ autoPayWhen: key as AutoPayWhen })}
-              options={[
-                { key: "appointment", label: "Al terminar cada turno" },
-                {
-                  key: "day",
-                  label: "Al terminar el día",
-                  description: "Te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.",
-                },
-              ]}
-            />
-
-            <Note>
-              Solo toca los turnos que figuran como atendidos y sin cobrar. Un pago parcial que hayas registrado queda
-              como está, y lo de antes de prender esto no se toca.
-            </Note>
-          </View>
-        </Reveal>
-      ) : null}
+      <PayingSheet visible={payingOpen} onClose={() => setPayingOpen(false)} settings={settings} onChange={save} />
 
       <MailsSheet
         visible={mailsOpen}
@@ -301,6 +222,170 @@ export function OfficeSettings() {
 
       <DeletePatientSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </Section>
+  );
+}
+
+/** Cómo se lee cada momento cuando va pegado a otra cosa dentro de un renglón. */
+function whenLabel(when: AutoMarkWhen | AutoPayWhen): string {
+  return when === "day" ? "al terminar el día" : "al terminar cada turno";
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * Un renglón de automatización: el switch la prende y la apaga, y el resto del renglón
+ * abre el panel donde se configura.
+ *
+ * Son dos gestos porque son dos decisiones. Antes la configuración se desplegaba acá
+ * abajo y empujaba media pantalla cada vez que se prendía algo; ahora sube desde abajo,
+ * tapa lo que en ese momento no importa, y se va cuando terminó.
+ *
+ * Prender abre el panel solo, porque prenderla es justamente el momento en que alguien
+ * viene a configurarla. Apagar no abre nada, que es lo que se espera de apagar algo.
+ */
+function AutoRow({
+  title,
+  subtitle,
+  subtitleIsData,
+  icon,
+  on,
+  busy,
+  onToggle,
+  onOpen,
+}: {
+  title: string;
+  subtitle: string;
+  subtitleIsData: boolean;
+  icon: React.ComponentProps<typeof FontAwesome6>["name"];
+  on: boolean;
+  busy: boolean;
+  onToggle: (value: boolean) => void;
+  onOpen: () => void;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <Row
+      title={title}
+      subtitle={subtitle}
+      subtitleIsData={subtitleIsData}
+      icon={icon}
+      onPress={onOpen}
+      right={
+        /* Reclama el toque para que apretar al lado del switch no abra el panel: ahí
+           alguien apuntó al switch y erró por dos píxeles. */
+        <View style={styles.autoRight} onStartShouldSetResponder={() => true}>
+          <FontAwesome6 name="chevron-right" size={13} color={colors.muted} />
+          <Switch
+            value={on}
+            disabled={busy}
+            onValueChange={onToggle}
+            trackColor={{ true: colors.green, false: colors.border }}
+          />
+        </View>
+      }
+    />
+  );
+}
+
+/**
+ * Cómo se cierran solos los turnos que ya pasaron.
+ *
+ * Apagado se ve igual pero no se toca: así se entiende qué se va a poder elegir, sin
+ * que tocar una opción prenda de costado una automatización que nadie prendió.
+ */
+function ClosingSheet({
+  visible,
+  onClose,
+  settings,
+  onChange,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  settings: ProfessionalSettings;
+  onChange: (data: { autoMark?: AutoMark | null; autoMarkWhen?: AutoMarkWhen }) => void;
+}) {
+  const off = settings.autoMark === null;
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title="Cerrar los turnos pasados">
+      <View style={{ gap: space.lg, paddingBottom: space.md }}>
+        {off ? <Note tone="warn">Prendé la opción en el panel para poder configurarla.</Note> : null}
+
+        <Choice
+          label="¿Cómo los cierro?"
+          value={settings.autoMark ?? "assisted"}
+          disabled={off}
+          onChange={(key) => onChange({ autoMark: key as AutoMark })}
+          options={[
+            { key: "assisted", label: "Como que vino" },
+            { key: "missed", label: "Como que no vino" },
+          ]}
+        />
+
+        <Choice
+          label="¿Cuándo?"
+          value={settings.autoMarkWhen}
+          disabled={off}
+          onChange={(key) => onChange({ autoMarkWhen: key as AutoMarkWhen })}
+          options={[
+            { key: "appointment", label: "Al terminar cada turno" },
+            {
+              key: "day",
+              label: "Al terminar el día",
+              description: "Te da tiempo a cargar a mano el que se estiró o el que llegó tarde.",
+            },
+          ]}
+        />
+
+        <Note>Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.</Note>
+      </View>
+    </Sheet>
+  );
+}
+
+/** Cuándo se da por cobrado lo que ya se atendió. */
+function PayingSheet({
+  visible,
+  onClose,
+  settings,
+  onChange,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  settings: ProfessionalSettings;
+  onChange: (data: { autoPayWhen?: AutoPayWhen }) => void;
+}) {
+  const off = !settings.autoPay;
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title="Considerar pagado un turno">
+      <View style={{ gap: space.lg, paddingBottom: space.md }}>
+        {off ? <Note tone="warn">Prendé la opción en el panel para poder configurarla.</Note> : null}
+
+        <Choice
+          label="¿Cuándo lo doy por cobrado?"
+          value={settings.autoPayWhen}
+          disabled={off}
+          onChange={(key) => onChange({ autoPayWhen: key as AutoPayWhen })}
+          options={[
+            { key: "appointment", label: "Al terminar cada turno" },
+            {
+              key: "day",
+              label: "Al terminar el día",
+              description: "Te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.",
+            },
+          ]}
+        />
+
+        <Note>
+          Solo toca los turnos que figuran como atendidos y sin cobrar. Un pago parcial que hayas registrado queda como
+          está, y lo de antes de prender esto no se toca.
+        </Note>
+      </View>
+    </Sheet>
   );
 }
 
@@ -411,6 +496,7 @@ function VacationsSheet({
                 key={vacation.id}
                 title={`${shortDate(vacation.fromDate)} al ${shortDate(vacation.toDate)}`}
                 subtitle={vacation.current ? "En curso" : (vacation.reason ?? undefined)}
+                subtitleIsData
                 icon="plane-departure"
                 last={index === settings.vacations.length - 1}
                 right={
@@ -552,6 +638,7 @@ function DeletePatientSheet({ visible, onClose }: { visible: boolean; onClose: (
               key={patient.email}
               title={`${patient.surname}, ${patient.name}`}
               subtitle={patient.email}
+              subtitleIsData
               icon="user"
               last={index === patients.length - 1}
               onPress={() => {
@@ -566,3 +653,7 @@ function DeletePatientSheet({ visible, onClose }: { visible: boolean; onClose: (
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  autoRight: { flexDirection: "row", alignItems: "center", gap: space.md },
+});

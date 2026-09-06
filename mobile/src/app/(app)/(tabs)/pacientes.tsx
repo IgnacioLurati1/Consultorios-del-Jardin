@@ -250,17 +250,30 @@ function PatientRow({
         <AppText variant="caption" tone="muted" numberOfLines={1}>
           {person.phoneNumber || person.email}
         </AppText>
-      </View>
 
-      {person.anonymous ? <Tag label="Sin cuenta" /> : null}
-      {/* Un pago a medias también es una deuda: lo que se mira es si quedó algo sin
-          cobrar, no si no pagó nada. */}
-      {person.owesPayment ? (
-        <Tag
-          label={(person.owedAppointments ?? 0) === 1 ? "Adeuda un pago" : `Adeuda ${person.owedAppointments}`}
-          tone="danger"
-        />
-      ) : null}
+        {/*
+          Las etiquetas van acá abajo y no a la derecha del nombre.
+          ---------------------------------------------------------
+          En la misma línea competen por el ancho con el nombre y con el botón de
+          contacto, y como en React Native una etiqueta no se encoge, el que cedía era
+          siempre el nombre: al que debía plata y no tenía cuenta se le comía el nombre
+          entero y encima el botón quedaba cortado contra el borde. Abajo entran las que
+          sean, y si no hay ninguna la fila no crece.
+        */}
+        {person.anonymous || person.owesPayment ? (
+          <View style={styles.rowTags}>
+            {person.anonymous ? <Tag label="Sin cuenta" /> : null}
+            {/* Un pago a medias también es una deuda: lo que se mira es si quedó algo sin
+                cobrar, no si no pagó nada. */}
+            {person.owesPayment ? (
+              <Tag
+                label={(person.owedAppointments ?? 0) === 1 ? "Adeuda un pago" : `Adeuda ${person.owedAppointments}`}
+                tone="danger"
+              />
+            ) : null}
+          </View>
+        ) : null}
+      </View>
 
       {/* Va por fuera del Pressable de la fila en cuanto a intención, aunque esté
           adentro: el hitSlop y el stopPropagation del onPress alcanzan para que tocar el
@@ -333,5 +346,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rowText: { flex: 1, gap: 2 },
+  rowTags: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.xs, marginTop: space.xs },
   pressed: { opacity: 0.6 },
 });

@@ -95,6 +95,7 @@ export default function ControlScreen() {
                         ? `${appointment.patient.name} ${appointment.patient.surname} · ${appointment.room.description}`
                         : `Sin paciente · ${appointment.room.description}`
                     }
+                    subtitleIsData
                     last={index === list.length - 1}
                     right={
                       <View style={styles.badges}>

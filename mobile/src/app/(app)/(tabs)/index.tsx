@@ -183,6 +183,7 @@ function ProfessionalHome() {
                       ? `Faltan ${money(owed)}`
                       : "Con pagos parciales registrados"
                 }
+                subtitleIsData
                 icon={unpaidOpen ? "chevron-up" : "chevron-down"}
                 last
                 onPress={() => setUnpaidOpen(!unpaidOpen)}
@@ -200,6 +201,7 @@ function ProfessionalHome() {
                         key={appointment.numAppointment}
                         title={appointment.patient ? fullName(appointment.patient) : "Sin paciente"}
                         subtitle={`${numericDate(appointment.date)} · debe ${money(pendingAmount(appointment))}`}
+                        subtitleIsData
                         right={payment ? <Tag label={payment.label} tone={payment.tone} /> : undefined}
                         last={index === unpaidList.length - 1}
                         onPress={() => router.push(`/(app)/turno/${appointment.numAppointment}`)}
@@ -245,6 +247,7 @@ function ProfessionalHome() {
 
         <Section title="Tu consultorio">
           <Group>
+            <Row title="Ver mis turnos" subtitle="Toda tu agenda, no solo la de hoy" icon="calendar-check" onPress={() => router.push("/(app)/(tabs)/turnos")} />
             <Row title="Horarios de atención" subtitle="Los módulos en los que atendés" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
             <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
             <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" last onPress={() => router.push("/(app)/nuevo-turno")} />

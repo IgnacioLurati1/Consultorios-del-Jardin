@@ -1,7 +1,7 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { elevation, radius, space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
@@ -28,11 +28,19 @@ const VISIBLE_MS = 3200;
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<Message | null>(null);
+  /*
+   * Que se está yendo, que no es lo mismo que que ya no esté.
+   *
+   * El cartel entra animado y antes desaparecía de golpe al vencer el tiempo. La salida
+   * la hace el propio cartel; acá solo se le avisa, y él dice cuándo terminó.
+   */
+  const [leaving, setLeaving] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = useCallback((kind: Kind, text: string) => {
     if (timer.current) clearTimeout(timer.current);
 
+    setLeaving(false);
     setMessage({ id: Date.now(), kind, text });
 
     // El aviso es visual y dura poco: quien usa lector de pantalla tiene que escucharlo.
@@ -44,10 +52,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       // Hay teléfonos sin motor de vibración. No es motivo para no mostrar el aviso.
     });
 
-    timer.current = setTimeout(() => setMessage(null), VISIBLE_MS);
+    timer.current = setTimeout(() => setLeaving(true), VISIBLE_MS);
   }, []);
 
   useEffect(() => () => (timer.current ? clearTimeout(timer.current) : undefined), []);
+
+  // Estable a proposito: el cartel la tiene en las dependencias del efecto que lo saca, y
+  // una funcion nueva en cada render le reiniciaria la animacion de salida.
+  const gone = useCallback(() => setMessage(null), []);
 
   const value = useMemo<FeedbackValue>(
     () => ({ done: (text) => show("done", text), problem: (text) => show("problem", text) }),
@@ -57,12 +69,22 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   return (
     <FeedbackContext.Provider value={value}>
       {children}
-      {message ? <Toast key={message.id} message={message} /> : null}
+      {message ? (
+        <Toast key={message.id} message={message} leaving={leaving} onGone={gone} />
+      ) : null}
     </FeedbackContext.Provider>
   );
 }
 
-function Toast({ message }: { message: Message }) {
+function Toast({
+  message,
+  leaving,
+  onGone,
+}: {
+  message: Message;
+  leaving: boolean;
+  onGone: () => void;
+}) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const enter = useRef(new Animated.Value(0)).current;
@@ -70,6 +92,20 @@ function Toast({ message }: { message: Message }) {
   useEffect(() => {
     Animated.spring(enter, { toValue: 1, useNativeDriver: true, damping: 18, stiffness: 220 }).start();
   }, [enter]);
+
+  // Se va por donde vino y más rápido de lo que entró: ya se leyó, no hay que mirarlo irse.
+  useEffect(() => {
+    if (!leaving) return;
+
+    Animated.timing(enter, {
+      toValue: 0,
+      duration: 220,
+      easing: Easing.in(Easing.quad),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) onGone();
+    });
+  }, [leaving, enter, onGone]);
 
   const done = message.kind === "done";
 

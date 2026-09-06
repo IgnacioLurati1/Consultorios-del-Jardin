@@ -73,6 +73,7 @@ export default function RecurrencesScreen() {
                 <Row
                   title={FREQUENCY_LABELS[recurrence.frequency]}
                   subtitle={`Los ${dayNameOf(recurrence.startDate)}, ${hourRange(recurrence.initialHour, recurrence.finalHour)}`}
+              subtitleIsData
                   icon="repeat"
                 />
                 <Row title="Consultorio" value={recurrence.room?.description ?? "Sin asignar"} />
@@ -87,6 +88,7 @@ export default function RecurrencesScreen() {
                     key={appointment.numAppointment}
                     title={sentenceCase(relativeDay(appointment.date))}
                     subtitle="Ya está creado"
+                    subtitleIsData
                     icon="calendar-check"
                     last={index === Math.min(recurrence.upcoming.length, 3) - 1}
                     onPress={() => router.push(`/(app)/turno/${appointment.numAppointment}`)}
