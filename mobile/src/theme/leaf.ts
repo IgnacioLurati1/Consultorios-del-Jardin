@@ -27,6 +27,20 @@ export const LEAF_VEINS = [
 /** El cabito. Da el punto por donde la hoja se soltó, que es de lo que trata la caída. */
 export const LEAF_STEM = "M50 102 C52 108 50 114 47 120";
 
+/**
+ * Cuánto está inclinada la hoja cuando está quieta, en grados.
+ *
+ * Bien inclinada y no casi derecha: derecha parece pegada a la pantalla, y así parece
+ * colgando de algo que ya no se ve. Es además de donde arranca el giro de la caída, que
+ * por eso no empieza de cero.
+ *
+ * Está acá y no en la pantalla de arranque porque no lo usa solo ella: los íconos de la
+ * app se generan con este mismo ángulo (ver scripts/iconos.mjs), así que la hoja del
+ * escritorio y la que aparece al abrir son la misma hoja en la misma posición. Cambiarlo
+ * acá y volver a correr el script alcanza para que las dos sigan coincidiendo.
+ */
+export const LEAF_TILT = -33;
+
 export type Season = "primavera" | "verano" | "otono" | "invierno";
 
 export interface LeafColors {

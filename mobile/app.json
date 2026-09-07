@@ -28,12 +28,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#12211a",
+          "backgroundColor": "#f1f4f6",
           "dark": {
-            "backgroundColor": "#12211a"
+            "backgroundColor": "#0b1210"
           },
           "image": "./assets/images/leaf-mark.png",
-          "imageWidth": 124
+          "imageWidth": 238
         }
       ]
     ],
