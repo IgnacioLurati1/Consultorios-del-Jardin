@@ -5,6 +5,7 @@ import { getDecodedToken } from "../../pages/commonServices";
 import { useAuth } from "../../context/AuthContext";
 import { sendMessageToAssistant } from "./chatAssistantService";
 import { readJsonCookie, writeJsonCookie } from "../../lib/cookies";
+import { AssistantAnswer } from "./AssistantAnswer";
 import type { ChatLink, ChatMessage } from "./chatAssistantService";
 import "./ChatAssistant.css";
 
@@ -208,7 +209,9 @@ function ChatAssistantWidget({ role }: { role: string }) {
                             <>
                                 {previous.map((msg, i) => (
                                     <div key={`antes-${i}`} className={`chat-message chat-message--${msg.role}`}>
-                                        <div className="chat-message-bubble chat-message-bubble--past">{msg.content}</div>
+                                        <div className="chat-message-bubble chat-message-bubble--past">
+                                            {msg.role === "assistant" ? <AssistantAnswer text={msg.content} /> : msg.content}
+                                        </div>
                                     </div>
                                 ))}
 
@@ -247,7 +250,7 @@ function ChatAssistantWidget({ role }: { role: string }) {
                                                 ✓ Listo, quedó hecho
                                             </div>
                                         )}
-                                        {msg.content}
+                                        {msg.role === "assistant" ? <AssistantAnswer text={msg.content} /> : msg.content}
                                     </div>
 
                                     {msg.links?.map(link => (

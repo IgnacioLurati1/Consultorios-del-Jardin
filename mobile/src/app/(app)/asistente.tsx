@@ -1,6 +1,6 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   KeyboardAvoidingView,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorMessage } from "../../api/client";
 import { askAssistant, ChatLink, ChatMessage } from "../../api/misc";
 import { AppText } from "../../components/Text";
+import { hasStructure, readAnswer, type Tone } from "../../lib/answerFormat";
 import { useUser } from "../../session/SessionProvider";
 import { radius, SCREEN_PADDING, space, TOUCH } from "../../theme/tokens";
 import { useTheme } from "../../theme/useTheme";
@@ -167,9 +168,13 @@ function MessageBubble({ bubble }: { bubble: Bubble }) {
             : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderBottomLeftRadius: radius.sm },
         ]}
       >
-        <AppText variant="body" style={{ color: mine ? colors.onGreen : colors.text }}>
-          {bubble.content}
-        </AppText>
+        {mine ? (
+          <AppText variant="body" style={{ color: colors.onGreen }}>
+            {bubble.content}
+          </AppText>
+        ) : (
+          <Answer text={bubble.content} />
+        )}
       </View>
 
       {bubble.links?.length ? (
@@ -195,6 +200,84 @@ function MessageBubble({ bubble }: { bubble: Bubble }) {
           ))}
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * Una respuesta del asistente, dibujada.
+ *
+ * Cuando enumera algo —los turnos, los horarios libres, los profesionales— cada renglón
+ * pasa a ser una fila con el número adelante, el dato principal en negrita y el resto
+ * abajo. Cuando no, se ve el texto tal cual venía, que para dos frases es mejor que
+ * cualquier caja. Ver lib/answerFormat.ts.
+ *
+ * El color va en el borde de la izquierda y no en el fondo: adentro de una burbuja que ya
+ * tiene color propio, cinco fondos de colores serían cinco manchas peleándose.
+ */
+function Answer({ text }: { text: string }) {
+  const { colors } = useTheme();
+  const blocks = useMemo(() => readAnswer(text), [text]);
+
+  if (!hasStructure(blocks)) return <AppText variant="body">{text}</AppText>;
+
+  const acento: Record<Tone | "plain", string> = {
+    green: colors.green,
+    amber: colors.warn,
+    red: colors.danger,
+    grey: colors.muted,
+    plain: colors.border,
+  };
+
+  return (
+    <View style={styles.respuesta}>
+      {blocks.map((block, index) =>
+        block.kind === "text" ? (
+          <AppText key={index} variant="body">
+            {block.text}
+          </AppText>
+        ) : (
+          <View key={index} style={styles.lista}>
+            {block.items.map((item, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.fila,
+                  {
+                    backgroundColor: colors.sunken,
+                    borderColor: colors.border,
+                    borderLeftColor: acento[item.state?.tone ?? "plain"],
+                  },
+                ]}
+              >
+                <View style={styles.filaCabeza}>
+                  {item.number !== null ? (
+                    <AppText variant="caption" tone="muted" chrome>
+                      #{item.number}
+                    </AppText>
+                  ) : null}
+
+                  <AppText variant="bodyStrong" style={styles.filaTitulo}>
+                    {item.title}
+                  </AppText>
+
+                  {item.state ? (
+                    <AppText variant="caption" chrome style={{ color: acento[item.state.tone] }}>
+                      {item.state.label}
+                    </AppText>
+                  ) : null}
+                </View>
+
+                {item.meta.length > 0 ? (
+                  <AppText variant="caption" tone="muted">
+                    {item.meta.join("  ·  ")}
+                  </AppText>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )
+      )}
     </View>
   );
 }
@@ -280,6 +363,18 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderRadius: radius.lg,
   },
+  respuesta: { gap: space.md },
+  lista: { gap: space.sm },
+  fila: {
+    gap: 2,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderRadius: radius.sm,
+  },
+  filaCabeza: { flexDirection: "row", alignItems: "center", gap: space.sm, flexWrap: "wrap" },
+  filaTitulo: { flexShrink: 1 },
   typing: { flexDirection: "row", gap: 5, alignItems: "center", borderWidth: 1, paddingVertical: space.lg },
   dot: { width: 7, height: 7, borderRadius: radius.full },
   links: { gap: space.sm, alignItems: "flex-start" },
