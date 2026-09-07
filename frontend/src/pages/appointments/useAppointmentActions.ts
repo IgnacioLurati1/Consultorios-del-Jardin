@@ -1,6 +1,7 @@
-import { useEffect, useState, type HTMLAttributes } from "react";
+import { useEffect, useRef, useState, type HTMLAttributes } from "react";
 import { toast } from "react-toastify";
 import { useUndo, type Undoable } from "../../context/UndoContext.tsx";
+import { escribiendo } from "../../lib/shortcuts.ts";
 import type { Appointment, PaymentState, Person, RecurrenceFrequency, Room } from "../types.ts";
 import { describePayment, describeState, isCancelled, type AppointmentState } from "./appointmentTypes.ts";
 import {
@@ -31,6 +32,20 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   const [selected, setSelected] = useState<Appointment | undefined>(undefined);
   /** El turno que el teclado quiere bajar y todavía no se confirmó. */
   const [cancelling, setCancelling] = useState<Appointment | undefined>(undefined);
+
+  /*
+   * El turno que la tecla va a agarrar: el que está debajo del mouse, y si no hay ninguno,
+   * el que quedó con el foco.
+   *
+   * Antes esto era un `onKeyDown` colgado del botón del turno, y entonces la tecla solo
+   * hacía algo si ese botón tenía el foco, o sea después de haberle abierto la ficha y
+   * cerrarla. Apuntar con el mouse es la misma puntería que ya pide el click derecho.
+   *
+   * Van en `ref` y no en estado porque mover el mouse por una grilla de turnos volvería a
+   * dibujar la pantalla entera en cada casillero.
+   */
+  const bajoElMouse = useRef<Appointment | undefined>(undefined);
+  const conElFoco = useRef<Appointment | undefined>(undefined);
   const [patients, setPatients] = useState<Person[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
 
@@ -138,6 +153,38 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   }
 
   /**
+   * Retroceso y Supr, escuchados en toda la ventana.
+   *
+   * Tiene que ser acá arriba y no en el botón del turno: al que apunta con el mouse no le
+   * pasa el foco por ningún lado, y sin foco un `onKeyDown` del botón no se entera de
+   * nada. El turno sobre el que actúa lo dicen las dos referencias de más arriba.
+   *
+   * Con una ventana abierta no hace nada. Estando adentro de la ficha de un turno,
+   * Retroceso es borrar lo que se está escribiendo en las observaciones, y encima abrir
+   * un cartel arriba de otro no se entiende.
+   */
+  useEffect(() => {
+    if (!isProfessional) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Backspace" && event.key !== "Delete") return;
+      if (escribiendo(event.target) || document.body.classList.contains("ui-modal-open")) return;
+
+      const appointment = bajoElMouse.current ?? conElFoco.current;
+      if (!appointment) return;
+
+      event.preventDefault();
+      askCancel(appointment);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // Sin lista de dependencias a propósito: se vuelve a colgar en cada dibujo para que
+    // `askCancel` sea siempre el de ahora. Apuntar con el mouse no dibuja nada —para eso
+    // están las referencias— así que esto pasa cuando cambia algo de verdad.
+  });
+
+  /**
    * Lo que hay que ponerle a un turno para que responda al teclado y al click derecho.
    *
    * Se entrega como props y no como un componente porque un turno se dibuja de tres
@@ -148,16 +195,25 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   function quickActions(appointment: Appointment): HTMLAttributes<HTMLElement> {
     if (!isProfessional) return {};
 
+    /* Al soltarlo se limpia solo si el que quedó anotado sigue siendo este: entrando de un
+       turno al de al lado, el `enter` del nuevo llega antes que el `leave` del viejo. */
+    const soltar = (donde: React.MutableRefObject<Appointment | undefined>) => () => {
+      if (donde.current?.numAppointment === appointment.numAppointment) donde.current = undefined;
+    };
+
     return {
       onContextMenu: (event) => {
         event.preventDefault();
         cycleState(appointment);
       },
-      onKeyDown: (event) => {
-        if (event.key !== "Backspace" && event.key !== "Delete") return;
-        event.preventDefault();
-        askCancel(appointment);
+      onMouseEnter: () => {
+        bajoElMouse.current = appointment;
       },
+      onMouseLeave: soltar(bajoElMouse),
+      onFocus: () => {
+        conElFoco.current = appointment;
+      },
+      onBlur: soltar(conElFoco),
     };
   }
 
