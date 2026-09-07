@@ -96,7 +96,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
           // pasó nada y saber que hay que llamar al paciente.
           note:
             desde === "pending"
-              ? "El mail de confirmación ya había salido: al paciente le llegó igual."
+              ? "El mail de confirmación ya había salido. Al paciente le llegó igual."
               : undefined,
           undo: () =>
             updateAppointmentRecord(appointment.numAppointment, {
@@ -187,7 +187,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   const onAccept = (appointment: Appointment) =>
     refreshAfter(acceptAppointment(appointment.numAppointment), "Turno aceptado", {
       label: 'El turno volvió a "Pendiente"',
-      note: "El mail de confirmación ya había salido: al paciente le llegó igual.",
+      note: "El mail de confirmación ya había salido. Al paciente le llegó igual.",
       undo: () =>
         updateAppointmentRecord(appointment.numAppointment, {
           state: "pending",
@@ -227,7 +227,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Pago parcial registrado" : "Turno marcado como impago",
       antes
         ? {
-            label: `Volvió el cobro anterior: "${describePayment({ ...appointment, paymentState: antes })?.label ?? antes}"`,
+            label: `El cobro volvió a "${describePayment({ ...appointment, paymentState: antes })?.label ?? antes}"`,
             undo: () => updateAppointmentPayment(appointment.numAppointment, antes, appointment.paidAmount ?? null).then(reload),
           }
         : undefined

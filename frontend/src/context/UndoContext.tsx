@@ -79,7 +79,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
         toast.success(action.label);
         if (action.note) toast.warning(action.note);
       })
-      .catch((err: Error) => toast.error(`No se pudo deshacer: ${err.message}`))
+      .catch((err: Error) => toast.error(`No se pudo deshacer. ${err.message}`))
       .finally(() => {
         enCurso.current = false;
       });

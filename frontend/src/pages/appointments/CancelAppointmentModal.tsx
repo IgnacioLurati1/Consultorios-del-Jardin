@@ -48,7 +48,7 @@ export function CancelAppointmentModal({ appointment, onClose, onConfirm }: Prop
     >
       <p className="adm-confirm-lead">
         {pendiente
-          ? "El turno todavía no está confirmado: se borra y el horario queda libre."
+          ? "El turno todavía no está confirmado, así que se borra y el horario queda libre."
           : "El turno queda cancelado y en el historial, y el horario queda libre."}
       </p>
       <p className="adm-confirm-note">

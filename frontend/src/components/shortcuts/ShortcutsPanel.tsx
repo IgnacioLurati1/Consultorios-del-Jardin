@@ -53,7 +53,7 @@ const atajos: Atajo[] = [
     teclas: ["Retroceso"],
     tambien: ["Supr"],
     titulo: "Cancelar el turno",
-    descripcion: "Lo cancela si se puede: uno que ya figura como asistido, no.",
+    descripcion: "Lo cancela, salvo que ya figure como asistido.",
     nota: "Pregunta antes de hacerlo, y al paciente le llega un mail avisándole.",
     sobreTurno: true,
   },
