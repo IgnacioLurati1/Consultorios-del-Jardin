@@ -574,22 +574,6 @@
     min-width: 0;
 }
 
-/* El cartel que pregunta antes de saldar todo. La primera linea es el dato que se mira
-   para decidir, asi que va mas grande que el resto. */
-.prof-confirm-lead {
-    margin: 0 0 10px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--adm-text);
-}
-
-.prof-confirm-note {
-    margin: 0;
-    color: var(--adm-muted);
-    font-size: 0.92rem;
-    line-height: 1.5;
-}
-
 /* Con el boton de saldar al lado, el que despliega deja de ocupar todo el ancho: comparte
    la fila con el, igual que el titulo y "Confirmar turnos" en la bandeja de pedidos. La
    flechita pasa a ir pegada al titulo en vez de empujada al borde, que si no queda al lado

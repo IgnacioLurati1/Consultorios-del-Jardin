@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from "react";
 import type { Appointment, Person } from "../../types.ts";
 import { describeState, isCancelled, shortHour } from "../appointmentTypes.ts";
 import { FaRegClock, FaLocationDot, FaUser } from "react-icons/fa6";
@@ -6,13 +7,15 @@ interface AppointmentCardProps {
   appointment: Appointment;
   user: Person;
   onOpen: (appointment: Appointment) => void;
+  /** Click derecho y teclado. Para el paciente viene vacío y la tarjeta es la de siempre. */
+  quickActions?: (appointment: Appointment) => HTMLAttributes<HTMLElement>;
 }
 
 /**
  * Una fila de la vista lista. La franja de la izquierda y el horario se tiñen
  * del mismo color que el cartel de estado, para leer la tarjeta de un vistazo.
  */
-export function AppointmentCard({ appointment, user, onOpen }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, user, onOpen, quickActions }: AppointmentCardProps) {
   const state = describeState(appointment.state);
   const cancelled = isCancelled(appointment.state);
   const isProfessional = user.type === "professional";
@@ -26,7 +29,12 @@ export function AppointmentCard({ appointment, user, onOpen }: AppointmentCardPr
     : `${appointment.professional.surname}, ${appointment.professional.name}`;
 
   return (
-    <button type="button" className={`appt-card state-${stateClass}`} onClick={() => onOpen(appointment)}>
+    <button
+      type="button"
+      className={`appt-card state-${stateClass}`}
+      onClick={() => onOpen(appointment)}
+      {...quickActions?.(appointment)}
+    >
       <span className="appt-card-hours">
         <FaRegClock aria-hidden="true" />
         {shortHour(appointment.initialHour)} – {shortHour(appointment.finalHour)}

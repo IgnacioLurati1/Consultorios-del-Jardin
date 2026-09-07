@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { toast } from "react-toastify";
 import {
@@ -18,6 +19,7 @@ import { AppointmentCard } from "./AppointmentCard.tsx";
 import { AppointmentWeekGrid } from "./AppointmentWeekGrid.tsx";
 import { AppointmentDetailModal } from "./AppointmentDetailModal.tsx";
 import { NewAppointmentModal } from "./NewAppointmentModal.tsx";
+import { CancelAppointmentModal } from "../CancelAppointmentModal.tsx";
 import { ImportCalendarModal } from "./ImportCalendarModal.tsx";
 import { ExportCalendarModal } from "./ExportCalendarModal.tsx";
 import type { Appointment, Person, RecurrenceFrequency, Schedule } from "../../types.ts";
@@ -65,6 +67,22 @@ export function AppointmentsList() {
 
   const isProfessional = person?.type === "professional";
   const effectiveMode: ViewMode = isProfessional ? viewMode : "list";
+
+  /*
+   * El atajo de teclado para dar de alta un turno llega hasta acá.
+   *
+   * Viene por la dirección porque se aprieta desde cualquier pantalla, y esta todavía no
+   * existía cuando se apretó. El parámetro se borra apenas se usa: es una orden, no un
+   * estado de la pantalla, y si se quedara pegado volvería a abrir la ventana en cuanto
+   * alguien recargara la página o volviera con el botón de atrás.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (!isProfessional || !searchParams.has("nuevo")) return;
+    setNewModalOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [isProfessional, searchParams, setSearchParams]);
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -157,7 +175,7 @@ export function AppointmentsList() {
     return ordered;
   }, [appointments]);
 
-  const { open, patients, rooms, detailProps } = useAppointmentActions(person, loadAppointments);
+  const { open, patients, rooms, detailProps, quickActions, cancelProps } = useAppointmentActions(person, loadAppointments);
 
   /* ---------- acciones ---------- */
 
@@ -312,7 +330,13 @@ export function AppointmentsList() {
           </div>
         )
       ) : effectiveMode === "grid" && person ? (
-        <AppointmentWeekGrid appointments={appointments} monday={monday} user={person} onOpen={open} />
+        <AppointmentWeekGrid
+          appointments={appointments}
+          monday={monday}
+          user={person}
+          onOpen={open}
+          quickActions={quickActions}
+        />
       ) : appointments.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">
@@ -335,6 +359,7 @@ export function AppointmentsList() {
                         appointment={appointment}
                         user={person}
                         onOpen={open}
+                        quickActions={quickActions}
                       />
                     ))}
                   </div>
@@ -361,6 +386,8 @@ export function AppointmentsList() {
       )}
 
       {person && <AppointmentDetailModal user={person} {...detailProps} />}
+
+      <CancelAppointmentModal {...cancelProps} />
 
       {isProfessional && (
         <NewAppointmentModal

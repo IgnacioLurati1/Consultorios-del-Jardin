@@ -1,0 +1,124 @@
+/* ============================================================
+   Atajos del teclado.
+   Dos columnas: a la izquierda las teclas dibujadas como teclas,
+   a la derecha qué hacen. Los colores salen todos del panel.
+   ============================================================ */
+
+.atajos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.atajo {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--adm-border);
+}
+
+.atajo:last-child {
+  border-bottom: none;
+}
+
+/* La columna de las teclas tiene ancho fijo para que los títulos de la derecha
+   arranquen todos en la misma línea vertical: es lo que deja recorrer la lista de
+   arriba abajo leyendo solo qué hace cada uno. */
+.atajo-combo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 200px;
+}
+
+.atajo-teclas {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* La tecla. El borde de abajo más grueso es todo el truco: es la sombra del canto de una
+   tecla real, y sin eso esto es un recuadro gris con una letra adentro. */
+.atajo-tecla {
+  display: inline-block;
+  min-width: 26px;
+  padding: 4px 8px;
+  border: 1px solid var(--adm-border-strong);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--adm-surface-alt);
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.04);
+  color: var(--adm-text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.atajo-mas,
+.atajo-o {
+  color: var(--adm-muted-soft);
+  font-size: 0.8rem;
+}
+
+/* La segunda combinación y su "o" son una sola pieza: o entran las dos en el renglón, o
+   bajan juntas. */
+.atajo-alternativa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.atajo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.atajo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--adm-text);
+  font-weight: 600;
+}
+
+/* Dónde tiene que estar parado para que la tecla haga algo. Va pegado al título porque
+   sin eso el atajo se lee como si funcionara en cualquier lado, y no. */
+.atajo-donde {
+  padding: 2px 8px;
+  border: 1px solid var(--adm-green-line);
+  border-radius: 999px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.atajo-desc {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+}
+
+.atajo-nota {
+  color: var(--adm-warn-dark);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .atajo {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .atajo-combo {
+    width: auto;
+  }
+}

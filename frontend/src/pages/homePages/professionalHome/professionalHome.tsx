@@ -21,6 +21,7 @@ import {
 } from "../../appointments/appointmentsService.ts";
 import { useAppointmentActions } from "../../appointments/useAppointmentActions.ts";
 import { AppointmentDetailModal } from "../../appointments/appointmentsList/AppointmentDetailModal.tsx";
+import { CancelAppointmentModal } from "../../appointments/CancelAppointmentModal.tsx";
 import {
   appointmentDate,
   describePayment,
@@ -36,6 +37,7 @@ import { ProfessionalSettings } from "./ProfessionalSettings.tsx";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { acceptPendingAppointments, settleUnpaidAppointments } from "./settingsService.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
+import { ShortcutsPanel } from "../../../components/shortcuts/ShortcutsPanel.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import { useSimpleText } from "../../../lib/textMode";
 import "./professionalHome.css";
@@ -193,7 +195,7 @@ export function ProfessionalHome() {
 
   // Tocar un turno de hoy abre la misma ficha que en la lista de turnos: se acepta, se
   // cancela, se carga el registro y se repite igual que allá.
-  const { open, detailProps } = useAppointmentActions(professional, refresh);
+  const { open, detailProps, quickActions, cancelProps } = useAppointmentActions(professional, refresh);
 
   const dayLabel = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -285,7 +287,12 @@ export function ProfessionalHome() {
 
                 return (
                   <li key={appointment.numAppointment}>
-                    <button type="button" className="prof-today-item" onClick={() => open(appointment)}>
+                    <button
+                      type="button"
+                      className="prof-today-item"
+                      onClick={() => open(appointment)}
+                      {...quickActions(appointment)}
+                    >
                       <span className="prof-today-hour">
                         <FaRegClock aria-hidden="true" />
                         {shortHour(appointment.initialHour)}
@@ -341,7 +348,12 @@ export function ProfessionalHome() {
             <ul className="prof-today-list">
               {pendingSlice.map((appointment) => (
                 <li key={appointment.numAppointment}>
-                  <button type="button" className="prof-today-item" onClick={() => open(appointment)}>
+                  <button
+                      type="button"
+                      className="prof-today-item"
+                      onClick={() => open(appointment)}
+                      {...quickActions(appointment)}
+                    >
                     <span className="prof-today-hour">
                       <FaRegClock aria-hidden="true" />
                       {shortHour(appointment.initialHour)}
@@ -443,7 +455,12 @@ export function ProfessionalHome() {
 
                     return (
                       <li key={appointment.numAppointment}>
-                        <button type="button" className="prof-today-item" onClick={() => open(appointment)}>
+                        <button
+                      type="button"
+                      className="prof-today-item"
+                      onClick={() => open(appointment)}
+                      {...quickActions(appointment)}
+                    >
                           <span className="prof-today-hour">
                             <FaRegClock aria-hidden="true" />
                             {shortHour(appointment.initialHour)}
@@ -471,7 +488,12 @@ export function ProfessionalHome() {
 
       <ProfessionalSettings />
 
+      {/* Abajo de todo, después de la configuración: se lee una vez y después estorba. */}
+      <ShortcutsPanel />
+
       {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
+
+      <CancelAppointmentModal {...cancelProps} />
 
       {/*
         Preguntar antes de saldar todo.
@@ -498,11 +520,11 @@ export function ProfessionalHome() {
           </>
         }
       >
-        <p className="prof-confirm-lead">
+        <p className="adm-confirm-lead">
           {unpaidCount === 1 ? "Vas a marcar como cobrado 1 turno" : `Vas a marcar como cobrados ${unpaidCount} turnos`}
           {owed > 0 ? `, $${owed}` : ""}.
         </p>
-        <p className="prof-confirm-note">
+        <p className="adm-confirm-note">
           Son todos los que ya atendiste y quedaron sin saldar. Para volver atrás hay que abrir cada turno y cambiarlo a mano.
         </p>
       </Modal>

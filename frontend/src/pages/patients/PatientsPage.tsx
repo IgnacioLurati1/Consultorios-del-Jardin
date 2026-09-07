@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaAddressBook, FaMoneyBillWave, FaPlus } from "react-icons/fa6";
 import { AdminHeader } from "../../components/adminHeader/AdminHeader.tsx";
@@ -150,6 +151,24 @@ export function PatientsPage() {
     setFormError(null);
     setModalOpen(true);
   }
+
+  /*
+   * El atajo de teclado para dar de alta un paciente termina acá.
+   *
+   * Llega por la dirección porque se aprieta desde cualquier pantalla, y el parámetro se
+   * borra apenas se usa: si quedara pegado, recargar o volver con el botón de atrás
+   * abriría la ventana de nuevo sin que nadie la haya pedido.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (!searchParams.has("nuevo")) return;
+    setEditing(null);
+    setForm(emptyForm);
+    setFormError(null);
+    setModalOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   function openPatient(patient: Person) {
     setEditing(patient);

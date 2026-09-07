@@ -584,6 +584,25 @@ textarea::placeholder {
   padding-top: 16px;
 }
 
+/* ---------- carteles que preguntan antes de hacer algo ----------
+   La primera linea es el dato que se mira para decidir, asi que va mas grande que el
+   resto; abajo va la consecuencia. Viven aca y no en la pantalla que los estreno porque
+   los usan la del profesional y la de turnos, y las dos tenian que verse igual. */
+
+.adm-confirm-lead {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+.adm-confirm-note {
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 /* ---------- panel / listas ---------- */
 
 .adm-panel {

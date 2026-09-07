@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from "react";
 import type { Appointment, Person } from "../../types.ts";
 import { addDays, appointmentDate, describeState, isCancelled, shortHour, toISODate } from "../appointmentTypes.ts";
 import { WeekGrid, type WeekGridDay } from "../../../components/weekGrid/WeekGrid.tsx";
@@ -7,13 +8,15 @@ interface AppointmentWeekGridProps {
   monday: Date;
   user: Person;
   onOpen: (appointment: Appointment) => void;
+  /** Click derecho y teclado, los mismos que en la vista lista. */
+  quickActions?: (appointment: Appointment) => HTMLAttributes<HTMLElement>;
 }
 
 /**
  * Agenda semanal del profesional sobre la grilla compartida: cada turno es una
  * celda con el color de su estado.
  */
-export function AppointmentWeekGrid({ appointments, monday, user, onOpen }: AppointmentWeekGridProps) {
+export function AppointmentWeekGrid({ appointments, monday, user, onOpen, quickActions }: AppointmentWeekGridProps) {
   const isProfessional = user.type === "professional";
 
   // Se agrupan por fecha una sola vez en lugar de filtrar dentro de cada columna
@@ -51,6 +54,7 @@ export function AppointmentWeekGrid({ appointments, monday, user, onOpen }: Appo
             title={`${shortHour(appointment.initialHour)} · ${counterpart} · ${state.label}${
               appointment.overbooked ? " · sobreturno" : ""
             }`}
+            {...quickActions?.(appointment)}
           >
             <span className="week-slot-hour">
               {shortHour(appointment.initialHour)}
