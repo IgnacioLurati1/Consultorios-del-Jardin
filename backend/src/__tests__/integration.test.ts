@@ -45,6 +45,7 @@ process.env.CHANGE_SECRET = "test-change-secret-key";
 // Imports después de los mocks
 import { verifyToken } from "../config/middlewares.js";
 import { PeopleService } from "../people/people.service.js";
+import refreshTokenHandler from "../config/refreshToken.js";
 
 // ============================================================
 // DATOS MOCK - Cadena completa: Province → City → Office → Room
@@ -357,5 +358,72 @@ describe("Integracion: deshacer el alta de un paciente anonimo", () => {
     await expect(peopleService.deleteAnonymousPatient("nadie@demo.local", mockProfessional.email)).rejects.toThrow(
       /No encontramos/
     );
+  });
+});
+
+// ============================================================
+// Renovar la sesion.
+// El navegador puede mandar el refresh token de dos formas y las dos tienen que
+// funcionar: la cookie httpOnly, que es la buena, y el header, que es el respaldo
+// para los navegadores que bloquean las cookies de terceros.
+// ============================================================
+
+describe("Integracion: renovar la sesion con la cookie o con el header", () => {
+  const peopleService = new PeopleService();
+
+  /** Un req/res de mentira, con lo justo que mira el handler. */
+  function armar(headers: Record<string, string>, cookies: Record<string, string> = {}) {
+    const json = vi.fn();
+    const req: any = { headers, cookies };
+    const res: any = { status: vi.fn().mockReturnValue({ json }), json };
+    return { req, res, json };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockResolvedValue({ ...mockClient, active: true });
+  });
+
+  it("renueva cuando el token viene en el header", async () => {
+    const { refreshToken: guardado } = await peopleService.createPersonTokens(mockClient.email, mockClient.type);
+    const { req, res, json } = armar({ "x-refresh-token": guardado });
+
+    await refreshTokenHandler(req, res);
+    await new Promise((listo) => setTimeout(listo, 0));
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ token: expect.any(String) }));
+  });
+
+  it("renueva cuando el token viene solo en la cookie", async () => {
+    const { refreshToken: enCookie } = await peopleService.createPersonTokens(mockClient.email, mockClient.type);
+    const { req, res, json } = armar({}, { refreshToken: enCookie });
+
+    await refreshTokenHandler(req, res);
+    await new Promise((listo) => setTimeout(listo, 0));
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ token: expect.any(String) }));
+  });
+
+  // Es la razon por la que el header va primero: en un navegador puede quedar la cookie
+  // de una sesion anterior, y no puede tapar el token que el cliente manda ahora.
+  it("el header le gana a una cookie que quedo de antes", async () => {
+    const { refreshToken: bueno } = await peopleService.createPersonTokens(mockClient.email, mockClient.type);
+    const { req, res, json } = armar({ "x-refresh-token": bueno }, { refreshToken: "ya-no-sirve" });
+
+    await refreshTokenHandler(req, res);
+    await new Promise((listo) => setTimeout(listo, 0));
+
+    expect(res.status).not.toHaveBeenCalled();
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ token: expect.any(String) }));
+  });
+
+  it("sin ninguna de las dos, no hay sesion que renovar", async () => {
+    const { req, res } = armar({});
+
+    await refreshTokenHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 });

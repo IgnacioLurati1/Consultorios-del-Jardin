@@ -40,9 +40,8 @@ function sanitizePersonInput(req: Request, res: Response, next: NextFunction) {
 
 const peopleService = new PeopleService();
 
-// El refresh token vive solo en esta cookie httpOnly: el JS de la página no puede leerlo.
-// Las mismas opciones se usan para setearla y para borrarla; si no coinciden, el browser
-// no la borra en el logout.
+// Las opciones de la cookie httpOnly del refresh token. Las mismas se usan para setearla
+// y para borrarla; si no coinciden, el browser no la borra en el logout.
 //
 // Las opciones cambian según dónde corra, porque el navegador aplica reglas distintas.
 //
@@ -60,19 +59,25 @@ const REFRESH_COOKIE_OPTIONS =
     : ({ httpOnly: true, secure: false, sameSite: "lax" } as const);
 
 /**
- * Entrega el refresh token en el cuerpo de la respuesta, para los dos clientes.
+ * Entrega el refresh token por las dos vías a la vez, y deja que el navegador elija.
  *
- * Antes el navegador lo recibía en una cookie httpOnly, que el JS de la página no puede
- * leer: mejor defensa ante un XSS. Dejó de servir al desplegar. La web y el backend
- * quedaron en dominios distintos, así que esa cookie pasó a ser de terceros, y Safari y
- * Firefox las bloquean: en un iPhone la sesión se cortaba a los quince minutos, cuando
- * vence el token de acceso, sin forma de renovarla.
+ * La cookie httpOnly es la buena: el JS de la página no la puede leer, así que un XSS no
+ * se lleva la sesión. Se dejó de usar al desplegar, porque la web y el backend quedaron
+ * en dominios distintos y ahí pasó a ser una cookie de terceros, de las que Safari y
+ * Firefox bloquean. En un iPhone la sesión se cortaba a los quince minutos.
  *
- * El precio está asumido: en el navegador el token queda al alcance de un script, igual
- * que el de acceso, que ya vivía ahí. Se recupera entero el día que la web y el backend
- * compartan dominio; ahí alcanza con volver a poner la cookie acá.
+ * El problema de decidirlo desde acá es que el servidor no sabe qué navegador hay del
+ * otro lado ni qué tiene configurado. Así que no decide: manda las dos y el cliente
+ * averigua cuál le funcionó. La web prueba renovar la sesión con la cookie sola; si sale,
+ * borra la copia que había guardado y no la guarda nunca más en ese navegador. Ver
+ * cookieSirveSola en axios.ts.
+ *
+ * A la app no se le manda la cookie: no tiene dónde guardarla y ya usa el llavero del
+ * sistema, que es su equivalente del httpOnly.
  */
-function deliverRefreshToken(_req: Request, _res: Response, refreshToken: string): Record<string, string> {
+function deliverRefreshToken(req: Request, res: Response, refreshToken: string): Record<string, string> {
+  if (clientChannel(req) !== "app") res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+
   return { refreshToken };
 }
 

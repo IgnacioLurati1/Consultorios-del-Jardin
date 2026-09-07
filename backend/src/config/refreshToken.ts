@@ -16,13 +16,15 @@ interface AuthRequest extends Request {
 }
 
 /**
- * Los dos clientes mandan el refresh token en un header: la app lo saca del llavero del
- * sistema y la web de su propio almacenamiento. Ver deliverRefreshToken en el
- * controlador de personas, que explica por qué el navegador dejó de usar la cookie.
+ * De dónde sale el refresh token, en el orden en que se busca.
  *
- * La cookie se sigue aceptando, y de segunda: hay sesiones abiertas de antes que todavía
- * la tienen, y son válidas hasta que venzan. Va segunda y no primera justamente por eso
- * —una cookie vieja no puede tapar el token que el cliente está mandando recién ahora—.
+ * Las dos formas valen. La app lo manda siempre en el header, sacado del llavero del
+ * sistema. La web tiene las dos disponibles y usa la que su navegador le permita: si la
+ * cookie httpOnly sobrevive, deja de mandar el header y viaja sola. Ver
+ * deliverRefreshToken en el controlador de personas.
+ *
+ * El header va primero justamente porque la cookie puede quedar vieja: una de una sesión
+ * anterior no puede tapar el token que el cliente está mandando recién ahora.
  */
 function readRefreshToken(req: AuthRequest): string | undefined {
   const fromHeader = req.headers?.[REFRESH_TOKEN_HEADER];
