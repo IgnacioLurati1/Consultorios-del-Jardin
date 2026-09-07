@@ -76,8 +76,10 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     action
       .undo()
       .then(() => {
-        toast.success(action.label);
+        // La aclaración se manda primero y el resultado después. Los avisos se apilan con
+        // el último arriba, así que al revés se leería la letra chica antes que la noticia.
         if (action.note) toast.warning(action.note);
+        toast.success(action.label);
       })
       .catch((err: Error) => toast.error(`No se pudo deshacer. ${err.message}`))
       .finally(() => {

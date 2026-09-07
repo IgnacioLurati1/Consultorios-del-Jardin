@@ -45,6 +45,19 @@ export function createAnonymousPatient(data: AnonymousPatientInput): Promise<Per
 }
 
 /**
+ * Deshace el alta de un paciente sin cuenta.
+ *
+ * El backend solo lo deja si lo cargó este mismo profesional y todavía no tiene ningún
+ * turno. No es una baja: es para el que se cargó sin querer o con el mail mal escrito.
+ */
+export function deleteAnonymousPatient(email: string): Promise<void> {
+  return api
+    .delete(`/people/anonymous/${encodeURIComponent(email)}`)
+    .then(() => undefined)
+    .catch(backendError);
+}
+
+/**
  * Corrige los datos de un paciente anónimo. El backend solo lo permite sobre pacientes
  * sin cuenta cargados por este mismo profesional: en cuanto la persona se registra, sus
  * datos pasan a ser suyos.

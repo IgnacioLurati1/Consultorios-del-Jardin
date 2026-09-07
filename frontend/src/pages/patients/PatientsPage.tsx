@@ -11,9 +11,11 @@ import {
   findAllPatients,
   findMyPatients,
   createAnonymousPatient,
+  deleteAnonymousPatient,
   updatePatient,
   type AnonymousPatientInput,
 } from "./patientsService.ts";
+import { useUndo } from "../../context/UndoContext.tsx";
 import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts";
 import { ContactPatientModal } from "./ContactPatientModal.tsx";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
@@ -96,6 +98,7 @@ export function PatientsPage() {
   const [form, setForm] = useState<AnonymousPatientInput>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { remember } = useUndo();
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -222,17 +225,45 @@ export function PatientsPage() {
     setSaving(true);
     try {
       if (editing) {
+        const antes = editing;
         const updated = await updatePatient(editing.email, data);
         setPatients((prev) => prev.map((p) => (p.email === editing.email ? { ...p, ...updated } : p)));
         toast.success("Paciente actualizado");
+
+        // Los datos de antes, tal como estaban en la fila. Solo se puede sobre un paciente
+        // sin cuenta, que son los únicos que este profesional puede editar.
+        remember({
+          label: "Volvieron los datos anteriores del paciente",
+          undo: async () => {
+            const vuelto = await updatePatient(antes.email, {
+              name: antes.name,
+              surname: antes.surname,
+              docType: antes.docType || "DNI",
+              docNumber: antes.docNumber || "",
+              phoneNumber: antes.phoneNumber || "",
+            });
+            setPatients((prev) => prev.map((p) => (p.email === antes.email ? { ...p, ...vuelto } : p)));
+          },
+        });
       } else {
         const created = await createAnonymousPatient({ ...data, email: form.email.trim() });
         setPatients((prev) => [created, ...prev]);
         toast.success("Paciente creado");
+
+        // Deshacer el alta lo borra de verdad. El backend solo lo deja mientras no tenga
+        // ningún turno, que recién creado es siempre el caso.
+        remember({
+          label: `Se borró el paciente ${created.surname}, ${created.name}`,
+          undo: async () => {
+            await deleteAnonymousPatient(created.email);
+            setPatients((prev) => prev.filter((p) => p.email !== created.email));
+          },
+        });
       }
       setModalOpen(false);
       setFormError(null);
     } catch (err: any) {
+      remember(null);
       setFormError(err.message);
     } finally {
       setSaving(false);

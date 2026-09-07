@@ -23,7 +23,7 @@ import { CancelAppointmentModal } from "../CancelAppointmentModal.tsx";
 import { ImportCalendarModal } from "./ImportCalendarModal.tsx";
 import { ExportCalendarModal } from "./ExportCalendarModal.tsx";
 import type { Appointment, Person, RecurrenceFrequency, Schedule } from "../../types.ts";
-import { createRecurrence } from "../recurrencesService.ts";
+import { createRecurrence, stopRecurrence } from "../recurrencesService.ts";
 import {
   addDays,
   appointmentDate,
@@ -32,6 +32,7 @@ import {
   startOfWeek,
   toISODate,
 } from "../appointmentTypes.ts";
+import { cancelAppointmentService } from "../appointmentsService.ts";
 import {
   findPatientAppointments,
   findProfessionalAppointments,
@@ -39,6 +40,7 @@ import {
   createProfessionalAppointment,
 } from "../appointmentsService.ts";
 import { useAppointmentActions } from "../useAppointmentActions.ts";
+import { useUndo } from "../../../context/UndoContext.tsx";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
@@ -176,6 +178,7 @@ export function AppointmentsList() {
   }, [appointments]);
 
   const { open, patients, rooms, detailProps, quickActions, cancelProps } = useAppointmentActions(person, loadAppointments);
+  const { remember } = useUndo();
 
   /* ---------- acciones ---------- */
 
@@ -192,8 +195,42 @@ export function AppointmentsList() {
     const created = await createProfessionalAppointment(data);
     const label = data.overbooked ? "Sobreturno" : "Turno";
 
+    /**
+     * Cómo se deshace un turno recién creado.
+     *
+     * No hay forma de borrarlo: se cancela, que es exactamente lo que haría el profesional
+     * a mano. Por eso queda en el historial, y por eso al paciente le llega el aviso si el
+     * turno tenía uno. Las dos cosas se dicen en el aviso, porque no son gratis.
+     *
+     * Sin número de turno no hay nada que deshacer. Pasa si el backend contesta sin el
+     * dato, y es mejor no ofrecerlo que ofrecerlo y que falle.
+     */
+    function recordarComoDeshacer(extra?: { idRecurrence: number }) {
+      if (!created?.numAppointment) {
+        remember(null);
+        return;
+      }
+
+      const avisos = [
+        "El turno queda cancelado en el historial.",
+        data.patientEmail ? "Al paciente le llega el aviso de que se canceló." : "",
+        extra ? "Los turnos que la repetición ya haya agendado siguen en pie." : "",
+      ].filter(Boolean);
+
+      remember({
+        label: `Se canceló el ${label.toLowerCase()} recién creado`,
+        note: avisos.join(" "),
+        undo: async () => {
+          if (extra) await stopRecurrence(extra.idRecurrence);
+          await cancelAppointmentService(created.numAppointment!);
+          loadAppointments();
+        },
+      });
+    }
+
     if (!data.repeat || !created?.numAppointment) {
       toast.success(`${label} creado`);
+      recordarComoDeshacer();
       loadAppointments();
       return;
     }
@@ -202,10 +239,16 @@ export function AppointmentsList() {
     // reglas de qué se puede repetir viven en un solo lugar. Si falla, el turno ya está
     // creado y sigue siendo un turno común; hay que decirlo, no tragárselo.
     try {
-      const { created: extra } = await createRecurrence(created.numAppointment, data.repeat.frequency, data.repeat.endDate);
-      toast.success(extra > 0 ? `${label} creado, y ${extra} más agendados` : `${label} creado, se va a repetir`);
+      const repeticion = await createRecurrence(created.numAppointment, data.repeat.frequency, data.repeat.endDate);
+      toast.success(
+        repeticion.created > 0 ? `${label} creado, y ${repeticion.created} más agendados` : `${label} creado, se va a repetir`
+      );
+      recordarComoDeshacer(repeticion.idRecurrence ? { idRecurrence: repeticion.idRecurrence } : undefined);
     } catch (err: any) {
-      toast.warning(`${label} creado, pero no se pudo configurar la repetición: ${err.message}`);
+      // El turno ya está creado y sigue siendo un turno común, así que deshacer tiene que
+      // poder sacarlo igual.
+      toast.warning(`${label} creado, pero no se pudo configurar la repetición. ${err.message}`);
+      recordarComoDeshacer();
     }
 
     loadAppointments();
