@@ -3,7 +3,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorMessage } from "../../api/client";
-import { isEmailAvailable } from "../../api/people";
+import { isEmailAvailable, requestSignUp } from "../../api/people";
 import { Button } from "../../components/Button";
 import { Choice } from "../../components/Choice";
 import { Field, PickerField } from "../../components/Field";
@@ -45,6 +45,8 @@ export default function SignUpScreen() {
   const [specialitySheet, setSpecialitySheet] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
+  // Mail mandado: la pantalla deja de ser un formulario y pasa a decir qué sigue.
+  const [sent, setSent] = useState(false);
 
   async function validate(): Promise<boolean> {
     const found: Record<string, string | null> = {
@@ -81,7 +83,7 @@ export default function SignUpScreen() {
     try {
       if (!(await validate())) return;
 
-      await signUp({
+      const datos = {
         name: name.trim(),
         surname: surname.trim(),
         email: email.trim(),
@@ -91,20 +93,53 @@ export default function SignUpScreen() {
         password,
         type,
         ...(type === "professional" ? { speciality } : {}),
-      });
+      };
 
-      if (type === "professional") {
-        feedback.done("Creamos tu cuenta. Queda esperando que la habiliten.");
-      } else {
-        feedback.done("Listo, ya tenés cuenta");
+      /*
+       * El paciente no entra derecho: primero confirma su dirección.
+       *
+       * Es por donde le van a llegar la confirmación del turno y el recordatorio del día
+       * anterior, así que una cuenta con el mail mal escrito es una persona que no se
+       * entera de nada. El profesional sí entra derecho: no se registra solo del todo, la
+       * cuenta queda esperando que el consultorio la habilite.
+       */
+      if (type === "client") {
+        await requestSignUp(datos);
+        setSent(true);
+        return;
       }
 
+      await signUp(datos);
+      feedback.done("Creamos tu cuenta. Queda esperando que la habiliten.");
       router.replace("/(app)/(tabs)");
     } catch (problem) {
       feedback.problem(errorMessage(problem, "No pudimos crear la cuenta"));
     } finally {
       setBusy(false);
     }
+  }
+
+  /*
+   * Lo que se ve después de pedir el mail.
+   *
+   * No dice si esa dirección ya tenía cuenta: el servidor contesta lo mismo en los dos
+   * casos, para que esta pantalla no sirva para averiguar quién está registrado. El link
+   * abre la web y ahí queda creada la cuenta; por eso lo que sigue acá es iniciar sesión.
+   */
+  if (sent) {
+    return (
+      <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.page}>
+        <View style={styles.form}>
+          <AppText variant="title">Mirá tu correo</AppText>
+          <AppText tone="muted">
+            Le escribimos a {email.trim()}. Adentro hay un link que crea la cuenta. Vence en 30 minutos.
+          </AppText>
+          <Note tone="warn">Si no aparece, fijate en el correo no deseado.</Note>
+          <AppText tone="muted">Cuando lo hayas tocado, volvé acá y entrá con tu contraseña.</AppText>
+          <Button label="Ir a iniciar sesión" onPress={() => router.replace("/(auth)/login")} block />
+        </View>
+      </ScrollView>
+    );
   }
 
   return (
@@ -231,10 +266,17 @@ export default function SignUpScreen() {
             required
           />
 
-          <Button label="Crear la cuenta" onPress={submit} loading={busy} block />
+          <Button
+            label={type === "client" ? "Mandarme el mail" : "Crear la cuenta"}
+            onPress={submit}
+            loading={busy}
+            block
+          />
 
           <AppText variant="caption" tone="muted">
-            Al crear la cuenta vas a recibir por mail los avisos de tus turnos.
+            {type === "client"
+              ? "Te mandamos un mail para confirmar la dirección. Es por donde te llegan los avisos de tus turnos."
+              : "Al crear la cuenta vas a recibir por mail los avisos de tus turnos."}
           </AppText>
         </View>
       </ScrollView>

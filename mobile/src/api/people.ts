@@ -24,9 +24,25 @@ export interface SignUpInput {
   speciality?: string;
 }
 
+/**
+ * Alta directa. Sólo sirve para el profesional, que se anota y queda esperando que el
+ * consultorio lo habilite.
+ */
 export async function signUp(input: SignUpInput): Promise<LoginResult> {
   const { data } = await api.post("/people", { ...input, email: input.email.trim().toLowerCase() });
   return { token: data.token, refreshToken: data.refreshToken };
+}
+
+/**
+ * Alta de un paciente: pide el mail con el link que crea la cuenta.
+ *
+ * No devuelve sesión porque todavía no hay cuenta. La dirección del paciente es por donde
+ * le llegan la confirmación del turno y el recordatorio, así que primero hay que saber que
+ * existe y que es suya. El link abre la web y ahí queda creada; después vuelve acá y entra
+ * con su contraseña.
+ */
+export async function requestSignUp(input: SignUpInput): Promise<void> {
+  await api.post("/people/signup", { ...input, email: input.email.trim().toLowerCase() });
 }
 
 /** Si el email todavía no tiene cuenta. Se consulta mientras se escribe el registro. */

@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import { FaEye, FaEyeSlash } from "react-icons/fa6";
+import { Link } from "react-router-dom";
+import { FaEnvelopeOpenText, FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { SteppedForm, type FormStep } from "../../components/steppedForm/SteppedForm.tsx";
-import { useAuth } from "../../context/AuthContext";
 import api from "../../axios";
 import { useLogo } from "../../lib/useLogo";
 import {
@@ -16,16 +14,31 @@ import {
   validatePersonalData,
   type RegisterForm,
 } from "./registerFields.ts";
+// La pantalla de "mirá tu correo" usa la misma caja centrada que las de contraseña: es el
+// mismo momento del circuito —te mandamos un link, andá a buscarlo— y tiene que verse igual.
+import "../newPassword/passwordPages.css";
 
+/**
+ * Alta de un paciente.
+ *
+ * El formulario no crea la cuenta: pide el mail que la crea. La dirección es por donde le
+ * van a llegar la confirmación del turno y el recordatorio del día anterior, así que una
+ * cuenta con el mail mal escrito es una persona que nunca se entera de nada y un turno que
+ * nadie sabe si sigue en pie. El paso de más existe para que eso no pase.
+ *
+ * Es el único circuito que lo pide. El profesional no se registra solo —lo carga el
+ * administrador— y el paciente sin cuenta lo carga el profesional, con la dirección que le
+ * dictaron en el mostrador.
+ */
 export function Register() {
   const logo = useLogo();
-  const { login } = useAuth();
-  const navigate = useNavigate();
 
   const [form, setForm] = useState<RegisterForm>(emptyRegisterForm);
   const [showPassword, setShowPassword] = useState(false);
   const [sending, setSending] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  // Con el mail ya mandado la pantalla cambia entera: lo que sigue no se hace acá.
+  const [sent, setSent] = useState(false);
 
   const set = (field: keyof RegisterForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -33,41 +46,25 @@ export function Register() {
   };
 
   function handleSubmit() {
-    toast.dismiss();
     setSending(true);
 
     api
-      .post(
-        "/people",
-        {
-          name: form.name.trim(),
-          surname: form.surname.trim(),
-          email: form.email.trim(),
-          docType: form.docType,
-          docNumber: form.docNumber.trim(),
-          phoneNumber: form.phoneNumber.replace(/\D/g, ""),
-          password: form.password,
-          type: "client",
-        },
-        { withCredentials: true } // sin esto no se recibe la cookie del refresh token
-      )
-      .then((response) => {
-        // El alta ya devuelve el token de sesión: no hace falta un login aparte.
-        if (!response.data.token) {
-          navigate("/Login");
-          return;
-        }
-
-        login(response.data.token);
-        toast.success("¡Listo! Ya tenés cuenta");
-        navigate("/");
-        window.scrollTo(0, 0);
+      .post("/people/signup", {
+        name: form.name.trim(),
+        surname: form.surname.trim(),
+        email: form.email.trim(),
+        docType: form.docType,
+        docNumber: form.docNumber.trim(),
+        phoneNumber: form.phoneNumber.replace(/\D/g, ""),
+        password: form.password,
+        type: "client",
       })
+      .then(() => setSent(true))
       .catch((error) => {
-        const backendMsg = error.response?.data?.message || error.message || "No pudimos crear tu cuenta";
+        const backendMsg = error.response?.data?.message || error.message || "No pudimos mandarte el mail";
         setServerError(backendMsg);
-        setSending(false);
-      });
+      })
+      .finally(() => setSending(false));
   }
 
   const steps: FormStep[] = [
@@ -168,14 +165,50 @@ export function Register() {
     },
   ];
 
+  /*
+   * Lo que se ve después de pedir el mail.
+   *
+   * No dice si esa dirección ya tenía cuenta, y es a propósito: el servidor contesta lo
+   * mismo en los dos casos para que esta pantalla no sirva para averiguar quién está
+   * registrado. Quien ya tenía cuenta no recibe nada y entra por "Iniciar sesión", que
+   * está ahí abajo.
+   */
+  if (sent) {
+    return (
+      <>
+        <div className="pw-page">
+          <div className="pw-card">
+            <div className="pw-result">
+              <span className="pw-result-icon">
+                <FaEnvelopeOpenText />
+              </span>
+              <h1 className="pw-result-title">Mirá tu correo</h1>
+              <p className="pw-result-text">
+                Le escribimos a <strong>{form.email.trim()}</strong>. Adentro hay un link que crea la cuenta y te deja
+                adentro. Vence en 30 minutos.
+              </p>
+              <p className="pw-result-text">Si no aparece, fijate en el correo no deseado.</p>
+              <div className="pw-result-actions">
+                <Link className="adm-btn adm-btn-primary" to="/Login">
+                  Ir a iniciar sesión
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Toasts />
+      </>
+    );
+  }
+
   return (
     <>
       <SteppedForm
         title="Crear cuenta"
-        subtitle="Tres pasos cortos y ya podés pedir turno"
+        subtitle="Tres pasos cortos y un mail para confirmar que sos vos"
         logo={logo}
         steps={steps}
-        submitLabel="Crear cuenta"
+        submitLabel="Mandarme el mail"
         submitting={sending}
         serverError={serverError}
         onSubmit={handleSubmit}

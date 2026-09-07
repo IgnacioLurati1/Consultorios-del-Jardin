@@ -1,6 +1,7 @@
 import { Home } from "./pages/homePages/mainHome/Home.tsx";
 import {AdminHome} from "./pages/homePages/adminHome/AdminHome.tsx"
 import { Register } from "./pages/register/Register";
+import { ConfirmAccount } from "./pages/register/ConfirmAccount.tsx";
 import { RegisterProf } from "./pages/adminCRUDS/adminUsers/RegisterProf.tsx";
 import { Login } from "./pages/login/Login.tsx";
 import { EditProfile } from "./pages/editProfie/EditProfile.tsx";
@@ -42,6 +43,8 @@ const router = createBrowserRouter([
       // Public Routes
       { index: true, element: <Home /> },
       { path: "/Register", element: <Register /> },
+      // El link del mail que termina de crear la cuenta del paciente.
+      { path: "/confirmar-cuenta", element: <ConfirmAccount /> },
       { path: "/Login", element: <Login /> },
       { path: "/contacto", element: <ContactPage /> },
       { path: "/preguntas", element: <FaqPage /> },
