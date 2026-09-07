@@ -24,9 +24,9 @@ function isAuthRequest(url?: string): boolean {
   return AUTH_PATHS.some((path) => url.includes(path));
 }
 
-// El backend usa este header para dos cosas: decidir dónde devuelve el refresh token
-// (acá en una cookie httpOnly; en la app, en el cuerpo) y anotar por qué canal entró la
-// persona, que es lo que después cuenta el panel de números. Ver clients.ts en el back.
+// El backend usa este header para dos cosas: mandarle la cookie del refresh al navegador
+// y no a la app, que no tiene dónde guardarla, y anotar por qué canal entró la persona,
+// que es lo que después cuenta el panel de números. Ver clients.ts en el back.
 const CLIENT_HEADER = { "X-Client": "web" } as const;
 
 const api = axios.create({
@@ -51,15 +51,81 @@ api.interceptors.request.use((config) => {
 });
 
 /**
- * Dónde guarda la web el refresh token.
+ * Dónde guarda la web el refresh token cuando no le queda otra.
  *
- * Antes no lo guardaba en ningún lado: llegaba en una cookie httpOnly que el JS de la
- * página no podía leer, y el navegador la mandaba solo. Desplegada, la web y el backend
- * quedaron en dominios distintos y esa cookie pasó a ser de terceros: Safari y Firefox
- * la bloquean, así que en un iPhone la sesión moría a los quince minutos. Ahora el
- * backend lo manda en el cuerpo, igual que a la app, y viaja de vuelta en un header.
+ * La forma buena es la cookie httpOnly que manda el backend: el JS de la página no la
+ * puede leer, así que un XSS no se lleva la sesión. Dejó de alcanzar al desplegar, porque
+ * la web y el backend quedaron en dominios distintos y ahí pasó a ser una cookie de
+ * terceros, de las que Safari y Firefox bloquean. En un iPhone la sesión moría a los
+ * quince minutos. Desde entonces el backend manda el token también en el cuerpo, y esta
+ * es la copia de la que se tira cuando la cookie no llega.
  */
 const REFRESH_KEY = "refreshToken";
+
+/**
+ * Qué averiguamos sobre la cookie en este navegador. "1" llegó sola, "0" no llegó, y sin
+ * nada todavía no se probó.
+ *
+ * Se prueba en lugar de deducirse porque desde acá no hay forma de saberlo: depende del
+ * navegador, de su versión y de lo que la persona tenga configurado, y todo eso cambia
+ * sin avisar. Probar cuesta una request al abrir sesión, que igual había que hacer.
+ */
+const COOKIE_KEY = "refresh-por-cookie";
+
+function cookieSirveSola(): boolean {
+  try {
+    return localStorage.getItem(COOKIE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Anota lo que se acaba de averiguar.
+ *
+ * Cuando la cookie alcanza, la copia guardada se borra. Dejarla sería quedarse con lo
+ * peor de las dos formas: la sesión viajando protegida y una copia suelta al alcance de
+ * cualquier script. Si algún día deja de alcanzar —el navegador se actualiza, alguien
+ * bloquea las cookies— la marca se cae y el próximo login vuelve a guardar el token.
+ */
+function anotarLaCookie(sirve: boolean): void {
+  try {
+    localStorage.setItem(COOKIE_KEY, sirve ? "1" : "0");
+    if (sirve) localStorage.removeItem(REFRESH_KEY);
+  } catch {
+    // Almacenamiento bloqueado. Se pierde el atajo, no la sesión.
+  }
+}
+
+function refreshGuardado(): string | null {
+  try {
+    return localStorage.getItem(REFRESH_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Renueva la sesión sin mandar nada, para ver si la cookie llega sola.
+ *
+ * Se hace al abrir sesión y no en cada renovación: así es una request de más solo cuando
+ * la respuesta es que no, y entrar no pasa tan seguido como para que se note. Que se
+ * repita en cada login es a propósito, porque el día que la web y el backend compartan
+ * dominio la cookie va a volver a funcionar sin que haya que tocar nada.
+ */
+let probando: Promise<void> | null = null;
+
+function probarLaCookie(): void {
+  if (cookieSirveSola() || probando) return;
+
+  probando = axios
+    .get(`${API_BASE_URL}/refreshToken`, { withCredentials: true, headers: { ...CLIENT_HEADER } })
+    .then(({ data }) => anotarLaCookie(!!data?.token))
+    .catch(() => anotarLaCookie(false))
+    .finally(() => {
+      probando = null;
+    });
+}
 
 /**
  * El refresh token llega en el cuerpo de cualquier respuesta que abra sesión —entrar,
@@ -67,9 +133,21 @@ const REFRESH_KEY = "refreshToken";
  * sesión se olvide de hacerlo.
  */
 function keepSessionFrom(data: any): void {
-  if (data && typeof data.refreshToken === "string" && data.refreshToken) {
-    localStorage.setItem(REFRESH_KEY, data.refreshToken);
-  }
+  if (!data || typeof data.refreshToken !== "string" || !data.refreshToken) return;
+
+  if (!cookieSirveSola()) localStorage.setItem(REFRESH_KEY, data.refreshToken);
+  probarLaCookie();
+}
+
+/**
+ * Si hay con qué recuperar una sesión al abrir la aplicación.
+ *
+ * Lo pregunta el arranque para saber si esperar o mandar directo al login. Son dos casos
+ * y no uno: el token guardado, y el navegador donde la cookie llega sola y por eso no hay
+ * nada guardado.
+ */
+export function canRenewSession(): boolean {
+  return cookieSirveSola() || !!refreshGuardado();
 }
 
 /** Se va todo junto: un token de acceso sin el de refresh no sirve para nada. */
@@ -79,36 +157,44 @@ export function clearSession(): void {
 }
 
 /**
- * Pide un token de acceso nuevo con el de refresh guardado. Devuelve el token, o null si
- * no hay con qué pedirlo o el backend lo rechaza.
+ * Pide un token de acceso nuevo. Devuelve el token, o null si no hay con qué pedirlo o el
+ * backend lo rechaza.
  *
- * La usa el arranque de la aplicación: el token de acceso dura quince minutos y el de
- * refresh treinta días, así que sin esto volver a la página después de un rato era
- * empezar de nuevo desde el login aunque la sesión siguiera viva.
+ * Prueba las dos formas que tiene de identificarse, empezando por la que le corresponda a
+ * este navegador. La cookie sola va primera cuando ya se sabe que llega; si no, va el
+ * token guardado y la cookie queda de respaldo, que es lo que sostiene las sesiones que
+ * quedaron abiertas de antes.
  *
  * Va por `axios` pelado y no por `api`: el interceptor de `api` reacciona a un 401
  * renovando la sesión, que es justo lo que estamos haciendo acá.
  */
 export async function renewSession(): Promise<string | null> {
-  const refresh = localStorage.getItem(REFRESH_KEY);
-  if (!refresh) return null;
+  const guardado = refreshGuardado();
 
-  try {
-    const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, {
-      withCredentials: true,
-      headers: { ...CLIENT_HEADER, "X-Refresh-Token": refresh },
-    });
+  const intentos: Record<string, string>[] = [];
+  if (!cookieSirveSola() && guardado) intentos.push({ ...CLIENT_HEADER, "X-Refresh-Token": guardado });
+  intentos.push({ ...CLIENT_HEADER });
 
-    if (!data?.token) return null;
+  for (const headers of intentos) {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, { withCredentials: true, headers });
+      if (!data?.token) continue;
 
-    localStorage.setItem("token", data.token);
-    keepSessionFrom(data);
-    return data.token as string;
-  } catch {
-    // Vencido, revocado o la cuenta ya no está habilitada: no hay sesión que recuperar.
-    clearSession();
-    return null;
+      localStorage.setItem("token", data.token);
+      // Renovó sin mandar el token: la cookie llegó sola y la copia guardada sobra.
+      if (!headers["X-Refresh-Token"]) anotarLaCookie(true);
+      return data.token as string;
+    } catch {
+      // Vencido, revocado, la cuenta deshabilitada, o esta forma no era la de este
+      // navegador. Lo dice el intento siguiente, o el final si no queda ninguno.
+    }
   }
+
+  // Ninguna de las dos sirvió. Se deja de dar por buena la cookie para que el próximo
+  // login vuelva a guardar el token y el navegador no quede sin forma de renovar.
+  anotarLaCookie(false);
+  clearSession();
+  return null;
 }
 
 /** Dónde se guarda el motivo, para que el login lo pueda contar después de la patada. */
@@ -155,27 +241,22 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest(originalRequest?.url)) {
       originalRequest._retry = true; // marca este request como retry
 
-      try {
-        const refresh = localStorage.getItem(REFRESH_KEY);
-        const { data } = await axios.get(`${API_BASE_URL}/refreshToken`, {
-          withCredentials: true,
-          headers: { ...CLIENT_HEADER, ...(refresh ? { "X-Refresh-Token": refresh } : {}) },
-        });
+      // La misma renovación que usa el arranque, con las dos formas de identificarse.
+      const renovado = await renewSession();
 
-        localStorage.setItem("token", data.token);
-        keepSessionFrom(data);
+      if (renovado) {
         // Reintenta **solo una vez**
-        originalRequest.headers.Authorization = `Bearer ${data.token}`; //Actualiza el header del request original
+        originalRequest.headers.Authorization = `Bearer ${renovado}`; //Actualiza el header del request original
         return api(originalRequest);
-      } catch (refreshError) {
-        try {
-          await axios.post(`${API_BASE_URL}/people/logout`, {}, { withCredentials: true });
-        } catch (logoutError) {
-          console.error("Error cerrando sesión:", logoutError);
-        } finally {
-          clearSession();
-          window.location.href = LOGIN_URL;
-        }
+      }
+
+      try {
+        await axios.post(`${API_BASE_URL}/people/logout`, {}, { withCredentials: true });
+      } catch (logoutError) {
+        console.error("Error cerrando sesión:", logoutError);
+      } finally {
+        clearSession();
+        window.location.href = LOGIN_URL;
       }
     }
 

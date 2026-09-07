@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type {ReactNode} from "react"
-import { clearSession, renewSession } from "../axios";
+import { canRenewSession, clearSession, renewSession } from "../axios";
 
 interface AuthContextProps {
   token: string | null;
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // El token de acceso dura quince minutos; el de refresh, treinta días. Sin esto,
   // cerrar la pestaña y volver un rato después era encontrarse el login de nuevo, con la
   // sesión perfectamente viva del otro lado.
-  const [restoring, setRestoring] = useState(() => !getValidToken() && !!localStorage.getItem("refreshToken"));
+  const [restoring, setRestoring] = useState(() => !getValidToken() && canRenewSession());
 
   useEffect(() => {
     if (!restoring) return;
