@@ -150,13 +150,20 @@ export class PeopleService {
       throw badRequest(`La presentación no puede pasar de ${ABOUT_MAX} caracteres`);
   }
 
-  async createPerson(data: RequiredEntityData<Person>) {
+  /**
+   * Da de alta una cuenta.
+   *
+   * `hashed` dice que la contraseña que viene ya está hasheada, que es el caso del alta
+   * de paciente: ahí la contraseña se hashea al pedir el mail de validación y viaja así
+   * adentro del token, para que el link nunca lleve la contraseña en claro.
+   */
+  async createPerson(data: RequiredEntityData<Person>, hashed = false) {
     if (data.phoneNumber)
       data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
 
     this.validateCommonFields(data as Partial<Person>);
 
-    const hashedPassword = await bcrypt.hash(data.password as string, 10);
+    const hashedPassword = hashed ? (data.password as string) : await bcrypt.hash(data.password as string, 10);
 
     // Si ya existe un paciente anónimo con ese email, no es un duplicado: es la misma
     // persona dándose de alta. Se convierte en cuenta real y conserva sus turnos y
@@ -334,6 +341,10 @@ export class PeopleService {
 
     try {
       const decodedToken = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
+      // Los dos circuitos firman con la misma clave, así que lo que los separa es este
+      // campo. Sin el corte, el link de "validá tu mail" —que lleva adentro los datos de
+      // una cuenta que todavía no existe— serviría para cambiarle la contraseña a alguien.
+      if (decodedToken.purpose) throw new Error("Token expirado");
       email = decodedToken.email;
     } catch (error: any) {
       throw new Error("Token expirado");
@@ -385,6 +396,119 @@ export class PeopleService {
     }
 
     return false;
+  }
+
+  /* ============================================================
+     Alta de paciente con el mail validado
+     ============================================================ */
+
+  /**
+   * Manda el link que da de alta la cuenta, y no da de alta nada.
+   *
+   * Sólo para pacientes. El profesional no se registra solo —lo carga el administrador— y
+   * el administrador tampoco, así que la validación no tendría a quién validarle nada.
+   *
+   * Los datos viajan adentro del token y no quedan guardados en ningún lado. Es lo que
+   * hace que una dirección que nadie confirmó no deje una fila esperando en la base, y que
+   * un pedido abandonado desaparezca solo a los treinta minutos sin que haya que limpiar
+   * nada. La contraseña viaja hasheada: el contenido de un token se lee sin la clave, así
+   * que mandarla en claro sería mandarla escrita en el mail.
+   *
+   * Se valida todo acá y no al confirmar, aunque al confirmar se valide igual. Enterarse
+   * de que el teléfono estaba mal después de ir al correo y volver es la peor forma
+   * posible de enterarse.
+   */
+  async sendSignupMail(data: {
+    email: string;
+    name: string;
+    surname: string;
+    docType?: string;
+    docNumber?: string;
+    phoneNumber?: string;
+    password: string;
+  }) {
+    const email = String(data.email ?? "").trim().toLowerCase();
+    const phoneNumber = data.phoneNumber ? this.normalizePhoneNumber(data.phoneNumber) : "";
+
+    if (!this.validateEmail(email)) throw badRequest("El email no tiene un formato válido");
+    if (!data.name?.trim() || !data.surname?.trim()) throw badRequest("El nombre y el apellido son obligatorios");
+    if (!data.password || String(data.password).length < 6)
+      throw badRequest("La contraseña tiene que tener al menos 6 caracteres");
+    if (!this.validateDocNumber(data.docNumber))
+      throw badRequest("El número de documento debe contener solo dígitos");
+    if (phoneNumber && !this.validatePhoneNumber(phoneNumber))
+      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
+
+    if (!(await this.isEmailAvailable(email))) throw conflict("Ya hay una cuenta registrada con ese email");
+
+    const token = jwt.sign(
+      {
+        purpose: "signup",
+        email,
+        name: data.name.trim(),
+        surname: data.surname.trim(),
+        docType: data.docType || "DNI",
+        docNumber: data.docNumber || "",
+        phoneNumber,
+        password: await bcrypt.hash(String(data.password), 10),
+      },
+      process.env.CHANGE_SECRET as jwt.Secret,
+      { expiresIn: "30m" }
+    );
+
+    const url = `${process.env.BASE_URL}/confirmar-cuenta?token=${token}`;
+
+    const htmlContent = [
+      title("Confirmá tu dirección"),
+      paragraph(
+        "Alguien pidió una cuenta en Consultorios del Jardín con este mail. Tocá el botón y la cuenta queda creada."
+      ),
+      button("Crear mi cuenta", url),
+      note(
+        `¿No funciona el botón? Copiá esta dirección en el navegador:<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
+      ),
+      note(
+        "El link vence en 30 minutos. Si no fuiste vos, ignorá este mensaje: sin este paso la cuenta no se crea y no vamos a volver a escribirte."
+      ),
+    ].join("");
+
+    const msg = await this.mailService.createMessage(email, "Confirmá tu dirección", htmlContent);
+    await this.mailService.sendMail(msg);
+  }
+
+  /**
+   * Crea la cuenta a partir del link del mail.
+   *
+   * Los datos salen del token y no del cuerpo del pedido: si vinieran de afuera, el link
+   * validaría una dirección y daría de alta cualquier otra cosa. Lo único que se recibe es
+   * el token, y todo lo demás es lo que se firmó cuando se mandó el mail.
+   */
+  async confirmSignup(token: string) {
+    let data: any;
+
+    try {
+      data = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
+    } catch {
+      throw new Error("Token expirado");
+    }
+
+    if (data?.purpose !== "signup") throw new Error("Token expirado");
+
+    // La contraseña ya viene hasheada de cuando se firmó el token.
+    return this.createPerson(
+      {
+        email: data.email,
+        name: data.name,
+        surname: data.surname,
+        docType: data.docType,
+        docNumber: data.docNumber,
+        phoneNumber: data.phoneNumber,
+        password: data.password,
+        type: "client",
+        active: true,
+      } as any,
+      true
+    );
   }
 
   async sendPasswordMail(email: string) {

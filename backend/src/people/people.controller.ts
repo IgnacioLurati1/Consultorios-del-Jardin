@@ -158,6 +158,14 @@ async function add(req: Request, res: Response) {
     if (!["client", "professional"].includes(req.body.sanitizedInput.type))
       return res.status(403).json({ message: "El tipo de cuenta no es válido" });
 
+    // El paciente ya no se da de alta por acá: primero tiene que validar su dirección.
+    // El profesional sí, que es un pedido que después aprueba el administrador.
+    if (req.body.sanitizedInput.type === "client")
+      return res.status(403).json({
+        message: "Ahora la cuenta se crea desde el link que te llega por mail. Pedilo de nuevo desde la pantalla de registro.",
+        code: "SIGNUP_NEEDS_EMAIL",
+      });
+
     const person = await peopleService.createPerson(req.body.sanitizedInput);
     const { token, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
 
@@ -374,6 +382,62 @@ async function changePassword(req: Request, res: Response) {
 }
 
 /**
+ * Primer paso del alta de un paciente: el mail con el link.
+ *
+ * Contesta lo mismo haya o no una cuenta con esa dirección, igual que el de recuperar la
+ * contraseña. Contestar distinto convertiría esta ruta en una forma cómoda de averiguar
+ * qué direcciones están registradas, y acá encima ni siquiera hace falta estar adentro.
+ */
+async function requestSignup(req: Request, res: Response) {
+  const sent = { message: "Te mandamos un mail con el link para terminar de crear la cuenta" };
+
+  try {
+    await peopleService.sendSignupMail(req.body.sanitizedInput);
+    return res.status(200).json(sent);
+  } catch (error: any) {
+    // El email ya tomado se calla; lo que está mal escrito se dice, porque es lo que la
+    // persona tiene que corregir para poder seguir.
+    if (error?.status === 409) return res.status(200).json(sent);
+    if (error?.status === 400) return sendError(res, error);
+
+    console.error("Error mandando el mail de alta:", error);
+    return res.status(500).json({ message: "No pudimos mandar el mail. Probá de nuevo en un rato" });
+  }
+}
+
+/**
+ * Segundo paso: el link del mail crea la cuenta y deja la sesión abierta.
+ *
+ * Devuelve lo mismo que devolvía el alta directa, así que quien confirma entra sin tener
+ * que escribir la contraseña que acaba de elegir.
+ */
+async function confirmSignup(req: Request, res: Response) {
+  try {
+    const token = req.body?.token;
+    if (!token) return res.status(400).json({ message: "Al link le falta la parte que identifica tu pedido" });
+
+    const person = await peopleService.confirmSignup(String(token));
+    const { token: access, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
+
+    const channel = clientChannel(req);
+    if (channel) void peopleService.recordAccess(person.email, channel);
+
+    const session = deliverRefreshToken(req, res, refreshToken);
+    const safeData = { ...person, password: undefined };
+
+    return res.status(201).json({ message: "Cuenta creada con éxito!", data: safeData, token: access, ...session });
+  } catch (error: any) {
+    if (error.message === "Token expirado")
+      return res.status(401).json({
+        message: "El link venció. Volvé a la pantalla de registro y pedilo de nuevo",
+        code: "SIGNUP_TOKEN_INVALID",
+      });
+
+    return sendError(res, error, { duplicate: "Ya hay una cuenta registrada con ese email" });
+  }
+}
+
+/**
  * Pedido del mail para recuperar la contraseña.
  *
  * Si el email no tiene cuenta se responde igual que si la tuviera: contestar distinto
@@ -411,6 +475,8 @@ export {
   toggleBookable,
   changePassword,
   sendPasswordMail,
+  requestSignup,
+  confirmSignup,
   findAllPerType,
   findAllNoAdmin,
   findProfesionalByOffice,

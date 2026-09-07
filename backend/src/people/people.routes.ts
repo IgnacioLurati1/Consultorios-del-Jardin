@@ -15,6 +15,8 @@ import {
   toggleBookable,
   changePassword,
   sendPasswordMail,
+  requestSignup,
+  confirmSignup,
   findAllPerType,
   findAllNoAdmin,
   findProfesionalByOffice,
@@ -291,6 +293,57 @@ personRouter.get("/:email", verifyToken, findOne);
  *         description: Error del servidor
  */
 personRouter.post("/", authLimiter, sanitizePersonInput, add);
+
+/**
+ * @swagger
+ * /api/people/signup:
+ *   post:
+ *     summary: Mandar el mail que crea la cuenta de un paciente
+ *     description: >
+ *       No crea nada. Valida los datos y manda un link que vence en 30 minutos, con los
+ *       datos firmados adentro. Contesta lo mismo aunque el email ya tenga cuenta.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PersonInput'
+ *     responses:
+ *       200:
+ *         description: Mail mandado
+ *       400:
+ *         description: Los datos no son válidos
+ *       500:
+ *         description: Error del servidor
+ */
+personRouter.post("/signup", authLimiter, sanitizePersonInput, requestSignup);
+
+/**
+ * @swagger
+ * /api/people/signup/confirm:
+ *   post:
+ *     summary: Crear la cuenta con el token del mail
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token: { type: string }
+ *     responses:
+ *       201:
+ *         description: Cuenta creada, con la sesión abierta
+ *       400:
+ *         description: Falta el token
+ *       401:
+ *         description: El link venció
+ *       409:
+ *         description: Ya hay una cuenta con ese email
+ */
+personRouter.post("/signup/confirm", authLimiter, confirmSignup);
 
 /**
  * @swagger

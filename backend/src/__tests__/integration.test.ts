@@ -30,9 +30,21 @@ vi.mock("../shared/db/orm.js", () => ({
   syncSchema: vi.fn(),
 }));
 
+/*
+ * El mailer, con memoria.
+ *
+ * Guarda el cuerpo de cada mensaje en vez de tirarlo: es la única forma de mirar el link
+ * que le llega a la persona, que es justamente lo que hay que revisar en el alta con la
+ * dirección validada.
+ */
+const { mailsMandados } = vi.hoisted(() => ({ mailsMandados: [] as string[] }));
+
 vi.mock("../config/mailer.js", () => ({
   default: class MailServiceMock {
-    createMessage = vi.fn().mockResolvedValue({});
+    createMessage = vi.fn().mockImplementation(async (_to: string, _asunto: string, html: string) => {
+      mailsMandados.push(html);
+      return {};
+    });
     sendMail = vi.fn().mockResolvedValue(undefined);
   },
 }));
@@ -360,6 +372,109 @@ describe("Integracion: deshacer el alta de un paciente anonimo", () => {
     );
   });
 });
+
+/**
+ * El alta de un paciente, en dos tiempos.
+ *
+ * Lo que hace que esto valga la pena probar no es que la cuenta se cree: es todo lo que
+ * tiene que **no** pasar en el medio. Pedir el mail no puede dejar nada guardado, la
+ * contraseña no puede viajar legible en un link que queda escrito en una bandeja de
+ * entrada, y el token que crea cuentas no puede servir para cambiarle la contraseña a
+ * nadie.
+ */
+describe("Integracion: alta de paciente con el mail validado", () => {
+  const peopleService = new PeopleService();
+
+  const datos = {
+    email: "Nuevo.Paciente@Demo.Local",
+    name: "Nuevo",
+    surname: "Paciente",
+    docType: "DNI",
+    docNumber: "12345678",
+    phoneNumber: "3411234567",
+    password: "unaClaveLarga",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("pedir el mail no crea ninguna cuenta", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+
+    await peopleService.sendSignupMail(datos);
+
+    expect(mockEm.create).not.toHaveBeenCalled();
+    expect(mockEm.flush).not.toHaveBeenCalled();
+  });
+
+  it("no manda nada si ese email ya tiene cuenta", async () => {
+    mockEm.findOne.mockResolvedValue({ email: datos.email, anonymous: false });
+
+    await expect(peopleService.sendSignupMail(datos)).rejects.toThrow(/Ya hay una cuenta/);
+  });
+
+  it("le corta el paso a los datos que no sirven, antes de mandar el mail", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+
+    await expect(peopleService.sendSignupMail({ ...datos, email: "esto no es un mail" })).rejects.toThrow(/formato/);
+    await expect(peopleService.sendSignupMail({ ...datos, password: "corta" })).rejects.toThrow(/6 caracteres/);
+    await expect(peopleService.sendSignupMail({ ...datos, phoneNumber: "123" })).rejects.toThrow(/10 dígitos/);
+  });
+
+  it("el token del link no lleva la contraseña escrita", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+    await peopleService.sendSignupMail(datos);
+
+    // El contenido de un token se lee sin la clave, así que lo que viaje ahí adentro es
+    // tan público como el mail donde va el link.
+    const token = tokenDelUltimoMail();
+    const contenido = jwt.verify(token, process.env.CHANGE_SECRET as string) as any;
+
+    expect(contenido.password).not.toBe(datos.password);
+    expect(contenido.password.startsWith("$2")).toBe(true); // hash de bcrypt
+    expect(contenido.email).toBe("nuevo.paciente@demo.local"); // el mail es la clave: siempre en minúscula
+    expect(contenido.purpose).toBe("signup");
+  });
+
+  it("el link crea la cuenta con los datos que se firmaron", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+    await peopleService.sendSignupMail(datos);
+
+    const token = tokenDelUltimoMail();
+    mockEm.findOne.mockResolvedValue(null);
+    mockEm.create.mockImplementation((_entidad: unknown, data: any) => data);
+
+    const persona: any = await peopleService.confirmSignup(token);
+
+    expect(persona).toMatchObject({ email: "nuevo.paciente@demo.local", name: "Nuevo", type: "client", anonymous: false });
+    expect(persona.password.startsWith("$2")).toBe(true);
+    expect(mockEm.flush).toHaveBeenCalled();
+  });
+
+  it("un link vencido, roto o de otra cosa no crea nada", async () => {
+    const ajeno = jwt.sign({ email: "nuevo.paciente@demo.local" }, process.env.CHANGE_SECRET as string);
+
+    await expect(peopleService.confirmSignup("cualquier cosa")).rejects.toThrow(/Token expirado/);
+    await expect(peopleService.confirmSignup(ajeno)).rejects.toThrow(/Token expirado/); // sin purpose: es de contraseña
+    expect(mockEm.create).not.toHaveBeenCalled();
+  });
+
+  it("el token que crea cuentas no sirve para cambiar contraseñas", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+    await peopleService.sendSignupMail(datos);
+
+    await expect(peopleService.changePassword(tokenDelUltimoMail(), "otraClave")).rejects.toThrow(/Token expirado/);
+  });
+});
+
+/** El token que quedó adentro del último mail que se mandó. */
+function tokenDelUltimoMail(): string {
+  const cuerpo = String(mailsMandados.at(-1) ?? "");
+  const encontrado = cuerpo.match(/confirmar-cuenta\?token=([\w.-]+)/);
+  if (!encontrado) throw new Error("El mail que se mandó no lleva ningún link de alta");
+  return encontrado[1];
+}
 
 // ============================================================
 // Renovar la sesion.
