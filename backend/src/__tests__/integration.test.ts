@@ -19,6 +19,7 @@ const { mockEm } = vi.hoisted(() => ({
     populate: vi.fn(),
     nativeDelete: vi.fn(),
     remove: vi.fn(),
+    count: vi.fn(),
     transactional: vi.fn(),
     createQueryBuilder: vi.fn(),
   },
@@ -286,5 +287,75 @@ describe("Integracion: usuario deshabilitado por el admin", () => {
     expect(statusMock).toHaveBeenCalledWith(403);
     expect(jsonMock).toHaveBeenCalledWith({ message: "Usuario deshabilitado", code: "USER_DISABLED" });
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================
+// Deshacer el alta de un paciente sin cuenta.
+// Es un borrado de verdad, asi que lo que importa es a quien le dice que no.
+// ============================================================
+
+describe("Integracion: deshacer el alta de un paciente anonimo", () => {
+  const peopleService = new PeopleService();
+
+  const mockAnonimo = {
+    email: "recien.cargado@demo.local",
+    name: "Marta",
+    surname: "Gomez",
+    type: "client",
+    active: true,
+    anonymous: true,
+    createdBy: mockProfessional.email,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("lo borra cuando lo cargo este profesional y no tiene turnos", async () => {
+    mockEm.findOne.mockResolvedValue(mockAnonimo);
+    mockEm.count.mockResolvedValue(0);
+    mockEm.removeAndFlush.mockResolvedValue(undefined);
+
+    const ok = await peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email);
+
+    expect(ok).toBe(true);
+    expect(mockEm.removeAndFlush).toHaveBeenCalledWith(mockAnonimo);
+  });
+
+  it("no lo borra si ya tiene turnos, aunque sean cancelados", async () => {
+    mockEm.findOne.mockResolvedValue(mockAnonimo);
+    mockEm.count.mockResolvedValue(1);
+
+    await expect(peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email)).rejects.toThrow(
+      /ya tiene turnos/
+    );
+    expect(mockEm.removeAndFlush).not.toHaveBeenCalled();
+  });
+
+  it("no deja que un profesional borre el paciente que cargo otro", async () => {
+    mockEm.findOne.mockResolvedValue(mockAnonimo);
+
+    await expect(peopleService.deleteAnonymousPatient(mockAnonimo.email, "otro@demo.local")).rejects.toThrow(
+      /otro profesional/
+    );
+    expect(mockEm.removeAndFlush).not.toHaveBeenCalled();
+  });
+
+  it("no toca una cuenta registrada, ni siquiera si la cargo el mismo", async () => {
+    mockEm.findOne.mockResolvedValue({ ...mockAnonimo, anonymous: false });
+
+    await expect(peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email)).rejects.toThrow(
+      /sin cuenta/
+    );
+    expect(mockEm.removeAndFlush).not.toHaveBeenCalled();
+  });
+
+  it("avisa cuando la persona no existe", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+
+    await expect(peopleService.deleteAnonymousPatient("nadie@demo.local", mockProfessional.email)).rejects.toThrow(
+      /No encontramos/
+    );
   });
 });

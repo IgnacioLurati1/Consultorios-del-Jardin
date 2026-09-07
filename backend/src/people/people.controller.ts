@@ -246,6 +246,19 @@ async function addAnonymousPatient(req: RequestWithUser, res: Response) {
   }
 }
 
+// Deshacer el alta de un paciente sin cuenta. No es la baja de una persona: el servicio
+// solo lo deja pasar si lo cargó este mismo profesional y todavía no tiene ningún turno.
+async function removeAnonymousPatient(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
+
+    await peopleService.deleteAnonymousPatient(req.params.email, req.user.email);
+    res.status(200).json({ message: "Paciente borrado" });
+  } catch (error: any) {
+    sendError(res, error, { missing: "No encontramos a esa persona" });
+  }
+}
+
 async function remove(req: Request, res: Response) {
   try {
     const valid = await peopleService.deletePersonRequest(req.params.email);
@@ -398,6 +411,7 @@ export {
   findProfesionalByOffice,
   findAllPerTypeActive,
   addAnonymousPatient,
+  removeAnonymousPatient,
   addProfessional,
   checkEmailAvailability,
 };

@@ -5,9 +5,10 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { Schedule } from "../schedule/schedules.entity.js";
+import { Appointment } from "../appointments/appointments.entity.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, note, paragraph, title } from "../config/mailTemplate.js";
-import { badRequest, conflict, forbidden } from "../shared/errors.js";
+import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import type { ClientChannel } from "../config/clients.js";
 import { startOfDay } from "../shared/dates.js";
 import { SettingsService } from "../settings/settings.service.js";
@@ -344,6 +345,34 @@ export class PeopleService {
 
     person.password = await bcrypt.hash(newPassword, 10);
     await em.flush();
+  }
+
+  /**
+   * Borra un paciente sin cuenta recién cargado.
+   *
+   * Es el deshacer del alta y no una baja. Un paciente con turnos es parte del historial
+   * del consultorio y no se toca ni aunque no tenga cuenta; el que se puede borrar es el
+   * que no llegó a tener ninguno, o sea el que se cargó sin querer o con el mail mal
+   * escrito y hay que volver a cargar bien.
+   *
+   * Lo puede hacer el profesional que lo cargó, y nadie más. En cuanto la persona se
+   * registra deja de ser anónima y la cuenta pasa a ser suya, así que tampoco.
+   */
+  async deleteAnonymousPatient(email: string, professionalEmail: string) {
+    const person = await em.findOne(Person, { email });
+    if (!person) throw notFound("No encontramos a esa persona");
+
+    if (!person.anonymous || person.type !== "client")
+      throw forbidden("Solo se puede borrar un paciente sin cuenta");
+    if (person.createdBy !== professionalEmail) throw forbidden("Ese paciente lo cargó otro profesional");
+
+    // Cuenta los turnos de cualquier estado, cancelados incluidos. Un turno cancelado
+    // sigue siendo algo que pasó entre esas dos personas.
+    const turnos = await em.count(Appointment, { patient: { email } });
+    if (turnos > 0) throw conflict("Ese paciente ya tiene turnos, así que no se puede borrar");
+
+    await em.removeAndFlush(person);
+    return true;
   }
 
   async deletePersonRequest(email: string) {

@@ -8,6 +8,7 @@ import {
   loginWithEmailAndPassword,
   logOut,
   addAnonymousPatient,
+  removeAnonymousPatient,
   addProfessional,
   remove,
   toggleState,
@@ -373,6 +374,31 @@ personRouter.post("/logout", logOut);
  *         description: Ya existe una persona con ese email
  */
 personRouter.post("/anonymous", verifyToken, sanitizePersonInput, addAnonymousPatient);
+
+/**
+ * @swagger
+ * /api/people/anonymous/{email}:
+ *   delete:
+ *     summary: Deshacer el alta de un paciente anónimo. Solo el profesional que lo cargó, y solo si no tiene turnos
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Paciente borrado
+ *       403:
+ *         description: No es un paciente sin cuenta, o lo cargó otro profesional
+ *       404:
+ *         description: No existe esa persona
+ *       409:
+ *         description: El paciente ya tiene turnos
+ */
+personRouter.delete("/anonymous/:email", verifyToken, removeAnonymousPatient);
 
 /**
  * @swagger
