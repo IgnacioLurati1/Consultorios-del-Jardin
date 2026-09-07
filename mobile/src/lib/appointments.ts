@@ -28,17 +28,51 @@ export const STATE_LABELS: Record<StateKey, string> = {
   cancelled: "Cancelado",
 };
 
-/** Fondo y texto de la etiqueta de estado, en el modo que esté el teléfono. */
+/**
+ * Fondo y texto de la etiqueta de estado, en el modo que esté el teléfono.
+ *
+ * "No vino" va en rojo y "Asistió" en gris. Los dos son turnos que ya pasaron, pero uno
+ * es la agenda cumplida y el otro es un horario que se perdió: dejarlos del mismo gris
+ * obligaba a leer las dos palabras para distinguirlos, que es justo lo que una etiqueta
+ * de color tiene que ahorrar.
+ */
 export function stateColors(key: StateKey, colors: Colors): { bg: string; fg: string } {
   switch (key) {
     case "accepted":
       return { bg: colors.greenSoft, fg: colors.greenDark };
     case "pending":
       return { bg: colors.warnSoft, fg: colors.warn };
-    case "cancelled":
+    case "missed":
       return { bg: colors.dangerSoft, fg: colors.danger };
     default:
       return { bg: colors.sunken, fg: colors.muted };
+  }
+}
+
+/**
+ * El color con el que se marca un turno en una lista.
+ *
+ * Es una sola línea de color al lado de la hora, y su trabajo es que la agenda del día se
+ * pueda recorrer sin leerla: de un vistazo se ve cuántos quedan por confirmar, cuáles ya
+ * se atendieron y cuál se perdió. El texto sigue diciendo lo mismo que antes; el color no
+ * reemplaza nada, adelanta.
+ *
+ * Cancelado se lleva el gris más apagado de todos, no el rojo: el rojo es para el turno
+ * que se perdió sin avisar, que es el que cuesta plata. Uno cancelado a tiempo dejó el
+ * horario libre y no es un problema.
+ */
+export function stateAccent(key: StateKey, colors: Colors): string {
+  switch (key) {
+    case "accepted":
+      return colors.green;
+    case "pending":
+      return colors.warn;
+    case "missed":
+      return colors.danger;
+    case "assisted":
+      return colors.muted;
+    default:
+      return colors.border;
   }
 }
 

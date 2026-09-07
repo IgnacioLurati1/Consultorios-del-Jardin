@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Appointment } from "../api/types";
-import { counterpart, stateOf } from "../lib/appointments";
+import { counterpart, stateAccent, stateOf } from "../lib/appointments";
 import { hhmm, relativeDay } from "../lib/dates";
 import { radius, space, TOUCH } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
@@ -53,7 +53,10 @@ export function AppointmentRow({
         </AppText>
       </View>
 
-      <View style={[styles.rule, { backgroundColor: colors.border }]} />
+      {/* La línea que separa la hora del resto lleva el color del estado. Es el mismo
+          trazo que ya estaba, pintado: la agenda del día se recorre con la vista y recién
+          se lee la que interesa. Ver stateAccent. */}
+      <View style={[styles.rule, { backgroundColor: stateAccent(state, colors) }]} />
 
       <View style={styles.body}>
         <AppText variant="body" numberOfLines={1}>
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
   },
   time: { width: 48, alignItems: "flex-start", gap: 1 },
   hour: { fontVariant: ["tabular-nums"] },
-  rule: { width: StyleSheet.hairlineWidth, alignSelf: "stretch", marginVertical: space.xs, borderRadius: radius.full },
+  rule: { width: 3, alignSelf: "stretch", marginVertical: space.xs, borderRadius: radius.full },
   body: { flex: 1, gap: space.xs },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: 2 },
   pressed: { opacity: 0.6 },
