@@ -29,7 +29,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#12211a",
-          "dark": { "backgroundColor": "#12211a" },
+          "dark": {
+            "backgroundColor": "#12211a"
+          },
           "image": "./assets/images/leaf-mark.png",
           "imageWidth": 124
         }
@@ -38,6 +40,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "283b7fa1-4f0a-446e-92a7-b9b823f12f50"
+      }
     }
   }
 }
