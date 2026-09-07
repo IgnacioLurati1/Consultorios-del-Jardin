@@ -13,7 +13,13 @@ interface Atajo {
   tambien?: string[];
   titulo: string;
   descripcion: string;
-  /** Lo que hay que saber para que no sorprenda. Se lee siempre, aunque haya menos texto. */
+  /**
+   * La consecuencia: qué le pasa al paciente, o hasta dónde llega el atajo.
+   *
+   * Se lee siempre, aunque esté puesto el modo con menos texto. No es lugar para explicar
+   * por qué el atajo es la tecla que es: eso resuelve una duda nuestra, no una de quien
+   * está trabajando.
+   */
   nota?: string;
   /** Necesita un turno marcado: se hace click en uno y recién ahí la tecla hace algo. */
   sobreTurno?: boolean;
@@ -24,7 +30,6 @@ const atajos: Atajo[] = [
     teclas: [TECLA_ALT, "T"],
     titulo: "Nuevo turno",
     descripcion: "Abre la ventana para cargar un turno, estés en la pantalla que estés.",
-    nota: `Con ${TECLA_ALT} y no con ${TECLA_MOD}: ${TECLA_MOD} + T se lo queda el navegador para abrir una pestaña.`,
   },
   {
     teclas: [TECLA_ALT, "P"],
