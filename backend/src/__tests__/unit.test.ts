@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import jwt from "jsonwebtoken";
+import { toLocalDate } from "../shared/dates.js";
 
 // ============================================================
 // Mock del módulo orm ANTES de importar cualquier servicio
@@ -311,5 +312,27 @@ describe("logOut", () => {
     expect(clearCookie).toHaveBeenCalledWith("refreshToken", expect.objectContaining({ httpOnly: true }));
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith({ message: "Sesión cerrada" });
+  });
+});
+
+// ============================================================
+// Las fechas que el asistente escribe.
+// Adentro se guardan y se ordenan en AAAA-MM-DD; para leerlas van
+// como se escriben acá, primero el día.
+// ============================================================
+
+describe("La fecha como se escribe en Argentina", () => {
+  it("da vuelta el formato interno", () => {
+    expect(toLocalDate("2026-09-07")).toBe("07/09/2026");
+    expect(toLocalDate("2026-12-25")).toBe("25/12/2026");
+  });
+
+  it("ignora la hora cuando la fecha viene con una pegada", () => {
+    expect(toLocalDate("2026-03-01T00:00:00.000Z")).toBe("01/03/2026");
+  });
+
+  it("no rompe con algo que no es una fecha", () => {
+    expect(toLocalDate("")).toBe("");
+    expect(toLocalDate("cualquier cosa")).toBe("cualquier cosa");
   });
 });

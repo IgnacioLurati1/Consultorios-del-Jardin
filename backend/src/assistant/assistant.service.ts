@@ -8,7 +8,7 @@ import { OfficeService } from "../offices/offices.service.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import { AssistantUsage } from "./assistant.entity.js";
 import { orm } from "../shared/db/orm.js";
-import { startOfDay, toISODate } from "../shared/dates.js";
+import { startOfDay, toISODate, toLocalDate } from "../shared/dates.js";
 import { findPage, OFFICE_INFO, type Role } from "./assistant.catalog.js";
 import { findTool, toolsFor } from "./assistant.tools.js";
 import { buildAssistantPrompt, type AppointmentLine } from "./assistant.prompt.js";
@@ -345,8 +345,12 @@ export class AssistantService {
           String(args.professionalEmail),
           user.email
         );
+        // Las dos formas de la misma fecha. `fecha` es la que se muestra y `fechaInterna`
+        // la que hay que devolver en book_appointment, que es la que entiende la base. El
+        // prompt ya dice que lo que se llama "interno" no se escribe en la respuesta.
         return (slots as any[]).slice(0, MAX_ROWS).map((slot) => ({
-          fecha: toISODate(startOfDay(slot.date)),
+          fecha: toLocalDate(toISODate(startOfDay(slot.date))),
+          fechaInterna: toISODate(startOfDay(slot.date)),
           desde: hhmm(slot.initialHour),
           hasta: hhmm(slot.finalHour),
         }));
@@ -359,7 +363,7 @@ export class AssistantService {
           profesional: fullName(professional),
           especialidad: professional.speciality,
           sucursal: office.description,
-          fecha: String(args.date),
+          fecha: toLocalDate(String(args.date)),
           hora: hhmm(String(args.initialHour)),
         };
 

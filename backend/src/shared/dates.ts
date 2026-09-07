@@ -94,3 +94,18 @@ export function dayName(date: Date): string {
 export function toISODate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
+
+/**
+ * Una fecha como se escribe acá: día, mes y año, en ese orden.
+ *
+ * Toma la fecha en el formato interno (AAAA-MM-DD) y devuelve el que se lee. Los dos
+ * existen a propósito y hacen cosas distintas: el interno se ordena solo comparando
+ * texto, que es de lo que dependen medio sistema y la base; este no se ordena, pero es el
+ * único que alguien de acá lee sin tener que pensar si el 3 es el mes o el día.
+ */
+export function toLocalDate(iso: string): string {
+  const [year, month, day] = String(iso).slice(0, 10).split("-");
+  if (!year || !month || !day) return String(iso);
+
+  return `${day}/${month}/${year}`;
+}

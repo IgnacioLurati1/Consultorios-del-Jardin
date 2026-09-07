@@ -1,5 +1,6 @@
 import { OFFICE_INFO, type Role } from "./assistant.catalog.js";
 import { pageMenu } from "./assistant.tools.js";
+import { toLocalDate } from "../shared/dates.js";
 
 /**
  * El prompt del asistente, armado según quién esté del otro lado.
@@ -21,6 +22,7 @@ const JOB: Record<Role, string> = {
 /** Un renglón por turno, para no gastar una llamada a herramienta en la pregunta más común. */
 export interface AppointmentLine {
   numAppointment?: number;
+  /** En AAAA-MM-DD, que es lo que se ordena. Al modelo se le muestra dado vuelta. */
   date: string;
   initialHour: string;
   finalHour: string;
@@ -34,7 +36,7 @@ function formatAppointments(appointments: AppointmentLine[]): string {
   return appointments
     .map(
       (a) =>
-        `  - Turno #${a.numAppointment} · ${a.date} de ${a.initialHour} a ${a.finalHour} · ${a.who} · ${a.office} · ${a.state}`
+        `  - Turno #${a.numAppointment} · ${toLocalDate(a.date)} de ${a.initialHour} a ${a.finalHour} · ${a.who} · ${a.office} · ${a.state}`
     )
     .join("\n");
 }
@@ -86,6 +88,9 @@ CÓMO TRABAJAR:
 - Escribí en texto plano. La ventana del chat no interpreta markdown: los asteriscos, las
   almohadillas y las tablas se ven tal cual y ensucian la respuesta. Para enumerar, un renglón
   por cosa empezando con un guion.
+- Las fechas se escriben día/mes/año, como se escriben en Argentina: 25/12/2026, nunca
+  2026-12-25 ni 12/25/2026. Vale también decirlas con el nombre del mes ("25 de diciembre").
+  Lo único que va al revés es lo que le mandás a una herramienta, que pide AAAA-MM-DD.
 - Si te falta un dato para llamar una herramienta, preguntalo antes en vez de suponerlo.
 - El historial no guarda los resultados de las herramientas de mensajes anteriores. Si necesitás un email o un ID, volvé a pedirlo con la herramienta que corresponda en este mismo turno.
 - Cuando una herramienta falle, decí qué pasó con palabras simples. No muestres errores técnicos.
