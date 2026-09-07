@@ -9,15 +9,40 @@
   padding-bottom: 6px;
 }
 
+/*
+ * `width: max-content` es lo que hace que la grilla se pueda correr de costado.
+ *
+ * Las columnas tienen un ancho mínimo, así que con muchas salas la grilla mide más que
+ * la pantalla. Sin esta línea la caja de la grilla medía lo que el contenedor y las
+ * columnas de más se salían de ella: el `overflow: hidden` de acá abajo —que está para
+ * que las esquinas redondeadas recorten— las tapaba, y como quedaban recortadas tampoco
+ * contaban para el scroll del contenedor. Las salas que no entraban no había forma de
+ * verlas. En una pantalla ancha no se notaba, porque ahí entran todas.
+ *
+ * El `min-width` sigue estando para el caso contrario: dos o tres salas que no llegan a
+ * llenar la pantalla, donde la grilla se estira en vez de quedar corta a la izquierda.
+ */
 .dg {
   box-sizing: border-box;
   display: grid;
+  width: max-content;
   min-width: 100%;
   background: var(--adm-surface);
   border: 1px solid var(--adm-border);
   border-radius: var(--adm-radius);
   box-shadow: var(--adm-shadow);
-  overflow: hidden;
+  /*
+   * `clip` y no `hidden`, aunque las dos recorten igual las esquinas redondeadas.
+   *
+   * `hidden` convierte a la grilla en un contenedor con scroll propio —uno que nunca
+   * scrollea, porque su contenido entra justo—, y a partir de ahí la columna de las horas
+   * se queda pegada a él en vez de al contenedor que sí se mueve: deja de acompañar y se
+   * va con el resto. `clip` recorta sin volverse un contenedor con scroll.
+   *
+   * Un navegador que no lo entienda ignora la línea entera: las esquinas quedan cuadradas
+   * y todo lo demás sigue andando.
+   */
+  overflow: clip;
 }
 
 /* La fila de nombres queda a la vista mientras se baja: con doce salas, saber en cuál
@@ -31,6 +56,15 @@
   padding: 10px 12px;
   background: var(--adm-bg);
   border-bottom: 1px solid var(--adm-border);
+}
+
+/* Y la columna de las horas queda a la vista mientras se corre de costado, por lo mismo:
+   una grilla sin la hora al lado son rectángulos flotando. En una pantalla ancha entran
+   todas las salas y esto no hace nada; en un teléfono es lo que la vuelve legible.
+   La esquina es la única que se queda en los dos sentidos, así que va más arriba. */
+.dg-corner {
+  left: 0;
+  z-index: 3;
 }
 
 .dg-head {
@@ -74,7 +108,13 @@
 }
 
 .dg-gutter {
-  position: relative;
+  position: sticky;
+  left: 0;
+  /* Arriba de las columnas y abajo de la fila de nombres. Sin esto los bloques le pasan
+     por encima: están más adelante en el documento y ninguno de los dos declara altura. */
+  z-index: 1;
+  /* Opaco a propósito: es lo que esconde los bloques que se le meten por debajo. */
+  background: var(--adm-surface);
   border-right: 1px solid var(--adm-border);
 }
 
