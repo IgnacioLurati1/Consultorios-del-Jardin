@@ -247,6 +247,31 @@
   text-decoration: line-through;
 }
 
+/* ---------- el rato libre ----------
+   Al revés que un turno: sin relleno y con el borde punteado, para que la columna se lea
+   como "esto es lo que hay" y no como "esto es lo que hay más ocho turnos fantasma".
+   Recién al pasarle por encima se pinta, que es cuando dejó de ser fondo y pasó a ser un
+   botón que alguien está por apretar. */
+.week-slot-free {
+  border: 1px dashed var(--adm-border-strong);
+  border-left: 3px dashed var(--adm-border-strong);
+  background: transparent;
+  color: var(--adm-muted);
+}
+
+.week-slot-free:hover {
+  filter: none;
+  border-color: var(--adm-green);
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.week-slot-free .week-slot-hour {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .appt-history {
   list-style: none;
   margin: 0;

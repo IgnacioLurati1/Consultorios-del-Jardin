@@ -1,7 +1,16 @@
-import type { HTMLAttributes } from "react";
-import type { Appointment, Person } from "../../types.ts";
+import type { HTMLAttributes, ReactNode } from "react";
+import { FaPlus } from "react-icons/fa6";
+import type { Appointment, Person, Schedule } from "../../types.ts";
 import { addDays, appointmentDate, describeState, isCancelled, shortHour, toISODate } from "../appointmentTypes.ts";
+import { freeDaySlots, type DaySlot } from "../freeSlots.ts";
 import { WeekGrid, type WeekGridDay } from "../../../components/weekGrid/WeekGrid.tsx";
+
+/** Un rato libre de la agenda, con el día al que pertenece. */
+export interface FreeSlotPick {
+  /** "AAAA-MM-DD". */
+  date: string;
+  slot: DaySlot;
+}
 
 interface AppointmentWeekGridProps {
   appointments: Appointment[];
@@ -10,14 +19,39 @@ interface AppointmentWeekGridProps {
   onOpen: (appointment: Appointment) => void;
   /** Click derecho y teclado, los mismos que en la vista lista. */
   quickActions?: (appointment: Appointment) => HTMLAttributes<HTMLElement>;
+  /** Los horarios de atención. Sin esto no hay huecos que ofrecer. */
+  schedules?: Schedule[];
+  /** Tocar un hueco. Sin esto los huecos no se dibujan. */
+  onNew?: (pick: FreeSlotPick) => void;
+}
+
+/** Una celda del día y a qué hora va, que es lo que las ordena entre sí. */
+interface Celda {
+  hour: string;
+  node: ReactNode;
 }
 
 /**
  * Agenda semanal del profesional sobre la grilla compartida: cada turno es una
  * celda con el color de su estado.
+ *
+ * Entre los turnos aparecen los ratos libres, cada uno con un "+" que abre el alta con esa
+ * franja ya elegida. Van mezclados y en orden de reloj, no en una lista aparte al final:
+ * un hueco de las tres de la tarde se entiende mirando lo que tiene arriba y lo que tiene
+ * abajo.
  */
-export function AppointmentWeekGrid({ appointments, monday, user, onOpen, quickActions }: AppointmentWeekGridProps) {
+export function AppointmentWeekGrid({
+  appointments,
+  monday,
+  user,
+  onOpen,
+  quickActions,
+  schedules,
+  onNew,
+}: AppointmentWeekGridProps) {
   const isProfessional = user.type === "professional";
+  // Los huecos son para dar de alta, así que solo existen del lado del profesional.
+  const ofreceHuecos = isProfessional && !!onNew && !!schedules?.length;
 
   // Se agrupan por fecha una sola vez en lugar de filtrar dentro de cada columna
   const byDate = new Map<string, Appointment[]>();
@@ -30,23 +64,32 @@ export function AppointmentWeekGrid({ appointments, monday, user, onOpen, quickA
 
   const days: WeekGridDay[] = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(monday, index);
-    const dayAppointments = (byDate.get(toISODate(date)) ?? []).sort((a, b) => a.initialHour.localeCompare(b.initialHour));
+    const key = toISODate(date);
+    const dayAppointments = byDate.get(key) ?? [];
 
-    return {
-      date,
-      empty: dayAppointments.length === 0,
-      content: dayAppointments.map((appointment) => {
-        const state = describeState(appointment.state);
-        const counterpart = isProfessional
-          ? appointment.patient
-            ? `${appointment.patient.surname}, ${appointment.patient.name}`
-            : "Sin paciente"
-          : `${appointment.professional.surname}, ${appointment.professional.name}`;
+    /*
+     * Los ratos de la grilla donde todavía no hay nadie.
+     *
+     * Se calculan contra todos los turnos del día y no contra los que se están dibujando:
+     * mostrar o esconder los cancelados no puede hacer aparecer ni desaparecer un hueco.
+     * Lo que libera un horario es cancelar, no mirar.
+     */
+    const huecos = ofreceHuecos ? freeDaySlots(schedules!, key, dayAppointments) : [];
 
-        return (
+    const celdas: Celda[] = dayAppointments.map((appointment) => {
+      const state = describeState(appointment.state);
+      const counterpart = isProfessional
+        ? appointment.patient
+          ? `${appointment.patient.surname}, ${appointment.patient.name}`
+          : "Sin paciente"
+        : `${appointment.professional.surname}, ${appointment.professional.name}`;
+
+      return {
+        hour: shortHour(appointment.initialHour),
+        node: (
           <button
             type="button"
-            key={appointment.numAppointment}
+            key={`turno-${appointment.numAppointment}`}
             className={`week-slot state-${isCancelled(appointment.state) ? "cancelled" : appointment.state} ${
               appointment.overbooked ? "overbooked" : ""
             }`}
@@ -62,8 +105,37 @@ export function AppointmentWeekGrid({ appointments, monday, user, onOpen, quickA
             </span>
             <span className="week-slot-note">{counterpart}</span>
           </button>
-        );
-      }),
+        ),
+      };
+    });
+
+    for (const slot of huecos) {
+      celdas.push({
+        hour: slot.initialHour,
+        node: (
+          <button
+            type="button"
+            key={`libre-${slot.key}`}
+            className="week-slot week-slot-free"
+            onClick={() => onNew!({ date: key, slot })}
+            title={`Dar un turno de las ${slot.initialHour} a las ${slot.finalHour} en ${slot.room.description}`}
+          >
+            <span className="week-slot-hour">
+              <FaPlus aria-hidden="true" />
+              {slot.initialHour}
+            </span>
+            <span className="week-slot-note">{slot.duration} min</span>
+          </button>
+        ),
+      });
+    }
+
+    return {
+      date,
+      empty: celdas.length === 0,
+      // Un día sin nada agendado, aunque tenga huecos para ofrecer, se esconde en celular.
+      minor: dayAppointments.length === 0,
+      content: celdas.sort((a, b) => a.hour.localeCompare(b.hour)).map((celda) => celda.node),
     };
   });
 

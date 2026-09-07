@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FaArrowUpRightFromSquare, FaCalendarCheck, FaBolt } from "react-icons/fa6";
 import type { Person, RecurrenceFrequency, Room, Schedule } from "../../types.ts";
 import { toISODate } from "../appointmentTypes.ts";
+import { buildDaySlots, worksOn } from "../freeSlots.ts";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { RepeatFields } from "./RepeatFields.tsx";
 
@@ -15,6 +16,14 @@ interface NewAppointmentModalProps {
   patients: Person[];
   /** Horarios de atención del profesional. De ahí salen los turnos normales. */
   schedules: Schedule[];
+  /**
+   * Franja ya elegida, cuando la ventana se abre desde un hueco de la agenda.
+   *
+   * Llega como día más la clave de la franja —la misma que arma la grilla de horarios—
+   * en vez de día, hora y consultorio sueltos. Así lo que queda seleccionado es una
+   * franja que existe de verdad, y no una hora que se le parece.
+   */
+  preset?: { date: string; slotKey: string } | null;
   onCreate: (data: {
     date: string;
     initialHour: string;
@@ -26,77 +35,6 @@ interface NewAppointmentModalProps {
     /** Si viene, el turno queda marcado como repetible apenas se crea. */
     repeat: { frequency: RecurrenceFrequency; endDate: string | null } | null;
   }) => Promise<void>;
-}
-
-const DAY_NAMES = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-
-function dayNameOf(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  return DAY_NAMES[new Date(y, m - 1, d).getDay()];
-}
-
-function addMinutes(hour: string, minutes: number): string {
-  const [h, m] = hour.split(":").map(Number);
-  const total = h * 60 + m + minutes;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-const shortHour = (hour: string) => (hour ?? "").slice(0, 5);
-
-/** La hora actual como "HH:MM", para comparar contra los horarios de los módulos. */
-function nowHHMM(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-}
-
-interface Slot {
-  key: string;
-  initialHour: string;
-  finalHour: string;
-  room: Room;
-  duration: number;
-}
-
-/**
- * Divide cada módulo del día en turnos del largo que definió el profesional.
- * Si el día es hoy, deja afuera los que ya arrancaron: no tiene sentido ofrecer
- * una franja que ya pasó (el backend la rechazaría igual).
- */
-function buildSlots(schedules: Schedule[], isoDate: string): Slot[] {
-  if (!isoDate) return [];
-
-  const day = dayNameOf(isoDate);
-  const isToday = isoDate === toISODate(new Date());
-  const from = isToday ? nowHHMM() : "";
-  const slots: Slot[] = [];
-
-  for (const schedule of schedules.filter((s) => s.day === day)) {
-    let hour = shortHour(schedule.initialHour);
-    const end = shortHour(schedule.finalHour);
-
-    while (addMinutes(hour, schedule.duration) <= end) {
-      const finalHour = addMinutes(hour, schedule.duration);
-
-      if (hour > from) {
-        slots.push({
-          key: `${hour}-${schedule.room.idRoom}`,
-          initialHour: hour,
-          finalHour,
-          room: schedule.room,
-          duration: schedule.duration,
-        });
-      }
-
-      hour = finalHour;
-    }
-  }
-
-  return slots.sort((a, b) => a.initialHour.localeCompare(b.initialHour));
-}
-
-/** Si el profesional atiende ese día, aunque ya no queden turnos por delante. */
-function worksOn(schedules: Schedule[], isoDate: string): boolean {
-  return !!isoDate && schedules.some((s) => s.day === dayNameOf(isoDate));
 }
 
 const emptyForm = {
@@ -119,7 +57,7 @@ const emptyForm = {
  * y el sobreturno, donde elige día, horario y consultorio a mano.
  * El paciente es opcional: se puede reservar la franja y asignarlo después.
  */
-export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedules, onCreate }: NewAppointmentModalProps) {
+export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedules, preset, onCreate }: NewAppointmentModalProps) {
   const [mode, setMode] = useState<Mode>("regular");
   const [form, setForm] = useState(emptyForm);
   const [slotKey, setSlotKey] = useState("");
@@ -129,21 +67,16 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
   useEffect(() => {
     if (!isOpen) return;
     setMode("regular");
-    setForm({ ...emptyForm, room: rooms[0] ? String(rooms[0].idRoom) : "" });
-    setSlotKey("");
+    setForm({ ...emptyForm, date: preset?.date ?? emptyForm.date, room: rooms[0] ? String(rooms[0].idRoom) : "" });
+    setSlotKey(preset?.slotKey ?? "");
     setError(null);
-  }, [isOpen, rooms]);
+  }, [isOpen, rooms, preset]);
 
-  const slots = useMemo(() => buildSlots(schedules, form.date), [schedules, form.date]);
+  const slots = useMemo(() => buildDaySlots(schedules, form.date), [schedules, form.date]);
   const selectedSlot = slots.find((slot) => slot.key === slotKey);
   // Se distingue "hoy ya arrancaron todos" de "ese día no atendés": el mensaje cambia.
   const isToday = form.date === toISODate(new Date());
   const alreadyStarted = isToday && worksOn(schedules, form.date);
-
-  useEffect(() => {
-    // Al cambiar de fecha, la franja elegida deja de existir.
-    setSlotKey("");
-  }, [form.date]);
 
   function validate(): string | null {
     if (!form.date) return "Elegí una fecha";

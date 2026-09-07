@@ -16,7 +16,7 @@ import {
 import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList, SkeletonGrid } from "../../../components/skeleton/Skeleton.tsx";
 import { AppointmentCard } from "./AppointmentCard.tsx";
-import { AppointmentWeekGrid } from "./AppointmentWeekGrid.tsx";
+import { AppointmentWeekGrid, type FreeSlotPick } from "./AppointmentWeekGrid.tsx";
 import { AppointmentDetailModal } from "./AppointmentDetailModal.tsx";
 import { NewAppointmentModal } from "./NewAppointmentModal.tsx";
 import { CancelAppointmentModal } from "../CancelAppointmentModal.tsx";
@@ -41,6 +41,7 @@ import {
 } from "../appointmentsService.ts";
 import { useAppointmentActions } from "../useAppointmentActions.ts";
 import { useUndo } from "../../../context/UndoContext.tsx";
+import { useSimpleView } from "../../../lib/simpleView.ts";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
@@ -50,10 +51,21 @@ import "./appointmentList.css";
 type ViewMode = "list" | "grid";
 
 export function AppointmentsList() {
+  // Traer y llevarse la agenda entera se hace una vez en la vida del consultorio, así que
+  // es lo primero que la vista simplificada saca de esta barra.
+  const [simpleView] = useSimpleView();
   const [person, setPerson] = useState<Person | undefined>(undefined);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [newModalOpen, setNewModalOpen] = useState(false);
+  /*
+   * La franja con la que se abre el alta, cuando se entra por un "+" de la agenda.
+   *
+   * En null la ventana se abre como siempre, en el día de hoy y sin nada elegido. Se
+   * limpia al abrirla por el botón o por el atajo de teclado, porque si no la última
+   * franja tocada volvería a aparecer elegida sin que nadie la haya vuelto a pedir.
+   */
+  const [preset, setPreset] = useState<{ date: string; slotKey: string } | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -82,6 +94,7 @@ export function AppointmentsList() {
 
   useEffect(() => {
     if (!isProfessional || !searchParams.has("nuevo")) return;
+    setPreset(null);
     setNewModalOpen(true);
     setSearchParams({}, { replace: true });
   }, [isProfessional, searchParams, setSearchParams]);
@@ -254,6 +267,18 @@ export function AppointmentsList() {
     loadAppointments();
   }
 
+  /**
+   * Tocar un hueco de la agenda abre el alta con esa franja ya elegida.
+   *
+   * Se manda la clave de la franja y no la hora suelta: es la misma que arma la grilla de
+   * horarios, así que lo que queda seleccionado es exactamente el turno que el "+" estaba
+   * ofreciendo, con su consultorio y su duración.
+   */
+  function abrirHueco({ date, slot }: FreeSlotPick) {
+    setPreset({ date, slotKey: slot.key });
+    setNewModalOpen(true);
+  }
+
   /* ---------- render ---------- */
 
   const canUseGrid = isProfessional;
@@ -278,12 +303,19 @@ export function AppointmentsList() {
         actions={
           <>
             {isProfessional && (
-              <button type="button" className="adm-btn adm-btn-primary" onClick={() => setNewModalOpen(true)}>
+              <button
+                type="button"
+                className="adm-btn adm-btn-primary"
+                onClick={() => {
+                  setPreset(null);
+                  setNewModalOpen(true);
+                }}
+              >
                 <FaPlus />
                 Nuevo turno
               </button>
             )}
-            {isProfessional && (
+            {isProfessional && !simpleView && (
               <button
                 type="button"
                 className="adm-btn adm-btn-accent"
@@ -294,7 +326,7 @@ export function AppointmentsList() {
                 Importar
               </button>
             )}
-            {isProfessional && (
+            {isProfessional && !simpleView && (
               <button
                 type="button"
                 className="adm-btn adm-btn-accent"
@@ -379,6 +411,8 @@ export function AppointmentsList() {
           user={person}
           onOpen={open}
           quickActions={quickActions}
+          schedules={schedules}
+          onNew={abrirHueco}
         />
       ) : appointments.length === 0 ? (
         <div className="adm-panel">
@@ -439,6 +473,7 @@ export function AppointmentsList() {
           rooms={rooms}
           patients={patients}
           schedules={schedules}
+          preset={preset}
           onCreate={handleCreate}
         />
       )}

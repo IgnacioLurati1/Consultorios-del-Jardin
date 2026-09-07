@@ -8,8 +8,18 @@ export interface WeekGridDay {
   date: Date;
   /** Lo que va dentro de la columna. */
   content: ReactNode;
-  /** Sin nada que mostrar: en celular la columna directamente no aparece. */
+  /** Sin nada que mostrar. Se dibuja el texto de columna vacía en su lugar. */
   empty: boolean;
+  /**
+   * Tiene algo, pero nada agendado.
+   *
+   * Es el día de la agenda del profesional donde solo hay ratos libres para ofrecer. En
+   * pantalla grande se ve entero, porque los huecos al lado de los días ocupados son
+   * justamente lo que se está mirando; en celular desaparece, igual que un día vacío. Ahí
+   * las columnas se apilan y una tira de horarios que nadie pidió empuja fuera de la
+   * pantalla los días donde sí hay gente.
+   */
+  minor?: boolean;
 }
 
 interface WeekGridProps {
@@ -45,9 +55,12 @@ export function WeekGrid({ monday, days, emptyLabel = "—", animate = false }: 
         const key = toISODate(date);
         const day = days.find((item) => toISODate(item.date) === key);
         const empty = !day || day.empty;
+        // "is-empty" es lo que esconde la columna en celular, así que también se lleva a
+        // los días que solo tienen algo para ofrecer.
+        const oculto = empty || !!day?.minor;
 
         return (
-          <div className={`week-grid-day ${key === todayISO ? "today" : ""} ${empty ? "is-empty" : ""}`} key={key}>
+          <div className={`week-grid-day ${key === todayISO ? "today" : ""} ${oculto ? "is-empty" : ""}`} key={key}>
             <div className="week-grid-head">
               <span className="week-grid-dayname">{dayName}</span>
               <span className="week-grid-date">{formatShortDate(date)}</span>
