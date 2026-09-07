@@ -17,6 +17,7 @@ import {
 } from "./patientsService.ts";
 import { useUndo } from "../../context/UndoContext.tsx";
 import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts";
+import { isCancelled, pendingAmount } from "../appointments/appointmentTypes.ts";
 import { ContactPatientModal } from "./ContactPatientModal.tsx";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
 import type { Appointment } from "../types.ts";
@@ -61,6 +62,27 @@ function describeState(state: string): { label: string; className: string } {
   }
 }
 
+/* ============================================================
+   Recortes del historial clínico
+   ============================================================ */
+
+/**
+ * Por qué se mira un historial.
+ *
+ * No son "los estados de un turno": son las cinco preguntas que alguien le hace a la
+ * ficha de un paciente. Cuatro salen del estado y la quinta de la plata, que es un dato
+ * de otro lado, y por eso esto es una lista propia y no la de estados de siempre.
+ */
+type HistoryFilter = "owed" | "missed" | "assisted" | "cancelled" | "accepted";
+
+const HISTORY_FILTERS: { value: HistoryFilter; label: string; matches: (appointment: Appointment) => boolean }[] = [
+  { value: "owed", label: "Adeuda", matches: (appointment) => pendingAmount(appointment) > 0 },
+  { value: "missed", label: "No vino", matches: (appointment) => appointment.state === "missed" },
+  { value: "assisted", label: "Asistió", matches: (appointment) => appointment.state === "assisted" },
+  { value: "cancelled", label: "Cancelado", matches: (appointment) => isCancelled(appointment.state) },
+  { value: "accepted", label: "Confirmado", matches: (appointment) => appointment.state === "accepted" },
+];
+
 /** La fecha del turno se guarda a medianoche UTC: leerla en local la corre un día. */
 function historyDate(value: string): string {
   const date = new Date(value);
@@ -90,6 +112,17 @@ export function PatientsPage() {
   // El historial del paciente abierto: los turnos que tuvo con este profesional.
   const [history, setHistory] = useState<Appointment[] | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  /*
+   * Qué recortes del historial están puestos.
+   *
+   * Se suman entre sí en lugar de cruzarse: con "Adeuda" y "No vino" prendidos se ven los
+   * dos grupos, no los que cumplen las dos cosas. Es lo que espera el que prende otro
+   * filtro para ver un poco más, y cruzarlos deja la lista vacía casi siempre.
+   *
+   * Sin ninguno prendido se ve el historial entero, que es como estaba antes de que esto
+   * existiera y es lo que hay que ver cuando uno abre una ficha sin buscar nada puntual.
+   */
+  const [historyFilters, setHistoryFilters] = useState<HistoryFilter[]>([]);
 
   // Una sola ventana sirve para el alta y para la corrección: `editing` guarda a quién
   // se está editando, y en null significa que se está creando uno nuevo.
@@ -149,6 +182,7 @@ export function PatientsPage() {
   }, [search, patients, onlyDebtors]);
 
   function openNew() {
+    setHistoryFilters([]);
     setEditing(null);
     setForm(emptyForm);
     setFormError(null);
@@ -166,6 +200,7 @@ export function PatientsPage() {
 
   useEffect(() => {
     if (!searchParams.has("nuevo")) return;
+    setHistoryFilters([]);
     setEditing(null);
     setForm(emptyForm);
     setFormError(null);
@@ -176,6 +211,9 @@ export function PatientsPage() {
   function openPatient(patient: Person) {
     setEditing(patient);
     setHistory(null);
+    // Los recortes son de la ficha que se estaba mirando, no del paciente que se abre
+    // ahora: dejarlos puestos abriría el historial del siguiente ya escondiendo cosas.
+    setHistoryFilters([]);
     setLoadingHistory(true);
 
     getPatientMedicalHistory(patient.email)
@@ -197,6 +235,15 @@ export function PatientsPage() {
 
   // Los pacientes con cuenta propia se muestran, pero no se tocan desde acá.
   const readOnly = !!editing && !editing.anonymous;
+
+  // El historial ya recortado. Sin filtros puestos es el historial entero.
+  const shownHistory = useMemo(() => {
+    if (!history) return [];
+    if (historyFilters.length === 0) return history;
+
+    const puestos = HISTORY_FILTERS.filter((filter) => historyFilters.includes(filter.value));
+    return history.filter((appointment) => puestos.some((filter) => filter.matches(appointment)));
+  }, [history, historyFilters]);
 
   function validate(): string | null {
     if (!editing && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "El email no tiene un formato válido";
@@ -485,13 +532,47 @@ export function PatientsPage() {
           <div className="ui-section patients-history">
             <h3 className="patients-history-title">Historial con vos</h3>
 
+            {/* Los recortes, cada uno con cuántos turnos tiene detrás. El número es lo que
+                convierte la fila en un resumen del paciente antes de tocar nada, y lo que
+                hace que no se prenda un filtro para descubrir que no hay nada adentro. */}
+            {!loadingHistory && history && history.length > 0 && (
+              <div className="patients-history-filters" role="group" aria-label="Filtrar el historial">
+                {HISTORY_FILTERS.map((filter) => {
+                  const count = history.filter(filter.matches).length;
+                  const active = historyFilters.includes(filter.value);
+
+                  return (
+                    <button
+                      key={filter.value}
+                      type="button"
+                      className={`adm-btn adm-btn-ghost adm-btn-sm ${active ? "active" : ""}`}
+                      aria-pressed={active}
+                      disabled={count === 0 && !active}
+                      onClick={() =>
+                        setHistoryFilters((prev) =>
+                          prev.includes(filter.value)
+                            ? prev.filter((value) => value !== filter.value)
+                            : [...prev, filter.value]
+                        )
+                      }
+                    >
+                      {filter.label}
+                      <span className="adm-chip-count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {loadingHistory ? (
               <SkeletonList rows={3} />
             ) : !history || history.length === 0 ? (
               <p className="adm-empty">Todavía no tuvo ningún turno con vos.</p>
+            ) : shownHistory.length === 0 ? (
+              <p className="adm-empty">Ningún turno entra en lo que estás filtrando.</p>
             ) : (
               <ul className="patients-history-list">
-                {history.map((appointment) => {
+                {shownHistory.map((appointment) => {
                   const state = describeState(appointment.state);
 
                   return (
