@@ -102,6 +102,15 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
     [plan]
   );
   const grupos = useMemo(() => byReason(plan?.skipped ?? []), [plan]);
+  /*
+   * Los que vuelven de una exportación de la app.
+   *
+   * Entran con todo lo que tenían —paciente, valor, cobro, consultorio, observaciones— y
+   * las opciones de arriba no los tocan. Hay que decirlo en la previa: alguien que eligió
+   * "todos confirmados" y ve entrar turnos como atendidos tiene que entender por qué.
+   */
+  const propios = useMemo(() => plan?.planned.filter((item) => item.fromExport) ?? [], [plan]);
+  const conPaciente = useMemo(() => propios.filter((item) => item.patientEmail).length, [propios]);
 
   function reset() {
     setFile(null);
@@ -352,6 +361,14 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
           )}
 
           <ul className="imp-flags">
+            {propios.length > 0 && (
+              <li>
+                {propios.length} {plural(propios.length, "sale", "salen")} de una exportación de esta app y{" "}
+                {plural(propios.length, "vuelve", "vuelven")} con sus datos. Las opciones de arriba no{" "}
+                {plural(propios.length, "lo", "los")} tocan.
+                {conPaciente > 0 && ` ${conPaciente} ${plural(conPaciente, "trae su paciente", "traen su paciente")}.`}
+              </li>
+            )}
             {plan.outOfRange > 0 && (
               <li>
                 {plan.outOfRange} {plural(plan.outOfRange, "quedó", "quedaron")} fuera de las fechas que elegiste.
@@ -391,6 +408,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                     <th>Hora</th>
                     <th>Consultorio</th>
                     <th>Valor</th>
+                    {conPaciente > 0 && <th>Paciente</th>}
                     <th>Del calendario</th>
                   </tr>
                 </thead>
@@ -417,6 +435,9 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                         {item.room}
                       </td>
                       <td className={item.value === null ? "imp-empty" : ""}>{money(item.value)}</td>
+                      {conPaciente > 0 && (
+                        <td className={item.patientEmail ? "" : "imp-empty"}>{item.patientEmail ?? "sin asignar"}</td>
+                      )}
                       <td className="imp-title">{item.summary}</td>
                     </tr>
                   ))}
@@ -466,9 +487,12 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
               : `Se ${result.created === 1 ? "importó 1 turno" : `importaron ${result.created} turnos`}.`}
           </p>
           {result.failed > 0 && <p className="imp-error">{result.failed} no se pudieron guardar. Probá importarlos de nuevo.</p>}
-          {result.created > 0 && (
-            <p className="imp-done-note">Quedaron en tu agenda, sin paciente. Abrí cada uno para asignarlo.</p>
-          )}
+          {result.created > 0 &&
+            (result.planned.every((item) => item.fromExport) ? (
+              <p className="imp-done-note">Quedaron en tu agenda tal como estaban, con su paciente y su cobro.</p>
+            ) : (
+              <p className="imp-done-note">Quedaron en tu agenda, sin paciente. Abrí cada uno para asignarlo.</p>
+            ))}
         </div>
       )}
     </Modal>

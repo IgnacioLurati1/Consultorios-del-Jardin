@@ -111,7 +111,14 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
         <label className="imp-check">
           <span>
             Poner el nombre del paciente en el título
-            {!simple && <small>Sin esto, cada evento dice sólo «Turno».</small>}
+            {/* Lo que pasa con el paciente se queda siempre: es el único dato del archivo
+                que identifica a alguien, y también el que decide si el turno vuelve entero
+                cuando este mismo archivo se importa de nuevo. */}
+            <small>
+              {simple
+                ? "Sin esto no viaja el paciente, ni al importar de vuelta."
+                : "Sin esto cada evento dice sólo «Turno», y si volvés a importar el archivo los turnos entran sin paciente."}
+            </small>
           </span>
           <input
             type="checkbox"

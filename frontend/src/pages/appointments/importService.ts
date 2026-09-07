@@ -32,7 +32,15 @@ export interface PlannedAppointment {
   room: string;
   value: number | null;
   state: string;
-  paymentState: "unpaid" | "paid" | null;
+  paymentState: "unpaid" | "partial" | "paid" | null;
+  /** Cuánto se cobró, solo en los pagos parciales que vuelven de una exportación. */
+  paidAmount: number | null;
+  /** El paciente, cuando el archivo lo traía y esa persona existe en el consultorio. */
+  patientEmail: string | null;
+  /** Era un sobreturno en el sistema de origen. */
+  overbooked: boolean;
+  /** Salió de una exportación de la app, así que entra con todos sus datos. */
+  fromExport: boolean;
   observations: string | null;
   past: boolean;
   /** No arranca donde arranca un módulo, o no dura lo que dura uno. */
