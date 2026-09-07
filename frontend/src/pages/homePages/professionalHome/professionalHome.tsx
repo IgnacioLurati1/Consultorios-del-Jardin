@@ -40,6 +40,7 @@ import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import { ShortcutsPanel } from "../../../components/shortcuts/ShortcutsPanel.tsx";
 import "../../adminCRUDS/adminPanel.css";
 import { useSimpleText } from "../../../lib/textMode";
+import { useSimpleView } from "../../../lib/simpleView";
 import "./professionalHome.css";
 
 interface MenuEntry {
@@ -78,6 +79,7 @@ const entries: MenuEntry[] = [
 
 export function ProfessionalHome() {
   const [simple] = useSimpleText();
+  const [simpleView] = useSimpleView();
   const [professional, setProfessional] = useState<Person | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [today, setToday] = useState<Appointment[] | null>(null);
@@ -243,6 +245,8 @@ export function ProfessionalHome() {
         </div>
       </header>
 
+      {/* Las cuatro se quedan siempre, también en la vista simplificada: son las puertas
+          a todo lo demás, y esconder una sería esconder una pantalla entera. */}
       <section className="adm-card-grid">
         {entries.map((entry) => {
           const Icon = entry.icon;
@@ -259,6 +263,15 @@ export function ProfessionalHome() {
         })}
       </section>
 
+      {/*
+        Los tres bloques que siguen no se dibujan con la vista simplificada.
+        ------------------------------------------------------------------
+        Son la agenda del día, los pedidos que esperan respuesta y lo que quedó sin cobrar.
+        Ninguno se pierde: los tres se miran enteros desde la pantalla de turnos, que está
+        en la primera tarjeta de arriba. Lo que se gana es un panel que entra en la
+        pantalla de una, en vez de tres listas una abajo de la otra.
+      */}
+      {!simpleView && (
       <section className="prof-today">
         <div className="prof-today-head">
           <div>
@@ -315,6 +328,7 @@ export function ProfessionalHome() {
           )}
         </div>
       </section>
+      )}
 
       {/* Debajo de la agenda del día y con la misma caja. Es lo que hay que contestar,
           y va después de lo que hay que hacer hoy: primero se mira con qué se arranca la
@@ -323,7 +337,7 @@ export function ProfessionalHome() {
           Sin pedidos pendientes la sección no se dibuja. Es una bandeja de entrada, no
           una agenda: el estado normal es que esté vacía, y una caja que dice "no hay
           nada" todos los días deja de leerse igual. */}
-      {pendingCount > 0 && (
+      {!simpleView && pendingCount > 0 && (
         <section className="prof-today prof-pending">
           <div className="prof-today-head">
             <div>
@@ -413,7 +427,7 @@ export function ProfessionalHome() {
           espera una conversación, y por eso esta caja arranca plegada y solo muestra el
           número. Los dos colores del listado son los del cobro: rojo lo que no se pagó,
           ámbar lo que se pagó a medias. */}
-      {unpaidCount > 0 && (
+      {!simpleView && unpaidCount > 0 && (
         <section className="prof-today prof-unpaid">
           <div className="prof-today-head">
             <button
@@ -488,8 +502,10 @@ export function ProfessionalHome() {
 
       <ProfessionalSettings />
 
-      {/* Abajo de todo, después de la configuración: se lee una vez y después estorba. */}
-      <ShortcutsPanel />
+      {/* Abajo de todo, después de la configuración: se lee una vez y después estorba.
+          Con la vista simplificada no se dibuja: es ayuda de teclado, y quien pidió menos
+          cosas en pantalla no está buscando atajos. */}
+      {!simpleView && <ShortcutsPanel />}
 
       {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
 

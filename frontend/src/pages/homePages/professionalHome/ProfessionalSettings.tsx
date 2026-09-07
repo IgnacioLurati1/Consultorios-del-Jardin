@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import {
   FaAlignLeft,
   FaChevronDown,
+  FaCompress,
   FaChevronRight,
   FaCircleCheck,
   FaClipboardCheck,
@@ -31,6 +32,7 @@ import {
   type ProfessionalSettings as Settings,
 } from "./settingsService";
 import { useSimpleText } from "../../../lib/textMode";
+import { useSimpleView } from "../../../lib/simpleView";
 
 /** "14/09" alcanza dentro de un renglón que ya dice de qué se trata. */
 function shortDate(value: string): string {
@@ -244,6 +246,11 @@ export function ProfessionalSettings() {
   const [vacationsOpen, setVacationsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [simple, setSimple] = useSimpleText();
+  const [simpleViewOn, setSimpleView] = useSimpleView();
+  // Prender la vista simplificada pregunta antes; apagarla no. Lo que hay que avisar es
+  // que van a dejar de verse cosas, y eso solo pasa en un sentido.
+  const [confirmingSimpleView, setConfirmingSimpleView] = useState(false);
+  const [alsoLessText, setAlsoLessText] = useState(false);
 
   function load() {
     findSettings()
@@ -297,6 +304,50 @@ export function ProfessionalSettings() {
           </div>
         ) : (
           <>
+            {/*
+              La vista simplificada, primera de todas.
+              --------------------------------------
+              Va arriba de todo y no al final con "menos texto" porque es la que más
+              cambia lo que se ve, y porque el que la necesita es justamente el que no
+              llega leyendo hasta el fondo de la configuración.
+            */}
+            <div className="prof-setting">
+              <div className="prof-setting-row">
+                <div className="prof-setting-main prof-setting-static">
+                  <span className="prof-setting-icon" aria-hidden="true">
+                    <FaCompress />
+                  </span>
+                  <span className="prof-setting-text">
+                    <span className="prof-setting-label">Vista simplificada</span>
+                    {!simple && (
+                      <span className="prof-setting-desc">
+                        Deja en pantalla lo de todos los días y esconde las herramientas que casi no usás.
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <input
+                  type="checkbox"
+                  className="adm-switch"
+                  role="switch"
+                  aria-label="Vista simplificada"
+                  checked={simpleViewOn}
+                  onChange={(event) => {
+                    if (!event.target.checked) {
+                      setSimpleView(false);
+                      return;
+                    }
+                    // Prender "menos texto" junto con esto viene marcado solo cuando está
+                    // apagado. Son dos cosas distintas y se llevan bien: una acorta lo que
+                    // se lee y la otra saca funciones de la pantalla.
+                    setAlsoLessText(!simple);
+                    setConfirmingSimpleView(true);
+                  }}
+                />
+              </div>
+            </div>
+
             <Link className="prof-setting-link" to="/Recurrences">
               <span className="prof-setting-icon" aria-hidden="true">
                 <FaRepeat />
@@ -325,6 +376,13 @@ export function ProfessionalSettings() {
               description="Cuando un paciente pide un horario tuyo, queda confirmado sin que tengas que aprobarlo."
             />
 
+            {/*
+              Las dos automatizaciones de abajo se esconden con la vista simplificada, pero
+              solo mientras estén apagadas. Esconder un interruptor encendido dejaría al
+              profesional sin forma de apagarlo, y una automatización que no se puede apagar
+              y que además no se ve es lo peor de los dos mundos.
+            */}
+            {(!simpleViewOn || settings.autoMark !== null) && (
             <Switch
               checked={settings.autoMark !== null}
               disabled={saving}
@@ -391,10 +449,12 @@ export function ProfessionalSettings() {
                 Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.
               </p>
             </Switch>
+            )}
 
             {/* Para el consultorio donde se cobra en el momento y siempre: ahí registrar
                 cada pago es escribir dos veces lo mismo, y lo único que importa es la
                 excepción. Con esto la excepción es lo único que se marca a mano. */}
+            {(!simpleViewOn || settings.autoPay) && (
             <Switch
               checked={settings.autoPay}
               disabled={saving}
@@ -436,7 +496,12 @@ export function ProfessionalSettings() {
                 está, y lo de antes de prender esto no se toca.
               </p>
             </Switch>
+            )}
 
+            {/* Con todos prendidos no hay nada que mirar acá y la lista se esconde. Si el
+                profesional apagó alguno, el renglón se queda: es el único lugar donde se
+                entera de que dejó de recibir un aviso. */}
+            {(!simpleViewOn || mutedMails > 0) && (
             <Dropdown
               label="Avisos por mail"
               description={simple ? mailsState : `Cuáles te llegan a la casilla. ${mailsState}`}
@@ -454,6 +519,7 @@ export function ProfessionalSettings() {
                 />
               ))}
             </Dropdown>
+            )}
 
             {/*
               Menos texto.
@@ -500,10 +566,14 @@ export function ProfessionalSettings() {
                 <FaPlaneDeparture />
                 {onVacation ? `De vacaciones hasta el ${shortDate(onVacation.toDate)}` : "Tomarme vacaciones"}
               </button>
-              <button type="button" className="adm-btn adm-btn-danger" onClick={() => setDeleteOpen(true)}>
-                <FaTrashCan />
-                Borrar los turnos de un paciente
-              </button>
+              {/* Se lleva por delante el historial de una persona y se usa una vez cada
+                  tanto, así que es lo primero que sobra en la vista simplificada. */}
+              {!simpleViewOn && (
+                <button type="button" className="adm-btn adm-btn-danger" onClick={() => setDeleteOpen(true)}>
+                  <FaTrashCan />
+                  Borrar los turnos de un paciente
+                </button>
+              )}
             </div>
           </>
         )}
@@ -516,6 +586,54 @@ export function ProfessionalSettings() {
         onChanged={load}
       />
       <DeletePatientModal open={deleteOpen} onClose={() => setDeleteOpen(false)} />
+
+      {/*
+        El aviso antes de prender la vista simplificada.
+        -----------------------------------------------
+        Corto y con lo único que hay que saber: van a dejar de verse cosas, y la forma de
+        recuperarlas es apagar esto mismo. No lista cuáles a propósito, porque la lista es
+        más larga que la decisión y el interruptor queda acá, a la vista.
+      */}
+      <Modal
+        open={confirmingSimpleView}
+        onClose={() => setConfirmingSimpleView(false)}
+        size="sm"
+        title="Vista simplificada"
+        footer={
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingSimpleView(false)}>
+              Volver
+            </button>
+            <button
+              type="button"
+              className="adm-btn adm-btn-primary"
+              onClick={() => {
+                setSimpleView(true);
+                if (alsoLessText) setSimple(true);
+                setConfirmingSimpleView(false);
+                toast.success("Listo, la pantalla queda más corta");
+              }}
+            >
+              <FaCompress />
+              Prenderla
+            </button>
+          </>
+        }
+      >
+        <p className="adm-confirm-lead">Algunas funciones van a dejar de aparecer en pantalla.</p>
+        <p className="adm-confirm-note">
+          Ninguna se apaga, solo se esconde. Para volver a verlas vas a tener que apagar este modo desde acá mismo.
+        </p>
+
+        {/* Solo si todavía no lo tiene puesto. Ofrecer prender algo que ya está prendido
+            es una línea que no dice nada y una casilla que no hace nada. */}
+        {!simple && (
+          <label className="ui-choice prof-setting-suggest">
+            <input type="checkbox" checked={alsoLessText} onChange={(event) => setAlsoLessText(event.target.checked)} />
+            <span>Prender también «menos texto», que esconde las explicaciones largas</span>
+          </label>
+        )}
+      </Modal>
     </section>
   );
 }

@@ -219,6 +219,19 @@ button.people-row:focus-visible {
     color: var(--adm-text);
 }
 
+/* Los recortes del historial. Se envuelven: son cinco y la ventana es angosta. */
+.patients-history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.patients-history-filters button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
 .patients-history-list {
     display: flex;
     flex-direction: column;

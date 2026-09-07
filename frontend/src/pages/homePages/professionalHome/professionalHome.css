@@ -595,3 +595,9 @@
 .prof-unpaid-caret.open {
     transform: rotate(180deg);
 }
+
+/* La recomendación de prender "menos texto", dentro del cartel de la vista simplificada.
+   Separada del texto de arriba: es lo único ahí adentro que se toca. */
+.prof-setting-suggest {
+  margin-top: 16px;
+}
