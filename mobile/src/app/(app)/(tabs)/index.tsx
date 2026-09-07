@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { AppState, ScrollView, StyleSheet, View } from "react-native";
 import { RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { myPatientAppointments, myProfessionalAppointments, professionalRange, unpaidAppointments } from "../../../api/appointments";
@@ -18,6 +18,7 @@ import { OfficeSettings } from "../../../features/OfficeSettings";
 import { WeekSummary } from "../../../features/WeekSummary";
 import { describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
 import { money, numericDate, today } from "../../../lib/dates";
+import { revisarAvisos } from "../../../lib/avisos";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { SCREEN_PADDING, space } from "../../../theme/tokens";
@@ -29,7 +30,27 @@ import { useTheme } from "../../../theme/useTheme";
  * cuerpo.
  */
 export default function HomeScreen() {
-  const { role } = useUser();
+  const { role, email } = useUser();
+
+  /*
+   * Acá y no en un temporizador propio: el teléfono apaga los temporizadores de una app
+   * que está de fondo, así que uno acá correría justo cuando nadie está mirando. Volver a
+   * Inicio y volver a la app son los dos momentos en los que alguien va a mirar la
+   * campana, y son estos dos.
+   */
+  const revisar = useCallback(() => {
+    void revisarAvisos(role, email).catch(() => undefined);
+  }, [role, email]);
+
+  useEffect(() => {
+    revisar();
+
+    const suscripcion = AppState.addEventListener("change", (estado) => {
+      if (estado === "active") revisar();
+    });
+
+    return () => suscripcion.remove();
+  }, [revisar]);
 
   if (role === "professional") return <ProfessionalHome />;
   if (role === "admin") return <AdminHome />;

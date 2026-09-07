@@ -1,0 +1,289 @@
+/* ============================================================
+   La campanita de la barra de arriba.
+
+   Vive entre el modo oscuro y el nombre de la persona. El botón es el
+   mismo de la barra (.app-header-menu) y el panel es el mismo menú que
+   usa la sesión (.app-user-menu): lo propio de acá es el número, la
+   lista y los colores de cada tipo de aviso.
+   ============================================================ */
+
+.app-bell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.app-bell-btn {
+    position: relative;
+}
+
+.app-bell-btn.open {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* El número. Rojo siempre que haya algo sin leer: es el color con el que la aplicación
+   dice "esto todavía te está esperando" en el resto de las pantallas. */
+.app-bell-count {
+    position: absolute;
+    top: 1px;
+    right: 0;
+    display: grid;
+    place-items: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border: 2px solid var(--adm-bar-top);
+    border-radius: 999px;
+    background: #d93025;
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+/* Cuando entre lo que no se leyó hay algo grave, late. Es lo único de toda la aplicación
+   que se mueve solo, justamente para que quiera decir algo cuando pasa. */
+.app-bell-count.urgente {
+    animation: app-bell-latido 1.1s ease-in-out infinite;
+}
+
+@keyframes app-bell-latido {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.7);
+    }
+    50% {
+        transform: scale(1.12);
+        box-shadow: 0 0 0 5px rgba(217, 48, 37, 0);
+    }
+}
+
+/* Quien pidió menos movimiento igual tiene que poder distinguir lo grave: en vez de
+   latir, el número se queda más grande y con un anillo fijo. */
+@media (prefers-reduced-motion: reduce) {
+    .app-bell-count.urgente {
+        animation: none;
+        transform: scale(1.12);
+        box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.45);
+    }
+}
+
+/* ---------- el panel ---------- */
+
+.app-bell-panel {
+    width: min(370px, calc(100vw - 24px));
+    max-height: min(70vh, 560px);
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-bell-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--adm-border);
+    flex-shrink: 0;
+}
+
+.app-bell-clear {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--adm-muted);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.app-bell-clear:hover {
+    color: var(--adm-danger);
+}
+
+.app-bell-empty {
+    margin: 0;
+    padding: 26px 18px 30px;
+    color: var(--adm-muted);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.app-bell-list {
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ---------- cada aviso ----------
+   El color va en el borde de la izquierda. Es lo que deja recorrer la lista de un
+   vistazo sin leerla entera, y lo que hace que lo grave no se confunda con lo normal
+   aunque los dos digan una frase parecida. */
+
+.app-bell-item {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    border: 1px solid transparent;
+    border-left: 3px solid var(--adm-border-strong);
+    border-radius: 9px;
+    background: transparent;
+    transition: background 0.12s ease;
+}
+
+.app-bell-item:hover {
+    background: var(--adm-surface-alt);
+}
+
+.app-bell-item--info { border-left-color: var(--adm-slate); }
+.app-bell-item--good { border-left-color: var(--adm-green); }
+.app-bell-item--warn { border-left-color: var(--adm-warn); }
+.app-bell-item--urgent {
+    border-left-color: var(--adm-danger);
+    background: var(--adm-danger-soft);
+}
+
+/* Sin leer: el fondo apenas teñido y el título en negrita. Se nota al lado de los ya
+   leídos y no grita cuando están todos sin leer, que es como se ve la primera vez. */
+.app-bell-item.nuevo {
+    background: var(--adm-green-soft);
+}
+
+.app-bell-item--urgent.nuevo {
+    background: var(--adm-danger-soft);
+}
+
+.app-bell-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 10px 4px 10px 10px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--adm-text);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* Un aviso de algo que ya no existe se lee igual pero no lleva a ningún lado: mandar a
+   la pantalla de un turno cancelado sería mandar a un error. */
+.app-bell-body:disabled {
+    cursor: default;
+}
+
+.app-bell-icon {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--adm-surface-sunken);
+    color: var(--adm-muted);
+    font-size: 0.76rem;
+}
+
+.app-bell-item--good .app-bell-icon {
+    background: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+}
+
+.app-bell-item--warn .app-bell-icon {
+    background: var(--adm-warn-soft);
+    color: var(--adm-warn);
+}
+
+.app-bell-item--urgent .app-bell-icon {
+    background: var(--adm-danger-soft);
+    color: var(--adm-danger);
+}
+
+.app-bell-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.app-bell-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.app-bell-note {
+    color: var(--adm-muted);
+    font-size: 0.83rem;
+    font-weight: 400;
+    line-height: 1.45;
+}
+
+.app-bell-when {
+    margin-top: 2px;
+    color: var(--adm-muted-soft);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.app-bell-drop {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--adm-muted-soft);
+    font-size: 0.76rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.app-bell-item:hover .app-bell-drop,
+.app-bell-drop:focus-visible {
+    opacity: 1;
+}
+
+.app-bell-drop:hover {
+    color: var(--adm-danger);
+}
+
+/* En el celular no hay hover, así que el tachito se ve siempre. */
+@media (hover: none) {
+    .app-bell-drop {
+        opacity: 1;
+    }
+}
+
+/* En el celular el panel deja de colgar del botón y se pega a los dos bordes de la
+   pantalla. Colgando del botón, un panel de 370px en una pantalla de 400 se salía por la
+   izquierda y el título quedaba cortado. */
+@media (max-width: 750px) {
+    .app-bell-panel {
+        position: fixed;
+        top: 72px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-height: calc(100vh - 96px);
+    }
+}

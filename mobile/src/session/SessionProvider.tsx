@@ -3,6 +3,7 @@ import api, { setSessionLostHandler } from "../api/client";
 import { login as loginRequest, signUp as signUpRequest, SignUpInput } from "../api/people";
 import { clearTokens, currentUser, loadTokens, Role, saveTokens } from "../api/tokens";
 import { clearAlerts } from "../lib/alerts";
+import { olvidarAvisos } from "../lib/avisos";
 
 export interface Session {
   email: string;
@@ -43,9 +44,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // programados, al teléfono le seguiría sonando el turno de otro.
     await clearAlerts().catch(() => {});
 
+    // Y los de la campanita, por lo mismo: hablan de los turnos y los pacientes del
+    // que se fue, no del que entre después en este teléfono.
+    if (session) olvidarAvisos(session.email);
+
     await clearTokens();
     setSession(null);
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     let alive = true;

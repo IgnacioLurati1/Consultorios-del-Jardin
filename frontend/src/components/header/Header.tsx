@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FaBars } from "react-icons/fa6";
 import { Session } from "./session/Session";
 import { ThemeToggle } from "./ThemeToggle";
+import { NotificationBell } from "../notifications/NotificationBell";
 import { LateralMenu } from "../defaultLayout/lateralMenu/LateralMenu";
 import LogoHojas from "../../assets/LogoHojasRecortado.PNG";
 import "./Header.css";
@@ -45,6 +46,7 @@ export function Header() {
           </Link>
 
           <ThemeToggle />
+          <NotificationBell />
           <Session />
         </div>
       </header>

@@ -1,9 +1,12 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { router } from "expo-router";
+import { ReactNode, useEffect, useRef } from "react";
+import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAvisos } from "../lib/avisos";
 import { longDate, sentenceCase, today } from "../lib/dates";
+import { useUser } from "../session/SessionProvider";
 import { palette, radius, SCREEN_PADDING, space, TOUCH } from "../theme/tokens";
 import { AppText } from "./Text";
 
@@ -30,17 +33,21 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
           </AppText>
         </View>
 
-        {onOpenAssistant ? (
-          <Pressable
-            onPress={onOpenAssistant}
-            accessibilityRole="button"
-            accessibilityLabel="Abrir el asistente"
-            hitSlop={10}
-            style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
-          >
-            <FontAwesome6 name="comment-dots" size={16} color={palette.light.cream} />
-          </Pressable>
-        ) : null}
+        <View style={styles.acciones}>
+          <Campana />
+
+          {onOpenAssistant ? (
+            <Pressable
+              onPress={onOpenAssistant}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir el asistente"
+              hitSlop={10}
+              style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
+            >
+              <FontAwesome6 name="comment-dots" size={16} color={palette.light.cream} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <AppText variant="display" tone="cream">
@@ -53,6 +60,59 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
 
       {children}
     </View>
+  );
+}
+
+/**
+ * La campanita, con el número de lo que no se leyó.
+ *
+ * El número va en rojo siempre que haya algo, y late cuando entre eso hay algo grave. Es
+ * lo único de toda la app que se mueve solo, justamente para que quiera decir algo cuando
+ * pasa. La lista está en su propia pantalla: un panel flotante en un teléfono se toca mal
+ * y tapa lo que hay atrás.
+ */
+function Campana() {
+  const { email } = useUser();
+  const { nuevos, urgente } = useAvisos(email);
+  const latido = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!urgente) return;
+
+    const ciclo = Animated.loop(
+      Animated.sequence([
+        Animated.timing(latido, { toValue: 1, duration: 550, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(latido, { toValue: 0, duration: 550, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      ])
+    );
+
+    ciclo.start();
+    return () => ciclo.stop();
+  }, [urgente, latido]);
+
+  return (
+    <Pressable
+      onPress={() => router.push("/(app)/novedades" as never)}
+      accessibilityRole="button"
+      accessibilityLabel={nuevos === 0 ? "Avisos" : `Avisos, ${nuevos} sin leer`}
+      hitSlop={10}
+      style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
+    >
+      <FontAwesome6 name="bell" size={16} color={palette.light.cream} />
+
+      {nuevos > 0 ? (
+        <Animated.View
+          style={[
+            styles.globo,
+            { transform: [{ scale: latido.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }) }] },
+          ]}
+        >
+          <AppText variant="caption" chrome style={styles.globoTexto}>
+            {nuevos > 9 ? "9+" : nuevos}
+          </AppText>
+        </Animated.View>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -86,6 +146,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(254, 250, 224, 0.12)",
   },
+  acciones: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  /* El globito monta sobre el borde del botón, como el de cualquier campana del sistema.
+     El borde del color del encabezado es lo que lo despega del ícono de atrás. */
+  globo: {
+    position: "absolute",
+    top: 0,
+    right: -1,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    borderColor: palette.light.ink,
+    backgroundColor: "#d93025",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  globoTexto: { color: "#ffffff", fontSize: 10, lineHeight: 12, fontWeight: "700" },
   headline: { color: "rgba(254, 250, 224, 0.82)" },
   pressed: { opacity: 0.6 },
 });
