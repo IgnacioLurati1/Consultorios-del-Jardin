@@ -39,6 +39,30 @@ const MAX_EVENTS = 20000;
 const MAX_OCCURRENCES_PER_EVENT = 1000;
 const MAX_UNZIPPED_BYTES = 80 * 1024 * 1024;
 
+/**
+ * Lo que un evento nuestro trae escrito para la máquina.
+ *
+ * Son las propiedades `X-CDJ-…` que escribe la exportación. Cuando el archivo lo generó
+ * otro calendario no hay ninguna y esto viene en null, que es el caso de siempre: leer un
+ * Google Calendar sigue funcionando exactamente igual que antes.
+ *
+ * Los campos que pueden faltar faltan de verdad. Un turno sin valor no es un turno de
+ * cero, y uno sin cobro registrado no es un turno impago: si el dato no estaba, del otro
+ * lado tampoco tiene que estar.
+ */
+export interface OwnAppointmentData {
+  /** El número que tenía en el sistema de origen. */
+  numAppointment: number | null;
+  state: string | null;
+  idRoom: number | null;
+  overbooked: boolean;
+  value: number | null;
+  paymentState: "unpaid" | "partial" | "paid" | null;
+  paidAmount: number | null;
+  observations: string | null;
+  patientEmail: string | null;
+}
+
 /** Un evento del calendario, ya con la hora del consultorio y en un solo día. */
 export interface CalendarEvent {
   uid: string;
@@ -55,6 +79,8 @@ export interface CalendarEvent {
   cancelled: boolean;
   /** Empieza un día y termina otro: tampoco puede ser un turno. */
   overnight: boolean;
+  /** Los datos propios, si el evento salió de una exportación de la app. */
+  own: OwnAppointmentData | null;
 }
 
 export interface ParseResult {
@@ -154,8 +180,54 @@ function registerTimezones(calendar: ICAL.Component): void {
   }
 }
 
+/**
+ * Los datos propios de un evento, si los tiene.
+ *
+ * Devuelve null en cuanto falta la propiedad que identifica al turno: sin ella lo que hay
+ * es un evento de calendario común, y media docena de propiedades sueltas no alcanzan
+ * para armar un turno. Cada valor se lee con desconfianza —un archivo se puede editar a
+ * mano— así que lo que no sea un número queda en null en vez de entrar como NaN.
+ */
+function ownDataOf(component: ICAL.Component): OwnAppointmentData | null {
+  const text = (name: string): string | null => {
+    const value = component.getFirstPropertyValue(name);
+    return value === null || value === undefined ? null : String(value).trim() || null;
+  };
+
+  const number = (name: string): number | null => {
+    const raw = text(name);
+    if (raw === null) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? Math.round(value) : null;
+  };
+
+  const num = number("x-cdj-appointment");
+  if (num === null) return null;
+
+  const payment = text("x-cdj-payment");
+
+  return {
+    numAppointment: num,
+    state: text("x-cdj-state"),
+    idRoom: number("x-cdj-room"),
+    overbooked: text("x-cdj-overbooked") === "1",
+    value: number("x-cdj-value"),
+    paymentState: payment === "unpaid" || payment === "partial" || payment === "paid" ? payment : null,
+    paidAmount: number("x-cdj-paid"),
+    observations: text("x-cdj-notes"),
+    patientEmail: text("x-cdj-patient")?.toLowerCase() ?? null,
+  };
+}
+
 /** Un evento con su día y su hora ya resueltos. */
-function toEvent(uid: string, summary: string, description: string, start: ICAL.Time, end: ICAL.Time): CalendarEvent {
+function toEvent(
+  uid: string,
+  summary: string,
+  description: string,
+  start: ICAL.Time,
+  end: ICAL.Time,
+  own: OwnAppointmentData | null
+): CalendarEvent {
   const from = clinicTime(start.toJSDate());
   const to = clinicTime(end.toJSDate());
 
@@ -169,6 +241,7 @@ function toEvent(uid: string, summary: string, description: string, start: ICAL.
     allDay: start.isDate,
     cancelled: false,
     overnight: from.date !== to.date,
+    own,
   };
 }
 
@@ -241,9 +314,13 @@ export function parseCalendars(input: Buffer | string, until: Date): ParseResult
       }
 
       const cancelled = String(event.component.getFirstPropertyValue("status") ?? "").toUpperCase() === "CANCELLED";
+      const own = ownDataOf(event.component);
 
       if (!event.isRecurring()) {
-        events.push({ ...toEvent(event.uid, event.summary, event.description, event.startDate, event.endDate), cancelled });
+        events.push({
+          ...toEvent(event.uid, event.summary, event.description, event.startDate, event.endDate, own),
+          cancelled,
+        });
         continue;
       }
 
@@ -269,7 +346,11 @@ export function parseCalendars(input: Buffer | string, until: Date): ParseResult
             occurrence.item.summary,
             occurrence.item.description,
             occurrence.startDate,
-            occurrence.endDate
+            occurrence.endDate,
+            // Solo la primera repetición se queda con el número de turno: son un evento
+            // repetido del calendario, no el mismo turno diez veces. Nuestra exportación
+            // no genera repeticiones, así que esto solo pasa con archivos armados a mano.
+            occurrences === 1 ? own : own && { ...own, numAppointment: null }
           ),
           cancelled,
         });

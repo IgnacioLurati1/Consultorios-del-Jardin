@@ -422,3 +422,103 @@ describe("cómo escribe el archivo cada programa", () => {
     expect(events[0]).toMatchObject({ date: "2026-08-03", initialHour: "14:00", finalHour: "15:00" });
   });
 });
+
+/**
+ * La ida y la vuelta.
+ *
+ * Un archivo que salió de la exportación de la app trae los datos del turno escritos en
+ * propiedades propias, en vez de dejarlos librados a lo que diga el título. Lo que se
+ * prueba acá es esa lectura: que cada dato vuelva como era, que lo que faltaba siga
+ * faltando, y sobre todo que un calendario de afuera —que no tiene ninguna de estas
+ * propiedades— siga entrando exactamente como antes.
+ */
+describe("los datos propios de un archivo exportado por la app", () => {
+  const evento = (extra: string[]) => [
+    "BEGIN:VEVENT",
+    "UID:turno-341@consultoriosdeljardin",
+    "DTSTAMP:20260701T120000Z",
+    "DTSTART;TZID=America/Argentina/Buenos_Aires:20260803T140000",
+    "DTEND;TZID=America/Argentina/Buenos_Aires:20260803T150000",
+    "SUMMARY:Pedro\, Juan",
+    ...extra,
+    "END:VEVENT",
+  ];
+
+  it("los lee todos y los devuelve como eran", () => {
+    const { events } = parseCalendars(
+      calendar(
+        evento([
+          "X-CDJ-APPOINTMENT:341",
+          "X-CDJ-STATE:assisted",
+          "X-CDJ-ROOM:7",
+          "X-CDJ-OVERBOOKED:1",
+          "X-CDJ-VALUE:6000",
+          "X-CDJ-PAYMENT:partial",
+          "X-CDJ-PAID:2500",
+          "X-CDJ-NOTES:Trabajamos los objetivos del mes",
+          "X-CDJ-PATIENT:Juan@Gmail.com",
+        ])
+      ),
+      HASTA
+    );
+
+    expect(events[0].own).toEqual({
+      numAppointment: 341,
+      state: "assisted",
+      idRoom: 7,
+      overbooked: true,
+      value: 6000,
+      paymentState: "partial",
+      paidAmount: 2500,
+      observations: "Trabajamos los objetivos del mes",
+      // El mail es la clave de la ficha y se guarda en minúscula: buscarlo como vino
+      // dejaría al turno sin paciente por una mayúscula.
+      patientEmail: "juan@gmail.com",
+    });
+  });
+
+  it("lo que el turno no tenía sigue sin tenerlo", () => {
+    // Sin valor no es valor cero, y sin cobro registrado no es un turno impago.
+    const { events } = parseCalendars(
+      calendar(evento(["X-CDJ-APPOINTMENT:12", "X-CDJ-STATE:accepted", "X-CDJ-ROOM:1", "X-CDJ-OVERBOOKED:0"])),
+      HASTA
+    );
+
+    expect(events[0].own).toMatchObject({
+      value: null,
+      paymentState: null,
+      paidAmount: null,
+      observations: null,
+      patientEmail: null,
+      overbooked: false,
+    });
+  });
+
+  it("un calendario de afuera no trae nada de esto", () => {
+    const { events } = parseCalendars(calendar(evento([])), HASTA);
+    expect(events[0].own).toBeNull();
+  });
+
+  it("sin el número de turno no hay datos propios, por más propiedades sueltas que haya", () => {
+    const { events } = parseCalendars(calendar(evento(["X-CDJ-STATE:assisted", "X-CDJ-VALUE:6000"])), HASTA);
+    expect(events[0].own).toBeNull();
+  });
+
+  it("un archivo tocado a mano no rompe nada", () => {
+    // Los valores que no son números quedan en null en vez de entrar como NaN, y un cobro
+    // que no es ninguno de los tres posibles se descarta.
+    const { events } = parseCalendars(
+      calendar(
+        evento([
+          "X-CDJ-APPOINTMENT:99",
+          "X-CDJ-VALUE:muchísimo",
+          "X-CDJ-ROOM:la de siempre",
+          "X-CDJ-PAYMENT:regalado",
+        ])
+      ),
+      HASTA
+    );
+
+    expect(events[0].own).toMatchObject({ numAppointment: 99, value: null, idRoom: null, paymentState: null });
+  });
+});

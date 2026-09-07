@@ -7,7 +7,7 @@ import { Room } from "../rooms/rooms.entity.js";
 import { Schedule } from "../schedule/schedules.entity.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { parseISODate, startOfDay, toISODate } from "../shared/dates.js";
-import { CalendarEvent, CLINIC_TIMEZONE, parseCalendars } from "./calendar.parser.js";
+import { CalendarEvent, CLINIC_TIMEZONE, OwnAppointmentData, parseCalendars } from "./calendar.parser.js";
 
 /**
  * Convertir el calendario de alguien en turnos del consultorio.
@@ -35,6 +35,21 @@ import { CalendarEvent, CLINIC_TIMEZONE, parseCalendars } from "./calendar.parse
  * el único dato del que se puede deducir, y también lo que define qué entra: un evento que
  * no cae en ningún horario de atención no es un turno, es cualquier otra cosa que la
  * persona tenía anotada.
+ *
+ * Todo eso vale para un calendario de afuera. Un archivo que salió de la exportación de la
+ * app es otra cosa: ahí los datos no hay que deducirlos porque están escritos, uno por uno,
+ * en las propiedades `X-CDJ-…` de cada evento. Cuando el evento las trae se usan tal cual
+ * —el paciente, el valor, el cobro, el consultorio, las observaciones, si era sobreturno—
+ * y el turno vuelve a entrar completo. Es lo que hace que exportar e importar sean de
+ * verdad la ida y la vuelta del mismo camino, y no dos operaciones parecidas.
+ *
+ * Las dos únicas cosas que no vuelven, aunque estén en el archivo:
+ *
+ * - **El paciente que no existe en este consultorio.** Viaja el mail, y con eso se lo
+ *   busca. Si no está, el turno entra sin paciente en vez de crear una ficha a partir de
+ *   una dirección de correo suelta.
+ * - **Los turnos cancelados.** El calendario los marca como cancelados y el importador los
+ *   saltea, igual que antes. Un turno cancelado es algo que no pasó.
  */
 
 /** Los días como los guardan los horarios de atención: en minúscula y sin acentos. */
@@ -79,7 +94,15 @@ export interface PlannedAppointment {
   room: string;
   value: number | null;
   state: string;
-  paymentState: "unpaid" | "paid" | null;
+  paymentState: "unpaid" | "partial" | "paid" | null;
+  /** Cuánto se cobró, solo en los pagos parciales que vuelven de una exportación nuestra. */
+  paidAmount: number | null;
+  /** El paciente, si el archivo lo traía y esa persona existe acá. */
+  patientEmail: string | null;
+  /** Era un sobreturno en el sistema de origen. */
+  overbooked: boolean;
+  /** Vino de una exportación de la app, así que entra con todos sus datos. */
+  fromExport: boolean;
   observations: string | null;
   /** Ya pasó: es lo que decide el estado y el cobro en las opciones "los que pasaron". */
   past: boolean;
@@ -318,6 +341,32 @@ export class CalendarImportService {
     // saltea igual que antes.
     const fallback = options.outsideSchedule ? busiestRoom(schedules) : null;
 
+    /*
+     * Lo que hace falta para reconstruir un turno exportado por la app.
+     *
+     * Las dos consultas salen una sola vez y solo cuando el archivo trae datos propios: un
+     * Google Calendar común no las necesita, y son las dos únicas que este recorrido hace
+     * fuera de lo que ya hacía.
+     *
+     * Los consultorios se buscan todos los activos y no los del profesional: un turno
+     * puede haberse dado en una sala donde hoy no tiene horario, y el archivo dice cuál
+     * era. Los pacientes se buscan por el mail que viajó, y solo entran los que existen
+     * acá: importar no da de alta a nadie.
+     */
+    const conDatosPropios = parsed.events.filter((event) => event.own);
+    const salas = new Map<number, Room>();
+    const pacientes = new Set<string>();
+
+    if (conDatosPropios.length > 0) {
+      for (const room of await em.find(Room, { active: true })) salas.set(room.idRoom!, room);
+
+      const buscados = [...new Set(conDatosPropios.map((event) => event.own!.patientEmail).filter(Boolean))] as string[];
+
+      if (buscados.length > 0)
+        for (const person of await em.find(Person, { email: { $in: buscados }, type: "client" }))
+          pacientes.add(person.email);
+    }
+
     const now = nowInClinic();
     const fromKey = toISODate(from);
     const toKey = toISODate(to);
@@ -338,7 +387,7 @@ export class CalendarImportService {
         continue;
       }
 
-      const reason = this.rejectionOf(event, schedules, taken, fallback);
+      const reason = this.rejectionOf(event, schedules, taken, fallback, salas);
       if (typeof reason === "string") {
         skipped.push({ summary: this.title(event), when: `${event.date} ${event.initialHour}`, reason });
         continue;
@@ -355,26 +404,54 @@ export class CalendarImportService {
 
       const { room, schedule } = reason;
       const past = event.date < now.date || (event.date === now.date && event.finalHour <= now.hour);
+      const own = event.own;
 
+      /*
+       * Lo que el archivo dice, cuando lo dice.
+       *
+       * Los datos propios le ganan a las opciones de la pantalla, y tiene que ser así: las
+       * opciones existen para completar lo que un calendario ajeno no trae. Cuando el
+       * turno viene con su estado y su cobro escritos, elegir "todos confirmados" por
+       * encima de eso sería tirar el dato bueno y quedarse con la suposición.
+       */
       planned.push({
         date: event.date,
         initialHour: event.initialHour,
         finalHour: event.finalHour,
         idRoom: room.idRoom!,
         room: room.description,
-        value: readValue(`${event.summary} ${event.description}`),
-        state: options.state === "all-accepted" ? "accepted" : options.state === "all-assisted" ? "assisted" : past ? "assisted" : "accepted",
-        paymentState: this.paymentFor(options.payment, past),
-        observations: options.keepTitle && event.summary ? event.summary : null,
+        value: own?.value ?? (own ? null : readValue(`${event.summary} ${event.description}`)),
+        state:
+          own && ACTIVE_APPOINTMENT_STATES.includes(own.state ?? "")
+            ? own.state!
+            : options.state === "all-accepted"
+              ? "accepted"
+              : options.state === "all-assisted"
+                ? "assisted"
+                : past
+                  ? "assisted"
+                  : "accepted",
+        paymentState: own ? own.paymentState : this.paymentFor(options.payment, past),
+        paidAmount: own?.paymentState === "partial" ? own.paidAmount : null,
+        patientEmail: own?.patientEmail && pacientes.has(own.patientEmail) ? own.patientEmail : null,
+        overbooked: own?.overbooked ?? false,
+        fromExport: !!own,
+        observations: own ? own.observations : options.keepTitle && event.summary ? event.summary : null,
         past,
         // No arranca donde arranca un módulo, o no dura lo que dura uno. Entra igual
         // —es histórico— pero la previa lo dice, porque en la agenda va a verse corrido.
         // El que ni siquiera cae en un horario está fuera de la grilla por definición.
+        //
+        // Un sobreturno no se marca: estar fuera de la grilla es lo que es un sobreturno,
+        // y avisarlo sería avisar de algo que se hizo a propósito.
         offGrid:
-          schedule === null ||
-          (minutesOf(event.initialHour) - minutesOf(schedule.initialHour)) % schedule.duration !== 0 ||
-          minutesOf(event.finalHour) - minutesOf(event.initialHour) !== schedule.duration,
-        outsideSchedule: schedule === null,
+          !own?.overbooked &&
+          (schedule === null ||
+            (minutesOf(event.initialHour) - minutesOf(schedule.initialHour)) % schedule.duration !== 0 ||
+            minutesOf(event.finalHour) - minutesOf(event.initialHour) !== schedule.duration),
+        // Solo cuando el consultorio lo elegimos nosotros. Si el archivo dice en qué sala
+        // fue, no hay nada que avisar aunque hoy no haya horario a esa hora.
+        outsideSchedule: schedule === null && own?.idRoom == null,
         summary: this.title(event),
       });
 
@@ -441,15 +518,29 @@ export class CalendarImportService {
     em: EntityManager,
     professionalEmail: string,
     batch: PlannedAppointment[]
-  ): Promise<{ professional: Person; rooms: Map<number, Room> }> {
+  ): Promise<{ professional: Person; rooms: Map<number, Room>; patients: Map<string, Person> }> {
     const professional = await em.findOneOrFail(Person, { email: professionalEmail });
     const rooms = await em.find(Room, { idRoom: { $in: [...new Set(batch.map((item) => item.idRoom))] } });
 
-    return { professional, rooms: new Map(rooms.map((room) => [room.idRoom!, room])) };
+    // Los pacientes solo existen cuando el archivo los traía. Se buscan de nuevo y no se
+    // arrastran del plan: entre la previa y el guardado alguien pudo darse de baja, y un
+    // turno atado a una ficha que ya no está no se guarda.
+    const emails = [...new Set(batch.map((item) => item.patientEmail).filter(Boolean))] as string[];
+    const patients = emails.length > 0 ? await em.find(Person, { email: { $in: emails } }) : [];
+
+    return {
+      professional,
+      rooms: new Map(rooms.map((room) => [room.idRoom!, room])),
+      patients: new Map(patients.map((patient) => [patient.email, patient])),
+    };
   }
 
   /** Un turno importado, listo para guardar. */
-  private build(em: EntityManager, context: { professional: Person; rooms: Map<number, Room> }, item: PlannedAppointment): Appointment {
+  private build(
+    em: EntityManager,
+    context: { professional: Person; rooms: Map<number, Room>; patients: Map<string, Person> },
+    item: PlannedAppointment
+  ): Appointment {
     const room = context.rooms.get(item.idRoom);
     if (!room) throw badRequest("El consultorio de ese turno ya no existe");
 
@@ -458,22 +549,29 @@ export class CalendarImportService {
       initialHour: item.initialHour,
       finalHour: item.finalHour,
       professional: context.professional,
-      // Sin paciente: el calendario no dice quién es de una forma en la que se pueda
-      // confiar, y el turno se asigna después desde la pantalla del turno.
-      patient: null,
+      /*
+       * El paciente solo cuando el archivo lo dijo y esa persona existe acá.
+       *
+       * De un calendario ajeno sigue entrando en null: ahí el paciente es un texto libre
+       * —a veces el nombre, a veces un apodo, a veces nada— y adivinar a quién se refiere
+       * significaría meter turnos en la ficha de la persona equivocada. Lo que cambió es
+       * que una exportación nuestra no adivina: manda el mail, que es la clave de la ficha.
+       */
+      patient: item.patientEmail ? (context.patients.get(item.patientEmail) ?? null) : null,
       room,
       value: item.value,
       state: item.state,
       observations: item.observations,
       paymentState: item.paymentState,
-      paidAmount: null,
-      // No se avisa nada por mail: no hay paciente a quien avisarle, y aunque lo hubiera,
-      // un recordatorio de un turno de hace dos años no le sirve a nadie.
+      paidAmount: item.paidAmount,
+      // No se avisa nada por mail. Al que entra sin paciente no hay a quién avisarle, y al
+      // que vuelve de una exportación tampoco: es un turno que esa persona ya tuvo.
       reminderSent: "sent",
-      // Un turno importado no es un sobreturno. El sobreturno es una decisión —meter uno
-      // de más fuera del horario— y contarlos juntos ensuciaría esa cuenta en los números
-      // del consultorio. Que no entre justo en la grilla ya se ve en el horario.
-      overbooked: false,
+      // Un turno traído de un calendario ajeno no es un sobreturno: el sobreturno es una
+      // decisión —meter uno de más fuera del horario— y contarlos juntos ensuciaría esa
+      // cuenta en los números del consultorio. El que vuelve de una exportación sí lo es
+      // si lo era, porque ahí no se está deduciendo nada.
+      overbooked: item.overbooked,
       origin: "import",
       recurrence: null,
     });
@@ -506,7 +604,8 @@ export class CalendarImportService {
     event: CalendarEvent,
     schedules: Schedule[],
     taken: Map<string, { initialHour: string; finalHour: string }[]>,
-    fallback: Room | null
+    fallback: Room | null,
+    salas: Map<number, Room>
   ): string | { room: Room; schedule: Schedule | null } {
     if (event.cancelled) return "En el calendario estaba cancelado.";
     if (event.allDay) return "Ocupa el día entero y no dice a qué hora era.";
@@ -526,10 +625,25 @@ export class CalendarImportService {
     // baja, el turno tiene por qué ir al otro en vez de quedar afuera.
     const usable = covering.find((schedule) => schedule.room.active) ?? null;
 
+    /*
+     * El consultorio que dice el archivo, cuando el archivo lo dice y esa sala sigue
+     * existiendo.
+     *
+     * Le gana a la deducción por horarios, y también deja entrar al turno que hoy no
+     * caería en ninguno: un turno exportado ocurrió en una sala concreta, y que el
+     * profesional haya cambiado su grilla desde entonces no lo convierte en otra cosa. Es
+     * lo que hace que un sobreturno vuelva a entrar, que por definición está fuera de la
+     * grilla.
+     */
+    const propia = event.own?.idRoom != null ? (salas.get(event.own.idRoom) ?? null) : null;
+
     let room: Room;
     let schedule: Schedule | null;
 
-    if (usable) {
+    if (propia) {
+      room = propia;
+      schedule = usable;
+    } else if (usable) {
       room = usable.room;
       schedule = usable;
     } else {

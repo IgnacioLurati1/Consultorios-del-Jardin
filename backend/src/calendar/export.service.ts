@@ -21,6 +21,14 @@ import { CLINIC_TIMEZONE } from "./calendar.parser.js";
  * - **Las horas van con la zona del consultorio escrita al lado**, y no convertidas a
  *   otra. El turno guarda la hora que se lee en la pared —"el lunes a las 14:00"— así que
  *   se copia tal cual y no hay ninguna cuenta que pueda salir mal.
+ *
+ * Y una tercera, que es la que hace que la ida y la vuelta cierren: **cada evento lleva
+ * además los datos del turno en propiedades propias**, las `X-CDJ-…`. El texto que se lee
+ * en el calendario está escrito para una persona —"Estado — Vino"— y volver a leerlo de
+ * ahí sería adivinar sobre un texto que existe para otra cosa. Las propiedades de abajo
+ * están escritas para la máquina: el importador las lee y reconstruye el turno entero, con
+ * su valor, su cobro, su consultorio y su paciente. Un calendario que no las entienda las
+ * ignora, que es exactamente lo que el formato manda hacer con lo que empieza en `X-`.
  */
 
 export interface ExportOptions {
@@ -134,6 +142,40 @@ function description(appointment: Appointment): string {
   return lines.join("\n");
 }
 
+/**
+ * Los datos del turno, escritos para que los lea la vuelta.
+ *
+ * Van solo los que no se pueden deducir del evento: la hora y el día ya están arriba, y
+ * el título es del calendario, no del turno. El paciente viaja únicamente cuando se pidió
+ * que su nombre saliera en el archivo. Es la misma decisión tomada una sola vez: si
+ * alguien eligió que este `.ics` no diga a quién atiende, esconderlo del título y meterlo
+ * acá abajo sería sacarlo igual, con la diferencia de que no se ve.
+ */
+function ownProperties(appointment: Appointment, withPatientName: boolean): string[] {
+  const lines = [
+    `X-CDJ-APPOINTMENT:${appointment.numAppointment}`,
+    `X-CDJ-STATE:${escape(appointment.state)}`,
+    `X-CDJ-ROOM:${appointment.room?.idRoom ?? ""}`,
+    `X-CDJ-OVERBOOKED:${appointment.overbooked ? "1" : "0"}`,
+  ];
+
+  // El valor y el cobro se escriben solo cuando existen. Un turno sin valor no es un turno
+  // de cero, y uno sin cobro registrado no es un turno impago: en los dos casos el dato
+  // que falta tiene que seguir faltando del otro lado.
+  if (appointment.value != null) lines.push(`X-CDJ-VALUE:${appointment.value}`);
+  if (appointment.paymentState) lines.push(`X-CDJ-PAYMENT:${appointment.paymentState}`);
+  if (appointment.paymentState === "partial" && appointment.paidAmount != null)
+    lines.push(`X-CDJ-PAID:${appointment.paidAmount}`);
+
+  // Las observaciones también están en la descripción, mezcladas con el resto. Acá van
+  // solas, que es la única forma de volver a guardarlas como observaciones y no como un
+  // párrafo con el estado y el precio adentro.
+  if (appointment.observations) lines.push(fold(`X-CDJ-NOTES:${escape(appointment.observations)}`));
+  if (withPatientName && appointment.patient) lines.push(`X-CDJ-PATIENT:${escape(appointment.patient.email)}`);
+
+  return lines;
+}
+
 /** Cómo se llama el evento en el calendario de destino. */
 function summary(appointment: Appointment, withPatientName: boolean): string {
   if (!appointment.patient) return "Turno sin paciente";
@@ -177,6 +219,9 @@ export class CalendarExportService {
       "PRODID:-//Consultorios del Jardin//Agenda//ES",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
+      // Qué versión de los datos propios lleva el archivo. Sirve el día que cambie lo que
+      // se escribe en las X-CDJ-: el importador va a poder saber qué está leyendo.
+      "X-CDJ-VERSION:1",
       `X-WR-CALNAME:${escape(`Turnos de ${professional.surname}, ${professional.name}`)}`,
       `X-WR-TIMEZONE:${CLINIC_TIMEZONE}`,
       // La zona del consultorio, declarada adentro del archivo para que el programa que lo
@@ -213,6 +258,7 @@ export class CalendarExportService {
           )}`
         ),
         `STATUS:${cancelled ? "CANCELLED" : appointment.state === "pending" ? "TENTATIVE" : "CONFIRMED"}`,
+        ...ownProperties(appointment, options.withPatientName),
         "END:VEVENT"
       );
     }
