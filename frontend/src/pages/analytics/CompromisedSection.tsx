@@ -112,7 +112,7 @@ function Account({ account, open, onToggle }: { account: CompromisedAccount; ope
 
         <span className="cmp-state">
           {account.active ? (
-            <Hint text="Es la única cuenta de administración activa. Cerrarla dejaría el sistema sin nadie que pueda volver a abrir nada, así que quedó marcada y con el acceso abierto: revisala a mano.">
+            <Hint text="Es la única cuenta de administración activa. Cerrarla dejaría el sistema sin nadie que pueda volver a abrir nada, así que quedó marcada y con el acceso abierto. Revisala a mano.">
               <span className="adm-badge adm-badge-amber">Marcada, sin cerrar</span>
             </Hint>
           ) : (

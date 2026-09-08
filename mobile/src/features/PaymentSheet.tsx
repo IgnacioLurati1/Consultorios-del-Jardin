@@ -53,8 +53,8 @@ export function PaymentSheet({
     if (state !== "partial") return null;
     if (value <= 0) return "Para registrar un pago parcial el turno tiene que tener un valor cargado.";
     if (!amount.trim() || !Number.isFinite(paid) || paid <= 0) return "Escribí cuánto pagó.";
-    if (paid > value) return `El turno vale ${money(value)}: no puede haber pagado más que eso.`;
-    if (paid === value) return `Pagó ${money(value)}, o sea todo: marcalo como "Pagó".`;
+    if (paid > value) return `El turno vale ${money(value)}. No puede haber pagado más que eso.`;
+    if (paid === value) return `Pagó ${money(value)}, o sea todo. Marcalo como "Pagó".`;
     return null;
   }
 

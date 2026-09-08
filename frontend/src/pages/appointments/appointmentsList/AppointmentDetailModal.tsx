@@ -213,8 +213,8 @@ export function AppointmentDetailModal({
     if (payment !== "partial") return null;
     if (value <= 0) return "Para registrar un pago parcial el turno tiene que tener un valor cargado.";
     if (!paidAmount.trim() || !Number.isFinite(amount) || amount <= 0) return "Escribí cuánto pagó.";
-    if (amount > value) return `El turno vale $${value}: no puede haber pagado más que eso.`;
-    if (amount === value) return `Pagó los $${value} completos: marcalo como "Pagó".`;
+    if (amount > value) return `El turno vale $${value}. No puede haber pagado más que eso.`;
+    if (amount === value) return `Pagó los $${value} completos. Marcalo como "Pagó".`;
     return null;
   }
 
@@ -457,7 +457,7 @@ export function AppointmentDetailModal({
                   <option value="assisted">Asistió</option>
                   <option value="missed">No vino</option>
                 </select>
-                {!isPast && state === "missed" && <small className="ui-hint">Ojo: este turno todavía no pasó.</small>}
+                {!isPast && state === "missed" && <small className="ui-hint">Ojo, este turno todavía no pasó.</small>}
               </label>
 
               <label className="ui-field">
@@ -605,7 +605,7 @@ export function AppointmentDetailModal({
                       Frenar la repetición
                     </button>
                   </div>
-                  <p className="ui-hint">Frenarla no borra los turnos ya creados: esos se cancelan de a uno.</p>
+                  <p className="ui-hint">Frenarla no borra los turnos ya creados. Esos se cancelan de a uno.</p>
                 </>
               ) : (
                 <>

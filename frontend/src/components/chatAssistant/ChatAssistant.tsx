@@ -54,15 +54,15 @@ function saveChat(messages: ChatMessage[]): void {
 const GREETINGS: Record<string, string[]> = {
     client: [
         "Puedo mostrarte tus turnos, buscarte profesionales y sacarte uno nuevo.",
-        "Probá con: “¿qué turnos tengo?” o “quiero un turno de nutrición”.",
+        "Probá con “¿qué turnos tengo?” o “quiero un turno de nutrición”.",
     ],
     professional: [
         "Puedo mostrarte tu agenda, confirmar o rechazar turnos pendientes y darte tus números.",
-        "Probá con: “¿qué tengo mañana?” o “¿cómo vengo este mes?”.",
+        "Probá con “¿qué tengo mañana?” o “¿cómo vengo este mes?”.",
     ],
     admin: [
         "Puedo darte los números del consultorio, decirte quién está dando sobreturnos y llevarte a cada pantalla del panel.",
-        "Probá con: “¿quién hace sobreturnos esta semana?” o “necesito cambiar una provincia”.",
+        "Probá con “¿quién hace sobreturnos esta semana?” o “necesito cambiar una provincia”.",
     ],
 };
 
