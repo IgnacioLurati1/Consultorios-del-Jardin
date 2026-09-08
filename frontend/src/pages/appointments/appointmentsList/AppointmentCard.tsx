@@ -25,7 +25,13 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
   // baja la ve igual al abrir el turno.
   const notice = isProfessional ? cancellationNotice(appointment) : null;
 
-  const stateClass = cancelled ? "cancelled" : appointment.state;
+  /*
+   * Un cancelado sale apagado, y está bien: es lo que ya no va a pasar. Pero prendiendo
+   * "ver los cancelados" quedan todos iguales, y el que avisó sobre la hora es el único
+   * que el profesional está buscando ahí adentro. Va con el color de lo que hay que
+   * mirar, igual que un "No vino", que es a lo que se parece en consecuencias.
+   */
+  const stateClass = cancelled ? (notice?.short ? "cancelled late" : "cancelled") : appointment.state;
 
   const counterpart = isProfessional
     ? appointment.patient

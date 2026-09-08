@@ -1,7 +1,15 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { FaPlus } from "react-icons/fa6";
 import type { Appointment, Person, Schedule } from "../../types.ts";
-import { addDays, appointmentDate, describeState, isCancelled, shortHour, toISODate } from "../appointmentTypes.ts";
+import {
+  addDays,
+  appointmentDate,
+  cancellationNotice,
+  describeState,
+  isCancelled,
+  shortHour,
+  toISODate,
+} from "../appointmentTypes.ts";
 import { freeDaySlots, type DaySlot } from "../freeSlots.ts";
 import { WeekGrid, type WeekGridDay } from "../../../components/weekGrid/WeekGrid.tsx";
 
@@ -78,6 +86,13 @@ export function AppointmentWeekGrid({
 
     const celdas: Celda[] = dayAppointments.map((appointment) => {
       const state = describeState(appointment.state);
+
+      // La misma marca que la lista, por lo mismo: entre todos los cancelados en gris, el
+      // que avisó sobre la hora es el único que el profesional está buscando.
+      const notice = isProfessional ? cancellationNotice(appointment) : null;
+      const cancelled = isCancelled(appointment.state);
+      const stateClass = cancelled ? (notice?.short ? "cancelled late" : "cancelled") : appointment.state;
+
       const counterpart = isProfessional
         ? appointment.patient
           ? `${appointment.patient.surname}, ${appointment.patient.name}`
@@ -90,13 +105,11 @@ export function AppointmentWeekGrid({
           <button
             type="button"
             key={`turno-${appointment.numAppointment}`}
-            className={`week-slot state-${isCancelled(appointment.state) ? "cancelled" : appointment.state} ${
-              appointment.overbooked ? "overbooked" : ""
-            }`}
+            className={`week-slot state-${stateClass} ${appointment.overbooked ? "overbooked" : ""}`}
             onClick={() => onOpen(appointment)}
             title={`${shortHour(appointment.initialHour)} · ${counterpart} · ${state.label}${
-              appointment.overbooked ? " · sobreturno" : ""
-            }`}
+              notice?.short ? " · dio de baja sobre la hora" : ""
+            }${appointment.overbooked ? " · sobreturno" : ""}`}
             {...quickActions?.(appointment)}
           >
             <span className="week-slot-hour">

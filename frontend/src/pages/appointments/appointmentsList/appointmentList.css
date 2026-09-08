@@ -156,6 +156,19 @@
   text-decoration: line-through;
 }
 
+/* La baja sobre la hora, entre los cancelados.
+   Sigue tachada, porque el turno no va a pasar, pero con el color de lo que hay que
+   mirar: es el unico cancelado que el profesional busca cuando prende "ver cancelados",
+   y en gris queda escondido entre los demas. */
+.appt-card.state-cancelled.late {
+  border-left-color: var(--adm-danger);
+  opacity: 1;
+}
+
+.appt-card.state-cancelled.late .appt-card-hours {
+  color: var(--adm-danger);
+}
+
 .appt-card-hours {
   display: inline-flex;
   align-items: center;
@@ -245,6 +258,15 @@
 
 .week-slot.state-cancelled .week-slot-hour {
   text-decoration: line-through;
+}
+
+/* Lo mismo en la grilla. El fondo se pinta apenas: la celda es chica y un rojo lleno
+   arriba de un texto tachado no se lee. */
+.week-slot.state-cancelled.late {
+  background: var(--adm-danger-soft);
+  border-color: var(--adm-danger-line);
+  border-left-color: var(--adm-danger);
+  color: var(--adm-danger);
 }
 
 /* ---------- el rato libre ----------
