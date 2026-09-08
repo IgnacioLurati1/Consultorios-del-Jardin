@@ -100,6 +100,74 @@ export function factsCard(headline: string, facts: Fact[]): string {
     </table>`;
 }
 
+/**
+ * Un encabezado de sección, con la línea chica de arriba.
+ *
+ * Es el mismo par que abre cada bloque de la portada. Sirve para separar "lo que pasó"
+ * de "lo que podés hacer" sin meter una raya en el medio.
+ */
+export function sectionHead(kicker: string, headline: string): string {
+  return `
+    <p style="margin:26px 0 6px;font-size:12px;font-weight:bold;letter-spacing:0.14em;text-transform:uppercase;color:${C.green}">${escapeHtml(
+      kicker
+    )}</p>
+    <p style="margin:0 0 4px;font-family:${SERIF};font-size:22px;line-height:1.2;color:${C.ink}">${escapeHtml(
+      headline
+    )}</p>`;
+}
+
+/**
+ * Las tarjetas de acceso de la portada, tal como se ven en la página.
+ *
+ * Blancas sobre el gris del papel, con el borde fino, la esquina redondeada y el filo
+ * verde arriba. Es el mismo objeto que la persona va a encontrar cuando entre, así que el
+ * mail funciona como una foto de adónde va y no como una lista de promesas.
+ *
+ * De a dos por fila y en tablas anidadas, que es la única grilla que entienden Outlook y
+ * Gmail. Con una cantidad impar, la última queda sola a la izquierda y ocupa su mitad.
+ */
+export function featureCards(items: Array<{ title: string; text: string }>): string {
+  // El filo verde es el borde de arriba de la tarjeta y no una fila aparte: como fila
+  // dejaba una hendija blanca de un píxel en cada punta, donde asoma el borde del recuadro.
+  const card = (item: { title: string; text: string }) => `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" height="100%" style="height:100%;background:#ffffff;border:1px solid ${C.border};border-top:3px solid ${C.green};border-radius:12px;border-collapse:separate">
+      <tr>
+        <td style="padding:13px 16px 15px">
+          <p style="margin:0;font-family:${SERIF};font-size:17px;line-height:1.25;color:${C.greenDark}">${escapeHtml(
+            item.title
+          )}</p>
+          <p style="margin:6px 0 0;font-size:13.5px;line-height:1.5;color:${C.muted}">${escapeHtml(item.text)}</p>
+        </td>
+      </tr>
+    </table>`;
+
+  const filas: string[] = [];
+
+  for (let i = 0; i < items.length; i += 2) {
+    const izquierda = items[i];
+    const derecha = items[i + 1];
+
+    filas.push(`
+      <tr>
+        <td width="50%" height="100%" style="width:50%;height:100%;padding:0 6px 12px 0;vertical-align:top">${card(izquierda)}</td>
+        <td width="50%" height="100%" style="width:50%;height:100%;padding:0 0 12px 6px;vertical-align:top">${
+          derecha ? card(derecha) : "&nbsp;"
+        }</td>
+      </tr>`);
+  }
+
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:14px 0 6px">
+      <tr>
+        <td style="padding:16px 16px 4px;background:${C.paper};border-radius:14px">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate">${filas.join(
+            ""
+          )}</table>
+        </td>
+      </tr>
+    </table>`;
+}
+
 /** El texto que escribió una persona, mostrado como cita y no como parte del mail. */
 export function quote(text: string): string {
   return `

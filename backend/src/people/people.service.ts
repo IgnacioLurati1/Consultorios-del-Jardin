@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { Schedule } from "../schedule/schedules.entity.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import MailService from "../config/mailer.js";
-import { button, escapeHtml, note, paragraph, title } from "../config/mailTemplate.js";
+import { button, escapeHtml, featureCards, note, paragraph, sectionHead, title } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import type { ClientChannel } from "../config/clients.js";
 import { startOfDay } from "../shared/dates.js";
@@ -252,21 +252,58 @@ export class PeopleService {
     return person;
   }
 
+  /**
+   * La bienvenida, con lo que se puede hacer.
+   *
+   * Son dos mails y no uno. La misma función daba de alta pacientes y profesionales, así
+   * que a quien venía a atender le llegaba "pedí turno con cualquiera de nuestros
+   * profesionales", que no es lo que va a hacer con la cuenta.
+   *
+   * Lo que se lista es lo que hay en el menú de cada rol, y nada más. Prometer en un mail
+   * algo que después no está en pantalla es peor que no explicar nada.
+   */
   private async sendWelcomeEmail(person: Person) {
+    const base = process.env.BASE_URL ?? "";
     const name = person.name ? `, ${escapeHtml(person.name)}` : "";
+    const professional = person.type === "professional";
 
-    const htmlContent = [
-      title(`Bienvenido/a${name}`),
-      paragraph("Tu cuenta ya está lista. Desde ahora podés pedir turno con cualquiera de nuestros profesionales, ver los horarios que tienen libres y cancelar sin llamar por teléfono."),
-      paragraph("Cuando pidas un turno te vamos a escribir a este mismo mail: primero para avisarte que el profesional lo confirmó, y después el día anterior como recordatorio."),
-      button("Pedir mi primer turno", `${process.env.BASE_URL ?? ""}/Appointment`),
-      note("Si no fuiste vos quien creó esta cuenta, ignorá este mensaje y no vamos a volver a escribirte."),
-    ].join("");
+    const htmlContent = professional
+      ? [
+          title(`Bienvenido/a${name}`),
+          paragraph("Tu cuenta de profesional ya está lista y tu agenda te está esperando."),
+          sectionHead("Tu espacio", "Todo lo tuyo, a un toque"),
+          featureCards([
+            { title: "Turnos", text: "Tu agenda en grilla o en lista, con el estado y el paciente de cada turno." },
+            { title: "Horarios", text: "Los módulos que atendés, en qué consultorio y cuánto dura cada turno." },
+            { title: "Pacientes", text: "Con cuenta y anónimos, con su historial y tus observaciones." },
+            { title: "Números", text: "Facturación, pacientes y carga de la agenda." },
+            { title: "Los pedidos", text: "Confirmás o rechazás lo que piden. O dejás que se confirmen solos." },
+            { title: "Pedir un turno", text: "También te podés atender vos, como cualquier paciente." },
+          ]),
+          button("Entrar a mi panel", `${base}/ProfessionalHome`),
+          note("Todo esto está también en la aplicación del celular, con la misma cuenta."),
+        ]
+      : [
+          title(`Bienvenido/a${name}`),
+          paragraph("Tu cuenta ya está lista. La agenda está disponible a cualquier hora, sin llamar ni esperar a que abran."),
+          sectionHead("Tu espacio", "Todo lo tuyo, a un toque"),
+          featureCards([
+            { title: "Pedir un turno", text: "Elegí especialidad, profesional y horario." },
+            { title: "Mis turnos", text: "Los que tenés agendados y los que ya pasaron." },
+            { title: "Cancelar", text: "Desde la misma pantalla, hasta el día anterior." },
+            { title: "Mis datos", text: "Tu teléfono, tu mail y tu contraseña." },
+          ]),
+          button("Pedir mi primer turno", `${base}/Appointment`),
+          note(
+            "El día anterior al turno te escribimos un recordatorio, así no se te pasa. Todo esto está también en la " +
+              "aplicación del celular, con la misma cuenta."
+          ),
+        ];
 
     const message = await this.mailService.createMessage(
       person.email,
       "Bienvenido/a a Consultorios del Jardín",
-      htmlContent
+      [...htmlContent, note("Si no fuiste vos quien creó esta cuenta, ignorá este mensaje y no vamos a volver a escribirte.")].join("")
     );
     await this.mailService.sendMail(message);
   }
