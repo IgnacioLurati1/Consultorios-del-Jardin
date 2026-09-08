@@ -37,6 +37,21 @@ export class Appointment {
   @Property({ default: "pending" })
   state: string = "pending";
 
+  /**
+   * Cuándo dio de baja el turno el paciente.
+   *
+   * Solo se llena cuando cancela el paciente. Que el profesional baje un turno suyo es
+   * una decisión de su propia agenda y no hay nada que mirar después; que lo baje el
+   * paciente sí, porque el horario ya estaba dado y avisar con dos días no es lo mismo
+   * que avisar con dos horas. Con la fecha guardada, cada profesional decide qué hacer
+   * con eso, que es una cuestión de cada uno y no del sistema.
+   *
+   * El estado también guarda una fecha al cancelar, pero esa no sirve para esto: se
+   * escribe cancele quien cancele, y lo que hace falta saber es de qué lado vino.
+   */
+  @Property({ nullable: true, type: "datetime" })
+  patientCancelledAt?: Date | null;
+
   // Observaciones clínicas que carga el profesional (antes vivían en Diagnostic)
   @Property({ nullable: true, type: "text" })
   observations?: string | null;

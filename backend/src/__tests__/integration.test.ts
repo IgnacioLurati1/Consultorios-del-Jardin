@@ -1025,3 +1025,53 @@ describe("Integracion: quien puede ver la ficha entera de una persona", () => {
     expect(res.captura.body.data.phoneNumber).toBe(mockClient.phoneNumber);
   });
 });
+
+// ============================================================
+// Cuando dio de baja el paciente, y que se hace con eso
+// ============================================================
+describe("Integracion: la baja que hace el paciente queda anotada", () => {
+  const appointments = new AppointmentService();
+
+  function turnoAceptado() {
+    return {
+      numAppointment: 55,
+      date: new Date(2026, 8, 20),
+      initialHour: "10:00",
+      finalHour: "11:00",
+      state: "accepted",
+      patient: mockClient,
+      professional: mockProfessional,
+      patientCancelledAt: null as Date | null,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mockEm.flush.mockResolvedValue(undefined);
+    mailsMandados.length = 0;
+    sobres.length = 0;
+    enviados.length = 0;
+  });
+
+  it("anota la fecha cuando la baja la hace el paciente", async () => {
+    const turno = turnoAceptado();
+    mockEm.findOne.mockResolvedValue(turno);
+
+    await appointments.cancelAppointment(55, mockClient.email, "client");
+
+    expect(turno.patientCancelledAt).toBeInstanceOf(Date);
+  });
+
+  // Del lado del profesional es una decision de su propia agenda: no hay nada que mirar
+  // despues, asi que no se guarda nada.
+  it("no anota nada cuando la baja la hace el profesional", async () => {
+    const turno = turnoAceptado();
+    mockEm.findOne.mockResolvedValue(turno);
+
+    await appointments.cancelAppointment(55, mockProfessional.email, "professional");
+
+    expect(turno.patientCancelledAt).toBeNull();
+  });
+});

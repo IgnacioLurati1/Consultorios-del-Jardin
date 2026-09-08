@@ -363,6 +363,7 @@ export class AppointmentService {
       initialHour: a.initialHour,
       finalHour: a.finalHour,
       state: a.state,
+      patientCancelledAt: a.patientCancelledAt ?? null,
       overbooked: a.overbooked,
       patient: a.patient ? { email: a.patient.email, name: a.patient.name, surname: a.patient.surname } : null,
       room: { idRoom: a.room.idRoom, description: a.room.description },
@@ -822,6 +823,10 @@ export class AppointmentService {
     if (appointment.state !== "accepted") throw badRequest("Ese turno ya estaba cancelado");
 
     appointment.state = new Date().toISOString();
+    // De quién vino la baja no se puede sacar del estado, que guarda la misma fecha
+    // cancele quien cancele. Se anota solo la del paciente, que es la que el profesional
+    // mira después para saber con cuánta anticipación le avisaron.
+    if (type === "client") appointment.patientCancelledAt = new Date();
     await em.flush();
 
     await this.sendAppointmentCanceledEmails(appointment).catch((err) =>
