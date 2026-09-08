@@ -124,11 +124,29 @@ export function UsersAdmin() {
     return user.anonymous ? `cargado por ${author}` : `originalmente cargado por ${author}`;
   }
 
+  /**
+   * Habilitar o deshabilitar una cuenta.
+   *
+   * Deshabilitar a un profesional lo saca también de la búsqueda de turnos, y volver a
+   * habilitarlo no lo devuelve solo: eso se decide aparte, con el otro botón. El aviso
+   * lo dice, porque si no la ficha queda con una marca amarilla que nadie puso.
+   *
+   * Si el servidor no cuenta cómo quedó, la fila se da vuelta sola igual que siempre. Es
+   * un servidor de antes de esto, no un error, y el cambio se hizo lo mismo.
+   */
   function toggleStateUser(email: string) {
     toggleState(email)
-      .then(() => {
-        toast.success("Estado del usuario cambiado");
-        setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, active: !user.active })));
+      .then((estado) => {
+        const antes = users.find((user) => user.email === email);
+        const active = estado ? estado.active : !antes?.active;
+        const bookable = estado ? estado.bookable : antes?.bookable;
+
+        toast.success(
+          active && antes?.type === "professional" && bookable === false
+            ? "La cuenta vuelve a estar habilitada. Para que aparezca cuando se busca turno hay que volver a ofrecerlo"
+            : "Estado del usuario cambiado"
+        );
+        setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, active, bookable })));
       })
       .catch((err) => toast.error(`No pudimos cambiar el estado: ${err.message}`));
   }

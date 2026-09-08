@@ -80,8 +80,18 @@ export default function UsersScreen() {
 
     const act = async () => {
       try {
-        await toggleUserState(person.email);
-        feedback.done(enabling ? `${fullName(person)} ya puede entrar` : `${fullName(person)} quedó deshabilitado`);
+        const estado = await toggleUserState(person.email);
+
+        // Al deshabilitarlo también sale de la búsqueda de turnos, y no vuelve solo: si
+        // no se dice acá, quien lo rehabilita se queda esperando que aparezca. Contra un
+        // servidor que no lo cuenta no se dice nada, que es como era antes.
+        feedback.done(
+          !enabling
+            ? `${fullName(person)} quedó deshabilitado`
+            : estado?.bookable === false && person.type === "professional"
+            ? `${fullName(person)} ya puede entrar. Para que aparezca cuando se busca turno hay que volver a ofrecerlo`
+            : `${fullName(person)} ya puede entrar`
+        );
         state.reload();
       } catch (problem) {
         feedback.problem(errorMessage(problem));

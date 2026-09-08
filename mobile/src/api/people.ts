@@ -90,9 +90,18 @@ export async function findProfessionalsAt(officeId: string, speciality?: string)
   return data.data;
 }
 
-/** Habilita o deshabilita una cuenta. Solo admin. */
-export async function toggleUserState(email: string): Promise<void> {
-  await api.patch(`/people/${encodeURIComponent(email)}/toggleState`);
+/**
+ * Habilita o deshabilita una cuenta. Solo admin.
+ *
+ * Devuelve cómo quedó porque deshabilitar a un profesional lo saca además de la
+ * búsqueda de turnos, y volver a habilitarlo no lo devuelve solo.
+ *
+ * Puede volver null. La aplicación instalada le habla al servidor que haya, y uno de
+ * antes de esto contesta sin el detalle: ahí se sigue como se seguía siempre.
+ */
+export async function toggleUserState(email: string): Promise<{ active: boolean; bookable: boolean } | null> {
+  const { data } = await api.patch(`/people/${encodeURIComponent(email)}/toggleState`);
+  return data?.data ?? null;
 }
 
 /**
