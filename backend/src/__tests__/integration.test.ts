@@ -18,6 +18,7 @@ const { mockEm } = vi.hoisted(() => ({
     assign: vi.fn(),
     populate: vi.fn(),
     nativeDelete: vi.fn(),
+    nativeUpdate: vi.fn(),
     remove: vi.fn(),
     count: vi.fn(),
     transactional: vi.fn(),
@@ -76,6 +77,8 @@ import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "../appointments/appointments.service.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { SecurityService } from "../security/security.service.js";
+import { NotificationService } from "../notifications/notifications.service.js";
+import { AnnouncementService } from "../announcements/announcements.service.js";
 import { findOne as findOnePerson } from "../people/people.controller.js";
 import refreshTokenHandler from "../config/refreshToken.js";
 
@@ -1162,6 +1165,278 @@ describe("Integracion: las bajas sobre la hora marcan al paciente", () => {
 
     expect(report.suspicious[0]).toMatchObject({ missed: 3, assisted: 1, lateCancels: 0, reasons: ["missed"] });
     expect(report.measured).toBe(1);
+  });
+});
+
+
+// ============================================================
+// La campanita, guardada del lado del consultorio
+// ============================================================
+describe("Integracion: los avisos que quedan esperando a quien entra", () => {
+  const notifications = new NotificationService();
+
+  /** Lo que se le pasa a em.create: la fila que se iba a guardar. */
+  const anotado = () => mockEm.create.mock.calls.map((call) => call[1]);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mockEm.create.mockReset();
+    mockEm.flush.mockReset();
+    mockEm.nativeUpdate.mockReset();
+    mockEm.flush.mockResolvedValue(undefined);
+  });
+
+  it("guarda el aviso con todo lo que la pantalla necesita para dibujarlo", async () => {
+    mockEm.findOne.mockResolvedValue(mockClient);
+
+    await notifications.notify(mockClient.email, {
+      eventKey: "t9:confirmado",
+      title: "Te confirmaron el turno",
+      body: "Llega cinco minutos antes.",
+      tone: "good",
+      target: "appointments",
+    });
+
+    const fila = anotado()[0];
+    expect(fila.eventKey).toBe("t9:confirmado");
+    expect(fila.title).toBe("Te confirmaron el turno");
+    expect(fila.tone).toBe("good");
+    expect(fila.target).toBe("appointments");
+    expect(fila.person).toBe(mockClient);
+    // Nace sin ver: es lo que le pone el numero a la campanita.
+    expect(fila.readAt).toBeNull();
+    expect(fila.dismissedAt).toBeNull();
+  });
+
+  // La razon de ser de todo esto: el aviso se anota cuando pasa, no cuando alguien mira.
+  // Antes se deducia comparando contra una foto guardada en el navegador, y la primera
+  // vez no habia con que comparar: el que entraba de cero no veia nunca lo que habia
+  // pasado mientras no estaba.
+  it("no le pide nada a la pantalla: se anota en el momento del hecho", async () => {
+    mockEm.findOne.mockResolvedValue(mockClient);
+
+    await notifications.notify(mockClient.email, {
+      eventKey: "t9:alta",
+      title: "Te anotamos en un turno",
+      tone: "good",
+    });
+
+    expect(mockEm.create).toHaveBeenCalledTimes(1);
+    expect(mockEm.flush).toHaveBeenCalledTimes(1);
+  });
+
+  it("a una persona que no existe no le anota nada", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+
+    await notifications.notify("nadie@ejemplo.com", { eventKey: "x", title: "Hola", tone: "info" });
+
+    expect(mockEm.create).not.toHaveBeenCalled();
+  });
+
+  it("sin destinatario tampoco, y sin ir a preguntarle a la base", async () => {
+    await notifications.notify(null, { eventKey: "x", title: "Hola", tone: "info" });
+
+    expect(mockEm.findOne).not.toHaveBeenCalled();
+  });
+
+  // Lo mas importante de todo: esto corre al lado de sacar un turno. Si fallara hacia
+  // afuera, un turno bien guardado se caeria por no haber podido escribir un renglon.
+  it("no rompe lo que lo llamo cuando la base falla", async () => {
+    mockEm.findOne.mockRejectedValue(new Error("se cayo la base"));
+
+    await expect(notifications.notify(mockClient.email, { eventKey: "x", title: "Hola", tone: "info" })).resolves.toBeUndefined();
+  });
+
+  it("el mismo hecho anotado dos veces no rompe nada", async () => {
+    mockEm.findOne.mockResolvedValue(mockClient);
+    mockEm.flush.mockRejectedValueOnce(Object.assign(new Error("Duplicate entry"), { code: "ER_DUP_ENTRY" }));
+
+    await expect(
+      notifications.notify(mockClient.email, { eventKey: "t9:confirmado", title: "Te confirmaron el turno", tone: "good" })
+    ).resolves.toBeUndefined();
+  });
+
+  it("lee solo los de esa persona, sin los borrados y sin los vencidos", async () => {
+    mockEm.find.mockResolvedValue([]);
+
+    await notifications.list(mockClient.email);
+
+    const [, filtro] = mockEm.find.mock.calls[0];
+    expect(filtro.person).toEqual({ email: mockClient.email });
+    expect(filtro.dismissedAt).toBeNull();
+    expect(filtro.createdAt.$gte).toBeInstanceOf(Date);
+  });
+
+  it("cuenta como sin ver solo los que no tienen fecha de visto", async () => {
+    mockEm.find.mockResolvedValue([
+      { idNotification: 1, title: "Uno", body: null, tone: "info", target: null, createdAt: new Date(), readAt: null },
+      { idNotification: 2, title: "Dos", body: null, tone: "info", target: null, createdAt: new Date(), readAt: new Date() },
+    ]);
+
+    const { data, unread } = await notifications.list(mockClient.email);
+
+    expect(data).toHaveLength(2);
+    expect(unread).toBe(1);
+    expect(data[0].read).toBe(false);
+    expect(data[1].read).toBe(true);
+  });
+
+  it("abrir la campanita marca solo los que faltaban", async () => {
+    mockEm.nativeUpdate.mockResolvedValue(3);
+
+    await notifications.markSeen(mockClient.email);
+
+    const [, filtro, cambio] = mockEm.nativeUpdate.mock.calls[0];
+    expect(filtro).toEqual({ person: { email: mockClient.email }, readAt: null });
+    expect(cambio.readAt).toBeInstanceOf(Date);
+  });
+
+  // El filtro lleva el email, asi que no hay forma de borrar el aviso de otro ni
+  // escribiendo el numero a mano.
+  it("el aviso de otra persona no se puede borrar", async () => {
+    mockEm.findOne.mockResolvedValue(null);
+
+    await expect(notifications.dismiss(mockClient.email, 77)).rejects.toThrow("Ese aviso no existe");
+
+    const [, filtro] = mockEm.findOne.mock.calls[0];
+    expect(filtro).toEqual({ idNotification: 77, person: { email: mockClient.email } });
+  });
+
+  // Borrar marca en vez de borrar de verdad: si la fila se fuera, la clave del hecho
+  // quedaria libre y una segunda anotacion del mismo hecho lo traeria de vuelta.
+  it("borrar deja la fila marcada, para que el hecho no vuelva", async () => {
+    const aviso = { idNotification: 5, dismissedAt: null as Date | null };
+    mockEm.findOne.mockResolvedValue(aviso);
+
+    await notifications.dismiss(mockClient.email, 5);
+
+    expect(aviso.dismissedAt).toBeInstanceOf(Date);
+  });
+
+  it("la limpieza se lleva lo que ya no se le mostraba a nadie", async () => {
+    mockEm.nativeDelete.mockResolvedValue(12);
+
+    expect(await notifications.cleanup()).toBe(12);
+    const [, filtro] = mockEm.nativeDelete.mock.calls[0];
+    expect(filtro.createdAt.$lt).toBeInstanceOf(Date);
+  });
+});
+
+// ============================================================
+// Que cada hecho del consultorio deje su aviso
+// ============================================================
+describe("Integracion: los hechos que llegan a la campanita", () => {
+  const appointments = new AppointmentService();
+
+  /** Los avisos anotados en esta corrida, con a quien le tocaron. */
+  function avisos() {
+    return mockEm.create.mock.calls
+      .map((call) => call[1])
+      .filter((fila: any) => fila?.eventKey)
+      .map((fila: any) => ({ para: fila.person?.email, key: fila.eventKey, title: fila.title, body: fila.body, tone: fila.tone, target: fila.target }));
+  }
+
+  function turnoAceptado(extra: Record<string, unknown> = {}) {
+    return {
+      numAppointment: 88,
+      date: new Date(2026, 8, 20),
+      initialHour: "10:00",
+      finalHour: "11:00",
+      state: "accepted",
+      patient: mockClient,
+      professional: mockProfessional,
+      patientCancelledAt: null as Date | null,
+      ...extra,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mockEm.create.mockReset();
+    mockEm.flush.mockReset();
+    mockEm.flush.mockResolvedValue(undefined);
+    mailsMandados.length = 0;
+    sobres.length = 0;
+    enviados.length = 0;
+  });
+
+  /** El findOne sirve a dos cosas a la vez: el turno y la persona del aviso. */
+  function conTurno(turno: any) {
+    mockEm.findOne.mockImplementation(async (entidad: any) => {
+      const nombre = entidad?.name ?? entidad?.constructor?.name ?? "";
+      if (nombre === "Person") return turno.patient?.email ? turno.patient : mockClient;
+      return turno;
+    });
+  }
+
+  it("confirmar un turno le deja el aviso al paciente", async () => {
+    const turno = turnoAceptado({ state: "pending" });
+    mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockClient : turno));
+
+    await appointments.acceptAppointment(88, mockProfessional.email);
+
+    const aviso = avisos().find((a) => a.key === "t88:confirmado");
+    expect(aviso).toBeDefined();
+    expect(aviso!.para).toBe(mockClient.email);
+    expect(aviso!.tone).toBe("good");
+    expect(aviso!.target).toBe("appointments");
+  });
+
+  it("la baja del paciente le deja aviso a los dos", async () => {
+    const turno = turnoAceptado();
+    conTurno(turno);
+    mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
+
+    await appointments.cancelAppointment(88, mockClient.email, "client");
+
+    const claves = avisos().map((a) => a.key);
+    expect(claves).toContain("t88:cancelado");
+    expect(claves).toContain("t88:libre");
+  });
+
+  // La marca es la misma que mira la ficha del turno y la que cuenta el panel de
+  // comportamiento: por debajo de un dia el horario ya no se alcanza a ofrecer.
+  it("la baja sobre la hora se lo dice al profesional en el titulo", async () => {
+    const dentroDeUnRato = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const turno = turnoAceptado({
+      date: dentroDeUnRato,
+      initialHour: `${String(dentroDeUnRato.getHours()).padStart(2, "0")}:00`,
+    });
+    mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
+
+    await appointments.cancelAppointment(88, mockClient.email, "client");
+
+    const aviso = avisos().find((a) => a.key === "t88:libre");
+    expect(aviso!.title).toBe("Te cancelaron un turno sobre la hora");
+    expect(aviso!.body).toContain("menos de un dia de aviso".replace("dia", "día"));
+    expect(aviso!.tone).toBe("warn");
+  });
+
+  it("con aviso de sobra, el mismo hecho se cuenta sin marca", async () => {
+    const turno = turnoAceptado({ date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), initialHour: "10:00" });
+    mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
+
+    await appointments.cancelAppointment(88, mockClient.email, "client");
+
+    const aviso = avisos().find((a) => a.key === "t88:libre");
+    expect(aviso!.title).toBe("Se te liberó un horario");
+    expect(aviso!.tone).toBe("info");
+  });
+
+  // Cancelando el, no hay nada que contarle: se lo estaria avisando de si mismo.
+  it("si cancela el profesional, el aviso es solo para el paciente", async () => {
+    const turno = turnoAceptado();
+    mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockClient : turno));
+
+    await appointments.cancelAppointment(88, mockProfessional.email, "professional");
+
+    const claves = avisos().map((a) => a.key);
+    expect(claves).toContain("t88:cancelado");
+    expect(claves).not.toContain("t88:libre");
   });
 });
 

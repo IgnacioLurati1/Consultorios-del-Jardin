@@ -15,6 +15,8 @@ import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
 import { addDays, monthKey, parseISODate, startOfDay } from "../shared/dates.js";
 import { SecurityService } from "../security/security.service.js";
+import { NotificationService } from "../notifications/notifications.service.js";
+import { noticeOf } from "../shared/shortNotice.js";
 
 const em = orm.em;
 
@@ -67,6 +69,7 @@ export class AppointmentService {
   private roomService: RoomService;
   private mailService: MailService;
   private securityService: SecurityService;
+  private notificationService: NotificationService;
 
   constructor() {
     this.peopleService = new PeopleService();
@@ -75,6 +78,7 @@ export class AppointmentService {
     this.roomService = new RoomService();
     this.mailService = new MailService();
     this.securityService = new SecurityService();
+    this.notificationService = new NotificationService();
   }
 
   private toDiagnosticView(appointment: Appointment): DiagnosticView {
@@ -1047,7 +1051,41 @@ export class AppointmentService {
     ];
   }
 
+
+  /* ============================================================
+     Los avisos de la campanita.
+
+     Van pegados al mail, uno al lado del otro, porque son el mismo hecho contado por dos
+     lados: el que se entera por mail y el que se entera al entrar. Escribirlos en el
+     mismo lugar es lo que hace que no haya dos ideas distintas de qué es una novedad.
+
+     Ninguno pregunta por las preferencias de mail. Apagar un mail es pedir que no
+     interrumpan el correo; adentro de la aplicación el aviso no interrumpe nada, y es el
+     único lugar donde la novedad queda esperando al que entra después.
+
+     `notify` no falla nunca y no devuelve nada, así que estas llamadas no llevan `catch`
+     ni cambian nada de lo que pasa alrededor.
+     ============================================================ */
+
+  /** "martes 2 de septiembre a las 09:00", que es como se lee un turno en un renglón. */
+  private whenOf(appointment: Appointment): string {
+    return `${this.formatDateLong(appointment.date as Date)} a las ${String(appointment.initialHour ?? "").slice(0, 5)}`;
+  }
+
+  private patientOf(appointment: Appointment): string {
+    const patient = appointment.patient as any;
+    return patient?.name ? `${patient.name} ${patient.surname ?? ""}`.trim() : "Un paciente";
+  }
+
   private async sendAppointmentCreatedEmail(patientEmail: string, appointment: Appointment, initialHour: string) {
+    await this.notificationService.notify(patientEmail, {
+      eventKey: `t${appointment.numAppointment}:pedido`,
+      title: "Tenés un turno pendiente",
+      body: `${this.formatDateLong(appointment.date as Date)} a las ${initialHour}. Falta que el profesional lo confirme.`,
+      tone: "info",
+      target: "appointments",
+    });
+
     const htmlContent = [
       title("Pedimos tu turno"),
       paragraph("Ya tenemos tu pedido. Falta que el profesional lo confirme y te avisamos apenas lo haga."),
@@ -1074,6 +1112,16 @@ export class AppointmentService {
    */
   private async sendNewBookingToProfessional(appointment: Appointment) {
     if (!appointment.patient) return;
+
+    const pidieron = appointment.state === "pending";
+    await this.notificationService.notify(appointment.professional.email, {
+      eventKey: `t${appointment.numAppointment}:${pidieron ? "pidio" : "saco"}`,
+      title: pidieron ? "Te pidieron un turno" : "Te sacaron un turno",
+      body: `${this.patientOf(appointment)}, ${this.whenOf(appointment)}.`,
+      tone: pidieron ? "warn" : "info",
+      target: "appointments",
+    });
+
     if (!wantsMail(appointment.professional, "new-booking")) return;
 
     // Con la confirmación automática el turno ya nació aceptado. Es la misma novedad pero
@@ -1112,6 +1160,15 @@ export class AppointmentService {
    * y sin este aviso lo que ve es un pedido que estaba ayer y hoy no está.
    */
   private async sendRequestWithdrawnToProfessional(appointment: Appointment) {
+    await this.notificationService.notify(appointment.professional.email, {
+      eventKey: `t${appointment.numAppointment}:pedido-baja`,
+      title: "Se dio de baja un pedido",
+      body: `${this.patientOf(appointment)} dio de baja el pedido de ${this.whenOf(appointment)}. Ese horario vuelve a estar libre.`,
+      tone: "info",
+      // El pedido se borra de la base: no queda ficha que abrir.
+      target: null,
+    });
+
     if (!wantsMail(appointment.professional, "request-withdrawn")) return;
 
     const htmlContent = [
@@ -1137,6 +1194,16 @@ export class AppointmentService {
   private async sendAppointmentUpdatedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    await this.notificationService.notify(appointment.patient.email, {
+      eventKey: `t${appointment.numAppointment}:movido:${String(appointment.date as any).slice(0, 10)}${String(
+        appointment.initialHour ?? ""
+      ).slice(0, 5)}`,
+      title: "Te cambiamos el turno de horario",
+      body: `Ahora es ${this.whenOf(appointment)}.`,
+      tone: "warn",
+      target: "appointments",
+    });
+
     const htmlContent = [
       title("Cambiamos tu turno de horario"),
       factsCard("Ahora es", this.appointmentFacts(appointment, { finalHour: true })),
@@ -1154,6 +1221,14 @@ export class AppointmentService {
 
   private async sendAppointmentRejectedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
+
+    await this.notificationService.notify(appointment.patient.email, {
+      eventKey: `t${appointment.numAppointment}:rechazado`,
+      title: "No pudimos darte ese turno",
+      body: "El profesional no pudo tomar ese horario. Podés elegir otro.",
+      tone: "warn",
+      target: "booking",
+    });
 
     const htmlContent = [
       title("No pudimos darte ese turno"),
@@ -1179,6 +1254,15 @@ export class AppointmentService {
   private async sendAppointmentCanceledEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    await this.notificationService.notify(appointment.patient.email, {
+      eventKey: `t${appointment.numAppointment}:cancelado`,
+      title: "Se canceló tu turno",
+      body: `Era ${this.whenOf(appointment)}.`,
+      tone: "warn",
+      // El turno ya no está: se lo lleva a pedir otro, que es lo que le queda por hacer.
+      target: "booking",
+    });
+
     const htmlContent = [
       title("Se canceló tu turno"),
       paragraph("Este turno ya no está en la agenda."),
@@ -1191,6 +1275,21 @@ export class AppointmentService {
   }
 
   private async sendAppointmentCanceledToProfessional(appointment: Appointment, email: string) {
+    // Con cuánta anticipación avisó. Es el mismo corte que marca la ficha del turno y que
+    // cuenta el panel de comportamiento: por debajo de un día el horario ya no se alcanza
+    // a ofrecer, y eso cambia lo que el profesional hace al leerlo.
+    const aviso = noticeOf(appointment);
+
+    await this.notificationService.notify(email, {
+      eventKey: `t${appointment.numAppointment}:libre`,
+      title: aviso.short ? "Te cancelaron un turno sobre la hora" : "Se te liberó un horario",
+      body: aviso.short
+        ? `${this.patientOf(appointment)} dio de baja el turno de ${this.whenOf(appointment)}, con menos de un día de aviso.`
+        : `${this.patientOf(appointment)} canceló el turno de ${this.whenOf(appointment)}.`,
+      tone: aviso.short ? "warn" : "info",
+      target: "appointments",
+    });
+
     // El único mail que le llega al profesional por la actividad de todos los días, y el
     // único que puede apagar desde su configuración. Se pregunta acá, en el que manda, y
     // no en el que cancela: así el que cancela no tiene que acordarse de una preferencia
@@ -1228,6 +1327,14 @@ export class AppointmentService {
   private async sendAppointmentAcceptedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    await this.notificationService.notify(appointment.patient.email, {
+      eventKey: `t${appointment.numAppointment}:confirmado`,
+      title: "Te confirmaron el turno",
+      body: `${this.whenOf(appointment)}. Llegá cinco minutos antes.`,
+      tone: "good",
+      target: "appointments",
+    });
+
     const htmlContent = [
       title("Tu turno está confirmado"),
       paragraph("El profesional confirmó el horario. Te esperamos."),
@@ -1246,6 +1353,17 @@ export class AppointmentService {
   }
 
   private async sendPatientAddedEmail(patientEmail: string, numAppointment: number) {
+    // Hasta acá llega el número del turno y nada más, así que el renglón dice a dónde
+    // mirar en vez de la fecha. Es el único aviso sin el día adentro, y es el que menos lo
+    // necesita: el que lo recibe no esperaba ningún turno y lo primero que hace es abrirlo.
+    await this.notificationService.notify(patientEmail, {
+      eventKey: `t${numAppointment}:alta`,
+      title: "Te anotamos en un turno",
+      body: "Desde el consultorio te asignaron un turno. Entrá para ver el día y la hora.",
+      tone: "good",
+      target: "appointments",
+    });
+
     const htmlContent = [
       title("Te anotamos en un turno"),
       // El turno que carga el profesional nace confirmado: no hay nada que el paciente
@@ -1324,7 +1442,61 @@ export class AppointmentService {
 
   async sendReminderEmails(appointment: Appointment): Promise<void> {
     if (!appointment.patient) return;
+
+    await this.notificationService.notify(appointment.patient.email, {
+      eventKey: `t${appointment.numAppointment}:manana`,
+      title: "Mañana tenés turno",
+      body: `${this.whenOf(appointment)}. Es en 9 de Julio 3672.`,
+      tone: "info",
+      target: "appointments",
+    });
+
     await this.sendReminderEmail(appointment.patient.email, appointment);
+  }
+
+  /**
+   * El aviso de la víspera del profesional.
+   *
+   * El del paciente sale turno por turno, porque el paciente tiene uno. El profesional
+   * tiene la agenda entera, así que lo suyo es un solo renglón con cuántos y a qué hora
+   * empieza: catorce avisos separados no son un aviso, son la agenda otra vez.
+   *
+   * La clave lleva el día, y eso es lo que hace que se pueda llamar sin cuidado. El job
+   * corre cada hora; de las veinticuatro corridas del día, la primera lo anota y las otras
+   * veintitrés chocan contra la clave y no hacen nada.
+   */
+  async notifyTomorrowToProfessionals(): Promise<void> {
+    const tomorrow = addDays(startOfDay(new Date()), 1);
+    const tomorrow2359 = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000 - 1000);
+    const iso = tomorrow.toISOString().slice(0, 10);
+
+    const appointments = await em.find(
+      Appointment,
+      { date: { $gte: tomorrow, $lte: tomorrow2359 }, state: "accepted" },
+      { populate: ["professional"], orderBy: { initialHour: "ASC" } }
+    );
+
+    // Agrupados por profesional, quedándose con el primero de cada uno. Vienen ordenados
+    // por hora, así que el primero que aparece es el que abre el día.
+    const byProfessional = new Map<string, { first: string; count: number }>();
+
+    for (const appointment of appointments) {
+      const email = appointment.professional.email;
+      const found = byProfessional.get(email);
+
+      if (found) found.count += 1;
+      else byProfessional.set(email, { first: String(appointment.initialHour ?? "").slice(0, 5), count: 1 });
+    }
+
+    for (const [email, { first, count }] of byProfessional) {
+      await this.notificationService.notify(email, {
+        eventKey: `manana:${iso}`,
+        title: count === 1 ? "Mañana tenés un turno" : `Mañana tenés ${count} turnos`,
+        body: `El primero, a las ${first}.`,
+        tone: "info",
+        target: "appointments",
+      });
+    }
   }
 
   async updateReminderStatus(numAppointment: number): Promise<void> {

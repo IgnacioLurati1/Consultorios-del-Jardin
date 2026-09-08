@@ -6,6 +6,8 @@ import { classify, type WatchedAction } from "./sensitiveEndpoints.js";
 import { startOfDay } from "../shared/dates.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
+import { SHORT_NOTICE_HOURS, hoursOfNotice } from "../shared/shortNotice.js";
+import { NotificationService } from "../notifications/notifications.service.js";
 
 const em = orm.em;
 
@@ -47,20 +49,6 @@ const SUSPICION_RATE = 0.5;
 const SUSPICION_MIN_LATE_CANCELS = 3;
 
 /** Con menos de esto entre el aviso y el turno, la baja cuenta como tardía. */
-const SHORT_NOTICE_HOURS = 24;
-
-/**
- * Cuántas horas antes del turno llegó el aviso de baja.
- *
- * El momento del turno son dos columnas, la fecha y la hora de inicio, así que hay que
- * juntarlas. Puede dar negativo, y eso es que la baja llegó con el turno ya empezado.
- */
-function hoursOfNotice(date: Date, initialHour: string, cancelledAt: Date): number {
-  const [hour, minute] = initialHour.split(":").map(Number);
-  const start = new Date(date);
-  start.setHours(hour, minute ?? 0, 0, 0);
-  return (start.getTime() - cancelledAt.getTime()) / 3_600_000;
-}
 
 /**
  * Cuántos puntos de actividad delicada son demasiados, y en qué ventana.
@@ -591,6 +579,23 @@ export class SecurityService {
       const destinatarios = admins.filter((admin) => admin.email.toLowerCase() !== person.email.toLowerCase());
 
       if (destinatarios.length === 0) return;
+
+      // El mismo aviso adentro de la aplicación, para el que entra al panel sin haber
+      // pasado por el correo. Es lo único de todo el sistema donde enterarse tarde tiene
+      // costo de verdad: hay alguien afuera de su cuenta que no puede ni pedir que se la
+      // reabran. La clave lleva el momento del cierre, así que un segundo cierre de la
+      // misma cuenta es un aviso nuevo y no el mismo repetido.
+      const cuando = (person.bannedAt ?? new Date()).toISOString();
+      await new NotificationService().notifyMany(
+        destinatarios.map((admin) => admin.email),
+        {
+          eventKey: `seg:${person.email}:${cuando}`,
+          title: locked ? "Se cerró una cuenta por seguridad" : "Una cuenta quedó marcada por seguridad",
+          body: `${`${person.name ?? ""} ${person.surname ?? ""}`.trim() || person.email}. ${reason}`,
+          tone: "urgent",
+          target: "security",
+        }
+      );
 
       const when = (person.bannedAt ?? new Date()).toLocaleString("es-AR", { dateStyle: "long", timeStyle: "short" });
       const quien = `${person.name ?? ""} ${person.surname ?? ""}`.trim();

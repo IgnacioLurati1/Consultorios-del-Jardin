@@ -21,11 +21,13 @@ import { startRecurrenceJob } from "./jobs/recurrence.job.js";
 import { startExpiryJob } from "./jobs/expiry.job.js";
 import { startAttendanceJob } from "./jobs/attendance.job.js";
 import { startPaymentJob } from "./jobs/payment.job.js";
+import { startNotificationCleanupJob } from "./jobs/notifications.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { analyticsRouter } from "./analytics/analytics.routes.js";
 import { agendaRouter } from "./agenda/agenda.routes.js";
 import { settingsRouter } from "./settings/settings.routes.js";
 import { announcementRouter } from "./announcements/announcements.routes.js";
+import { notificationRouter } from "./notifications/notifications.routes.js";
 import { securityRouter } from "./security/security.routes.js";
 import { contactRouter } from "./contact/contact.routes.js";
 import { assistantRouter } from "./assistant/assistant.routes.js";
@@ -121,6 +123,7 @@ app.use("/api/analytics", verifyToken, analyticsRouter);
 app.use("/api/agenda", verifyToken, agendaRouter);
 app.use("/api/settings", verifyToken, settingsRouter);
 app.use("/api/announcements", verifyToken, announcementRouter);
+app.use("/api/notifications", verifyToken, notificationRouter);
 app.use("/api/security", verifyToken, securityRouter);
 app.use("/api/assistant", verifyToken, assistantRouter);
 app.use("/api/calendar", verifyToken, calendarRouter);
@@ -140,6 +143,7 @@ startRecurrenceJob();
 startExpiryJob();
 startAttendanceJob();
 startPaymentJob();
+startNotificationCleanupJob();
 
 // El puerto lo asigna la plataforma y llega por variable; en local no está y sigue
 // siendo 3000, que es lo que espera el proxy de Vite.

@@ -13,6 +13,13 @@ async function executeReminderJob(): Promise<void> {
 
   return RequestContext.create(em, async () => {
     try {
+      // Primero el del profesional, que es uno por cabeza y no depende de los mails: si
+      // el correo se cae, el renglón de "mañana tenés catorce turnos" tiene que salir
+      // igual. Se puede llamar todas las horas, que anota una sola vez por día.
+      await appointmentService
+        .notifyTomorrowToProfessionals()
+        .catch((error) => console.error("Error avisándole a los profesionales de su día de mañana:", error));
+
       const appointments = await appointmentService.getAppointmentsForReminder();
 
       if (appointments.length === 0) {
