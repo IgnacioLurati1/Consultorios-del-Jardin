@@ -961,6 +961,7 @@ describe("Integracion: el cierre por seguridad le llega a la administracion", ()
   });
 });
 
+
 // ============================================================
 // La ficha de una persona solo la ve entera quien tiene por que
 // ============================================================
@@ -1073,5 +1074,93 @@ describe("Integracion: la baja que hace el paciente queda anotada", () => {
     await appointments.cancelAppointment(55, mockProfessional.email, "professional");
 
     expect(turno.patientCancelledAt).toBeNull();
+  });
+});
+
+// ============================================================
+// Dar de baja sobre la hora tambien marca al paciente
+// ============================================================
+describe("Integracion: las bajas sobre la hora marcan al paciente", () => {
+  const security = new SecurityService();
+
+  /** Un turno dado de baja con `horas` de anticipacion. */
+  function bajaCon(horas: number) {
+    const inicio = new Date(2026, 8, 20, 10, 0, 0, 0);
+
+    return {
+      date: new Date(2026, 8, 20),
+      initialHour: "10:00",
+      patientCancelledAt: new Date(inicio.getTime() - horas * 3_600_000),
+      patient: mockClient,
+    };
+  }
+
+  /** `find` contesta por orden: primero los cerrados, despues las bajas, despues los baneados. */
+  function conBajas(bajas: any[], cerrados: any[] = []) {
+    mockEm.find.mockReset();
+    mockEm.find
+      .mockResolvedValueOnce(cerrados)
+      .mockResolvedValueOnce(bajas)
+      .mockResolvedValueOnce([]);
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.find.mockReset();
+  });
+
+  it("marca a quien dio de baja tres turnos con menos de un dia de aviso", async () => {
+    conBajas([bajaCon(2), bajaCon(5), bajaCon(23)]);
+
+    const report = await security.behaviourReport();
+
+    expect(report.suspicious).toHaveLength(1);
+    expect(report.suspicious[0]).toMatchObject({ email: mockClient.email, lateCancels: 3, reasons: ["lateCancels"] });
+    // Sin turnos cerrados no hay proporcion de asistencia que mostrar.
+    expect(report.suspicious[0].rate).toBeNull();
+  });
+
+  it("no marca a quien avisa con tiempo, por muchas veces que sea", async () => {
+    conBajas([bajaCon(48), bajaCon(72), bajaCon(24), bajaCon(100)]);
+
+    expect((await security.behaviourReport()).suspicious).toHaveLength(0);
+  });
+
+  it("con dos bajas sobre la hora todavia no alcanza", async () => {
+    conBajas([bajaCon(1), bajaCon(3)]);
+
+    expect((await security.behaviourReport()).suspicious).toHaveLength(0);
+  });
+
+  // El aviso que llega con el turno ya empezado es el caso extremo del mismo problema.
+  it("cuenta tambien la baja que llega despues de la hora del turno", async () => {
+    conBajas([bajaCon(-1), bajaCon(-3), bajaCon(2)]);
+
+    expect((await security.behaviourReport()).suspicious[0]).toMatchObject({ lateCancels: 3 });
+  });
+
+  // El caso que hacia que la pantalla dijera un motivo que no era: 94% de asistencia y
+  // marcado solo por avisar tarde. Nombrar ese porcentaje ahi lo hace leer como un cargo.
+  it("no cuenta las ausencias como motivo cuando la asistencia esta bien", async () => {
+    const cerrado = (state: string) => ({ state, patient: mockClient });
+    conBajas(
+      [bajaCon(1), bajaCon(2), bajaCon(3)],
+      [cerrado("assisted"), cerrado("assisted"), cerrado("assisted"), cerrado("missed")]
+    );
+
+    const marcado = (await security.behaviourReport()).suspicious[0];
+
+    expect(marcado.reasons).toEqual(["lateCancels"]);
+    expect(marcado.missed).toBe(1);
+  });
+
+  it("sigue marcando por inasistencias, sin ninguna baja de por medio", async () => {
+    const cerrado = (state: string) => ({ state, patient: mockClient });
+    conBajas([], [cerrado("missed"), cerrado("missed"), cerrado("missed"), cerrado("assisted")]);
+
+    const report = await security.behaviourReport();
+
+    expect(report.suspicious[0]).toMatchObject({ missed: 3, assisted: 1, lateCancels: 0, reasons: ["missed"] });
+    expect(report.measured).toBe(1);
   });
 });

@@ -34,6 +34,35 @@ const SUSPICION_MIN_MISSED = 3;
 const SUSPICION_RATE = 0.5;
 
 /**
+ * A partir de cuándo dar de baja los turnos sobre la hora pasa a estar marcado.
+ *
+ * Es la otra forma de dejar un horario vacío, y para el consultorio pesa parecido a no
+ * venir: con menos de un día no hay tiempo de ofrecerle esa franja a nadie más. Se cuenta
+ * aparte de las inasistencias porque son cosas distintas —acá la persona avisó— y porque
+ * mezclarlas escondería a quien avisa siempre pero siempre tarde.
+ *
+ * Tres, por lo mismo que las inasistencias. Una cancelación sobre la hora le pasa a
+ * cualquiera; tres son una costumbre, y lo único que la marca pide es mirarla.
+ */
+const SUSPICION_MIN_LATE_CANCELS = 3;
+
+/** Con menos de esto entre el aviso y el turno, la baja cuenta como tardía. */
+const SHORT_NOTICE_HOURS = 24;
+
+/**
+ * Cuántas horas antes del turno llegó el aviso de baja.
+ *
+ * El momento del turno son dos columnas, la fecha y la hora de inicio, así que hay que
+ * juntarlas. Puede dar negativo, y eso es que la baja llegó con el turno ya empezado.
+ */
+function hoursOfNotice(date: Date, initialHour: string, cancelledAt: Date): number {
+  const [hour, minute] = initialHour.split(":").map(Number);
+  const start = new Date(date);
+  start.setHours(hour, minute ?? 0, 0, 0);
+  return (start.getTime() - cancelledAt.getTime()) / 3_600_000;
+}
+
+/**
  * Cuántos puntos de actividad delicada son demasiados, y en qué ventana.
  *
  * Todo lo que sigue está calibrado alrededor de una sola idea: esto no se puede disparar
@@ -132,8 +161,21 @@ export interface FlaggedPatient {
   missed: number;
   /** Turnos cerrados: los que se sabe si la persona vino o no. */
   closed: number;
-  /** Proporción de asistencia sobre los cerrados, de 0 a 1. */
-  rate: number;
+  /**
+   * Proporción de asistencia sobre los cerrados, de 0 a 1. Null cuando no tiene ningún
+   * turno cerrado, que es el caso de quien está marcado solo por dar de baja tarde.
+   */
+  rate: number | null;
+  /** Turnos que dio de baja con menos de un día de anticipación. */
+  lateCancels: number;
+  /**
+   * Por cuál de las dos reglas quedó marcado. Puede ser por las dos.
+   *
+   * Va explícito y no se deduce de los números. Quien avisa tarde puede tener la
+   * asistencia impecable, y sin esto la pantalla no tiene cómo saber que ese 94% no es
+   * parte del motivo: terminaría nombrándolo como si lo fuera.
+   */
+  reasons: ("missed" | "lateCancels")[];
 }
 
 export interface BannedPatient {
@@ -157,6 +199,8 @@ export interface BehaviourReport {
     dailyLimit: number;
     minMissed: number;
     ratePercent: number;
+    minLateCancels: number;
+    shortNoticeHours: number;
   };
 }
 
@@ -233,25 +277,60 @@ export class SecurityService {
       { populate: ["patient"], fields: ["state", "patient"] }
     );
 
-    const tally = new Map<string, { person: Person; assisted: number; missed: number }>();
+    const tally = new Map<string, { person: Person; assisted: number; missed: number; lateCancels: number }>();
+
+    const entryFor = (patient: Person) => {
+      const found = tally.get(patient.email) ?? { person: patient, assisted: 0, missed: 0, lateCancels: 0 };
+      tally.set(patient.email, found);
+      return found;
+    };
 
     for (const appointment of closed) {
       const patient = appointment.patient;
       if (!patient) continue;
 
-      const entry = tally.get(patient.email) ?? { person: patient, assisted: 0, missed: 0 };
+      const entry = entryFor(patient);
       if (appointment.state === "assisted") entry.assisted += 1;
       else entry.missed += 1;
-      tally.set(patient.email, entry);
     }
+
+    // Las bajas que hizo el paciente sobre la hora. Dejar el horario vacío avisando tarde
+    // es la otra forma de que esa franja no la use nadie, así que se mira igual que las
+    // inasistencias, pero contada aparte porque no es lo mismo faltar que avisar tarde.
+    //
+    // La cuenta se hace acá y no en la consulta porque el momento del turno no está en una
+    // sola columna: es la fecha y la hora de inicio juntas.
+    const lateRows = await em.find(
+      Appointment,
+      { patientCancelledAt: { $ne: null }, patient: { $ne: null } },
+      { populate: ["patient"], fields: ["date", "initialHour", "patientCancelledAt", "patient"] }
+    );
+
+    for (const appointment of lateRows) {
+      const patient = appointment.patient;
+      if (!patient || !appointment.patientCancelledAt) continue;
+      if (hoursOfNotice(appointment.date, appointment.initialHour, appointment.patientCancelledAt) >= SHORT_NOTICE_HOURS)
+        continue;
+
+      entryFor(patient).lateCancels += 1;
+    }
+
+    // Antes alcanzaba con el tamaño del tally, pero ahora ahí también entra quien solo
+    // dio de baja tarde. El universo que se mide sigue siendo el de los turnos cerrados.
+    const measured = [...tally.values()].filter((entry) => entry.assisted + entry.missed > 0).length;
 
     const suspicious: FlaggedPatient[] = [];
 
-    for (const [email, { person, assisted, missed }] of tally) {
+    for (const [email, { person, assisted, missed, lateCancels }] of tally) {
       const total = assisted + missed;
-      const rate = assisted / total;
+      const rate = total > 0 ? assisted / total : null;
 
-      if (missed < SUSPICION_MIN_MISSED || rate >= SUSPICION_RATE) continue;
+      // Dos motivos independientes. Se entra por cualquiera de los dos, porque quien avisa
+      // siempre tarde puede tener la asistencia impecable y aun así dejar la agenda vacía.
+      const faltaSeguido = missed >= SUSPICION_MIN_MISSED && rate !== null && rate < SUSPICION_RATE;
+      const avisaTarde = lateCancels >= SUSPICION_MIN_LATE_CANCELS;
+
+      if (!faltaSeguido && !avisaTarde) continue;
 
       suspicious.push({
         email,
@@ -261,11 +340,16 @@ export class SecurityService {
         missed,
         closed: total,
         rate,
+        lateCancels,
+        reasons: [...(faltaSeguido ? ["missed" as const] : []), ...(avisaTarde ? ["lateCancels" as const] : [])],
       });
     }
 
-    // Primero el que peor viene: es el orden en que alguien querría revisarlos.
-    suspicious.sort((a, b) => a.rate - b.rate || b.missed - a.missed);
+    // Primero el que peor viene: es el orden en que alguien querría revisarlos. Sin turnos
+    // cerrados no hay proporción, y esos van al final de ese primer criterio.
+    suspicious.sort(
+      (a, b) => (a.rate ?? 1) - (b.rate ?? 1) || b.missed - a.missed || b.lateCancels - a.lateCancels
+    );
 
     const bannedRows = await em.find(Person, { bannedBy: "system" }, { orderBy: { bannedAt: "DESC" } });
 
@@ -278,13 +362,15 @@ export class SecurityService {
         reason: person.banReason ?? null,
       })),
       suspicious,
-      measured: tally.size,
+      measured,
       rules: {
         burstLimit: BURST_LIMIT,
         burstSeconds: BURST_SECONDS,
         dailyLimit: DAILY_LIMIT,
         minMissed: SUSPICION_MIN_MISSED,
         ratePercent: Math.round(SUSPICION_RATE * 100),
+        minLateCancels: SUSPICION_MIN_LATE_CANCELS,
+        shortNoticeHours: SHORT_NOTICE_HOURS,
       },
     };
   }
