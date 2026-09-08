@@ -576,6 +576,26 @@ export class AppointmentService {
 
     if (Object.keys(changes).length === 0) throw badRequest("No hay cambios para aplicar");
 
+    /*
+     * La fecha llega como "AAAA-MM-DD" y hasta acá entraba tal cual.
+     *
+     * Puesta así en la entidad, el ORM la lee como medianoche UTC y después escribe la
+     * columna DATE con los componentes locales. En UTC-3 eso guarda el día anterior:
+     * mover un turno al 12 lo dejaba agendado el 11, mientras el mail y el aviso le
+     * decían al paciente que era el 12. El paciente y la agenda quedaban en días
+     * distintos, y del lado del consultorio no se veía nada raro.
+     *
+     * El alta nunca tuvo el problema porque el motor parsea la misma cadena como
+     * medianoche local. Era este camino, el de mover un turno, el único que faltaba.
+     * Va antes de todo lo demás para que la comparación de si cambió el día y los
+     * choques de horario miren también el día correcto.
+     */
+    if (changes.date !== undefined) {
+      const day = startOfDay(changes.date as unknown as string);
+      if (Number.isNaN(day.getTime())) throw badRequest("La fecha del turno no es válida");
+      changes.date = day;
+    }
+
     if (changes.value !== undefined && changes.value !== null && changes.value < 0)
       throw badRequest("El valor del turno no puede ser negativo");
 

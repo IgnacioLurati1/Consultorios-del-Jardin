@@ -1164,3 +1164,61 @@ describe("Integracion: las bajas sobre la hora marcan al paciente", () => {
     expect(report.measured).toBe(1);
   });
 });
+
+// ============================================================
+// Mover un turno de dia
+// ============================================================
+describe("Integracion: mover un turno lo deja en el dia que se pidio", () => {
+  const appointments = new AppointmentService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mockEm.create.mockReset();
+    mockEm.flush.mockReset();
+    mockEm.flush.mockResolvedValue(undefined);
+    mockEm.assign.mockImplementation((entidad: any, cambios: any) => Object.assign(entidad, cambios));
+    mockEm.count.mockResolvedValue(0);
+  });
+
+  /*
+   * La fecha viaja como "AAAA-MM-DD" y antes entraba tal cual a la entidad. El ORM la leia
+   * como medianoche UTC y despues escribia la columna DATE con los componentes locales: en
+   * UTC-3 eso guardaba el dia anterior. El turno quedaba agendado un dia antes de lo que
+   * decia el mail que le llegaba al paciente.
+   */
+  it("guarda el dia que vino y no el anterior", async () => {
+    const turno = {
+      numAppointment: 91,
+      date: new Date(2026, 10, 10),
+      initialHour: "21:00",
+      finalHour: "21:30",
+      state: "accepted",
+      patient: null,
+      professional: mockProfessional,
+    };
+    // El findOne lo usan dos cosas: buscar el turno y buscar con que otro turno choca.
+    // La consulta del choque se reconoce porque excluye al turno que se esta moviendo.
+    mockEm.findOne.mockImplementation(async (entidad: any, filtro: any) => {
+      if ((entidad?.name ?? "") === "Person") return mockProfessional;
+      return filtro?.numAppointment?.$ne ? null : turno;
+    });
+    mockEm.find.mockResolvedValue([]);
+
+    await appointments.updateAppointment(91, mockProfessional.email, { date: "2026-11-12" } as any);
+
+    expect(turno.date.getFullYear()).toBe(2026);
+    expect(turno.date.getMonth()).toBe(10);
+    expect(turno.date.getDate()).toBe(12);
+  });
+
+  it("una fecha imposible se rechaza con un mensaje que se entiende", async () => {
+    const turno = { numAppointment: 91, date: new Date(2026, 10, 10), initialHour: "21:00", finalHour: "21:30", state: "accepted", patient: null, professional: mockProfessional };
+    mockEm.findOne.mockResolvedValue(turno);
+
+    await expect(appointments.updateAppointment(91, mockProfessional.email, { date: "no es una fecha" } as any)).rejects.toThrow(
+      "La fecha del turno no es válida"
+    );
+  });
+});
