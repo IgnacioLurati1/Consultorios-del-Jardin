@@ -4,7 +4,6 @@ import { FaChevronDown, FaRightFromBracket, FaUserPen, FaGear } from "react-icon
 import { useAuth } from "../../../context/AuthContext";
 import { findPerson, getDecodedToken } from "../../../pages/commonServices";
 import { Modal } from "../../modal/Modal";
-import { forgetNotifications } from "../../../lib/notifications";
 import api from "../../../axios";
 import type { Person } from "../../../pages/types";
 import "../Header.css";
@@ -71,9 +70,9 @@ export function Session() {
     setLeaving(true);
     // La cookie del refresh token la borra el backend; si falla igual salimos.
     await api.post("/people/logout", {}, { withCredentials: true }).catch(() => undefined);
-    // Los avisos se van con la sesión. En la computadora del consultorio entra más de una
-    // persona, y los del que se fue hablan de pacientes que no son del que entra.
-    if (decoded?.email) forgetNotifications(decoded.email);
+    // Los avisos no hace falta borrarlos: no quedan en la computadora, son del
+    // consultorio y se piden con la sesión de cada uno. En la computadora del consultorio
+    // entra más de una persona, y ninguna ve los del anterior porque ninguna los tiene.
     logout();
     setConfirming(false);
     setLeaving(false);

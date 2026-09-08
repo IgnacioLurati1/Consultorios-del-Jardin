@@ -72,8 +72,7 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
  * y tapa lo que hay atrás.
  */
 function Campana() {
-  const { email } = useUser();
-  const { nuevos, urgente } = useAvisos(email);
+  const { nuevos, urgente } = useAvisos();
   const latido = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {

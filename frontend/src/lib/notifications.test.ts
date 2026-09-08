@@ -1,208 +1,162 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import {
-  applySnapshot,
-  dismissAll,
-  dismissNotification,
-  forgetNotifications,
-  markSeen,
-  readNotifications,
-  readSeenMark,
-  type AppNotification,
-} from "./notifications";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const YO = "luis@demo.local";
+/**
+ * La campanita, del lado de la pantalla.
+ *
+ * Lo que se decide acá es poco y bien delimitado: traducir lo que manda el servidor a lo
+ * que la pantalla dibuja, y no romper nada cuando el servidor no contesta. La regla de
+ * qué es una novedad vive del otro lado.
+ */
 
-function aviso(id: string, at = Date.now()): AppNotification {
-  return { id, title: id, tone: "info", at, to: null };
+const { get, post, borrar } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), borrar: vi.fn() }));
+
+vi.mock("../axios", () => ({ default: { get, post, delete: borrar } }));
+
+import { dismissAll, dismissNotification, fetchNotifications, markSeen } from "./notifications";
+
+/** Un aviso como lo manda el servidor. */
+function delServidor(extra: Record<string, unknown> = {}) {
+  return {
+    id: 7,
+    title: "Te confirmaron el turno",
+    body: "Llegá cinco minutos antes.",
+    tone: "good",
+    target: "appointments",
+    at: "2026-09-08T12:30:00.000Z",
+    read: false,
+    ...extra,
+  };
 }
 
-describe("Los avisos de la campanita", () => {
+function contesta(data: unknown[], unread = 0) {
+  get.mockResolvedValue({ data: { data, unread } });
+}
+
+describe("Traer los avisos", () => {
   beforeEach(() => {
-    localStorage.clear();
-    document.cookie = "avisos-visto=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    get.mockReset();
+    post.mockReset();
+    borrar.mockReset();
   });
 
-  it("la primera vez no avisa nada, solo guarda cómo estaban las cosas", () => {
-    const lista = applySnapshot(YO, { t1: "accepted" }, () => [aviso("no-deberia-salir")]);
+  it("trae lo que hay y cuántos faltan ver", async () => {
+    contesta([delServidor()], 1);
 
-    expect(lista).toEqual([]);
-    expect(readNotifications(YO)).toEqual([]);
+    const { lista, sinVer } = await fetchNotifications();
+
+    expect(lista).toHaveLength(1);
+    expect(lista[0].title).toBe("Te confirmaron el turno");
+    expect(lista[0].read).toBe(false);
+    expect(sinVer).toBe(1);
   });
 
-  it("la segunda vez sí avisa, y le pasa la foto anterior a quien compara", () => {
-    applySnapshot(YO, { t1: "pending" }, () => []);
+  it("la fecha llega como texto y se usa como número", async () => {
+    contesta([delServidor()]);
 
-    let vista: Record<string, string> | null = null;
-    const lista = applySnapshot(YO, { t1: "accepted" }, (antes) => {
-      vista = antes;
-      return [aviso("t1:confirmado")];
-    });
+    const { lista } = await fetchNotifications();
 
-    expect(vista).toEqual({ t1: "pending" });
-    expect(lista.map((a) => a.id)).toEqual(["t1:confirmado"]);
+    expect(lista[0].at).toBe(new Date("2026-09-08T12:30:00.000Z").getTime());
   });
 
-  it("el mismo aviso no se anota dos veces", () => {
-    applySnapshot(YO, { t1: "pending" }, () => []);
-    applySnapshot(YO, { t1: "accepted" }, () => [aviso("t1:confirmado")]);
-    applySnapshot(YO, { t1: "accepted" }, () => [aviso("t1:confirmado")]);
+  /*
+   * El servidor manda a qué pantalla lleva cada aviso, no la dirección. La página y la
+   * aplicación del teléfono tienen rutas distintas para lo mismo, así que la dirección la
+   * pone cada una.
+   */
+  it("traduce el destino a una dirección de esta aplicación", async () => {
+    contesta([
+      delServidor({ id: 1, target: "appointments" }),
+      delServidor({ id: 2, target: "booking" }),
+      delServidor({ id: 3, target: "security" }),
+    ]);
 
-    expect(readNotifications(YO)).toHaveLength(1);
+    const { lista } = await fetchNotifications();
+
+    expect(lista.map((a) => a.to)).toEqual(["/AppointmentsList", "/Appointment", "/AdminHome/Analytics"]);
   });
 
-  it("lo de hace más de tres días se cae solo", () => {
-    const haceCuatroDias = Date.now() - 4 * 24 * 60 * 60 * 1000;
+  it("un aviso sin destino no lleva a ningún lado", async () => {
+    contesta([delServidor({ target: null })]);
 
-    applySnapshot(YO, { t1: "pending" }, () => []);
-    applySnapshot(YO, { t1: "accepted" }, () => [aviso("viejo", haceCuatroDias), aviso("nuevo")]);
-
-    expect(readNotifications(YO).map((a) => a.id)).toEqual(["nuevo"]);
+    expect((await fetchNotifications()).lista[0].to).toBeNull();
   });
 
-  it("los ordena del más nuevo al más viejo", () => {
-    applySnapshot(YO, { t1: "a" }, () => []);
-    applySnapshot(YO, { t1: "b" }, () => [aviso("antes", Date.now() - 60000), aviso("recien")]);
+  /*
+   * El servidor y la página se publican por separado. Un destino que esta versión todavía
+   * no conoce no puede dejar la campanita rota: queda sin destino, que es lo mismo que ya
+   * hace un aviso de algo que no está en ninguna pantalla.
+   */
+  it("un destino que no conoce lo deja sin destino, y no rompe", async () => {
+    contesta([delServidor({ target: "pantalla-que-no-existe-todavia" })]);
 
-    expect(readNotifications(YO).map((a) => a.id)).toEqual(["recien", "antes"]);
+    const { lista } = await fetchNotifications();
+
+    expect(lista).toHaveLength(1);
+    expect(lista[0].to).toBeNull();
   });
 
-  it("abrir la campana marca hasta dónde se leyó", () => {
-    expect(readSeenMark(YO)).toBe(0);
+  it("un aviso sin cuerpo se dibuja igual", async () => {
+    contesta([delServidor({ body: null })]);
 
-    markSeen(YO);
-
-    expect(readSeenMark(YO)).toBeGreaterThan(0);
+    expect((await fetchNotifications()).lista[0].body).toBeUndefined();
   });
 
-  it("se puede borrar uno, y borrarlos todos", () => {
-    applySnapshot(YO, { t1: "a" }, () => []);
-    applySnapshot(YO, { t1: "b" }, () => [aviso("uno"), aviso("dos")]);
+  /*
+   * Quien entró a hacer otra cosa no tiene por qué recibir un error porque un aviso no se
+   * pudo traer. Vale también para un servidor todavía sin esta pantalla.
+   */
+  it("si el servidor no contesta, no hay novedades y no hay error", async () => {
+    get.mockRejectedValue(new Error("se cayó la red"));
 
-    dismissNotification(YO, "uno");
-    expect(readNotifications(YO).map((a) => a.id)).toEqual(["dos"]);
-
-    dismissAll(YO);
-    expect(readNotifications(YO)).toEqual([]);
+    await expect(fetchNotifications()).resolves.toEqual({ lista: [], sinVer: 0 });
   });
 
-  /* Lo borrado no vuelve aunque la foto siga igual: la foto ya se había guardado, así que
-     el hecho no se vuelve a detectar. Es lo que hace que borrar signifique algo. */
-  it("lo borrado no vuelve en la siguiente vuelta", () => {
-    applySnapshot(YO, { t1: "a" }, () => []);
-    applySnapshot(YO, { t1: "b" }, () => [aviso("uno")]);
-    dismissNotification(YO, "uno");
+  it("una respuesta rara tampoco rompe nada", async () => {
+    get.mockResolvedValue({ data: {} });
 
-    applySnapshot(YO, { t1: "b" }, (antes) => (antes.t1 === "b" ? [] : [aviso("uno")]));
-
-    expect(readNotifications(YO)).toEqual([]);
-  });
-
-  it("cada persona tiene los suyos", () => {
-    applySnapshot(YO, { t1: "a" }, () => []);
-    applySnapshot(YO, { t1: "b" }, () => [aviso("mio")]);
-
-    expect(readNotifications("otra@demo.local")).toEqual([]);
-  });
-
-  it("cerrar sesión se los lleva", () => {
-    applySnapshot(YO, { t1: "a" }, () => []);
-    applySnapshot(YO, { t1: "b" }, () => [aviso("mio")]);
-
-    forgetNotifications(YO);
-
-    expect(readNotifications(YO)).toEqual([]);
+    await expect(fetchNotifications()).resolves.toEqual({ lista: [], sinVer: 0 });
   });
 });
 
-/**
- * Qué pasa cuando una vuelta no puede preguntar todo.
- *
- * Es el caso que rompía los avisos. Los recolectores tapaban el error con una lista
- * vacía, la foto se guardaba vacía y la vuelta siguiente la leía como la primera de
- * todas: lo que hubiera cambiado en el medio no se avisaba nunca.
- */
-describe("Los avisos cuando el servidor no contesta", () => {
+describe("Marcar y borrar", () => {
   beforeEach(() => {
-    localStorage.clear();
-    document.cookie = "avisos-visto=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    get.mockReset();
+    post.mockReset();
+    borrar.mockReset();
   });
 
-  /** Emite solo si el turno cambió de estado, como hacen los recolectores de verdad. */
-  const alCambiar = (ahora: string) => (antes: Record<string, string>) =>
-    antes.t1 && antes.t1 !== ahora ? [aviso(`t1:${antes.t1}->${ahora}`)] : [];
+  it("abrir la campanita marca todo como visto", async () => {
+    post.mockResolvedValue({});
 
-  it("el cambio que pasó mientras el servidor estaba caído se avisa después", () => {
-    applySnapshot(YO, { t1: "pending" }, alCambiar("pending"));
+    await markSeen();
 
-    // No se pudo preguntar por los turnos: la foto de turnos no se toca.
-    applySnapshot(YO, {}, () => [], ["t"]);
-
-    const lista = applySnapshot(YO, { t1: "accepted" }, alCambiar("accepted"));
-
-    expect(lista.map((a) => a.id)).toEqual(["t1:pending->accepted"]);
+    expect(post).toHaveBeenCalledWith("/notifications/seen");
   });
 
-  it("aguanta varias vueltas caídas seguidas sin perder la referencia", () => {
-    applySnapshot(YO, { t1: "pending" }, alCambiar("pending"));
+  it("borrar uno lo borra por su número", async () => {
+    borrar.mockResolvedValue({});
 
-    for (let vuelta = 0; vuelta < 5; vuelta++) applySnapshot(YO, {}, () => [], ["t"]);
+    await dismissNotification(12);
 
-    expect(applySnapshot(YO, { t1: "accepted" }, alCambiar("accepted")).map((a) => a.id)).toEqual([
-      "t1:pending->accepted",
-    ]);
+    expect(borrar).toHaveBeenCalledWith("/notifications/12");
   });
 
-  // La otra punta del mismo problema. Sin conservar las claves, la vuelta siguiente ve
-  // cada turno sin huella previa y los anuncia todos como recién aparecidos.
-  it("no anuncia como nuevos los turnos que ya estaban", () => {
-    const comoNuevo = (antes: Record<string, string>) =>
-      ["t1", "t2", "t3"].filter((clave) => antes[clave] === undefined).map((clave) => aviso(`${clave}:nuevo`));
+  it("borrar todo", async () => {
+    borrar.mockResolvedValue({});
 
-    applySnapshot(YO, { t1: "a", t2: "a", t3: "a" }, comoNuevo);
-    applySnapshot(YO, {}, () => [], ["t"]);
+    await dismissAll();
 
-    expect(applySnapshot(YO, { t1: "a", t2: "a", t3: "a" }, comoNuevo)).toEqual([]);
+    expect(borrar).toHaveBeenCalledWith("/notifications");
   });
 
-  it("lo que sí se pudo preguntar se sigue avisando igual", () => {
-    applySnapshot(YO, { t1: "pending", av9: "Cerramos el viernes" }, () => []);
+  // La pantalla ya sacó el aviso de la lista cuando esto vuelve. Fallar acá no le devuelve
+  // nada a nadie y encima tira un error arriba de algo que la persona da por hecho.
+  it("si falla, no explota", async () => {
+    post.mockRejectedValue(new Error("no anda"));
+    borrar.mockRejectedValue(new Error("no anda"));
 
-    // Fallan los turnos, no los anuncios: el anuncio nuevo tiene que salir igual.
-    const lista = applySnapshot(
-      YO,
-      { av9: "Cerramos el viernes", av10: "Mudamos la sala" },
-      (antes) => (antes.av10 === undefined ? [aviso("av10")] : []),
-      ["t"]
-    );
-
-    expect(lista.map((a) => a.id)).toEqual(["av10"]);
-  });
-
-  it("un turno que de verdad desapareció sale de la foto", () => {
-    applySnapshot(YO, { t1: "a", t2: "a" }, () => []);
-    // Vuelta buena en la que t2 ya no viene: no es un fallo, el turno no está más.
-    applySnapshot(YO, { t1: "a" }, () => []);
-
-    const visto: Record<string, string>[] = [];
-    applySnapshot(YO, { t1: "a" }, (antes) => {
-      visto.push(antes);
-      return [];
-    });
-
-    expect(visto[0]).toEqual({ t1: "a" });
-  });
-
-  // Si la primera foto de todas sale incompleta y se guarda igual, la próxima vuelta deja
-  // de contar como primera y anuncia como nuevo todo lo que la parte que falló no registró.
-  it("una primera vuelta incompleta no se guarda a medias", () => {
-    applySnapshot(YO, { av9: "Cerramos el viernes" }, () => [], ["t"]);
-
-    // Sigue siendo la primera vez, así que no emite nada y recién ahora guarda la foto.
-    const lista = applySnapshot(YO, { t1: "pending", av9: "Cerramos el viernes" }, () => [aviso("no-deberia-salir")]);
-
-    expect(lista).toEqual([]);
-    expect(applySnapshot(YO, { t1: "accepted", av9: "Cerramos el viernes" }, alCambiar("accepted")).map((a) => a.id)).toEqual([
-      "t1:pending->accepted",
-    ]);
+    await expect(markSeen()).resolves.toBeUndefined();
+    await expect(dismissNotification(1)).resolves.toBeUndefined();
+    await expect(dismissAll()).resolves.toBeUndefined();
   });
 });

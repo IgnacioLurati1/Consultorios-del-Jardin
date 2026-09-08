@@ -1,6 +1,6 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Screen } from "../../components/Screen";
 import { EmptyState } from "../../components/States";
@@ -13,7 +13,6 @@ import {
   useAvisos,
   type NotificationTone,
 } from "../../lib/avisos";
-import { useUser } from "../../session/SessionProvider";
 import { radius, space, TOUCH } from "../../theme/tokens";
 import { useTheme } from "../../theme/useTheme";
 
@@ -36,15 +35,19 @@ const ICONO: Record<NotificationTone, string> = {
  * vaciar la lista en la cara de quien la está por leer.
  */
 export default function NovedadesScreen() {
-  const { email } = useUser();
   const { colors } = useTheme();
-  const { avisos } = useAvisos(email);
-  const [marca] = useState(() => Date.now());
+  const { avisos, refrescar } = useAvisos();
 
   useFocusEffect(
     useCallback(() => {
-      marcarLeidos(email);
-    }, [email])
+      // Se pide de nuevo al entrar, no solo al pasar por Inicio: se llega acá desde
+      // cualquier pantalla y lo que se viene a ver es qué hay ahora.
+      //
+      // Y recién después se dan por leídos. Al revés los dos salen juntos, y la respuesta
+      // del pedido —armada antes de que el servidor procesara el visto— pisa lo marcado
+      // y el número vuelve a prenderse solo.
+      void refrescar().then(() => marcarLeidos());
+    }, [refrescar])
   );
 
   const acento: Record<NotificationTone, string> = {
@@ -69,7 +72,7 @@ export default function NovedadesScreen() {
           {avisos.length === 1 ? "1 aviso" : `${avisos.length} avisos`}
         </AppText>
 
-        <Pressable onPress={() => borrarTodos(email)} accessibilityRole="button" hitSlop={8}>
+        <Pressable onPress={() => borrarTodos()} accessibilityRole="button" hitSlop={8}>
           <AppText variant="caption" tone="danger" chrome>
             Borrar todo
           </AppText>
@@ -78,14 +81,14 @@ export default function NovedadesScreen() {
 
       <View style={styles.lista}>
         {avisos.map((aviso) => (
-          <Fila key={aviso.id} aviso={aviso} acento={acento[aviso.tone]} nuevo={aviso.at > marca - 1} email={email} />
+          <Fila key={aviso.id} aviso={aviso} acento={acento[aviso.tone]} />
         ))}
       </View>
     </Screen>
   );
 }
 
-function Fila({ aviso, acento, email }: { aviso: Aviso; acento: string; nuevo: boolean; email: string }) {
+function Fila({ aviso, acento }: { aviso: Aviso; acento: string }) {
   const { colors } = useTheme();
 
   return (
@@ -115,7 +118,7 @@ function Fila({ aviso, acento, email }: { aviso: Aviso; acento: string; nuevo: b
       </Pressable>
 
       <Pressable
-        onPress={() => borrarAviso(email, aviso.id)}
+        onPress={() => borrarAviso(aviso.id)}
         accessibilityRole="button"
         accessibilityLabel={`Borrar el aviso ${aviso.title}`}
         hitSlop={6}

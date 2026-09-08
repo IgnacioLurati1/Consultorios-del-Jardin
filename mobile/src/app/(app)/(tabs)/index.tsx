@@ -39,8 +39,8 @@ export default function HomeScreen() {
    * campana, y son estos dos.
    */
   const revisar = useCallback(() => {
-    void revisarAvisos(role, email).catch(() => undefined);
-  }, [role, email]);
+    void revisarAvisos();
+  }, []);
 
   useEffect(() => {
     revisar();

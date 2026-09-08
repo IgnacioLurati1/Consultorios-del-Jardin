@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaBell, FaCheck, FaCircleExclamation, FaCircleInfo, FaTrash, FaTriangleExclamation } from "react-icons/fa6";
 import { useAuth } from "../../context/AuthContext";
@@ -6,13 +6,11 @@ import { getDecodedToken } from "../../pages/commonServices";
 import {
   dismissAll,
   dismissNotification,
+  fetchNotifications,
   markSeen,
-  readNotifications,
-  readSeenMark,
   type AppNotification,
   type NotificationTone,
 } from "../../lib/notifications";
-import { collectNotifications } from "./notificationSources";
 import "./notifications.css";
 
 /**
@@ -20,7 +18,7 @@ import "./notifications.css";
  *
  * Cinco minutos, y solo con la pestaña a la vista. Es un aviso, no un monitor: enterarse
  * cinco minutos después de que un paciente pidió turno no cambia nada, y cada consulta
- * que no se hace es una que el servidor no cobra.
+ * que no se hace es una que el servidor no atiende.
  */
 const CADA_MS = 5 * 60 * 1000;
 
@@ -38,6 +36,9 @@ const ICONOS: Record<NotificationTone, React.ComponentType> = {
  * tres roles, con la lista que le corresponde a cada uno, y guarda hasta tres días: más
  * atrás no es una novedad, es un archivo, y para eso están las pantallas de verdad.
  *
+ * Lo que muestra lo guarda el consultorio, así que es lo mismo entrando desde donde sea y
+ * está igual después de cerrar sesión y volver (ver lib/notifications).
+ *
  * El número se pone en rojo cuando hay algo sin leer, y late cuando entre eso hay algo
  * grave. Late y no cambia de color: el rojo ya lo usa lo normal, y un segundo rojo más
  * rojo no se distinguiría de lejos. El movimiento sí.
@@ -49,19 +50,19 @@ export function NotificationBell() {
   const decoded = getDecodedToken();
   if (!decoded?.email) return null;
 
-  return <Campana email={decoded.email} role={decoded.type} />;
+  // La clave es el mail: entrando otra persona en la misma computadora, la campanita
+  // arranca de cero en vez de mostrar por un instante los avisos de la anterior.
+  return <Campana key={decoded.email} />;
 }
 
-function Campana({ email, role }: { email: string; role: string }) {
+function Campana() {
   const navigate = useNavigate();
-  const [avisos, setAvisos] = useState<AppNotification[]>(() => readNotifications(email));
-  /** Hasta cuándo se leyó. Sale de la cookie y se mueve al abrir la campana. */
-  const [marca, setMarca] = useState<number>(() => readSeenMark(email));
+  const [avisos, setAvisos] = useState<AppNotification[]>([]);
+  const [sinVer, setSinVer] = useState(0);
   const [open, setOpen] = useState(false);
   const caja = useRef<HTMLDivElement | null>(null);
 
-  const sinVer = useMemo(() => avisos.filter((aviso) => aviso.at > marca), [avisos, marca]);
-  const urgente = sinVer.some((aviso) => aviso.tone === "urgent");
+  const urgente = avisos.some((aviso) => !aviso.read && aviso.tone === "urgent");
 
   useEffect(() => {
     let vivo = true;
@@ -70,13 +71,11 @@ function Campana({ email, role }: { email: string; role: string }) {
       // Con la pestaña de fondo no se pregunta nada: nadie está mirando la campana.
       if (document.hidden) return;
 
-      collectNotifications(role, email)
-        .then((lista) => {
-          if (vivo) setAvisos(lista);
-        })
-        // Silencioso: que no se puedan traer los avisos no es motivo para tirarle un
-        // error en la cara a alguien que entró a hacer otra cosa.
-        .catch(() => undefined);
+      fetchNotifications().then(({ lista, sinVer: cuantos }) => {
+        if (!vivo) return;
+        setAvisos(lista);
+        setSinVer(cuantos);
+      });
     }
 
     mirar();
@@ -88,7 +87,7 @@ function Campana({ email, role }: { email: string; role: string }) {
       clearInterval(reloj);
       window.removeEventListener("focus", mirar);
     };
-  }, [role, email]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -116,8 +115,13 @@ function Campana({ email, role }: { email: string; role: string }) {
     // Se marcan al abrir, y lo que ya estaba en pantalla se queda igual: esconder lo
     // recién leído sería vaciar la lista en la cara de quien la está por leer. Lo único
     // que cambia es el número y el punto de la izquierda.
-    markSeen(email);
-    setMarca(Date.now());
+    //
+    // En pantalla se apaga de una y no cuando contesta el servidor. Es lo que la persona
+    // acaba de hacer, y esperar medio segundo para apagar un número se lee como que el
+    // botón no anduvo.
+    setSinVer(0);
+    setAvisos((actuales) => actuales.map((aviso) => ({ ...aviso, read: true })));
+    void markSeen();
   }
 
   function tocar(aviso: AppNotification) {
@@ -125,17 +129,16 @@ function Campana({ email, role }: { email: string; role: string }) {
     if (aviso.to) navigate(aviso.to);
   }
 
-  function borrar(id: string) {
-    dismissNotification(email, id);
+  function borrar(id: number) {
     setAvisos((actuales) => actuales.filter((aviso) => aviso.id !== id));
+    void dismissNotification(id);
   }
 
   function borrarTodo() {
-    dismissAll(email);
     setAvisos([]);
+    setSinVer(0);
+    void dismissAll();
   }
-
-  const cuantos = sinVer.length;
 
   return (
     <div className="app-bell" ref={caja}>
@@ -145,12 +148,12 @@ function Campana({ email, role }: { email: string; role: string }) {
         onClick={abrir}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={cuantos === 0 ? "Avisos" : `Avisos, ${cuantos} sin leer`}
+        aria-label={sinVer === 0 ? "Avisos" : `Avisos, ${sinVer} sin leer`}
       >
         <FaBell />
-        {cuantos > 0 && (
+        {sinVer > 0 && (
           <span className={`app-bell-count${urgente ? " urgente" : ""}`} aria-hidden="true">
-            {cuantos > 9 ? "9+" : cuantos}
+            {sinVer > 9 ? "9+" : sinVer}
           </span>
         )}
       </button>
@@ -171,13 +174,10 @@ function Campana({ email, role }: { email: string; role: string }) {
           ) : (
             <ul className="app-bell-list">
               {avisos.map((aviso) => {
-                const Icono = ICONOS[aviso.tone];
+                const Icono = ICONOS[aviso.tone] ?? FaCircleInfo;
 
                 return (
-                  <li
-                    key={aviso.id}
-                    className={`app-bell-item app-bell-item--${aviso.tone}${aviso.at > marca ? " nuevo" : ""}`}
-                  >
+                  <li key={aviso.id} className={`app-bell-item app-bell-item--${aviso.tone}${aviso.read ? "" : " nuevo"}`}>
                     <button
                       type="button"
                       className="app-bell-body"
@@ -216,7 +216,7 @@ function Campana({ email, role }: { email: string; role: string }) {
 }
 
 /** "recién", "hace 2 h", "ayer". Sin relojes: lo que importa es qué tan reciente es. */
-function haceCuanto(at: number): string {
+export function haceCuanto(at: number): string {
   const minutos = Math.floor((Date.now() - at) / 60000);
 
   if (minutos < 2) return "recién";

@@ -44,9 +44,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // programados, al teléfono le seguiría sonando el turno de otro.
     await clearAlerts().catch(() => {});
 
-    // Y los de la campanita, por lo mismo: hablan de los turnos y los pacientes del
-    // que se fue, no del que entre después en este teléfono.
-    if (session) olvidarAvisos(session.email);
+    // Y lo que la campanita tenía en pantalla, por lo mismo: hablaba de los turnos y los
+    // pacientes del que se fue, no del que entre después en este teléfono. Del teléfono no
+    // hay nada que borrar: los avisos son del consultorio y se piden con cada sesión.
+    olvidarAvisos();
 
     await clearTokens();
     setSession(null);
