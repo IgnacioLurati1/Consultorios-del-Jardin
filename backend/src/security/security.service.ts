@@ -5,7 +5,7 @@ import { SensitiveHit } from "./sensitiveHit.entity.js";
 import { classify, type WatchedAction } from "./sensitiveEndpoints.js";
 import { startOfDay } from "../shared/dates.js";
 import MailService from "../config/mailer.js";
-import { escapeHtml, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
+import { button, escapeHtml, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
 
 const em = orm.em;
 
@@ -356,7 +356,7 @@ export class SecurityService {
 
     if (burst >= burstLimit) {
       const reason =
-        "Actividad sobre cuentas y datos ajenos a una velocidad que no es de una persona: " +
+        "Actividad sobre cuentas y datos ajenos a una velocidad que no es de una persona. Suma " +
         burst +
         " puntos en operaciones distintas dentro de un minuto (el límite para " +
         describeRole(role) +
@@ -376,7 +376,7 @@ export class SecurityService {
 
       if (night >= nightLimit) {
         const reason =
-          "Actividad sobre cuentas y datos ajenos de madrugada, con el consultorio cerrado: " +
+          "Actividad sobre cuentas y datos ajenos de madrugada, con el consultorio cerrado. Suma " +
           night +
           " puntos en operaciones distintas desde las 00:00 (el límite para " +
           describeRole(role) +
@@ -400,7 +400,7 @@ export class SecurityService {
           burst +
           " de " +
           burstLimit +
-          " puntos en un minuto sobre datos ajenos. Última operación: " +
+          " puntos en un minuto sobre datos ajenos. La última operación fue " +
           action.label +
           " (" +
           request.method +
@@ -471,6 +471,7 @@ export class SecurityService {
       );
 
       void this.warnOwner(person, reason, false);
+      void this.warnAdmins(person, reason, false);
       return { locked: false, reason };
     }
 
@@ -481,7 +482,78 @@ export class SecurityService {
     console.error("SEGURIDAD: cuenta deshabilitada por posible intrusión: " + email + " (" + reason + ")");
 
     void this.warnOwner(person, reason, true);
+    void this.warnAdmins(person, reason, true);
     return { locked: true, reason };
+  }
+
+  /**
+   * Le avisa por mail a la administración.
+   *
+   * Hasta acá el único mail salía para la cuenta cerrada, y del otro lado el aviso vivía
+   * en la campanita del panel, que hay que entrar a mirar. Es el peor lugar para que un
+   * aviso espere. Si fue un falso positivo hay alguien afuera del sistema que no puede ni
+   * pedir que lo reabran, porque una cuenta cerrada no puede pedir nada. Y si no fue un
+   * falso positivo, cada hora cuenta.
+   *
+   * A la persona de la cuenta no se le manda esta copia, que ya recibió la suya. Si el
+   * cerrado es el único administrador activo no queda nadie a quien escribirle, y eso
+   * está bien, porque ese caso no cierra nada.
+   */
+  private async warnAdmins(person: Person, reason: string, locked: boolean): Promise<void> {
+    try {
+      const admins = await em.find(Person, { type: "admin", active: true });
+      const destinatarios = admins.filter((admin) => admin.email.toLowerCase() !== person.email.toLowerCase());
+
+      if (destinatarios.length === 0) return;
+
+      const when = (person.bannedAt ?? new Date()).toLocaleString("es-AR", { dateStyle: "long", timeStyle: "short" });
+      const quien = `${person.name ?? ""} ${person.surname ?? ""}`.trim();
+      // describeRole devuelve "un administrador", que sirve adentro de una frase. Acá va
+      // en una ficha, donde el artículo sobra.
+      const rol = describeRole(person.type).replace(/^una? /, "");
+
+      const html =
+        title(locked ? "Se cerró una cuenta por seguridad" : "Una cuenta quedó marcada por seguridad") +
+        paragraph(
+          "El sistema detectó en una cuenta una actividad que no se parece a la de una persona usando la " +
+            "aplicación, y actuó solo."
+        ) +
+        factsCard("La cuenta", [
+          { label: "Quién", value: quien },
+          { label: "Email", value: person.email },
+          { label: "Rol", value: rol.charAt(0).toUpperCase() + rol.slice(1) },
+          { label: "Cuándo", value: when },
+          { label: "Qué pasó", value: reason },
+        ]) +
+        (locked
+          ? warning(
+              "<strong>La cuenta quedó cerrada.</strong> Desde afuera no puede pedir que la reabran, así que si fue " +
+                "un error hay que reabrirla desde el panel."
+            )
+          : warning(
+              "<strong>La cuenta sigue abierta.</strong> Es el único administrador activo y cerrarla dejaba el " +
+                "sistema sin nadie que pudiera revertirlo. Revisala cuanto antes."
+            )) +
+        button("Ver el detalle", `${process.env.BASE_URL ?? ""}/AdminHome/Analytics`) +
+        note(
+          "En el panel está lo que la cuenta llegó a tocar en la hora previa. Antes de reabrirla conviene hablar " +
+            "con la persona por otro lado y confirmar que era ella."
+        );
+
+      const message = await this.mailService.createMessage(
+        destinatarios[0].email,
+        locked ? "Se cerró una cuenta por seguridad" : "Una cuenta quedó marcada por seguridad",
+        html
+      );
+
+      // Uno por uno y sin cortar. Que a un administrador no le llegue no puede dejar sin
+      // avisar a los demás.
+      for (const admin of destinatarios) {
+        await this.mailService.sendMail({ ...message, to: admin.email }).catch(() => undefined);
+      }
+    } catch (error) {
+      console.error("No se pudo avisarle a la administración del cierre de " + person.email + ":", error);
+    }
   }
 
   /**
