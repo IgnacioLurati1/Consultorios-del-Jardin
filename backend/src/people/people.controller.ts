@@ -338,8 +338,8 @@ async function logOut(req: Request, res: Response) {
 
 async function toggleState(req: RequestWithUser, res: Response) {
   try {
-    await peopleService.toggleState(req.params.email, req.user?.email);
-    res.status(200).json({ message: "Estado de la persona cambiado con éxito" });
+    const state = await peopleService.toggleState(req.params.email, req.user?.email);
+    res.status(200).json({ message: "Estado de la persona cambiado con éxito", data: state });
   } catch (error: any) {
     // Un rechazo de seguridad tiene que llegar con su motivo: "algo salió mal" deja al
     // administrador sin saber que lo que falta es que la revise otra persona.

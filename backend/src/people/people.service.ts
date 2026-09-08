@@ -76,8 +76,17 @@ export class PeopleService {
     return !person || person.anonymous === true;
   }
 
-  async findProfessionalsWithOffices(officeId?: number): Promise<any[]> {
+  /**
+   * Los profesionales que atienden, con las sucursales de cada uno.
+   *
+   * `onlyBookable` es para cuando quien pregunta es un paciente: al que la
+   * administración sacó de la búsqueda no se lo nombra, porque nombrarlo termina en un
+   * pedido de turno que el sistema rechaza y en una persona esperando una respuesta que
+   * no va a llegar. El profesional y el administrador los ven a todos.
+   */
+  async findProfessionalsWithOffices(officeId?: number, onlyBookable = false): Promise<any[]> {
     const filter: any = { person: { type: "professional", active: true } };
+    if (onlyBookable) filter.person.bookable = true;
     if (officeId) filter.room = { office: { idOffice: officeId } };
 
     const schedules = await em.find(Schedule, filter, {
@@ -552,6 +561,13 @@ export class PeopleService {
    * Del lado de cerrar hay dos puertas que no se pueden cruzar, y las dos son la misma
    * idea: deshabilitar es fácil de deshacer *desde afuera*, y nada más. Quien queda del
    * otro lado no puede pedir nada, ni siquiera que lo vuelvan a abrir.
+   *
+   * Cerrar a un profesional lo saca además de la búsqueda de turnos, y eso no se deshace
+   * solo. Las dos cosas se pueden mirar como lo mismo —una cuenta cerrada tampoco
+   * aparece— pero no lo son: el día que se la vuelve a abrir, `bookable` es lo que decide
+   * si el profesional vuelve a ofrecerse a los pacientes o si primero hay que acomodarle
+   * los horarios. Prenderlo solo significaba que reabrir una cuenta ponía a alguien en la
+   * agenda del público sin que nadie lo hubiera decidido.
    */
   async toggleState(email: string, actorEmail?: string) {
     const person = await em.findOneOrFail(Person, { email });
@@ -586,6 +602,8 @@ export class PeopleService {
     em.assign(person, {
       ...person,
       active,
+      // Ver arriba: al cerrar se apaga, al reabrir queda como estaba.
+      bookable: !active && person.type === "professional" ? false : person.bookable,
       bannedBy: active ? null : "admin",
       bannedAt: active ? null : new Date(),
       banReason: null,
@@ -602,6 +620,6 @@ export class PeopleService {
       console.warn(`SEGURIDAD: ${person.clearedBy} volvió a habilitar a ${email}, cerrada por posible intrusión`);
     }
 
-    return true;
+    return { active: person.active, bookable: person.bookable };
   }
 }
