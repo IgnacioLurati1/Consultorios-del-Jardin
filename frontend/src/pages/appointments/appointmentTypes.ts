@@ -122,6 +122,31 @@ export function pendingAmount(appointment: { paymentState?: PaymentState | null;
   return 0;
 }
 
+/**
+ * El color de un estado, para lo que no es el cartel.
+ *
+ * La hora y la franja de la izquierda de un renglón se pintan con esto, así la agenda se
+ * recorre de arriba abajo sin leer los carteles uno por uno. Está separado de
+ * `describeState` porque el rótulo cambia según la pantalla —"Asistió" en la agenda del
+ * profesional, "Vino" en el panel del día— y el color no.
+ */
+export type StateTone = "green" | "amber" | "grey" | "red";
+
+export function stateTone(state: string): StateTone {
+  switch (state) {
+    case "pending":
+      return "amber";
+    case "accepted":
+      return "green";
+    case "assisted":
+      return "grey";
+    case "missed":
+      return "red";
+    default:
+      return "grey";
+  }
+}
+
 export function describeState(state: string): { label: string; className: string } {
   switch (state) {
     case "pending":

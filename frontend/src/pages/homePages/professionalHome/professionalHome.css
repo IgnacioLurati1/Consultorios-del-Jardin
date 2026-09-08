@@ -69,6 +69,9 @@
     padding: 15px 22px;
     border: none;
     border-bottom: 1px solid var(--adm-border);
+    /* La franja de la izquierda, del color del estado. En transparente por defecto para
+       que el renglón no se corra cuando sí lleva color. */
+    border-left: 3px solid transparent;
     background: transparent;
     color: var(--adm-text);
     font-family: inherit;
@@ -76,6 +79,43 @@
     text-align: left;
     cursor: pointer;
     transition: background 0.12s ease;
+}
+
+/* La franja y la hora toman el color del estado, igual que el cartel de la derecha.
+   Es lo mismo que ya hace la lista de turnos: deja recorrer el día de un vistazo sin
+   leer los carteles uno por uno. */
+.prof-today-item.tone-green { border-left-color: var(--adm-green); }
+.prof-today-item.tone-green .prof-today-hour { color: var(--adm-green-dark); }
+
+.prof-today-item.tone-amber { border-left-color: var(--adm-warn); }
+.prof-today-item.tone-amber .prof-today-hour { color: #8a5d10; }
+
+.prof-today-item.tone-grey { border-left-color: var(--adm-slate); }
+.prof-today-item.tone-grey .prof-today-hour { color: var(--adm-text); }
+
+.prof-today-item.tone-red { border-left-color: var(--adm-danger); }
+.prof-today-item.tone-red .prof-today-hour { color: var(--adm-danger); }
+
+/* El turno que el paciente dio de baja sobre la hora. Es el único cancelado que llega
+   hasta acá: el horario quedó vacío y no hubo tiempo de ofrecérselo a nadie, así que
+   explica un hueco de hoy. Va tachado —no va a pasar— y en rojo —hay que verlo—. */
+.prof-today-item.cancelled-late {
+    background: var(--adm-danger-soft);
+}
+
+.prof-today-item.cancelled-late:hover {
+    background: var(--adm-danger-line);
+}
+
+.prof-today-item.cancelled-late .prof-today-hour,
+.prof-today-item.cancelled-late .prof-today-person {
+    text-decoration: line-through;
+}
+
+/* El cartel rojo se pinta con el mismo rosa que la fila, así que ahí adentro la pastilla
+   desaparece y queda el texto suelto. Se le devuelve un fondo propio. */
+.prof-today-item.cancelled-late .adm-badge-red {
+    background: var(--adm-surface);
 }
 
 .prof-today-item:hover {

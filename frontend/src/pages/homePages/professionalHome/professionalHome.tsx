@@ -24,11 +24,14 @@ import { AppointmentDetailModal } from "../../appointments/appointmentsList/Appo
 import { CancelAppointmentModal } from "../../appointments/CancelAppointmentModal.tsx";
 import {
   appointmentDate,
+  cancellationNotice,
   describePayment,
   describeState,
   formatDayLabel,
+  isCancelled,
   pendingAmount,
   shortHour,
+  stateTone,
   toISODate,
 } from "../../appointments/appointmentTypes.ts";
 import type { Appointment, Person } from "../../types";
@@ -111,12 +114,25 @@ export function ProfessionalHome() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Agenda del día: se pide el rango de un solo día, sin los cancelados.
+  /*
+   * La agenda del día: el rango de un solo día.
+   *
+   * Se piden también los cancelados, pero de esos queda uno solo: el que el paciente dio
+   * de baja con menos de un día de aviso. El resto se liberó con tiempo y probablemente ya
+   * lo tomó otro, así que no explica ningún hueco de hoy. Este sí, y si no aparece acá no
+   * hay dónde enterarse: el horario queda vacío y nadie sabe por qué.
+   */
   function loadToday() {
     const iso = toISODate(new Date());
 
-    findProfessionalAppointmentsInRange(iso, iso)
-      .then((data) => setToday([...data].sort((a, b) => a.initialHour.localeCompare(b.initialHour))))
+    findProfessionalAppointmentsInRange(iso, iso, true)
+      .then((data) =>
+        setToday(
+          data
+            .filter((appointment) => !isCancelled(appointment.state) || cancellationNotice(appointment)?.short)
+            .sort((a, b) => a.initialHour.localeCompare(b.initialHour))
+        )
+      )
       .catch(() => setToday([]));
   }
 
@@ -296,13 +312,21 @@ export function ProfessionalHome() {
           ) : (
             <ul className="prof-today-list">
               {today.map((appointment) => {
-                const state = describeState(appointment.state);
+                // La baja sobre la hora se nombra por lo que es. "Cancelado" a secas la
+                // deja igual que una que avisó con una semana, que es lo contrario de lo
+                // que hay que ver acá.
+                const late = isCancelled(appointment.state) && cancellationNotice(appointment)?.short;
+                const state = late
+                  ? { label: "Dio de baja sobre la hora", className: "adm-badge adm-badge-red" }
+                  : describeState(appointment.state);
 
                 return (
                   <li key={appointment.numAppointment}>
                     <button
                       type="button"
-                      className="prof-today-item"
+                      className={`prof-today-item tone-${late ? "red" : stateTone(appointment.state)}${
+                        late ? " cancelled-late" : ""
+                      }`}
                       onClick={() => open(appointment)}
                       {...quickActions(appointment)}
                     >
