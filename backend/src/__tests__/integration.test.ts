@@ -76,6 +76,7 @@ import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "../appointments/appointments.service.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { SecurityService } from "../security/security.service.js";
+import { findOne as findOnePerson } from "../people/people.controller.js";
 import refreshTokenHandler from "../config/refreshToken.js";
 
 // ============================================================
@@ -957,5 +958,70 @@ describe("Integracion: el cierre por seguridad le llega a la administracion", ()
 
     // Una copia como dueño de la cuenta y una sola para el otro administrador.
     expect([...enviados].sort()).toEqual(["admin@test.com", "otro@test.com"]);
+  });
+});
+
+// ============================================================
+// La ficha de una persona solo la ve entera quien tiene por que
+// ============================================================
+describe("Integracion: quien puede ver la ficha entera de una persona", () => {
+  /** Un `res` de mentira que se queda con lo que le mandaron. */
+  function fakeRes() {
+    const captura: any = {};
+    return {
+      captura,
+      status(code: number) {
+        captura.code = code;
+        return this;
+      },
+      json(body: any) {
+        captura.body = body;
+        return this;
+      },
+    } as any;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.findOne.mockResolvedValue({ ...mockClient });
+  });
+
+  // Antes esto devolvia la ficha entera a cualquiera con sesion abierta: con saberse un
+  // mail alcanzaba para leer el documento y el telefono de cualquier persona del sistema.
+  it("a un paciente que pregunta por otro no le manda ni el documento ni el telefono", async () => {
+    const res = fakeRes();
+    await findOnePerson(
+      { params: { email: mockClient.email }, user: { email: "otro@test.com", type: "client" } } as any,
+      res
+    );
+
+    expect(res.captura.code).toBe(200);
+    expect(res.captura.body.data.docNumber).toBeUndefined();
+    expect(res.captura.body.data.phoneNumber).toBeUndefined();
+    // Lo que la pantalla de pedir turno necesita del profesional sigue estando.
+    expect(res.captura.body.data).toMatchObject({ email: mockClient.email, name: mockClient.name, surname: mockClient.surname });
+  });
+
+  it("a la propia persona le manda la ficha entera, sin la contrasena", async () => {
+    const res = fakeRes();
+    await findOnePerson(
+      { params: { email: mockClient.email }, user: { email: mockClient.email, type: "client" } } as any,
+      res
+    );
+
+    expect(res.captura.body.data.docNumber).toBe(mockClient.docNumber);
+    expect(res.captura.body.data.phoneNumber).toBe(mockClient.phoneNumber);
+    expect(res.captura.body.data.password).toBeUndefined();
+  });
+
+  // El profesional necesita el telefono y el documento de su paciente para la ficha de la
+  // aplicacion, y el admin los ve en su panel.
+  it.each([["professional"], ["admin"]])("a %s le manda la ficha entera", async (type) => {
+    const res = fakeRes();
+    await findOnePerson({ params: { email: mockClient.email }, user: { email: "quien@test.com", type } } as any, res);
+
+    expect(res.captura.body.data.docNumber).toBe(mockClient.docNumber);
+    expect(res.captura.body.data.phoneNumber).toBe(mockClient.phoneNumber);
   });
 });

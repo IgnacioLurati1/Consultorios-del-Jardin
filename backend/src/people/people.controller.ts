@@ -132,10 +132,36 @@ async function findProfesionalByOffice(req: Request, res: Response) {
   }
 }
 
-async function findOne(req: Request, res: Response) {
+/**
+ * Lo que se ve de una persona cuando quien pregunta no es ni ella misma ni del
+ * consultorio. Es lo que la pantalla de pedir turno necesita para mostrar al
+ * profesional, y nada más.
+ */
+const PUBLIC_FIELDS = ["email", "name", "surname", "speciality", "about", "type", "active", "bookable"] as const;
+
+/**
+ * Ficha de una persona.
+ *
+ * La ficha entera es para quien pregunta por sí mismo y para el consultorio: el
+ * profesional necesita el teléfono y el documento de su paciente, y el admin ve todo.
+ * Un paciente preguntando por otra persona recibe solo la parte pública.
+ *
+ * Antes recibía la ficha completa. Con estar en el sistema y saberse un mail alcanzaba
+ * para leer el documento y el teléfono de cualquiera, pacientes y profesionales incluidos.
+ */
+async function findOne(req: RequestWithUser, res: Response) {
   try {
     const person = await peopleService.findPersonByEmail(req.params.email);
-    const safeData = { ...person, password: undefined }; // no devolvemos la contraseña al front
+
+    const asking = req.user;
+    const itsMe = asking?.email === person.email;
+    const fromTheOffice = asking?.type === "admin" || asking?.type === "professional";
+
+    const safeData =
+      itsMe || fromTheOffice
+        ? { ...person, password: undefined } // no devolvemos la contraseña al front
+        : Object.fromEntries(PUBLIC_FIELDS.map((field) => [field, person[field]]));
+
     res.status(200).json({ message: "Persona encontrada", data: safeData });
   } catch (error: any) {
     sendError(res, error);
