@@ -79,6 +79,22 @@ export function hourRange(initial: string, final: string): string {
   return `${hhmm(initial)} a ${hhmm(final)}`;
 }
 
+/**
+ * "12/9 a las 14:30", para un momento y no para un día.
+ *
+ * No pasa por `format`, que lee todo en UTC porque las fechas de turno son días sin hora.
+ * Esto sí es un instante puntual, así que se muestra en la zona del teléfono: leído en
+ * UTC se vería tres horas adelantado.
+ */
+export function momentOfDay(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const day = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(date);
+  const time = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  return `${day} a las ${time}`;
+}
+
 /** Hoy, como lo espera el backend: "YYYY-MM-DD" en hora local. */
 export function today(): string {
   return toISODate(new Date());

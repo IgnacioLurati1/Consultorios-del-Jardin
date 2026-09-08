@@ -30,6 +30,52 @@ export function isCancelled(state: string): boolean {
 }
 
 /* ============================================================
+   Baja del turno hecha por el paciente.
+   ============================================================ */
+
+/** Debajo de esto la baja se marca aparte. Es lo que separa avisar de avisar tarde. */
+export const SHORT_NOTICE_HOURS = 24;
+
+/**
+ * Cuándo dio de baja el paciente el turno, y con cuánta anticipación.
+ *
+ * Devuelve null cuando no hay nada que contar. Puede ser que la baja la haya hecho el
+ * profesional, que del lado de su propia agenda no es una cosa para mirar después, o que
+ * el turno sea anterior a que se guardara este dato. El campo llega o no llega según qué
+ * versión del servidor esté publicada, así que el que falte es un caso normal y no un
+ * error.
+ *
+ * `hours` puede dar negativo, y eso también dice algo: la baja llegó cuando el turno ya
+ * había arrancado.
+ */
+export function cancellationNotice(appointment: {
+  date: string | Date;
+  initialHour: string;
+  patientCancelledAt?: string | null;
+}): { at: Date; hours: number; short: boolean } | null {
+  if (!appointment.patientCancelledAt) return null;
+
+  const at = new Date(appointment.patientCancelledAt);
+  if (Number.isNaN(at.getTime())) return null;
+
+  // Copia, porque `appointmentDate` devuelve el mismo objeto cuando ya le llega un Date
+  // y abajo se le cambia la hora.
+  const start = new Date(appointmentDate(appointment.date));
+  const [hour, minute] = appointment.initialHour.split(":").map(Number);
+  start.setHours(hour, minute ?? 0, 0, 0);
+
+  const hours = (start.getTime() - at.getTime()) / 3_600_000;
+  return { at, hours, short: hours < SHORT_NOTICE_HOURS };
+}
+
+/** "12/9 a las 14:30", que es como se lee una baja en pantalla. */
+export function formatCancellation(at: Date): string {
+  const day = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit" }).format(at);
+  const time = new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }).format(at);
+  return `${day} a las ${time}`;
+}
+
+/* ============================================================
    Cobro de un turno.
    ============================================================ */
 

@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 import type { Appointment, Person } from "../../types.ts";
-import { describeState, isCancelled, shortHour } from "../appointmentTypes.ts";
+import { cancellationNotice, describeState, isCancelled, shortHour } from "../appointmentTypes.ts";
 import { FaRegClock, FaLocationDot, FaUser } from "react-icons/fa6";
 
 interface AppointmentCardProps {
@@ -19,6 +19,11 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
   const state = describeState(appointment.state);
   const cancelled = isCancelled(appointment.state);
   const isProfessional = user.type === "professional";
+
+  // La marca es para el profesional, que es quien decide qué hacer con una baja sobre la
+  // hora. Al paciente no se le pone un cartel encima de algo que ya hizo: la fecha de su
+  // baja la ve igual al abrir el turno.
+  const notice = isProfessional ? cancellationNotice(appointment) : null;
 
   const stateClass = cancelled ? "cancelled" : appointment.state;
 
@@ -55,6 +60,7 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
       <span className="appt-card-tags">
         {appointment.origin === "import" && <span className="appt-tag-import">Importado</span>}
         {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+        {notice?.short && <span className="adm-badge adm-badge-red">Baja con poco aviso</span>}
         <span className={state.className}>{state.label}</span>
       </span>
     </button>

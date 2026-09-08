@@ -20,6 +20,41 @@ export function stateOf(appointment: Pick<Appointment, "state">): StateKey {
   }
 }
 
+/** Debajo de esto la baja se marca aparte. Es lo que separa avisar de avisar tarde. */
+export const SHORT_NOTICE_HOURS = 24;
+
+/**
+ * Cuándo dio de baja el paciente el turno, y con cuánta anticipación.
+ *
+ * Devuelve null cuando no hay nada que contar. Puede ser que la baja la haya hecho el
+ * profesional, que del lado de su propia agenda no es algo para mirar después, o que el
+ * turno sea anterior a que se guardara este dato. Que el campo falte también es lo normal
+ * contra un servidor todavía sin este cambio, así que no es un error.
+ *
+ * La hora del turno se arma en la zona del teléfono, que es donde queda el consultorio, y
+ * no en UTC como el resto de las fechas de acá: esto se compara contra un instante real.
+ *
+ * `hours` puede dar negativo, y eso también dice algo: el aviso llegó con el turno ya
+ * empezado.
+ */
+export function cancellationNotice(
+  appointment: Pick<Appointment, "date" | "initialHour" | "patientCancelledAt">
+): { at: Date; hours: number; short: boolean } | null {
+  if (!appointment.patientCancelledAt) return null;
+
+  const at = new Date(appointment.patientCancelledAt);
+  if (Number.isNaN(at.getTime())) return null;
+
+  const [year, month, day] = String(appointment.date).slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  const [hour, minute] = appointment.initialHour.split(":").map(Number);
+  const start = new Date(year, month - 1, day, hour, minute || 0, 0, 0);
+
+  const hours = (start.getTime() - at.getTime()) / 3_600_000;
+  return { at, hours, short: hours < SHORT_NOTICE_HOURS };
+}
+
 export const STATE_LABELS: Record<StateKey, string> = {
   pending: "A confirmar",
   accepted: "Confirmado",

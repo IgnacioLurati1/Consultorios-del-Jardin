@@ -115,6 +115,15 @@ export interface Appointment {
   /** pending | accepted | assisted | missed, o un ISO timestamp si se canceló. */
   state: string;
   /**
+   * Cuándo dio de baja el turno el paciente. Solo se llena cuando la baja la hizo él, no
+   * el profesional.
+   *
+   * Opcional porque la aplicación y el servidor se publican por separado, y una versión
+   * instalada vive en el teléfono todo lo que la persona quiera. Contra un servidor
+   * todavía sin este dato el turno se muestra igual, sin la línea de la baja.
+   */
+  patientCancelledAt?: string | null;
+  /**
    * Quién lo dio de alta. "import" son los que vinieron de un calendario externo: se
    * cargaron tal como estaban ahí, así que pueden no tener paciente ni valor y pueden no
    * encajar en la grilla de horarios. Null son los anteriores a este dato.

@@ -731,6 +731,17 @@ textarea::placeholder {
   }
 }
 
+/* Cuándo dio de baja el paciente el turno, con la marca de poca anticipación al lado.
+   En columna cuando las dos cosas no entran en una línea. */
+.appt-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  text-align: right;
+}
+
 /* Marca de sobreturno. Vive acá porque la usan la agenda del profesional, la lista
    de turnos y la grilla semanal. */
 .appt-tag-over {

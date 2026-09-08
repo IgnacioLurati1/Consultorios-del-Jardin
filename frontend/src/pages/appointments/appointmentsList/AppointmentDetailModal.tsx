@@ -9,6 +9,8 @@ import {
   describeState,
   formatDayLabel,
   isCancelled,
+  cancellationNotice,
+  formatCancellation,
   shortHour,
 } from "../appointmentTypes.ts";
 import { getPatientMedicalHistory } from "../appointmentsService.ts";
@@ -150,6 +152,8 @@ export function AppointmentDetailModal({
   if (!appointment) return null;
 
   const cancelled = isCancelled(appointment.state);
+  // Solo tiene valor cuando la baja la hizo el paciente. La del profesional no se guarda.
+  const notice = cancellationNotice(appointment);
   // Todavía sin confirmar: el backend lo borra, no lo marca como cancelado.
   const pendingYet = appointment.state === "pending";
   const badge = describeState(appointment.state);
@@ -321,6 +325,19 @@ export function AppointmentDetailModal({
                 <span>Estado</span>
                 <span className={badge.className}>{badge.label}</span>
               </div>
+              {notice && (
+                <div className="ui-detail-row">
+                  <span>{isProfessional ? "Lo dio de baja el paciente" : "Lo diste de baja"}</span>
+                  <span className="appt-notice">
+                    <strong>{formatCancellation(notice.at)}</strong>
+                    {notice.short && (
+                      <span className="adm-badge adm-badge-red">
+                        {notice.hours < 0 ? "Después de la hora del turno" : "Menos de 24 horas antes"}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
               {appointment.overbooked && (
                 <div className="ui-detail-row">
                   <span>Tipo</span>

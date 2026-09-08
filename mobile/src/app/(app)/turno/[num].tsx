@@ -19,8 +19,8 @@ import { OptionSheet } from "../../../components/Sheet";
 import { ErrorState, Loading } from "../../../components/States";
 import { Group, Note, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
-import { describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
-import { hourRange, longDate, money, numericDate, sentenceCase } from "../../../lib/dates";
+import { cancellationNotice, describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
+import { hourRange, longDate, money, numericDate, sentenceCase, momentOfDay } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { space } from "../../../theme/tokens";
@@ -62,6 +62,8 @@ export default function AppointmentScreen() {
   const mine = appointment.professional.email === email;
   const isProfessional = role === "professional" && mine;
   const upcoming = isUpcoming(appointment);
+  // Solo tiene valor cuando la baja la hizo el paciente. La del profesional no se guarda.
+  const notice = cancellationNotice(appointment);
 
   async function run(action: () => Promise<void>, message: string) {
     setBusy(true);
@@ -119,6 +121,10 @@ export default function AppointmentScreen() {
           <View style={styles.tags}>
             <StateBadge state={key} />
             {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
+            {/* La marca es para el profesional, que es quien decide qué hacer con una baja
+                sobre la hora. Al paciente no se le pone un cartel encima de algo que ya
+                hizo: la fecha de su baja la ve igual, unas filas más abajo. */}
+            {isProfessional && notice?.short ? <Tag label="Baja con poco aviso" tone="danger" /> : null}
             {appointment.recurrence?.active ? <Tag label="Se repite" tone="green" /> : null}
             {/* Solo del lado del profesional: el cobro es asunto suyo con el paciente, y
                 el paciente ya sabe si pagó o no. */}
@@ -141,6 +147,26 @@ export default function AppointmentScreen() {
             ) : null}
           </Group>
         </Section>
+
+        {notice ? (
+          <Section title="La baja">
+            <Group>
+              <Row
+                title={isProfessional ? "Lo dio de baja el paciente" : "Lo diste de baja"}
+                value={momentOfDay(notice.at)}
+                subtitle={
+                  notice.short
+                    ? notice.hours < 0
+                      ? "Llegó después de la hora del turno."
+                      : "Con menos de 24 horas de aviso, ese horario ya no se le puede ofrecer a nadie."
+                    : undefined
+                }
+                subtitleIsData
+                last
+              />
+            </Group>
+          </Section>
+        ) : null}
 
         {isProfessional ? (
           <Section title="Lo que anotaste">
