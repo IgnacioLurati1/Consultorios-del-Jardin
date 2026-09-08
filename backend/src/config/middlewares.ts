@@ -51,11 +51,14 @@ export async function verifyToken(req: RequestWithUser, res: Response, next: Nex
     decodedToken = jwt.verify(token, process.env.JWT_SECRET as jwt.Secret);
     req.user = decodedToken;
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      console.error("Error verifying token:", error);
-      return res.status(401).json({ message: "Token expirado" }); // si el token expira, devuelve error
-    }
-    console.error("Error verifying token:", error);
+    // Sin registro y sin ruido. Que a alguien se le venza la sesión es lo que tiene que
+    // pasar cuando pasa el tiempo, no una falla: el que lo mira ya se entera porque la
+    // pantalla le pide entrar de nuevo. Un token roto tampoco dice nada útil acá —la
+    // pila que imprimía era siempre la misma, la de adentro de la librería— y la
+    // actividad rara se vigila aparte, con la cuenta y la ruta a la vista.
+    if (error instanceof jwt.TokenExpiredError)
+      return res.status(401).json({ message: "Token expirado" });
+
     return res.status(401).json({ message: "Token inválido" });
   }
 
