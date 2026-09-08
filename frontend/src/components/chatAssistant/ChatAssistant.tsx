@@ -68,6 +68,24 @@ const GREETINGS: Record<string, string[]> = {
 
 const ROLES = ["client", "professional", "admin"];
 
+/**
+ * Qué mostrar cuando la consulta no llegó a destino.
+ *
+ * El backend distingue entre lo que se puede volver a intentar ahora y lo que no —el
+ * asistente saturado, un mensaje demasiado largo, una cuenta que no lo tiene habilitado—
+ * y lo dice en castellano. Pisar todo eso con "ocurrió un error" dejaba a la persona
+ * escribiendo lo mismo de nuevo contra una puerta que iba a seguir cerrada.
+ *
+ * El texto de abajo es para cuando no llegó ninguna respuesta, que es el caso en que
+ * efectivamente no sabemos qué pasó.
+ */
+function explainFailure(err: any): string {
+    const dijo = err?.response?.data?.message;
+    return typeof dijo === "string" && dijo.trim()
+        ? dijo
+        : "Ocurrió un error al procesar tu mensaje. Por favor intentá de nuevo.";
+}
+
 // Se suscribe a AuthContext para volver a dibujarse al entrar y salir de la sesión.
 // El asistente atiende a los tres roles, con herramientas distintas para cada uno.
 export function ChatAssistant() {
@@ -165,10 +183,7 @@ function ChatAssistantWidget({ role }: { role: string }) {
                 setHistory(prev => [
                     ...prev,
                     { role: "user", content: trimmed },
-                    {
-                        role: "assistant",
-                        content: "Ocurrió un error al procesar tu mensaje. Por favor intentá de nuevo.",
-                    },
+                    { role: "assistant", content: explainFailure(err) },
                 ]);
             }
         } finally {
