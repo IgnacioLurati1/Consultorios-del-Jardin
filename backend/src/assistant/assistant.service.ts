@@ -10,18 +10,15 @@ import { AssistantUsage } from "./assistant.entity.js";
 import { orm } from "../shared/db/orm.js";
 import { startOfDay, toISODate, toLocalDate } from "../shared/dates.js";
 import { findPage, OFFICE_INFO, type Role } from "./assistant.catalog.js";
+import { cleanReply, dropLinkEcho, rescueLeakedPages, type AssistantLink } from "./assistant.text.js";
 import { findTool, toolsFor } from "./assistant.tools.js";
 import { buildAssistantPrompt, type AppointmentLine } from "./assistant.prompt.js";
+
+export type { AssistantLink } from "./assistant.text.js";
 
 export interface ChatTurn {
   role: "user" | "assistant";
   content: string;
-}
-
-/** Un botón que el asistente le ofrece a la persona para ir a una pantalla. */
-export interface AssistantLink {
-  label: string;
-  path: string;
 }
 
 /**
@@ -127,46 +124,29 @@ function unpackAction(token: string, email: string): { tool: string; args: any }
   return { tool: action.tool, args: action.args };
 }
 
-/**
- * Saca del texto los restos de llamadas a herramientas.
- *
- * gpt-oss a veces, en vez de pedir la herramienta, escribe algo que se le parece en el
- * medio de la respuesta: un `<button open_page ...>`, o los separadores internos del
- * formato con el que razona. Eso no lo tiene que ver nadie. La herramienta no se ejecuta
- * igual, así que además de limpiarlo hay que asegurarse de que quede una frase en pie.
- */
-function cleanReply(text: string): string {
-  return text
-    .replace(/<\|[^|]*\|>/g, "")
-    .replace(/<\/?(button|tool|function|call|open_page)[^>]*>/gi, "")
-    // La otra forma en que se le escapa una herramienta: el renglón suelto
-    // `open_page { "page": "contacto" }` en medio de la respuesta.
-    .replace(/^\s*(get|open|book|cancel|accept|reject|confirm)_[a-z_]*\s*[({][^\n]*$/gim, "")
-    .replace(/^\s*\[[^\]\n]{1,40}\]\s*$/gm, "")
-    // La ventana del chat muestra texto pelado: el markdown se vería crudo.
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
+/** Cuánto se espera antes de volver a preguntarle al modelo, por intento. */
+const REINTENTO_MS = 400;
 
 /**
- * Saca el renglón que solo repite el nombre de un botón.
+ * Si vale la pena volver a preguntar.
  *
- * Al modelo le sale escribir "Escribirnos" abajo de todo, como si el botón lo tuviera
- * que dibujar él. El botón ya está ahí: repetirlo es una línea suelta que no dice nada.
+ * gpt-oss a veces devuelve el nombre de la herramienta con basura pegada (`<|channel|>`
+ * y demás) y Groq rechaza el pedido entero con "tool_use_failed". No es un error de lo
+ * que pedimos: es el modelo que se desordenó, y volver a preguntarle suele alcanzar.
+ *
+ * Lo mismo con un 500 del proveedor o una conexión que se corta a mitad de camino: son
+ * fallas de un segundo que llegaban a la pantalla como "ocurrió un error", con la persona
+ * volviendo a escribir a mano lo mismo que acababa de preguntar.
+ *
+ * El 429 no entra. Ese dice que estamos pidiendo de más, y reintentar es pedir de más otra
+ * vez: se contesta que el asistente está saturado y se espera.
  */
-function dropLinkEcho(text: string, links: AssistantLink[]): string {
-  if (links.length === 0) return text;
+function vaDeNuevo(error: any): boolean {
+  const code = error?.error?.error?.code ?? error?.error?.code;
+  if (code === "tool_use_failed") return true;
 
-  const labels = new Set(links.map((link) => link.label.toLowerCase()));
-  const bare = (line: string) => line.trim().replace(/^[*_\-\s]+/, "").replace(/[*_:.\-\s]+$/, "").toLowerCase();
-
-  return text
-    .split("\n")
-    .filter((line) => !labels.has(bare(line)))
-    .join("\n")
-    .trim();
+  const status = error?.status;
+  return status === undefined || status >= 500;
 }
 
 function hhmm(hour: string): string {
@@ -316,7 +296,9 @@ export class AssistantService {
       }
 
       case "get_professionals": {
-        const list = await this.people.findProfessionalsWithOffices(args?.officeId);
+        // Al paciente se le nombran solo los que están para dar turno: ver
+        // findProfessionalsWithOffices.
+        const list = await this.people.findProfessionalsWithOffices(args?.officeId, user.role === "client");
         const wanted = args?.speciality ? normalize(args.speciality) : null;
         return list
           .filter((professional) => !wanted || normalize(professional.speciality ?? "").includes(wanted))
@@ -461,13 +443,7 @@ export class AssistantService {
     return this.toLines([found], user.role)[0];
   }
 
-  /**
-   * Una vuelta contra el modelo, con reintento.
-   *
-   * gpt-oss a veces devuelve el nombre de la herramienta con basura pegada (`<|channel|>`
-   * y demás) y Groq rechaza el pedido entero con "tool_use_failed". No es un error de lo
-   * que pedimos: es el modelo que se desordenó, y volver a preguntarle suele alcanzar.
-   */
+  /** Una vuelta contra el modelo, con reintento. Qué se reintenta y por qué, en vaDeNuevo. */
   private async askModel(
     messages: Groq.Chat.ChatCompletionMessageParam[],
     role: Role,
@@ -493,9 +469,10 @@ export class AssistantService {
         return response;
       } catch (error: any) {
         last = error;
-        const code = error?.error?.error?.code ?? error?.error?.code;
-        if (code !== "tool_use_failed") break;
-        console.warn(`[Asistente] El modelo devolvió una herramienta mal formada, reintento ${attempt + 1}`);
+        if (!vaDeNuevo(error)) break;
+
+        console.warn(`[Asistente] Falló la vuelta contra el modelo (${error?.status ?? "sin respuesta"}), reintento ${attempt + 1}`);
+        await new Promise((listo) => setTimeout(listo, REINTENTO_MS * (attempt + 1)));
       }
     }
 
@@ -562,8 +539,9 @@ export class AssistantService {
 
         if (choice.finish_reason !== "tool_calls" || !choice.message.tool_calls?.length) {
           const content =
-            dropLinkEcho(cleanReply(choice.message.content ?? ""), links) ||
-            "No pude armar una respuesta. ¿Probamos de nuevo?";
+            dropLinkEcho(cleanReply(rescueLeakedPages(choice.message.content ?? "", role, links)), links) ||
+            // Si lo único que había escrito era la llamada, el botón ya es la respuesta.
+            (links.length > 0 ? "Te dejo el acceso acá abajo." : "No pude armar una respuesta. ¿Probamos de nuevo?");
           return { content, chatHistory: this.toHistory(messages, links), links, changed, pendingAction: prepared.action };
         }
 

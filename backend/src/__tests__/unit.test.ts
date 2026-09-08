@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import jwt from "jsonwebtoken";
 import { toLocalDate } from "../shared/dates.js";
+import { cleanReply, dropLinkEcho, rescueLeakedPages } from "../assistant/assistant.text.js";
 
 // ============================================================
 // Mock del módulo orm ANTES de importar cualquier servicio
@@ -334,5 +335,57 @@ describe("La fecha como se escribe en Argentina", () => {
   it("no rompe con algo que no es una fecha", () => {
     expect(toLocalDate("")).toBe("");
     expect(toLocalDate("cualquier cosa")).toBe("cualquier cosa");
+  });
+});
+
+// ============================================================
+// Lo que el modelo escribe de más.
+// Cuando en vez de pedir la herramienta la escribe en el mensaje,
+// lo que llega a la pantalla es jerga y un botón que no está.
+// ============================================================
+
+describe("El asistente escribió la llamada en vez de pedirla", () => {
+  it("arma el botón con la pantalla que quiso abrir", () => {
+    const links: { label: string; path: string }[] = [];
+    const texto = rescueLeakedPages(
+      'Para ver si Juan Pérez está registrado, abrí la pantalla de usuarios.\nopen_page: {page: "usuarios"}',
+      "admin",
+      links
+    );
+
+    expect(links).toEqual([{ label: "Administrar usuarios", path: "/AdminHome/UsersAdmin" }]);
+    expect(texto).not.toContain("open_page");
+    expect(texto).toContain("abrí la pantalla de usuarios");
+  });
+
+  it("le entiende las otras formas de escribirla", () => {
+    for (const escrito of [
+      'open_page {"page": "contacto"}',
+      "open_page(page='contacto')",
+      "open_page: contacto",
+    ]) {
+      const links: { label: string; path: string }[] = [];
+      rescueLeakedPages(escrito, "client", links);
+      expect(links.map((link) => link.path)).toEqual(["/contacto"]);
+    }
+  });
+
+  // Que el modelo la nombre no la habilita: la pantalla pasa por el mismo filtro de rol
+  // que si la hubiera pedido bien.
+  it("no abre una pantalla que no es del rol de quien pregunta", () => {
+    const links: { label: string; path: string }[] = [];
+    const texto = rescueLeakedPages('open_page: {page: "usuarios"}', "client", links);
+
+    expect(links).toEqual([]);
+    expect(texto.trim()).toBe("");
+  });
+
+  it("borra el renglón suelto aunque no se entienda qué pantalla era", () => {
+    expect(cleanReply('Mirá tus turnos.\nget_my_appointments: {includePast: true}')).toBe("Mirá tus turnos.");
+  });
+
+  it("no repite abajo el nombre del botón que ya está dibujado", () => {
+    const links = [{ label: "Escribirnos", path: "/contacto" }];
+    expect(dropLinkEcho("Escribinos y te contestamos.\nEscribirnos", links)).toBe("Escribinos y te contestamos.");
   });
 });
