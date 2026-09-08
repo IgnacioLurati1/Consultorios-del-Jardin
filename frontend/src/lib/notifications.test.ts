@@ -113,3 +113,96 @@ describe("Los avisos de la campanita", () => {
     expect(readNotifications(YO)).toEqual([]);
   });
 });
+
+/**
+ * Qué pasa cuando una vuelta no puede preguntar todo.
+ *
+ * Es el caso que rompía los avisos. Los recolectores tapaban el error con una lista
+ * vacía, la foto se guardaba vacía y la vuelta siguiente la leía como la primera de
+ * todas: lo que hubiera cambiado en el medio no se avisaba nunca.
+ */
+describe("Los avisos cuando el servidor no contesta", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.cookie = "avisos-visto=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+  });
+
+  /** Emite solo si el turno cambió de estado, como hacen los recolectores de verdad. */
+  const alCambiar = (ahora: string) => (antes: Record<string, string>) =>
+    antes.t1 && antes.t1 !== ahora ? [aviso(`t1:${antes.t1}->${ahora}`)] : [];
+
+  it("el cambio que pasó mientras el servidor estaba caído se avisa después", () => {
+    applySnapshot(YO, { t1: "pending" }, alCambiar("pending"));
+
+    // No se pudo preguntar por los turnos: la foto de turnos no se toca.
+    applySnapshot(YO, {}, () => [], ["t"]);
+
+    const lista = applySnapshot(YO, { t1: "accepted" }, alCambiar("accepted"));
+
+    expect(lista.map((a) => a.id)).toEqual(["t1:pending->accepted"]);
+  });
+
+  it("aguanta varias vueltas caídas seguidas sin perder la referencia", () => {
+    applySnapshot(YO, { t1: "pending" }, alCambiar("pending"));
+
+    for (let vuelta = 0; vuelta < 5; vuelta++) applySnapshot(YO, {}, () => [], ["t"]);
+
+    expect(applySnapshot(YO, { t1: "accepted" }, alCambiar("accepted")).map((a) => a.id)).toEqual([
+      "t1:pending->accepted",
+    ]);
+  });
+
+  // La otra punta del mismo problema. Sin conservar las claves, la vuelta siguiente ve
+  // cada turno sin huella previa y los anuncia todos como recién aparecidos.
+  it("no anuncia como nuevos los turnos que ya estaban", () => {
+    const comoNuevo = (antes: Record<string, string>) =>
+      ["t1", "t2", "t3"].filter((clave) => antes[clave] === undefined).map((clave) => aviso(`${clave}:nuevo`));
+
+    applySnapshot(YO, { t1: "a", t2: "a", t3: "a" }, comoNuevo);
+    applySnapshot(YO, {}, () => [], ["t"]);
+
+    expect(applySnapshot(YO, { t1: "a", t2: "a", t3: "a" }, comoNuevo)).toEqual([]);
+  });
+
+  it("lo que sí se pudo preguntar se sigue avisando igual", () => {
+    applySnapshot(YO, { t1: "pending", av9: "Cerramos el viernes" }, () => []);
+
+    // Fallan los turnos, no los anuncios: el anuncio nuevo tiene que salir igual.
+    const lista = applySnapshot(
+      YO,
+      { av9: "Cerramos el viernes", av10: "Mudamos la sala" },
+      (antes) => (antes.av10 === undefined ? [aviso("av10")] : []),
+      ["t"]
+    );
+
+    expect(lista.map((a) => a.id)).toEqual(["av10"]);
+  });
+
+  it("un turno que de verdad desapareció sale de la foto", () => {
+    applySnapshot(YO, { t1: "a", t2: "a" }, () => []);
+    // Vuelta buena en la que t2 ya no viene: no es un fallo, el turno no está más.
+    applySnapshot(YO, { t1: "a" }, () => []);
+
+    const visto: Record<string, string>[] = [];
+    applySnapshot(YO, { t1: "a" }, (antes) => {
+      visto.push(antes);
+      return [];
+    });
+
+    expect(visto[0]).toEqual({ t1: "a" });
+  });
+
+  // Si la primera foto de todas sale incompleta y se guarda igual, la próxima vuelta deja
+  // de contar como primera y anuncia como nuevo todo lo que la parte que falló no registró.
+  it("una primera vuelta incompleta no se guarda a medias", () => {
+    applySnapshot(YO, { av9: "Cerramos el viernes" }, () => [], ["t"]);
+
+    // Sigue siendo la primera vez, así que no emite nada y recién ahora guarda la foto.
+    const lista = applySnapshot(YO, { t1: "pending", av9: "Cerramos el viernes" }, () => [aviso("no-deberia-salir")]);
+
+    expect(lista).toEqual([]);
+    expect(applySnapshot(YO, { t1: "accepted", av9: "Cerramos el viernes" }, alCambiar("accepted")).map((a) => a.id)).toEqual([
+      "t1:pending->accepted",
+    ]);
+  });
+});

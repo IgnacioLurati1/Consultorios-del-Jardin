@@ -197,11 +197,43 @@ function juntar(...listas: Appointment[][]): Appointment[] {
   return [...porNumero.values()];
 }
 
+/**
+ * Qué prefijo de clave usa cada cosa dentro de la foto.
+ *
+ * Hace falta nombrarlos porque cuando una fuente no contesta hay que conservar sus claves
+ * tal como estaban, y para eso hay que saber cuáles son suyas. El recordatorio de mañana
+ * sale de los turnos, así que se cae y se conserva con ellos.
+ */
+const CLAVES_DE_TURNOS = ["t", "manana:"];
+const CLAVES_DE_ANUNCIOS = ["av"];
+const CLAVES_DE_SEGURIDAD = ["seg:"];
+
+/** Lo que se pudo traer, o la marca de que no se pudo. */
+type Traido<T> = { ok: true; datos: T } | { ok: false };
+
+/**
+ * Pide algo sin dejar que un error corte la vuelta entera.
+ *
+ * Devuelve si salió, en vez de una lista vacía. Son dos cosas distintas y confundirlas es
+ * lo que hacía que un servidor caído se leyera como "no tenés nada" y borrara la foto.
+ */
+function traer<T>(pedido: Promise<T>): Promise<Traido<T>> {
+  return pedido.then((datos) => ({ ok: true as const, datos })).catch(() => ({ ok: false as const }));
+}
+
 async function recolectarPaciente(email: string): Promise<AppNotification[]> {
-  const [turnos, anuncios] = await Promise.all([
-    findPatientAppointments(0, true).catch(() => [] as Appointment[]),
-    findMyAnnouncements().catch(() => [] as Announcement[]),
+  const [pedidoTurnos, pedidoAnuncios] = await Promise.all([
+    traer(findPatientAppointments(0, true)),
+    traer(findMyAnnouncements()),
   ]);
+
+  const turnos = pedidoTurnos.ok ? pedidoTurnos.datos : [];
+  const anuncios = pedidoAnuncios.ok ? pedidoAnuncios.datos : [];
+
+  const sinRefrescar = [
+    ...(pedidoTurnos.ok ? [] : CLAVES_DE_TURNOS),
+    ...(pedidoAnuncios.ok ? [] : CLAVES_DE_ANUNCIOS),
+  ];
 
   const foto: Record<string, string> = {};
   for (const turno of turnos) foto[`t${turno.numAppointment}`] = huellaTurno(turno);
@@ -237,26 +269,35 @@ async function recolectarPaciente(email: string): Promise<AppNotification[]> {
     }
 
     return nuevos;
-  });
+  }, sinRefrescar);
 }
 
 async function recolectarProfesional(email: string): Promise<AppNotification[]> {
   const hoy = new Date();
-  const [enVentana, pendientes, anuncios] = await Promise.all([
+  const [pedidoVentana, pedidoPendientes, pedidoAnuncios] = await Promise.all([
     // Una ventana y no la primera página del listado: la página trae los quince más
     // recientes por fecha, que en una agenda cargada se llena de turnos de un mes que
     // viene y deja afuera el pedido de mañana.
-    findProfessionalAppointmentsInRange(toISODate(addDays(hoy, -3)), toISODate(addDays(hoy, 21)), true).catch(
-      () => [] as Appointment[]
-    ),
+    traer(findProfessionalAppointmentsInRange(toISODate(addDays(hoy, -3)), toISODate(addDays(hoy, 21)), true)),
     // Y los pedidos sin contestar, estén donde estén. Es el único aviso que no puede
     // depender de la ventana: un turno pedido para dentro de dos meses no entra en las
     // tres semanas, y el pedido se vence solo si nadie lo mira.
-    findPendingAppointments().catch(() => [] as Appointment[]),
-    findMyAnnouncements().catch(() => [] as Announcement[]),
+    traer(findPendingAppointments()),
+    traer(findMyAnnouncements()),
   ]);
 
-  const turnos = juntar(enVentana, pendientes);
+  const anuncios = pedidoAnuncios.ok ? pedidoAnuncios.datos : [];
+
+  // Los turnos salen de dos listados que se completan entre sí, así que alcanza con que
+  // falle uno para que la foto de turnos quede incompleta. Media agenda es peor que
+  // ninguna: se conserva la anterior y se vuelve a preguntar la próxima vuelta.
+  const turnosCompletos = pedidoVentana.ok && pedidoPendientes.ok;
+  const turnos = turnosCompletos ? juntar(pedidoVentana.datos, pedidoPendientes.datos) : [];
+
+  const sinRefrescar = [
+    ...(turnosCompletos ? [] : CLAVES_DE_TURNOS),
+    ...(pedidoAnuncios.ok ? [] : CLAVES_DE_ANUNCIOS),
+  ];
 
   const foto: Record<string, string> = {};
   for (const turno of turnos) foto[`t${turno.numAppointment}`] = huellaTurno(turno);
@@ -292,7 +333,7 @@ async function recolectarProfesional(email: string): Promise<AppNotification[]> 
     }
 
     return nuevos;
-  });
+  }, sinRefrescar);
 }
 
 /**
@@ -303,8 +344,9 @@ async function recolectarProfesional(email: string): Promise<AppNotification[]> 
  * enterarse tarde tiene costo de verdad.
  */
 async function recolectarAdmin(email: string): Promise<AppNotification[]> {
-  const reporte = await findCompromisedAccounts().catch(() => null);
-  const cuentas = reporte?.accounts ?? [];
+  const pedido = await traer(findCompromisedAccounts());
+  const cuentas = pedido.ok ? (pedido.datos?.accounts ?? []) : [];
+  const sinRefrescar = pedido.ok ? [] : CLAVES_DE_SEGURIDAD;
 
   const foto: Record<string, string> = {};
   for (const cuenta of cuentas) {
@@ -332,7 +374,7 @@ async function recolectarAdmin(email: string): Promise<AppNotification[]> {
     }
 
     return nuevos;
-  });
+  }, sinRefrescar);
 }
 
 /** Los avisos de quien esté mirando, ya guardados y listos para dibujar. */

@@ -325,7 +325,7 @@ function claveDeManana(iso: string): string {
  * que corre justo cuando nadie mira.
  */
 export async function revisarAvisos(role: string, email: string): Promise<number> {
-  const [turnos, anuncios] = await traer(role);
+  const { turnos, anuncios, sinRefrescar } = await traer(role);
 
   const foto: Record<string, string> = {};
   for (const turno of turnos) foto[`t${turno.numAppointment}`] = huellaTurno(turno);
@@ -340,6 +340,12 @@ export async function revisarAvisos(role: string, email: string): Promise<number
 
   const guardado = leer(email);
   const primeraVez = Object.keys(guardado.foto).length === 0;
+
+  // Primera foto de todas y encima incompleta: no se guarda nada. Guardar media foto haría
+  // que la próxima vuelta ya no cuente como primera y anuncie como nuevo todo lo que la
+  // parte que falló no alcanzó a registrar.
+  if (primeraVez && sinRefrescar.length > 0) return 0;
+
   const nuevos: Aviso[] = [];
 
   if (!primeraVez) {
@@ -378,39 +384,96 @@ export async function revisarAvisos(role: string, email: string): Promise<number
     .sort((a, b) => b.at - a.at)
     .slice(0, TOPE);
 
-  escribir(email, { lista, foto, visto: guardado.visto });
+  // Lo que no se pudo volver a preguntar se conserva como estaba. Pisarlo con nada dejaba
+  // la foto vacía y la vuelta siguiente la leía como la primera de todas, así que lo que
+  // hubiera cambiado en el medio no se avisaba nunca. Dejarlo afuera sin conservarlo es
+  // peor: la vuelta siguiente ve cada turno sin huella previa y los anuncia todos como
+  // recién aparecidos.
+  const guardada = { ...foto };
+  for (const [clave, valor] of Object.entries(guardado.foto)) {
+    if (sinRefrescar.some((prefijo) => clave.startsWith(prefijo))) guardada[clave] = valor;
+  }
+
+  escribir(email, { lista, foto: guardada, visto: guardado.visto });
   avisarATodos();
 
   return lista.length - guardado.lista.filter((aviso) => aviso.at > corte).length;
 }
 
+/**
+ * Qué prefijo de clave usa cada cosa dentro de la foto.
+ *
+ * Hace falta nombrarlos porque cuando una fuente no contesta hay que conservar sus claves
+ * tal como estaban, y para eso hay que saber cuáles son suyas. El recordatorio de mañana
+ * sale de los turnos, así que se cae y se conserva con ellos.
+ */
+const CLAVES_DE_TURNOS = ["t", "manana:"];
+const CLAVES_DE_ANUNCIOS = ["av"];
+
+/** Lo que se pudo traer, o la marca de que no se pudo. */
+type Traido<T> = { ok: true; datos: T } | { ok: false };
+
+/**
+ * Pide algo sin dejar que un error corte la vuelta entera.
+ *
+ * Devuelve si salió, en vez de una lista vacía. Son dos cosas distintas y confundirlas es
+ * lo que hacía que un servidor caído se leyera como "no tenés nada" y borrara la foto.
+ */
+function pedir<T>(pedido: Promise<T>): Promise<Traido<T>> {
+  return pedido.then((datos) => ({ ok: true as const, datos })).catch(() => ({ ok: false as const }));
+}
+
+interface LoQueSePudo {
+  turnos: Appointment[];
+  anuncios: Announcement[];
+  /** Prefijos de clave que esta vuelta no se pudieron volver a preguntar. */
+  sinRefrescar: string[];
+}
+
 /** Los mismos listados que las pantallas ya piden. Ninguna consulta nueva al servidor. */
-async function traer(role: string): Promise<[Appointment[], Announcement[]]> {
-  const anuncios = myAnnouncements().catch(() => [] as Announcement[]);
+async function traer(role: string): Promise<LoQueSePudo> {
+  const anuncios = pedir(myAnnouncements());
 
   if (role === "professional") {
     const hoy = new Date();
-    const turnos = professionalRange(toISODate(addDays(hoy, -3)), toISODate(addDays(hoy, 21)), true).catch(
-      () => [] as Appointment[]
-    );
+    const turnos = pedir(professionalRange(toISODate(addDays(hoy, -3)), toISODate(addDays(hoy, 21)), true));
     // Los pedidos sin contestar van aparte de la ventana de tres semanas. Uno para dentro
     // de dos meses no entra ahí, y es justo el que nadie va a mirar hasta que se venza.
-    const pedidos = pendingAppointments().catch(() => [] as Appointment[]);
+    const pedidos = pedir(pendingAppointments());
 
     const [enVentana, pendientes, avisos] = await Promise.all([turnos, pedidos, anuncios]);
+
+    // Los turnos salen de dos listados que se completan entre sí, así que alcanza con que
+    // falle uno para que la foto quede incompleta. Media agenda es peor que ninguna.
+    const completos = enVentana.ok && pendientes.ok;
 
     // El mismo turno puede venir por los dos lados. Repetido, la foto lo guarda dos veces
     // contra la misma clave y el aviso sale duplicado.
     const porNumero = new Map<number, Appointment>();
-    for (const turno of [...enVentana, ...pendientes]) porNumero.set(turno.numAppointment, turno);
+    if (completos) for (const turno of [...enVentana.datos, ...pendientes.datos]) porNumero.set(turno.numAppointment, turno);
 
-    return [[...porNumero.values()], avisos];
+    return {
+      turnos: [...porNumero.values()],
+      anuncios: avisos.ok ? avisos.datos : [],
+      sinRefrescar: [...(completos ? [] : CLAVES_DE_TURNOS), ...(avisos.ok ? [] : CLAVES_DE_ANUNCIOS)],
+    };
   }
 
   if (role === "client") {
-    return Promise.all([myPatientAppointments(0, true).catch(() => [] as Appointment[]), anuncios]);
+    const [turnos, avisos] = await Promise.all([pedir(myPatientAppointments(0, true)), anuncios]);
+
+    return {
+      turnos: turnos.ok ? turnos.datos : [],
+      anuncios: avisos.ok ? avisos.datos : [],
+      sinRefrescar: [...(turnos.ok ? [] : CLAVES_DE_TURNOS), ...(avisos.ok ? [] : CLAVES_DE_ANUNCIOS)],
+    };
   }
 
   // El admin no tiene turnos propios: lo suyo son los avisos del consultorio.
-  return Promise.all([Promise.resolve([] as Appointment[]), anuncios]);
+  const avisos = await anuncios;
+  return {
+    turnos: [],
+    anuncios: avisos.ok ? avisos.datos : [],
+    sinRefrescar: avisos.ok ? [] : CLAVES_DE_ANUNCIOS,
+  };
 }

@@ -163,15 +163,35 @@ export function dismissAll(email: string): void {
  * vieja y no se la deja leer sola para que sea una función pura y se pueda probar aparte.
  * Con la foto vieja vacía no emite nada: es la primera vez que se mira.
  *
+ * `sinRefrescar` son los prefijos de clave que esta vuelta no se pudieron volver a
+ * preguntar porque el servidor no contestó. De esas claves se conserva lo que decía la
+ * foto anterior, y ahí está todo el asunto:
+ *
+ * - Pisarlas con nada dejaba la foto vacía. La vuelta siguiente la leía como la primera
+ *   de todas y no emitía nada, así que lo que hubiera pasado en el medio —un turno
+ *   confirmado, uno cancelado— no se avisaba nunca. Es lo que hacía antes.
+ * - Dejarlas afuera sin conservarlas es peor todavía: la vuelta siguiente ve cada turno
+ *   sin huella previa, o sea como recién aparecido, y saldrían de golpe cuarenta avisos
+ *   de turnos que la persona ya tenía.
+ *
+ * Conservándolas, la vuelta que sí ande compara contra la última foto buena y encuentra
+ * lo que cambió mientras tanto. Se avisa una vuelta más tarde y no se pierde nada.
+ *
  * Devuelve la lista completa que quedó, así quien llama no tiene que volver a leerla.
  */
 export function applySnapshot(
   email: string,
   foto: Record<string, string>,
-  emitir: (anterior: Record<string, string>) => AppNotification[]
+  emitir: (anterior: Record<string, string>) => AppNotification[],
+  sinRefrescar: string[] = []
 ): AppNotification[] {
   const store = readStore(email);
   const primeraVez = Object.keys(store.foto).length === 0;
+
+  // Primera foto de todas y encima incompleta: no se guarda nada. Guardar media foto haría
+  // que la próxima vuelta ya no cuente como primera y anuncie como nuevo todo lo que la
+  // parte que falló no alcanzó a registrar.
+  if (primeraVez && sinRefrescar.length > 0) return readNotifications(email);
 
   const nuevos = primeraVez ? [] : emitir(store.foto);
   const conocidos = new Set(store.lista.map((aviso) => aviso.id));
@@ -182,7 +202,12 @@ export function applySnapshot(
     .sort((a, b) => b.at - a.at)
     .slice(0, MAX_KEPT);
 
-  writeStore(email, { lista, foto });
+  const guardada = { ...foto };
+  for (const [clave, valor] of Object.entries(store.foto)) {
+    if (sinRefrescar.some((prefijo) => clave.startsWith(prefijo))) guardada[clave] = valor;
+  }
+
+  writeStore(email, { lista, foto: guardada });
   return lista;
 }
 
