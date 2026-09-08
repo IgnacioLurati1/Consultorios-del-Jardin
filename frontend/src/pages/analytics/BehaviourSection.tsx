@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { AnalyticsSection, Kpi, KpiGrid } from "./Kpi.tsx";
 import { Hint } from "../../components/hint/Hint.tsx";
 import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
-import { explainSuspicion, findBehaviourReport, type BannedPatient, type BehaviourReport } from "./behaviourService.ts";
+import {
+  countsOf,
+  explainSuspicion,
+  findBehaviourReport,
+  summarizeSuspicion,
+  type BannedPatient,
+  type BehaviourReport,
+} from "./behaviourService.ts";
 
 /** "2026-09-02T13:40:00Z" → "2 de sep, 13:40". */
 function whenBanned(iso: string | null): string {
@@ -59,7 +66,8 @@ export function BehaviourSection() {
       <p className="an-note">
         El sistema deshabilita solo a quien saca más de {rules.burstLimit} turnos en un minuto o llega a {rules.dailyLimit} en
         el mismo día, y le da de baja esos turnos. Aparte marca —sin ninguna consecuencia— a quien asistió a menos del{" "}
-        {rules.ratePercent}% de sus turnos cerrados teniendo al menos {rules.minMissed} ausencias.
+        {rules.ratePercent}% de sus turnos cerrados teniendo al menos {rules.minMissed} ausencias, y a quien dio de baja{" "}
+        {rules.minLateCancels ?? 3} turnos o más con menos de {rules.shortNoticeHours ?? 24} horas de aviso.
       </p>
 
       <KpiGrid>
@@ -102,7 +110,7 @@ export function BehaviourSection() {
 
       {suspicious.length > 0 && (
         <div className="an-flags">
-          <h3 className="an-flags-title an-flags-title-amber">Faltan más de lo que vienen</h3>
+          <h3 className="an-flags-title an-flags-title-amber">Dejan horarios vacíos</h3>
           <ul className="an-flag-list">
             {suspicious.map((patient) => (
               <li key={patient.email} className="an-flag an-flag-amber">
@@ -114,11 +122,12 @@ export function BehaviourSection() {
                 </div>
                 <div className="an-flag-why">
                   <Hint text={explainSuspicion(patient)}>
-                    <span>Asistió al {Math.round(patient.rate * 100)}% de sus turnos</span>
+                    <span>{summarizeSuspicion(patient)}</span>
                   </Hint>
-                  <span className="an-muted">
-                    {patient.assisted} vinieron · {patient.missed} no
-                  </span>
+                  {/* Solo las cifras del motivo por el que está marcado. Poner las
+                      asistencias de alguien marcado por avisar tarde las hace leer como
+                      parte del cargo, y no lo son. */}
+                  <span className="an-muted">{countsOf(patient)}</span>
                 </div>
               </li>
             ))}
