@@ -5,7 +5,7 @@ import { Person } from "../people/people.entity.js";
 import { Room } from "../rooms/rooms.entity.js";
 import { Office } from "../offices/offices.entity.js";
 import { EntityManager } from "@mikro-orm/mysql";
-import { badRequest, notFound } from "../shared/errors.js";
+import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -57,14 +57,22 @@ export class ScheduleService {
     return false;
   }
 
-  async isOutOfWorkingHours(RoomId: number, initialHour: string, finalHour: string): Promise<boolean> {
+  /**
+   * Si la franja entra en el horario de atención de la sucursal, y de qué a qué abre.
+   *
+   * Devuelve también las horas porque el aviso las nombra. "No entra" a secas obliga a
+   * salir de la pantalla a averiguar contra qué no entra.
+   */
+  async checkWorkingHours(RoomId: number, initialHour: string, finalHour: string) {
     const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ["office"] });
 
     if (!selectedRoom || !selectedRoom.office) {
       throw notFound("No encontramos la sucursal de ese consultorio");
     }
 
-    return initialHour < selectedRoom.office.openingTime || finalHour > selectedRoom.office.closingTime;
+    const { openingTime, closingTime } = selectedRoom.office;
+
+    return { outside: initialHour < openingTime || finalHour > closingTime, openingTime, closingTime };
   }
 
   //CRUD basico
@@ -139,36 +147,48 @@ export class ScheduleService {
   async createSchedule(data: RequiredEntityData<Schedule>): Promise<Schedule> {
     data.day = this.removeAccents(data.day.trim().toLowerCase());
 
-    const isValid =
-      this.isValidDay(data.day) &&
-      this.isValidHourFormat(data.initialHour) &&
-      this.isValidHourFormat(data.finalHour) &&
-      this.isValidHourRange(data.initialHour, data.finalHour);
+    // Cada motivo con su mensaje. Juntos en un solo `if` daban un único texto para cinco
+    // causas distintas, y encima como error nuestro: el admin veía "algo salió mal" y no
+    // tenía forma de saber que el problema era la sala ocupada.
+    if (!this.isValidDay(data.day)) throw badRequest("Ese día de la semana no existe");
 
-    if (!isValid) {
-      throw new Error("Invalid schedule data");
-    }
+    if (!this.isValidHourFormat(data.initialHour) || !this.isValidHourFormat(data.finalHour))
+      throw badRequest("Las horas de inicio y de fin no son válidas");
 
-    if (!this.isValidDuration(data.duration as number)) {
-      throw new Error("La duración del turno debe ser 30, 45 o 60 minutos");
-    }
+    if (!this.isValidHourRange(data.initialHour, data.finalHour))
+      throw badRequest("La hora de fin tiene que ser posterior a la de inicio");
+
+    if (!this.isValidDuration(data.duration as number))
+      throw badRequest("Los turnos pueden durar 30, 45 o 60 minutos");
+
+    // Un profesional deshabilitado conserva los horarios que tenía —siguen ocupando la
+    // sala, y hay que poder entrar a borrarlos— pero no se le cargan nuevos. Sería
+    // publicar una franja que nadie va a atender y encima reservar el consultorio.
+    const personEmail = typeof data.person === "string" ? data.person : (data.person as Person)?.email;
+    const person = await em.findOne(Person, { email: personEmail });
+
+    if (!person) throw notFound("No encontramos a ese profesional");
+    if (!person.active) throw forbidden("Ese profesional está deshabilitado. Se le pueden borrar horarios, pero no cargarle nuevos");
+
     //Validaciones de solapamiento y horario laboral en paralelo
-    const [overlapping, existingInRoom, outOfHours] = await Promise.all([
+    const [overlapping, existingInRoom, workingHours] = await Promise.all([
       this.isOverlappingSchedule(data.day, data.initialHour, data.finalHour, data.person as Person),
       this.isOverlappingInRoom(data.day, data.initialHour, data.finalHour, data.room as Room),
-      this.isOutOfWorkingHours(data.room as any as number, data.initialHour, data.finalHour),
+      this.checkWorkingHours(data.room as any as number, data.initialHour, data.finalHour),
     ]);
 
     if (overlapping) {
-      throw new Error("Horario solapado");
+      throw conflict("Ese profesional ya tiene cargado un horario que se pisa con ese");
     }
 
     if (existingInRoom) {
-      throw new Error("Ese consultorio ya está ocupado en ese horario");
+      throw conflict("Ese consultorio ya está ocupado en esa franja");
     }
 
-    if (outOfHours) {
-      throw new Error("Fuera del horario laboral del consultorio");
+    if (workingHours.outside) {
+      throw badRequest(
+        `La sucursal atiende de ${workingHours.openingTime} a ${workingHours.closingTime}, así que esa franja queda afuera`
+      );
     }
 
     const schedule = em.create(Schedule, data);
@@ -187,7 +207,7 @@ export class ScheduleService {
     if (!schedule) throw new Error("Schedule not found");
 
     if (data.duration !== undefined && !this.isValidDuration(data.duration)) {
-      throw new Error("La duración del turno debe ser 30, 45 o 60 minutos");
+      throw badRequest("Los turnos pueden durar 30, 45 o 60 minutos");
     }
 
     em.assign(schedule, data);
@@ -198,7 +218,7 @@ export class ScheduleService {
   async removeSchedule(day: string, initialHour: string, person: string): Promise<void> {
     const deleted = await em.nativeDelete(Schedule, { day, initialHour, person: { email: person } });
 
-    if (deleted === 0) throw new Error("Schedule not found");
+    if (deleted === 0) throw notFound("Ese horario ya no está");
   }
 
   //esto se podria eliminar
