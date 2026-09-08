@@ -192,7 +192,7 @@ export function ControlPanel() {
       )}
 
       {view === "professional" && (
-      <div className="adm-panel">
+      <div className="adm-panel control-scroll">
         {!professional ? (
           <div className="adm-empty">
             Todavía no elegiste un profesional.

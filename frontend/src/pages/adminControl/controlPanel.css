@@ -18,8 +18,24 @@
   font-weight: 600;
 }
 
+/* El panel recorta lo que se le sale, que es lo que le deja las esquinas redondeadas, y
+   la tabla de turnos no entra en un teléfono: seis columnas contra trescientos sesenta
+   píxeles. Recortada sin más, las últimas dos quedaban del otro lado del borde y no había
+   forma de llegar a ellas. Se la deja correr a lo ancho y se arrastra con el dedo.
+
+   Solo a lo ancho: para arriba y para abajo se sigue recortando, que es de donde sale la
+   esquina redonda. */
+.control-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .control-table {
   width: 100%;
+  /* Antes de esconder columnas, la tabla se estira y se arrastra. Apretarla hasta que
+     entre parte "Fernández, María" en cuatro renglones y deja la fecha en tres, que se
+     lee peor que tener que correrla. */
+  min-width: 640px;
   border-collapse: collapse;
   font-size: 0.93rem;
 }
