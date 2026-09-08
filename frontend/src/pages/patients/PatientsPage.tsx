@@ -17,6 +17,8 @@ import {
 } from "./patientsService.ts";
 import { useUndo } from "../../context/UndoContext.tsx";
 import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts";
+import { AppointmentDetailModal } from "../appointments/appointmentsList/AppointmentDetailModal.tsx";
+import { useAppointmentActions } from "../appointments/useAppointmentActions.ts";
 import { isCancelled, pendingAmount } from "../appointments/appointmentTypes.ts";
 import { ContactPatientModal } from "./ContactPatientModal.tsx";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
@@ -222,18 +224,37 @@ export function PatientsPage() {
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  function openPatient(patient: Person) {
-    setEditing(patient);
-    setHistory(null);
-    // Los recortes son de la ficha que se estaba mirando, no del paciente que se abre
-    // ahora: dejarlos puestos abriría el historial del siguiente ya escondiendo cosas.
-    setHistoryFilters([]);
+  /*
+   * Se llega desde la tarjeta de "Te quedaron debiendo" de Números, con el filtro puesto.
+   *
+   * El número de allá dice cuánto, y la pregunta que sigue es siempre quién. Llegar a esta
+   * lista entera y tener que acordarse de prender el filtro es el paso que sobra.
+   *
+   * El parámetro se borra apenas se usa, igual que el del alta: es una orden y no un
+   * estado de la pantalla. Si quedara pegado, apagar el filtro a mano y recargar lo
+   * volvería a prender.
+   */
+  useEffect(() => {
+    if (!searchParams.has("adeudan")) return;
+    setScope("mine");
+    setOnlyDebtors(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  /**
+   * Trae el historial de un paciente y lo pone en pantalla.
+   *
+   * Está afuera de `openPatient` porque también se vuelve a pedir sola: tocando un turno
+   * del historial se abre su ficha, y lo que se cambie ahí adentro tiene que verse al
+   * cerrarla, sin tener que salir de la ficha del paciente y volver a entrar.
+   */
+  function cargarHistorial(email: string) {
     setLoadingHistory(true);
 
     const mio = ++ultimoHistorial.current;
     const vigente = () => mio === ultimoHistorial.current;
 
-    getPatientMedicalHistory(patient.email)
+    getPatientMedicalHistory(email)
       .then((historial) => {
         if (vigente()) setHistory(historial);
       })
@@ -243,6 +264,16 @@ export function PatientsPage() {
       .finally(() => {
         if (vigente()) setLoadingHistory(false);
       });
+  }
+
+  function openPatient(patient: Person) {
+    setEditing(patient);
+    setHistory(null);
+    // Los recortes son de la ficha que se estaba mirando, no del paciente que se abre
+    // ahora: dejarlos puestos abriría el historial del siguiente ya escondiendo cosas.
+    setHistoryFilters([]);
+
+    cargarHistorial(patient.email);
 
     setForm({
       email: patient.email,
@@ -255,6 +286,17 @@ export function PatientsPage() {
     setFormError(null);
     setModalOpen(true);
   }
+
+  /*
+   * Todo lo que se puede hacer con un turno, para la ficha que se abre desde el historial.
+   *
+   * Es el mismo hook que usan la lista de turnos y la agenda del día, así que un turno
+   * abierto desde acá hace exactamente lo mismo que abierto desde allá. Al terminar
+   * cualquier acción se vuelve a pedir el historial, que es lo que esta pantalla muestra.
+   */
+  const turno = useAppointmentActions(me, () => {
+    if (editing) cargarHistorial(editing.email);
+  });
 
   // Los pacientes con cuenta propia se muestran, pero no se tocan desde acá.
   const readOnly = !!editing && !editing.anonymous;
@@ -599,20 +641,37 @@ export function PatientsPage() {
                   const state = describeState(appointment.state);
 
                   return (
-                    <li key={appointment.numAppointment} className="patients-history-item">
-                      <div className="patients-history-when">
-                        <strong>{historyDate(appointment.date)}</strong>
-                        <span>{appointment.initialHour?.slice(0, 5)}</span>
-                      </div>
+                    <li key={appointment.numAppointment}>
+                      {/* El renglón entero abre la ficha del turno. Hasta acá el historial
+                          se leía y nada más, y para corregir una observación o registrar
+                          un cobro había que salir, ir a la lista de turnos y buscar el
+                          día. Es la misma ficha de siempre, con las mismas acciones.
 
-                      <div className="patients-history-what">
-                        <span className={state.className}>{state.label}</span>
-                        {appointment.observations ? (
-                          <p className="patients-history-note">{appointment.observations}</p>
-                        ) : (
-                          <p className="patients-history-note patients-history-empty">Sin observaciones</p>
-                        )}
-                      </div>
+                          El paciente se le agrega al pasarlo. El historial son todos
+                          turnos del mismo, así que el servidor manda ahí solo su mail y no
+                          la persona entera, y la ficha, que sí la muestra, escribía
+                          "undefined, undefined". Se le pone el que está abierto, que es de
+                          quien es el historial por definición. */}
+                      <button
+                        type="button"
+                        className="patients-history-item"
+                        onClick={() => turno.open({ ...appointment, patient: editing })}
+                        title="Ver la ficha del turno"
+                      >
+                        <span className="patients-history-when">
+                          <strong>{historyDate(appointment.date)}</strong>
+                          <span>{appointment.initialHour?.slice(0, 5)}</span>
+                        </span>
+
+                        <span className="patients-history-what">
+                          <span className={state.className}>{state.label}</span>
+                          {appointment.observations ? (
+                            <span className="patients-history-note">{appointment.observations}</span>
+                          ) : (
+                            <span className="patients-history-note patients-history-empty">Sin observaciones</span>
+                          )}
+                        </span>
+                      </button>
                     </li>
                   );
                 })}
@@ -621,6 +680,11 @@ export function PatientsPage() {
           </div>
         )}
       </Modal>
+
+      {/* La ficha del turno que se abre desde el historial. Va afuera de la ventana del
+          paciente y no adentro: una ventana adentro de otra hereda su ancho y su scroll,
+          y esta ficha es más alta que la de un paciente. */}
+      {me && <AppointmentDetailModal {...turno.detailProps} user={me} />}
     </div>
   );
 }

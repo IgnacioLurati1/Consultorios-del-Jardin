@@ -34,8 +34,15 @@ export function Modal({ open, title, subtitle, onClose, children, footer, size =
   useEffect(() => {
     if (!open) return;
 
+    // En qué piso quedó esta ventana. Con dos abiertas, Escape lo escuchan las dos y las
+    // cerraba a las dos de una: se abría la ficha de un turno desde el historial de un
+    // paciente, se apretaba Escape para volver, y se cerraba también la del paciente.
+    // Contesta solo la de más arriba, que es la que se está mirando.
+    ventanasAbiertas += 1;
+    const piso = ventanasAbiertas;
+
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && piso === ventanasAbiertas) onClose();
     }
 
     document.addEventListener("keydown", handleKey);
@@ -44,7 +51,6 @@ export function Modal({ open, title, subtitle, onClose, children, footer, size =
     document.body.style.overflow = "hidden";
 
     // Y esto es para que lo que flota sobre la página sepa que hay una ventana abierta.
-    ventanasAbiertas += 1;
     document.body.classList.add("ui-modal-open");
 
     return () => {

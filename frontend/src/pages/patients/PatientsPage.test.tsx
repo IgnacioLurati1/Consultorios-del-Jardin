@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BrowserRouter } from "react-router-dom";
@@ -68,9 +68,15 @@ vi.mock("./ContactPatientModal.tsx", () => ({ ContactPatientModal: () => null })
 
 import { PatientsPage } from "./PatientsPage";
 
-/** Cuántos turnos atendidos dice el recorte "Asistió" que hay en el historial abierto. */
+/**
+ * Cuántos turnos atendidos dice el recorte "Asistió" que hay en el historial abierto.
+ *
+ * Se busca adentro de la fila de recortes y no en toda la pantalla: cada renglón del
+ * historial también es un botón y también dice "Asistió" en su cartel de estado.
+ */
 async function asistidosMostrados(): Promise<string | null> {
-  const boton = await screen.findByRole("button", { name: /Asistió/ });
+  const recortes = await screen.findByRole("group", { name: "Filtrar el historial" });
+  const boton = await within(recortes).findByRole("button", { name: /Asistió/ });
   return boton.textContent?.replace(/\D/g, "") ?? null;
 }
 

@@ -245,12 +245,32 @@ button.people-row:focus-visible {
     overflow-y: auto;
 }
 
+/* El renglón es un botón: abre la ficha del turno. Se le sacan los adornos que el
+   navegador le pone a un botón y se le deja el ancho entero, para que siga leyendo como
+   una fila del historial y no como un botón metido adentro de una lista. */
 .patients-history-item {
     display: flex;
     gap: 14px;
+    width: 100%;
     padding: 12px 14px;
     background: var(--adm-bg);
+    border: 1px solid transparent;
     border-radius: var(--adm-radius-sm);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.patients-history-item:hover {
+    background: var(--adm-surface-sunken);
+    border-color: var(--adm-border);
+}
+
+.patients-history-item:focus-visible {
+    outline: 2px solid var(--adm-green);
+    outline-offset: 1px;
 }
 
 .patients-history-when {
