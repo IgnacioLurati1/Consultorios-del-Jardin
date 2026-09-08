@@ -9,13 +9,23 @@
       "distribution": "internal"
     },
     "preview": {
-  "distribution": "internal",
-  "android": {
-    "buildType": "apk"
-  }
-},
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://consultorios-del-jardin-production.up.railway.app/api"
+      }
+    },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://consultorios-del-jardin-production.up.railway.app/api"
+      }
     }
   },
   "submit": {
