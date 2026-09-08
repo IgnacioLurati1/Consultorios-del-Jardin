@@ -2,7 +2,7 @@ import { orm } from "../shared/db/orm.js";
 import { Person } from "../people/people.entity.js";
 import { Vacation } from "./vacation.entity.js";
 import { Appointment } from "../appointments/appointments.entity.js";
-import { DEBT_FILTER, pendingAmount } from "../appointments/appointments.service.js";
+import { AppointmentService, DEBT_FILTER, pendingAmount } from "../appointments/appointments.service.js";
 import { Recurrence } from "../recurrences/recurrences.entity.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
@@ -141,11 +141,32 @@ export class SettingsService {
   async acceptPending(email: string): Promise<number> {
     await this.professional(email);
 
-    const pending = await em.find(Appointment, { professional: { email }, state: "pending" });
+    const pending = await em.find(
+      Appointment,
+      { professional: { email }, state: "pending" },
+      // Con las dos personas cargadas: el mail de confirmación las nombra a las dos, y
+      // sin esto salía a buscarlas de a una por turno.
+      { populate: ["patient", "professional"] }
+    );
 
     for (const appointment of pending) appointment.state = "accepted";
 
     await em.flush();
+
+    // Confirmar de a uno le manda el mail al paciente y confirmar de a veinte no lo
+    // mandaba: para el paciente son el mismo hecho, y el que confirmaba en tanda dejaba a
+    // veinte personas esperando un aviso que no iba a llegar.
+    //
+    // Uno por uno y sin cortar: que un mail no salga no puede dejar los diecinueve
+    // siguientes sin avisar, ni deshacer una confirmación que ya está guardada.
+    const appointments = new AppointmentService();
+
+    for (const appointment of pending) {
+      await appointments
+        .sendAcceptedMail(appointment)
+        .catch((err) => console.error(`Error avisando la confirmación del turno ${appointment.numAppointment}:`, err));
+    }
+
     return pending.length;
   }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import jwt from "jsonwebtoken";
 
 // ============================================================
@@ -22,8 +22,13 @@ const { mockEm } = vi.hoisted(() => ({
     count: vi.fn(),
     transactional: vi.fn(),
     createQueryBuilder: vi.fn(),
+    // El cierre por seguridad escribe en un fork para no arrastrar lo que haya en la
+    // unidad de trabajo del pedido que lo disparó. Acá el fork es el mismo objeto.
+    fork: vi.fn(),
   },
 }));
+
+mockEm.fork.mockReturnValue(mockEm);
 
 vi.mock("../shared/db/orm.js", () => ({
   orm: { em: mockEm },
@@ -37,15 +42,25 @@ vi.mock("../shared/db/orm.js", () => ({
  * que le llega a la persona, que es justamente lo que hay que revisar en el alta con la
  * dirección validada.
  */
-const { mailsMandados } = vi.hoisted(() => ({ mailsMandados: [] as string[] }));
+const { mailsMandados, sobres, enviados } = vi.hoisted(() => ({
+  mailsMandados: [] as string[],
+  /** Los mensajes armados, con su asunto. */
+  sobres: [] as Array<{ to: string; subject: string }>,
+  /** A quién se le mandó de verdad. Un mismo mensaje puede salir para varias personas. */
+  enviados: [] as string[],
+}));
 
 vi.mock("../config/mailer.js", () => ({
   default: class MailServiceMock {
-    createMessage = vi.fn().mockImplementation(async (_to: string, _asunto: string, html: string) => {
+    createMessage = vi.fn().mockImplementation(async (to: string, asunto: string, html: string) => {
       mailsMandados.push(html);
-      return {};
+      sobres.push({ to, subject: asunto });
+      return { to, subject: asunto };
     });
-    sendMail = vi.fn().mockResolvedValue(undefined);
+    sendMail = vi.fn().mockImplementation(async (msg: any) => {
+      enviados.push(msg?.to ?? "");
+      return true;
+    });
   },
 }));
 
@@ -57,6 +72,10 @@ process.env.CHANGE_SECRET = "test-change-secret-key";
 // Imports después de los mocks
 import { verifyToken } from "../config/middlewares.js";
 import { PeopleService } from "../people/people.service.js";
+import { ScheduleService } from "../schedule/schedule.service.js";
+import { AppointmentService } from "../appointments/appointments.service.js";
+import { SettingsService } from "../settings/settings.service.js";
+import { SecurityService } from "../security/security.service.js";
 import refreshTokenHandler from "../config/refreshToken.js";
 
 // ============================================================
@@ -540,5 +559,403 @@ describe("Integracion: renovar la sesion con la cookie o con el header", () => {
     await refreshTokenHandler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(401);
+  });
+});
+
+// ============================================================
+// Deshabilitar a un profesional.
+// La cuenta cerrada ya no aparece en ningún lado, pero la marca de
+// "aparece cuando se busca turno" es la que decide qué pasa el día
+// que se la vuelve a abrir.
+// ============================================================
+
+describe("Integracion: deshabilitar a un profesional lo saca de la busqueda", () => {
+  const peopleService = new PeopleService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Un assign de verdad: lo que se mira acá es con qué valores queda la persona.
+    mockEm.assign.mockImplementation((target: any, data: any) => Object.assign(target, data));
+  });
+
+  afterEach(() => {
+    mockEm.assign.mockReset();
+  });
+
+  it("al deshabilitarlo deja de ofrecerse cuando alguien busca turno", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockProfessional, active: true, bookable: true });
+
+    expect(await peopleService.toggleState(mockProfessional.email, "admin@test.com")).toEqual({
+      active: false,
+      bookable: false,
+    });
+  });
+
+  // La cuenta vuelve, la agenda del público no: eso lo decide un administrador aparte.
+  it("volver a habilitarlo no lo devuelve solo a la busqueda", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockProfessional, active: false, bookable: false });
+
+    expect(await peopleService.toggleState(mockProfessional.email, "admin@test.com")).toEqual({
+      active: true,
+      bookable: false,
+    });
+  });
+
+  it("a un paciente no le toca una marca que no es suya", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockClient, active: true, bookable: true });
+
+    expect(await peopleService.toggleState(mockClient.email, "admin@test.com")).toEqual({
+      active: false,
+      bookable: true,
+    });
+  });
+});
+
+// ============================================================
+// Horarios de un profesional deshabilitado.
+// La cuenta cerrada no borra nada: los módulos que tenía cargados
+// siguen reservando la sala. Hay que poder sacarlos, y no hay que
+// poder agregarle más.
+// ============================================================
+
+describe("Integracion: horarios de un profesional deshabilitado", () => {
+  const scheduleService = new ScheduleService();
+
+  const nuevoHorario = {
+    day: "lunes",
+    initialHour: "09:00",
+    finalHour: "12:00",
+    person: mockProfessional.email,
+    room: mockRoom.idRoom,
+    duration: 30,
+  } as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("no le deja cargar un horario nuevo", async () => {
+    mockEm.findOne.mockResolvedValue({ ...mockProfessional, active: false });
+
+    await expect(scheduleService.createSchedule(nuevoHorario)).rejects.toThrow(/deshabilitado/);
+    // Ni siquiera llega a mirar si la franja estaba libre.
+    expect(mockEm.create).not.toHaveBeenCalled();
+  });
+
+  it("al que sigue habilitado se lo carga como siempre", async () => {
+    mockEm.findOne.mockResolvedValueOnce({ ...mockProfessional, active: true }).mockResolvedValueOnce(mockRoom);
+    mockEm.find.mockResolvedValue([]);
+    mockEm.create.mockReturnValue(mockSchedule);
+    mockEm.populate.mockResolvedValue(undefined);
+    mockEm.flush.mockResolvedValue(undefined);
+
+    expect(await scheduleService.createSchedule(nuevoHorario)).toBe(mockSchedule);
+  });
+
+  // Lo que hace que la baja no deje basura: borrar no pregunta por el estado de la cuenta.
+  it("los que le quedaron se pueden borrar igual", async () => {
+    mockEm.nativeDelete.mockResolvedValue(1);
+
+    await expect(scheduleService.removeSchedule("lunes", "09:00", mockProfessional.email)).resolves.toBeUndefined();
+  });
+});
+
+// ============================================================
+// Por qué no se pudo cargar un horario.
+// Las tres causas son cosas que hizo quien lo carga, no fallas del
+// servidor, y cada una se arregla distinto: correr la franja, elegir
+// otra sala, o mirar de qué a qué abre la sucursal.
+// ============================================================
+
+describe("Integracion: el alta de horarios dice por que no se pudo", () => {
+  const scheduleService = new ScheduleService();
+
+  const nuevoHorario = {
+    day: "lunes",
+    initialHour: "09:00",
+    finalHour: "12:00",
+    person: mockProfessional.email,
+    room: mockRoom.idRoom,
+    duration: 30,
+  } as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockResolvedValueOnce({ ...mockProfessional, active: true }).mockResolvedValueOnce(mockRoom);
+  });
+
+  // clearAllMocks limpia las llamadas pero no la cola de respuestas "once". Un test que
+  // corta antes de consumirlas se las deja al siguiente, que ahí recibe un profesional
+  // donde esperaba un turno.
+  afterEach(() => {
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+  });
+
+  it("avisa que la sala ya está ocupada, y no como error del servidor", async () => {
+    mockEm.find.mockResolvedValueOnce([]).mockResolvedValueOnce([mockSchedule]);
+
+    await expect(scheduleService.createSchedule(nuevoHorario)).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("ocupado"),
+    });
+  });
+
+  it("avisa que el profesional ya tenía esa franja tomada", async () => {
+    mockEm.find.mockResolvedValueOnce([mockSchedule]).mockResolvedValueOnce([]);
+
+    await expect(scheduleService.createSchedule(nuevoHorario)).rejects.toMatchObject({ status: 409 });
+  });
+
+  // Con las horas adentro del mensaje: si no, hay que ir a buscarlas a otra pantalla.
+  it("dice de que a que abre la sucursal cuando la franja queda afuera", async () => {
+    mockEm.find.mockResolvedValue([]);
+
+    await expect(
+      scheduleService.createSchedule({ ...nuevoHorario, initialHour: "19:00", finalHour: "20:00" })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: expect.stringContaining(`de ${mockOffice.openingTime} a ${mockOffice.closingTime}`),
+    });
+  });
+
+  it("no acepta una duración que no es de las tres", async () => {
+    await expect(scheduleService.createSchedule({ ...nuevoHorario, duration: 20 })).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+// ============================================================
+// Quién se entera de qué.
+// Cada cosa que pasa con un turno le pasa a dos personas, y las
+// dos tienen que enterarse por un camino que no dependa de tener
+// la aplicación abierta en ese momento.
+// ============================================================
+
+describe("Integracion: los avisos por mail de un turno", () => {
+  const appointments = new AppointmentService();
+  const settings = new SettingsService();
+
+  const pedido = () => ({
+    numAppointment: 77,
+    state: "pending",
+    date: new Date("2026-10-05T12:00:00Z"),
+    initialHour: "09:00",
+    finalHour: "10:00",
+    patient: { ...mockClient },
+    professional: { ...mockProfessional },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset y no clear: hay que vaciar también las respuestas "once" que haya dejado
+    // encoladas cualquier otro test.
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mockEm.create.mockReset();
+
+    sobres.length = 0;
+    mailsMandados.length = 0;
+    mockEm.flush.mockResolvedValue(undefined);
+  });
+
+  it("cuando el profesional rechaza el pedido, el mail va al paciente", async () => {
+    mockEm.findOne.mockResolvedValueOnce(pedido()).mockResolvedValueOnce(null);
+    mockEm.create.mockReturnValue({ denied: 0, expired: 0 });
+
+    await appointments.deleteAppointment(77, mockProfessional.email, true);
+
+    expect(sobres).toEqual([{ to: mockClient.email, subject: "No pudimos darte ese turno" }]);
+  });
+
+  // Antes pasaba por el mismo mail que el rechazo, así que al paciente le llegaba "el
+  // profesional no pudo tomar el horario" por algo que acababa de hacer él, y el
+  // profesional no se enteraba de nada aunque el pedido se borra de su lista.
+  it("cuando el paciente da de baja su propio pedido, el mail va al profesional", async () => {
+    mockEm.findOne.mockResolvedValue(pedido());
+
+    await appointments.deleteAppointment(77, mockProfessional.email, false);
+
+    expect(sobres).toEqual([{ to: mockProfessional.email, subject: "Se dio de baja un pedido" }]);
+  });
+
+  it("confirmar un pedido le avisa al paciente", async () => {
+    mockEm.findOne.mockResolvedValue(pedido());
+
+    await appointments.acceptAppointment(77, mockProfessional.email);
+
+    expect(sobres).toEqual([{ to: mockClient.email, subject: "Tu turno está confirmado" }]);
+  });
+
+  // Confirmar de a uno mandaba el mail y confirmar en tanda no, así que quien usaba el
+  // botón de confirmar todo dejaba a cada paciente esperando un aviso que no llegaba.
+  it("confirmar todos los pedidos de una avisa a cada paciente", async () => {
+    mockEm.findOne.mockResolvedValue({ ...mockProfessional });
+    mockEm.find.mockResolvedValue([pedido(), { ...pedido(), numAppointment: 78 }]);
+
+    expect(await settings.acceptPending(mockProfessional.email)).toBe(2);
+    expect(sobres).toEqual([
+      { to: mockClient.email, subject: "Tu turno está confirmado" },
+      { to: mockClient.email, subject: "Tu turno está confirmado" },
+    ]);
+  });
+
+  // Un mail que no sale no puede deshacer algo que ya está guardado. Antes de esto, con
+  // el proveedor caído el profesional recibía un error y el turno quedaba confirmado
+  // igual, así que apretaba de nuevo sobre algo que ya no estaba pendiente.
+  it("si el mail falla igual queda confirmado", async () => {
+    const turno = pedido();
+    mockEm.findOne.mockResolvedValue(turno);
+
+    const mailer = (appointments as any).mailService;
+    const original = mailer.createMessage;
+    mailer.createMessage = vi.fn().mockRejectedValue(new Error("el proveedor de mails no contesta"));
+
+    try {
+      await expect(appointments.acceptAppointment(77, mockProfessional.email)).resolves.toBeDefined();
+      expect(turno.state).toBe("accepted");
+    } finally {
+      mailer.createMessage = original;
+    }
+  });
+
+  // Cambiarle la fecha o la hora a un turno es de las pocas cosas que le pasan al
+  // paciente sin que él haga nada, así que el mail no puede depender de que abra la
+  // aplicación. Cambiarle el valor no, que es un tilde del profesional mientras trabaja.
+  it("mover el turno de horario le avisa al paciente", async () => {
+    const turno = { ...pedido(), state: "accepted" };
+    mockEm.findOne.mockResolvedValueOnce(turno).mockResolvedValue(null);
+
+    await appointments.updateAppointment(77, mockProfessional.email, {
+      initialHour: "11:00",
+      finalHour: "12:00",
+    } as any);
+
+    expect(sobres).toEqual([{ to: mockClient.email, subject: "Cambiamos tu turno de horario" }]);
+  });
+
+  it("cambiarle solo el valor no le manda nada", async () => {
+    mockEm.findOne.mockResolvedValueOnce({ ...pedido(), state: "accepted" }).mockResolvedValue(null);
+
+    await appointments.updateAppointment(77, mockProfessional.email, { value: 9000 } as any);
+
+    expect(sobres).toEqual([]);
+  });
+
+  it("el profesional que apagó el aviso no lo recibe", async () => {
+    mockEm.findOne.mockResolvedValue({
+      ...pedido(),
+      professional: { ...mockProfessional, mailOptOut: "request-withdrawn" },
+    });
+
+    await appointments.deleteAppointment(77, mockProfessional.email, false);
+
+    expect(sobres).toEqual([]);
+  });
+});
+
+// ============================================================
+// Los mails que no son de un turno.
+// La bienvenida es lo primero que ve alguien de todo el sistema,
+// y el cierre por seguridad es lo único donde enterarse tarde
+// cuesta de verdad.
+// ============================================================
+
+describe("Integracion: la bienvenida cuenta lo que se puede hacer", () => {
+  const people = new PeopleService();
+
+  const alta = (type: string) => ({
+    email: type === "professional" ? "nueva.pro@demo.local" : "nueva.paciente@demo.local",
+    docType: "DNI",
+    docNumber: "30111222",
+    name: "Sofía",
+    surname: "Ramírez",
+    phoneNumber: "3411234567",
+    password: "unaClave1234",
+    speciality: type === "professional" ? "psicologia" : null,
+    type,
+    active: true,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mailsMandados.length = 0;
+    sobres.length = 0;
+
+    mockEm.findOne.mockResolvedValue(null);
+    mockEm.create.mockImplementation((_entity: any, data: any) => data);
+    mockEm.flush.mockResolvedValue(undefined);
+  });
+
+  // Las dos altas pasaban por la misma función, así que a quien venía a atender le llegaba
+  // "pedí turno con cualquiera de nuestros profesionales", que no es lo que va a hacer.
+  it("al profesional le muestra sus pantallas", async () => {
+    await people.createPerson(alta("professional") as any);
+
+    const cuerpo = String(mailsMandados.at(-1) ?? "");
+    expect(cuerpo).toContain("Pacientes");
+    expect(cuerpo).toContain("Números");
+    expect(cuerpo).toContain("Entrar a mi panel");
+    expect(cuerpo).not.toContain("Pedir mi primer turno");
+  });
+
+  it("al paciente le muestra las suyas", async () => {
+    await people.createPerson(alta("client") as any);
+
+    const cuerpo = String(mailsMandados.at(-1) ?? "");
+    expect(cuerpo).toContain("Pedir un turno");
+    expect(cuerpo).toContain("Mis turnos");
+    expect(cuerpo).toContain("Pedir mi primer turno");
+    expect(cuerpo).not.toContain("Números");
+  });
+});
+
+describe("Integracion: el cierre por seguridad le llega a la administracion", () => {
+  const security = new SecurityService();
+
+  const admins = [
+    { email: "admin@test.com", name: "Ana", surname: "Ruiz", type: "admin", active: true },
+    { email: "otro@test.com", name: "Beto", surname: "Paz", type: "admin", active: true },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.findOne.mockReset();
+    mockEm.find.mockReset();
+    mailsMandados.length = 0;
+    sobres.length = 0;
+    enviados.length = 0;
+
+    mockEm.fork.mockReturnValue(mockEm);
+    mockEm.flush.mockResolvedValue(undefined);
+    mockEm.count.mockResolvedValue(2);
+    mockEm.find.mockResolvedValue(admins);
+  });
+
+  // Antes esto solo salía para la cuenta cerrada. Del otro lado el aviso esperaba en la
+  // campanita del panel, que hay que entrar a mirar, y quien queda afuera no puede ni
+  // pedir que lo reabran.
+  it("le escribe a cada administrador, y no a la cuenta que cerró", async () => {
+    mockEm.findOne.mockResolvedValue({ ...mockClient, banKind: null, bannedAt: null });
+
+    expect(await security.lockForCompromise(mockClient.email, "ráfaga de operaciones ajenas")).toMatchObject({
+      locked: true,
+    });
+
+    await vi.waitFor(() => expect(enviados.length).toBe(3));
+
+    expect([...enviados].sort()).toEqual([mockClient.email, "admin@test.com", "otro@test.com"].sort());
+    expect(sobres.some((sobre) => sobre.subject === "Se cerró una cuenta por seguridad")).toBe(true);
+  });
+
+  it("al administrador cerrado no se le manda dos veces", async () => {
+    mockEm.findOne.mockResolvedValue({ ...admins[0], banKind: null, bannedAt: null, docType: "DNI" });
+
+    await security.lockForCompromise("admin@test.com", "operaciones de madrugada");
+    await vi.waitFor(() => expect(enviados.length).toBe(2));
+
+    // Una copia como dueño de la cuenta y una sola para el otro administrador.
+    expect([...enviados].sort()).toEqual(["admin@test.com", "otro@test.com"]);
   });
 });

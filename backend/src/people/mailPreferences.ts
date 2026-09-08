@@ -12,18 +12,30 @@ export interface MailKind {
 /**
  * Los avisos que un profesional puede apagar.
  *
- * Es corta porque el consultorio le escribe poco a quien atiende: casi todos los mails
- * son para el paciente (que pidió turno, que se lo confirmaron, el recordatorio del día
- * anterior). Al profesional le llega esto, y aparte los mails de la cuenta —bienvenida,
+ * Son los tres hechos que le pasan de afuera: un paciente que saca un turno, uno que
+ * cancela uno confirmado y uno que da de baja un pedido sin contestar. El resto de lo que
+ * ocurre en su agenda lo hace él, y contárselo sería contarle lo que acaba de hacer.
+ *
+ * Aparte de estos le llegan los mails de la cuenta —bienvenida,
  * recuperar la contraseña, el aviso de que la cuenta quedó cerrada por seguridad—, que
  * no se pueden apagar: no son novedades del día a día, son el único camino para volver a
  * entrar o para enterarse de que algo pasó con la cuenta.
  */
 export const PROFESSIONAL_MAILS: MailKind[] = [
   {
+    key: "new-booking",
+    label: "Te sacaron un turno",
+    description: "Cuando un paciente saca un turno con vos.",
+  },
+  {
     key: "slot-freed",
     label: "Se te liberó un horario",
     description: "Cuando un paciente cancela un turno que ya estaba confirmado.",
+  },
+  {
+    key: "request-withdrawn",
+    label: "Se dio de baja un pedido",
+    description: "Cuando un paciente da de baja un pedido que todavía no habías contestado.",
   },
 ];
 

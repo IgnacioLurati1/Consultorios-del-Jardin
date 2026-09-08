@@ -237,7 +237,7 @@ export class AppointmentService {
 
     if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
     if (!ACTIVE_APPOINTMENT_STATES.includes(appointment.state))
-      throw badRequest("Ese turno está cancelado: no hay nada que cobrar");
+      throw badRequest("Ese turno está cancelado. No hay nada que cobrar");
 
     const state = data.paymentState;
     if (!PAYMENT_STATES.includes(state))
@@ -249,11 +249,11 @@ export class AppointmentService {
 
       const amount = Number(data.paidAmount);
       if (!Number.isFinite(amount) || amount <= 0)
-        throw badRequest("Escribí cuánto pagó: tiene que ser un número mayor que cero");
+        throw badRequest("Escribí cuánto pagó. Tiene que ser un número mayor que cero");
       if (amount > value) throw badRequest(`El pago no puede superar el valor del turno, que es $${value}`);
       // Pagó todo: es un pago completo y no uno parcial. Guardarlo como parcial deja un
       // turno que figura debiendo cero, y eso después hay que explicarlo en cada pantalla.
-      if (amount === value) throw badRequest(`Pagó los $${value} completos: marcalo como pagado`);
+      if (amount === value) throw badRequest(`Pagó los $${value} completos. Marcalo como pagado`);
 
       appointment.paidAmount = Math.round(amount);
     } else {
@@ -462,10 +462,21 @@ export class AppointmentService {
 
     if (!appointment) throw notFound("Ese turno no existe, ya no está pendiente o no es tuyo");
 
-    await this.sendAppointmentRejectedEmails(appointment);
+    if (deniedByProfessional) {
+      await this.sendAppointmentRejectedEmails(appointment).catch((err) =>
+        console.error("Error avisándole al paciente del pedido rechazado:", err)
+      );
 
-    // Antes de borrar: después de esto no queda nada que contar.
-    if (deniedByProfessional) await this.countDenial(appointment.professional, false);
+      // Antes de borrar: después de esto no queda nada que contar.
+      await this.countDenial(appointment.professional, false);
+    } else {
+      // El paciente dando de baja su propio pedido. Antes le llegaba "no pudimos darte ese
+      // turno, el profesional no pudo tomar el horario", que le echaba a otro algo que
+      // acababa de hacer él. El que no se estaba enterando de nada era el profesional.
+      await this.sendRequestWithdrawnToProfessional(appointment).catch((err) =>
+        console.error("Error avisándole al profesional del pedido dado de baja:", err)
+      );
+    }
 
     em.remove(appointment);
     await em.flush();
@@ -599,7 +610,10 @@ export class AppointmentService {
     em.assign(appointment, changes);
     await em.flush();
 
-    if (scheduleChanged) await this.sendAppointmentUpdatedEmails(appointment);
+    if (scheduleChanged)
+      await this.sendAppointmentUpdatedEmails(appointment).catch((err) =>
+        console.error("Error avisándole al paciente del turno movido:", err)
+      );
 
     return appointment;
   }
@@ -752,7 +766,13 @@ export class AppointmentService {
 
     appointment.state = "accepted";
     await em.flush();
-    await this.sendAppointmentAcceptedEmails(appointment);
+
+    // El turno ya quedó confirmado. Si el mail falla se registra y se sigue: devolver un
+    // error acá le haría creer al profesional que no confirmó nada.
+    await this.sendAppointmentAcceptedEmails(appointment).catch((err) =>
+      console.error("Error avisándole al paciente del turno confirmado:", err)
+    );
+
     return appointment; // Not used for now
   }
 
@@ -804,8 +824,14 @@ export class AppointmentService {
     appointment.state = new Date().toISOString();
     await em.flush();
 
-    await this.sendAppointmentCanceledEmails(appointment);
-    if (type === "client") await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email);
+    await this.sendAppointmentCanceledEmails(appointment).catch((err) =>
+      console.error("Error avisándole al paciente del turno cancelado:", err)
+    );
+
+    if (type === "client")
+      await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email).catch((err) =>
+        console.error("Error avisándole al profesional del horario liberado:", err)
+      );
 
     return appointment; // Not used for now
   }
@@ -864,6 +890,12 @@ export class AppointmentService {
 
     await created.catch((err) => console.error("Error enviando email de creación de turno:", err));
 
+    // Y del otro lado. Ninguno de los dos mails puede voltear el alta: el turno ya está
+    // dado y hacerlo fallar acá dejaría a la persona creyendo que no lo tiene.
+    await this.sendNewBookingToProfessional(refreshed).catch((err) =>
+      console.error("Error avisándole al profesional del turno nuevo:", err)
+    );
+
     const result = {
       numAppointment: refreshed.numAppointment,
       date: refreshed.date,
@@ -886,7 +918,7 @@ export class AppointmentService {
     patientEmail?: string,
     overbooked = false
   ): Promise<Partial<Appointment>> {
-    return await em.transactional(async (em) => {
+    const created = await em.transactional(async (em) => {
       this.assertValidHour(initialHour, "La hora de inicio");
       this.assertValidHour(finalHour, "La hora de fin");
       this.assertBookableDate(date);
@@ -918,6 +950,16 @@ export class AppointmentService {
         room: appointment.room,
       } as Partial<Appointment>;
     });
+
+    // Para el paciente es exactamente lo mismo que si lo asignaran a un turno que ya
+    // existía: un turno que él no pidió y que le aparece en la lista. Que se entere por
+    // dos caminos distintos según cómo lo cargó el profesional no lo entiende nadie.
+    if (patientEmail)
+      await this.sendPatientAddedEmail(patientEmail, created.numAppointment as number).catch((err) =>
+        console.error("Error avisándole al paciente del turno que le cargaron:", err)
+      );
+
+    return created;
   }
 
   async addPatientToAppointment(numAppointment: number, patientEmail: string, professionalEmail: string) {
@@ -931,7 +973,11 @@ export class AppointmentService {
     appointment.patient = await this.peopleService.findPersonByEmail(patientEmail);
 
     await em.flush();
-    await this.sendPatientAddedEmail(patientEmail, numAppointment);
+
+    await this.sendPatientAddedEmail(patientEmail, numAppointment).catch((err) =>
+      console.error("Error avisándole al paciente del turno asignado:", err)
+    );
+
     return this.toDiagnosticView(appointment); // Not used for now
   }
 
@@ -956,6 +1002,13 @@ export class AppointmentService {
     return `${professional.name} ${professional.surname ?? ""}`.trim();
   }
 
+  /** Vacío si el turno no tiene paciente, que es el caso de una franja reservada a mano. */
+  private patientName(appointment: Appointment): string {
+    const patient = appointment.patient as any;
+    if (!patient?.name) return "";
+    return `${patient.name} ${patient.surname ?? ""}`.trim();
+  }
+
   private appointmentFacts(appointment: Appointment, options: { finalHour?: boolean } = {}) {
     return [
       { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
@@ -972,17 +1025,87 @@ export class AppointmentService {
   private async sendAppointmentCreatedEmail(patientEmail: string, appointment: Appointment, initialHour: string) {
     const htmlContent = [
       title("Pedimos tu turno"),
-      paragraph("Ya tenemos tu pedido. Falta que el profesional lo confirme: te avisamos por mail apenas lo haga."),
+      paragraph("Ya tenemos tu pedido. Falta que el profesional lo confirme y te avisamos apenas lo haga."),
       factsCard("El turno que pediste", [
         { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
         { label: "Hora", value: initialHour },
         { label: "Profesional", value: this.professionalName(appointment) },
       ]),
       button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-      note("Si lo pediste sin querer, cancelalo desde tus turnos y el horario queda libre para otra persona."),
+      note("Si lo pediste sin querer, cancelalo desde tus turnos."),
     ].join("");
 
     const message = await this.mailService.createMessage(patientEmail, "Pedimos tu turno", htmlContent);
+    await this.mailService.sendMail(message);
+  }
+
+  /**
+   * Que a un profesional le sacaron un turno.
+   *
+   * Es el único hecho del día a día que le llega de afuera y que hasta ahora no salía por
+   * ningún lado más que la campana, y la campana pide tener la aplicación abierta. Un
+   * pedido que nadie mira se vence solo a la hora del turno, así que quien no entra en el
+   * medio se entera cuando ya no hay nada que contestar.
+   */
+  private async sendNewBookingToProfessional(appointment: Appointment) {
+    if (!appointment.patient) return;
+    if (!wantsMail(appointment.professional, "new-booking")) return;
+
+    // Con la confirmación automática el turno ya nació aceptado. Es la misma novedad pero
+    // no hay nada que contestar, y pedirle que confirme algo ya confirmado lo manda a
+    // buscar un botón que no existe.
+    const pending = appointment.state === "pending";
+
+    const htmlContent = [
+      title(pending ? "Te pidieron un turno" : "Te sacaron un turno"),
+      paragraph(
+        pending
+          ? "Un paciente pidió un horario tuyo. Queda esperando hasta que lo contestes."
+          : "Un paciente sacó un turno y quedó confirmado solo, como lo tenés configurado."
+      ),
+      factsCard("El turno", [
+        { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
+        { label: "Hora", value: String(appointment.initialHour ?? "") },
+        { label: "Paciente", value: this.patientName(appointment) },
+      ]),
+      button(pending ? "Ver los pedidos" : "Ver mi agenda", this.appUrl("/AppointmentsList")),
+      ...(pending ? [note("Si no lo contestás, el pedido se da de baja solo cuando pasa la hora del turno.")] : []),
+    ].join("");
+
+    const message = await this.mailService.createMessage(
+      appointment.professional.email,
+      pending ? "Te pidieron un turno" : "Te sacaron un turno",
+      htmlContent
+    );
+    await this.mailService.sendMail(message);
+  }
+
+  /**
+   * Que un paciente dio de baja un pedido que todavía no estaba contestado.
+   *
+   * Va al profesional porque el pedido se borra: desaparece de su lista sin dejar rastro,
+   * y sin este aviso lo que ve es un pedido que estaba ayer y hoy no está.
+   */
+  private async sendRequestWithdrawnToProfessional(appointment: Appointment) {
+    if (!wantsMail(appointment.professional, "request-withdrawn")) return;
+
+    const htmlContent = [
+      title("Se dio de baja un pedido"),
+      paragraph("Un paciente dio de baja un turno que te había pedido y que no habías contestado."),
+      factsCard("El pedido que se cayó", [
+        { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
+        { label: "Hora", value: String(appointment.initialHour ?? "") },
+        { label: "Paciente", value: this.patientName(appointment) },
+      ]),
+      paragraph("No tenés que hacer nada. Ese horario vuelve a estar disponible."),
+      button("Ver mi agenda", this.appUrl("/AppointmentsList")),
+    ].join("");
+
+    const message = await this.mailService.createMessage(
+      appointment.professional.email,
+      "Se dio de baja un pedido",
+      htmlContent
+    );
     await this.mailService.sendMail(message);
   }
 
@@ -991,9 +1114,8 @@ export class AppointmentService {
 
     const htmlContent = [
       title("Cambiamos tu turno de horario"),
-      paragraph("Tu turno se movió. Estos son los datos nuevos:"),
       factsCard("Ahora es", this.appointmentFacts(appointment, { finalHour: true })),
-      paragraph("Anotalo en tu calendario. Si este horario no te sirve, podés cancelarlo y pedir otro."),
+      paragraph("Si este horario no te sirve, podés cancelarlo y pedir otro."),
       button("Ver mis turnos", this.appUrl("/AppointmentsList")),
     ].join("");
 
@@ -1012,7 +1134,7 @@ export class AppointmentService {
       title("No pudimos darte ese turno"),
       paragraph("El profesional no pudo tomar el horario que pediste."),
       factsCard("El turno que no salió", this.appointmentFacts(appointment)),
-      paragraph("Hay más horarios disponibles: elegí otro y lo intentamos de nuevo."),
+      paragraph("Hay más horarios disponibles. Elegí otro y lo intentamos de nuevo."),
       button("Buscar otro horario", this.appUrl("/Appointment")),
       note(
         `Si necesitás una fecha en particular, <a href="${this.appUrl(
@@ -1034,9 +1156,8 @@ export class AppointmentService {
 
     const htmlContent = [
       title("Se canceló tu turno"),
-      paragraph("Te avisamos que este turno ya no está en la agenda:"),
+      paragraph("Este turno ya no está en la agenda."),
       factsCard("Turno cancelado", this.appointmentFacts(appointment)),
-      paragraph("Si lo necesitás, podés pedir otro cuando quieras."),
       button("Pedir otro turno", this.appUrl("/Appointment")),
     ].join("");
 
@@ -1069,12 +1190,22 @@ export class AppointmentService {
     await this.mailService.sendMail(message);
   }
 
+  /**
+   * El mail de turno confirmado, para quien confirma desde afuera de esta clase.
+   *
+   * Existe por la confirmación en tanda, que vive en la configuración del profesional.
+   * Es el mismo mail que manda `acceptAppointment` y tiene que seguir siéndolo.
+   */
+  async sendAcceptedMail(appointment: Appointment): Promise<void> {
+    await this.sendAppointmentAcceptedEmails(appointment);
+  }
+
   private async sendAppointmentAcceptedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
     const htmlContent = [
       title("Tu turno está confirmado"),
-      paragraph("El profesional confirmó el horario. Te esperamos:"),
+      paragraph("El profesional confirmó el horario. Te esperamos."),
       factsCard("Tu turno", this.appointmentFacts(appointment)),
       paragraph("Llegá cinco minutos antes. El día anterior te mandamos un recordatorio."),
       button("Ver mis turnos", this.appUrl("/AppointmentsList")),
@@ -1092,13 +1223,16 @@ export class AppointmentService {
   private async sendPatientAddedEmail(patientEmail: string, numAppointment: number) {
     const htmlContent = [
       title("Te anotamos en un turno"),
-      paragraph("Desde el consultorio te asignaron un turno. Entrá para ver el día y la hora, y confirmá que estás de acuerdo."),
+      // El turno que carga el profesional nace confirmado: no hay nada que el paciente
+      // tenga que aceptar. Antes decía "confirmá que estás de acuerdo" y lo mandaba a
+      // buscar un botón que no existe.
+      paragraph("Desde el consultorio te asignaron un turno. Entrá para ver el día y la hora."),
       factsCard("Datos del turno", [
         { label: "Número", value: String(numAppointment) },
-        { label: "Estado", value: "Esperando que lo confirmes" },
+        { label: "Estado", value: "Confirmado" },
       ]),
       button("Ver el turno", this.appUrl("/AppointmentsList")),
-      warning("Si vos no pediste este turno ni esperabas que te lo asignaran, avisanos: puede ser un error de carga."),
+      warning("Si no esperabas este turno, avisanos. Puede ser un error de carga."),
     ].join("");
 
     const message = await this.mailService.createMessage(patientEmail, "Te anotamos en un turno", htmlContent);
@@ -1153,11 +1287,10 @@ export class AppointmentService {
   private async sendReminderEmail(patientEmail: string, appointment: Appointment) {
     const htmlContent = [
       title("Mañana tenés turno"),
-      paragraph("Te lo recordamos para que no se te pase:"),
       factsCard("Tu turno de mañana", this.appointmentFacts(appointment)),
       paragraph("Es en <strong>9 de Julio 3672</strong>. Llegá cinco minutos antes."),
       button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-      note("Si no vas a poder ir, cancelalo hoy: así el horario le queda a otra persona."),
+      note("Si no vas a poder ir, cancelalo hoy. Así el horario le queda a otra persona."),
     ].join("");
 
     const message = await this.mailService.createMessage(patientEmail, "Mañana tenés turno", htmlContent);
