@@ -187,11 +187,19 @@ export function createProfessionalAppointment(newAppointment: {
     .catch(backendError);
 }
 
+/**
+ * Los horarios libres de un profesional.
+ *
+ * Falla hacia afuera a propósito. Antes devolvía una lista vacía ante cualquier error, y
+ * la pantalla no tenía forma de distinguir "no le queda lugar" de "no lo pudimos
+ * preguntar": con el servidor caído le decía al paciente que el profesional no tenía
+ * horarios, que es lo contrario de pedirle que vuelva a intentar.
+ */
 export function getAvailableAppointmentsForPatient(professionalEmail: string, office: string): Promise<Array<partialAppointment>> {
   return api
     .post(`/appointments/getAppointments`, { professionalEmail, office })
     .then((response) => response.data.data)
-    .catch(() => []);
+    .catch(backendError);
 }
 
 export function createAppointment(newAppointment: {

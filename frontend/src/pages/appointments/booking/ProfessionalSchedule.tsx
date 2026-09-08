@@ -24,9 +24,14 @@ interface ProfessionalScheduleProps {
  */
 export function ProfessionalSchedule({ professional, office }: ProfessionalScheduleProps) {
   const [slots, setSlots] = useState<partialAppointment[] | null>(null);
+  // Aparte de la lista, porque una lista vacía y un error son dos cosas distintas y la
+  // pantalla tiene que decirlas distinto. Antes las dos terminaban en "no tiene horarios".
+  const [failed, setFailed] = useState(false);
   const [monday, setMonday] = useState<Date>(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<partialAppointment | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
+  /** Cambia al tocar "Probar de nuevo" y con eso se vuelve a pedir la agenda. */
+  const [attempt, setAttempt] = useState(0);
 
   const firstMonday = useMemo(() => startOfWeek(new Date()), []);
   const lastMonday = useMemo(() => addDays(firstMonday, WEEKS_AHEAD * 7), [firstMonday]);
@@ -35,22 +40,23 @@ export function ProfessionalSchedule({ professional, office }: ProfessionalSched
     let cancelled = false;
 
     setSlots(null);
+    setFailed(false);
     setMonday(startOfWeek(new Date())); // al cambiar de profesional se vuelve a esta semana
 
     getAvailableAppointmentsForPatient(professional.email, office.idOffice)
       .then((data) => {
         if (!cancelled) setSlots(data);
       })
-      .catch((err) => {
+      .catch(() => {
         if (cancelled) return;
-        toast.error(`No pudimos cargar los horarios: ${err.message}`);
+        setFailed(true);
         setSlots([]);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [professional.email, office.idOffice]);
+  }, [professional.email, office.idOffice, attempt]);
 
   // El backend devuelve las próximas semanas completas; acá se recorta a lo que se
   // puede reservar, así la grilla no ofrece nada que después vaya a rechazar.
@@ -128,6 +134,20 @@ export function ProfessionalSchedule({ professional, office }: ProfessionalSched
 
       {slots === null ? (
         <SkeletonGrid columns={7} />
+      ) : failed ? (
+        <div className="adm-panel">
+          <div className="adm-empty">
+            No pudimos traer la agenda de {professional.name}. Esto no quiere decir que no
+            tenga lugar, quiere decir que no la pudimos consultar.
+            <br />
+            Probá de nuevo en un momento.
+            <div className="booking-retry">
+              <button type="button" className="adm-btn adm-btn-primary" onClick={() => setAttempt((n) => n + 1)}>
+                Probar de nuevo
+              </button>
+            </div>
+          </div>
+        </div>
       ) : bookable.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">

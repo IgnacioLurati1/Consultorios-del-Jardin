@@ -209,6 +209,11 @@
   font-size: 0.97rem;
 }
 
+/* El botón de volver a intentar, cuando no se pudo traer la agenda. */
+.booking-retry {
+  margin-top: 14px;
+}
+
 @media (max-width: 768px) {
   .booking-week-nav {
     display: grid;
