@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Directory, File, Paths } from "expo-file-system";
 import { myAnnouncements, type Announcement } from "../api/announcements";
-import { myPatientAppointments, professionalRange } from "../api/appointments";
+import { myPatientAppointments, pendingAppointments, professionalRange } from "../api/appointments";
 import type { Appointment } from "../api/types";
 import { addDays, hhmm, longDate, toISODate } from "./dates";
 import { fullName, stateOf } from "./appointments";
@@ -393,7 +393,18 @@ async function traer(role: string): Promise<[Appointment[], Announcement[]]> {
     const turnos = professionalRange(toISODate(addDays(hoy, -3)), toISODate(addDays(hoy, 21)), true).catch(
       () => [] as Appointment[]
     );
-    return Promise.all([turnos, anuncios]);
+    // Los pedidos sin contestar van aparte de la ventana de tres semanas. Uno para dentro
+    // de dos meses no entra ahí, y es justo el que nadie va a mirar hasta que se venza.
+    const pedidos = pendingAppointments().catch(() => [] as Appointment[]);
+
+    const [enVentana, pendientes, avisos] = await Promise.all([turnos, pedidos, anuncios]);
+
+    // El mismo turno puede venir por los dos lados. Repetido, la foto lo guarda dos veces
+    // contra la misma clave y el aviso sale duplicado.
+    const porNumero = new Map<number, Appointment>();
+    for (const turno of [...enVentana, ...pendientes]) porNumero.set(turno.numAppointment, turno);
+
+    return [[...porNumero.values()], avisos];
   }
 
   if (role === "client") {

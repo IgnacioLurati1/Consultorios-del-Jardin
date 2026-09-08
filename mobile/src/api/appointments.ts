@@ -28,6 +28,12 @@ export async function professionalRange(from: string, to: string, includeCancell
   return data.data;
 }
 
+/** Los turnos que un paciente pidió y el profesional todavía no aceptó ni rechazó. */
+export async function pendingAppointments(): Promise<Appointment[]> {
+  const { data } = await api.get("/appointments/pending");
+  return data.data;
+}
+
 /**
  * Los pacientes del profesional logueado: los que alguna vez tuvieron turno con él. Un
  * turno cancelado no cuenta como vínculo.

@@ -8,6 +8,7 @@ import {
 } from "../../pages/appointments/appointmentTypes";
 import {
   findPatientAppointments,
+  findPendingAppointments,
   findProfessionalAppointmentsInRange,
 } from "../../pages/appointments/appointmentsService";
 import { findMyAnnouncements, type Announcement } from "../../pages/announcements/announcementsService";
@@ -183,6 +184,19 @@ function claveDeManana(iso: string): string {
 
 /* ---------- recolección ---------- */
 
+/**
+ * Dos listados que se pisan, en uno solo.
+ *
+ * Los pedidos sin contestar vienen aparte de la ventana de tres semanas y la mayoría
+ * están adentro de las dos. Si el mismo turno entra dos veces, la foto lo guarda dos
+ * veces contra la misma clave y el aviso sale repetido.
+ */
+function juntar(...listas: Appointment[][]): Appointment[] {
+  const porNumero = new Map<number, Appointment>();
+  for (const lista of listas) for (const turno of lista) porNumero.set(turno.numAppointment, turno);
+  return [...porNumero.values()];
+}
+
 async function recolectarPaciente(email: string): Promise<AppNotification[]> {
   const [turnos, anuncios] = await Promise.all([
     findPatientAppointments(0, true).catch(() => [] as Appointment[]),
@@ -228,15 +242,21 @@ async function recolectarPaciente(email: string): Promise<AppNotification[]> {
 
 async function recolectarProfesional(email: string): Promise<AppNotification[]> {
   const hoy = new Date();
-  const [turnos, anuncios] = await Promise.all([
+  const [enVentana, pendientes, anuncios] = await Promise.all([
     // Una ventana y no la primera página del listado: la página trae los quince más
     // recientes por fecha, que en una agenda cargada se llena de turnos de un mes que
     // viene y deja afuera el pedido de mañana.
     findProfessionalAppointmentsInRange(toISODate(addDays(hoy, -3)), toISODate(addDays(hoy, 21)), true).catch(
       () => [] as Appointment[]
     ),
+    // Y los pedidos sin contestar, estén donde estén. Es el único aviso que no puede
+    // depender de la ventana: un turno pedido para dentro de dos meses no entra en las
+    // tres semanas, y el pedido se vence solo si nadie lo mira.
+    findPendingAppointments().catch(() => [] as Appointment[]),
     findMyAnnouncements().catch(() => [] as Announcement[]),
   ]);
+
+  const turnos = juntar(enVentana, pendientes);
 
   const foto: Record<string, string> = {};
   for (const turno of turnos) foto[`t${turno.numAppointment}`] = huellaTurno(turno);
