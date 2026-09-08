@@ -8,7 +8,7 @@ import {
   schedulesOf,
   updateScheduleDuration,
 } from "../../api/catalog";
-import { findActiveByType } from "../../api/people";
+import { findByType } from "../../api/people";
 import { Person, Schedule } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Choice } from "../../components/Choice";
@@ -46,7 +46,10 @@ export default function SchedulesScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
-  const people = useAsync(() => (role === "admin" ? findActiveByType("professional") : Promise.resolve([] as Person[])), [role]);
+  // Con los deshabilitados adentro. Deshabilitar a alguien no le borra los horarios y esos
+  // horarios siguen reservando el consultorio, así que esconderlo es esconder por qué la
+  // sala figura ocupada.
+  const people = useAsync(() => (role === "admin" ? findByType("professional") : Promise.resolve([] as Person[])), [role]);
   const schedules = useAsync(() => (target ? schedulesOf(target) : Promise.resolve([] as Schedule[])), [target]);
 
   const chosen = (people.data ?? []).find((person) => person.email === target);
@@ -179,14 +182,17 @@ export default function SchedulesScreen() {
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}
         title="Profesional"
-        options={(people.data ?? []).map((person) => ({
-          key: person.email,
-          label: fullName(person),
-          description: person.speciality || "Sin especialidad",
-        }))}
+        options={[...(people.data ?? [])]
+          // Los deshabilitados al final: mirar su agenda es la excepción.
+          .sort((a, b) => Number(b.active) - Number(a.active) || fullName(a).localeCompare(fullName(b), "es"))
+          .map((person) => ({
+            key: person.email,
+            label: fullName(person),
+            description: person.active === false ? "Deshabilitado" : person.speciality || "Sin especialidad",
+          }))}
         selected={target}
         onSelect={setTarget}
-        emptyLabel="No hay profesionales habilitados."
+        emptyLabel="No hay profesionales cargados."
       />
 
       <Sheet visible={formOpen} onClose={() => setFormOpen(false)} title="Nuevo horario">

@@ -154,6 +154,14 @@
   color: var(--adm-text);
 }
 
+/* Va pegado al nombre, así que más chico que un badge del listado de usuarios. */
+.picker-item-badge {
+  margin-left: 8px;
+  padding: 2px 9px;
+  font-size: 0.72rem;
+  vertical-align: middle;
+}
+
 .picker-item-meta {
   font-size: 0.8rem;
   color: var(--adm-muted);

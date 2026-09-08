@@ -152,7 +152,7 @@ export function ProfessionalPicker({
               {loading ? (
                 <SkeletonList rows={4} />
               ) : professionals.length === 0 ? (
-                <div className="picker-empty">No hay profesionales activos cargados.</div>
+                <div className="picker-empty">No hay profesionales cargados.</div>
               ) : filtered.length === 0 ? (
                 <div className="picker-empty">Ningún profesional coincide con “{search}”.</div>
               ) : (
@@ -167,6 +167,11 @@ export function ProfessionalPicker({
                         <span className="picker-item-text">
                           <span className="picker-item-name">
                             {professional.surname}, {professional.name}
+                            {/* Se lo puede elegir igual: su grilla es por donde se le sacan los
+                                módulos que quedaron ocupando consultorios. */}
+                            {professional.active === false && (
+                              <span className="adm-badge adm-badge-red picker-item-badge">Deshabilitado</span>
+                            )}
                           </span>
                           <span className="picker-item-meta">
                             {professional.speciality || "Sin especialidad"} · {professional.email}

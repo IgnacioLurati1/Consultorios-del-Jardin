@@ -72,6 +72,13 @@
 
 }
 /* Aviso de modo consultorio (solo lectura) */
+/* La misma nota en ámbar. No describe en qué modo está la pantalla sino algo que
+   quedó pendiente de resolver, y eso se mira distinto. */
+.schedule-mode-note.schedule-mode-warn {
+  background: var(--adm-warn-soft);
+  color: var(--adm-warn);
+}
+
 .schedule-mode-note {
   margin: 0 0 18px;
   padding: 11px 14px;

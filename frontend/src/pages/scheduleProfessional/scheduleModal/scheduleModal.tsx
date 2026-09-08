@@ -211,6 +211,28 @@ export function ScheduleModal({
     );
   }
 
+  /* ---------- deshabilitado: se le borran horarios, no se le agregan ---------- */
+  if (!onCreate) {
+    return (
+      <Modal
+        open
+        onClose={onClose}
+        size="sm"
+        title="Franja libre"
+        footer={
+          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+            Cerrar
+          </button>
+        }
+      >
+        <p className="ui-alert ui-alert-info">
+          Este profesional está deshabilitado, así que no se le pueden cargar horarios nuevos. Si vuelve a atender,
+          habilitalo desde su ficha y cargale la franja.
+        </p>
+      </Modal>
+    );
+  }
+
   /* ---------- alta de horario (admin) ---------- */
   return (
     <Modal

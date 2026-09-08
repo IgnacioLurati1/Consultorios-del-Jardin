@@ -12,7 +12,7 @@ import { ProfessionalPicker } from "./professionalPicker/ProfessionalPicker.tsx"
 import { useEffect, useState } from "react";
 import { ScheduleModal } from "./scheduleModal/scheduleModal.tsx";
 import { findProfessionalSchedules, findRoomSchedules, createSchedule, removeSchedule, updateScheduleDuration } from "./scheduleServices.ts";
-import { findAllActiveProfessionals } from "../adminCRUDS/adminUsers/usersService.ts";
+import { findAllProfessionals } from "../adminCRUDS/adminUsers/usersService.ts";
 import { toast } from "react-toastify";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
 import { findAllActiveCities } from "../adminCRUDS/adminCities/CityService.ts";
@@ -72,11 +72,24 @@ export function ScheduleProfessional() {
       return;
     }
 
-    // Admin: se abre la ventana previa de búsqueda
+    // Admin: se abre la ventana previa de búsqueda.
+    //
+    // Con los deshabilitados incluidos. Deshabilitar a alguien no le borra los horarios y
+    // esos horarios siguen reservando el consultorio, así que si no está en la lista los
+    // módulos quedan ocupando salas para siempre y nadie puede llegar a sacarlos.
     setLoadingProfessionals(true);
     setPickerOpen(true);
-    findAllActiveProfessionals()
-      .then((data) => setProfessionalsList(data))
+    findAllProfessionals()
+      .then((data) =>
+        // Los deshabilitados al final: entrar a su grilla es la excepción, no el día a día.
+        setProfessionalsList(
+          [...data].sort(
+            (a, b) =>
+              Number(b.active) - Number(a.active) ||
+              `${a.surname} ${a.name}`.localeCompare(`${b.surname} ${b.name}`, "es")
+          )
+        )
+      )
       .catch((err) => toast.error(`Error cargando profesionales: ${err.message}`))
       .finally(() => setLoadingProfessionals(false));
   }, []);
@@ -212,6 +225,9 @@ export function ScheduleProfessional() {
 
   const inRoomMode = viewMode === "room" && roomToFilter;
   const inDayMode = viewMode === "day";
+
+  // La agenda de alguien que ya no atiende se abre para limpiarla, no para llenarla.
+  const lockedProfessional = !!professional && professional.active === false;
 
   const days = weekDays(weeksAhead);
 
@@ -356,6 +372,13 @@ export function ScheduleProfessional() {
 
       <Toasts />
 
+      {lockedProfessional && !inRoomMode && !inDayMode && (
+        <p className="schedule-mode-note schedule-mode-warn">
+          Este profesional está deshabilitado. Los horarios que le quedaron siguen ocupando el consultorio, así que desde
+          acá se pueden borrar. Cargarle horarios nuevos no.
+        </p>
+      )}
+
       {inRoomMode && (
         <p className="schedule-mode-note">
           Estás viendo el consultorio completo. Las franjas muestran qué profesional lo ocupa; desde acá no se crean ni se borran horarios.
@@ -441,6 +464,7 @@ export function ScheduleProfessional() {
             setSelectedKey={setSelectedKey}
             showProfessional={!!inRoomMode}
             readOnly={!!inRoomMode}
+            canCreate={!lockedProfessional}
           />
         )}
       </div>
@@ -470,7 +494,7 @@ export function ScheduleProfessional() {
           rooms={rooms}
           offices={offices}
           cities={cities}
-          onCreate={addSchedule}
+          onCreate={lockedProfessional ? null : addSchedule}
           onDelete={deleteSchedule}
           isProfessional={false}
         />

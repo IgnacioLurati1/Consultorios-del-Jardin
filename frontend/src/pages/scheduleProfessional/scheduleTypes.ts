@@ -31,6 +31,12 @@ export interface columnModuleProps{
     showProfessional?: boolean;
     /** En modo consultorio no se crean horarios: no hay un profesional al que asignárselos. */
     readOnly?: boolean;
+    /**
+     * En false las franjas libres no llevan a ningún lado y las cargadas siguen abriendo.
+     * Es la grilla de un profesional deshabilitado: se le borra lo que quedó, no se le
+     * agrega. Distinto de readOnly, que apaga la grilla entera.
+     */
+    canCreate?: boolean;
 }
 
 export interface cellModuleProps{
@@ -43,6 +49,7 @@ export interface cellModuleProps{
     className?: string;
     showProfessional?: boolean;
     readOnly?: boolean;
+    canCreate?: boolean;
 }
 
 export interface scheduleModalProps {

@@ -23,7 +23,7 @@ function stringHourToNumber(hour: string): number {
     return hoursNumber;
 }
 
-export function GridModule({ schedules, daysSpanish, openingTime, closingTime, setScheduleModalOpen, setSelectedSchedule, setSelectedKey, showProfessional, readOnly}: columnModuleProps) {
+export function GridModule({ schedules, daysSpanish, openingTime, closingTime, setScheduleModalOpen, setSelectedSchedule, setSelectedKey, showProfessional, readOnly, canCreate}: columnModuleProps) {
     const openedHours = diffHours(openingTime, closingTime)
     const startHour = stringHourToNumber(openingTime);   // hora de apertura del office
     const [showDay, setShowDay] = useState<boolean[]>([false,false,false,false,false,false]); // estado para mostrar mas info del dia
@@ -59,11 +59,11 @@ export function GridModule({ schedules, daysSpanish, openingTime, closingTime, s
                                 if (schedule) {
                                     const difference = diffHours(schedule.initialHour,schedule.finalHour);
 
-                                    cells.push(<CellModule key={`${day}-${currentHourStr}`} cellKey={`${day}-${currentHourStr}`} schedule={schedule} height={difference} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey} showProfessional={showProfessional} readOnly={readOnly}/>);
+                                    cells.push(<CellModule key={`${day}-${currentHourStr}`} cellKey={`${day}-${currentHourStr}`} schedule={schedule} height={difference} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey} showProfessional={showProfessional} readOnly={readOnly} canCreate={canCreate}/>);
                                     
                                     hourId += difference; // salta horas
                                 } else {
-                                    cells.push(<CellModule key={`${day}-${currentHourStr}`} cellKey={`${day}-${currentHourStr}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey} readOnly={readOnly}/>);
+                                    cells.push(<CellModule key={`${day}-${currentHourStr}`} cellKey={`${day}-${currentHourStr}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey} readOnly={readOnly} canCreate={canCreate}/>);
                                     hourId++;
                                 }
                             }
@@ -71,7 +71,7 @@ export function GridModule({ schedules, daysSpanish, openingTime, closingTime, s
 
                         })()}
 
-                            <CellModule cellKey={`${day}-${""}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey} className="last-empty" readOnly={readOnly} />
+                            <CellModule cellKey={`${day}-${""}`} schedule={undefined} height={1} setScheduleModalOpen={setScheduleModalOpen} setSelectedSchedule={setSelectedSchedule} setSelectedKey={setSelectedKey} className="last-empty" readOnly={readOnly} canCreate={canCreate} />
                     </div>
                 </div>
             ))}

@@ -18,11 +18,19 @@ export function getAllUsers(): Promise<Person[]>{
     )
 }
 
+/**
+ * Todos los profesionales, habilitados y deshabilitados.
+ *
+ * La pantalla de horarios lo necesita así. Un profesional deshabilitado conserva sus
+ * módulos cargados y esos módulos siguen reservando el consultorio, o sea que hay que
+ * poder llegar a su grilla para sacarlos. Solo para admin.
+ */
 export function findAllProfessionals(): Promise<Person[]>{
     return api.get('/people/type/professional')
     .then(response => response.data.data)
-    .catch(()=> {
-        return [];
+    .catch((err: any) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
     });
 }
 
@@ -74,9 +82,20 @@ export function toggleBookable(email: string){
     });
 }
 
+/**
+ * Habilita o deshabilita una cuenta.
+ *
+ * Devuelve cómo quedó y no solamente que salió bien, porque deshabilitar a un
+ * profesional lo saca además de la búsqueda de turnos y esa segunda marca tiene que
+ * verse en la ficha sin recargar la pantalla.
+ *
+ * Puede volver null. La página y el servidor se publican por separado, así que hay un
+ * rato en que la página nueva le habla a un servidor que todavía contesta como antes, y
+ * en ese rato deshabilitar tiene que seguir funcionando igual.
+ */
 export function toggleState(email:string){
     return api.patch(`/people/${email}/toggleState`)
-    .then(res => res.data)
+    .then(res => (res.data?.data ?? null) as { active: boolean; bookable: boolean } | null)
     .catch(err => {
         const backendMsg = err.response?.data?.message || err.message;
         throw new Error(backendMsg)
