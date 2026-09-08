@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 interface KpiProps {
   label: string;
@@ -13,16 +14,37 @@ interface KpiProps {
    * grita. Hoy lo usa una sola, la plata que quedó sin cobrar.
    */
   tone?: "danger";
+  /**
+   * A dónde lleva la tarjeta, cuando hay una pantalla que muestra de dónde sale el número.
+   *
+   * No todas la tienen: "pacientes distintos en el mes" es un número y nada más. Las que
+   * sí, se vuelven un enlace, con lo cual también entran en el tabulador y se abren con
+   * Enter, que es lo que se espera de algo que lleva a otro lado.
+   */
+  to?: string;
+  /** Qué se va a ver del otro lado. Va al title, para no adivinar antes de tocar. */
+  toHint?: string;
 }
 
-export function Kpi({ label, value, note, lead, tone }: KpiProps) {
-  return (
-    <div className={`an-kpi ${lead ? "an-kpi-lead" : ""} ${tone === "danger" ? "an-kpi-danger" : ""}`}>
+export function Kpi({ label, value, note, lead, tone, to, toHint }: KpiProps) {
+  const className = `an-kpi ${lead ? "an-kpi-lead" : ""} ${tone === "danger" ? "an-kpi-danger" : ""} ${to ? "an-kpi-link" : ""}`;
+
+  const cuerpo = (
+    <>
       <span className="an-kpi-label">{label}</span>
       <strong className="an-kpi-value">{value}</strong>
       {note && <span className="an-kpi-note">{note}</span>}
-    </div>
+    </>
   );
+
+  if (to)
+    return (
+      <Link to={to} className={className} title={toHint}>
+        {cuerpo}
+      </Link>
+    );
+
+  return <div className={className}>{cuerpo}</div>;
 }
 
 export function KpiGrid({ children }: { children: ReactNode }) {

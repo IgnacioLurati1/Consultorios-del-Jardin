@@ -91,6 +91,12 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
               label="Te quedaron debiendo"
               value={money(month.debt.amount)}
               tone={month.debt.amount > 0 ? "danger" : undefined}
+              /* El número dice cuánto; la pregunta que sigue siempre es quién. Lleva a la
+                 lista con el filtro puesto, que es la pantalla desde la que se hace algo
+                 al respecto. Sin nadie debiendo no lleva a ninguna parte: sería mandar a
+                 alguien a una lista vacía. */
+              to={month.debt.amount > 0 ? "/Patients?adeudan=1" : undefined}
+              toHint="Ver quiénes te quedaron debiendo"
               note={
                 month.debt.appointments === 0
                   ? "cobraste todo lo que atendiste"
@@ -145,6 +151,8 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             <Kpi
               label="Te quedaron debiendo"
               value={data.debt.people}
+              to={data.debt.people > 0 ? "/Patients?adeudan=1" : undefined}
+              toHint="Ver quiénes te quedaron debiendo"
               note={
                 data.debt.people === 0
                   ? "nadie te debe un turno"
