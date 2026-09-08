@@ -152,7 +152,7 @@ export class PeopleService {
     if (!this.validateDocNumber(data.docNumber))
       throw badRequest("El número de documento debe contener solo dígitos");
     if (!this.validatePhoneNumber(data.phoneNumber))
-      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
+      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15, por ejemplo 3411234567");
     if (data.email && !this.validateEmail(data.email))
       throw badRequest("El email no tiene un formato válido");
     if (data.about && data.about.trim().length > ABOUT_MAX)
@@ -217,14 +217,14 @@ export class PeopleService {
     if (data.docNumber && !this.validateDocNumber(data.docNumber))
       throw badRequest("El número de documento debe contener solo dígitos");
     if (phoneNumber && !this.validatePhoneNumber(phoneNumber))
-      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
+      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15, por ejemplo 3411234567");
 
     const existing = await em.findOne(Person, { email: data.email });
     if (existing)
       throw conflict(
         existing.anonymous
           ? "Ya cargaste un paciente con ese email"
-          : "Ese email ya pertenece a una cuenta registrada: buscá a la persona en la lista en vez de cargarla de nuevo"
+          : "Ese email ya pertenece a una cuenta registrada. Buscá a la persona en la lista en vez de cargarla de nuevo"
       );
 
     const person = em.create(Person, {
@@ -483,7 +483,7 @@ export class PeopleService {
     if (!this.validateDocNumber(data.docNumber))
       throw badRequest("El número de documento debe contener solo dígitos");
     if (phoneNumber && !this.validatePhoneNumber(phoneNumber))
-      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)");
+      throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15, por ejemplo 3411234567");
 
     if (!(await this.isEmailAvailable(email))) throw conflict("Ya hay una cuenta registrada con ese email");
 
@@ -511,11 +511,9 @@ export class PeopleService {
       ),
       button("Crear mi cuenta", url),
       note(
-        `¿No funciona el botón? Copiá esta dirección en el navegador:<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
+        `¿No funciona el botón? Copiá esta dirección en el navegador.<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
       ),
-      note(
-        "El link vence en 30 minutos. Si no fuiste vos, ignorá este mensaje: sin este paso la cuenta no se crea y no vamos a volver a escribirte."
-      ),
+      note("El link vence en 30 minutos. Si no fuiste vos, ignorá este mensaje. Sin este paso la cuenta no se crea."),
     ].join("");
 
     const msg = await this.mailService.createMessage(email, "Confirmá tu dirección", htmlContent);
@@ -565,13 +563,13 @@ export class PeopleService {
     // botón, y pegar la dirección a mano tiene que seguir siendo posible.
     const htmlContent = [
       title("Cambiá tu contraseña"),
-      paragraph("Pediste una contraseña nueva para tu cuenta. Tocá el botón y elegí una:"),
+      paragraph("Pediste una contraseña nueva para tu cuenta. Tocá el botón y elegí una."),
       button("Elegir contraseña nueva", url),
       note(
-        `¿No funciona el botón? Copiá esta dirección en el navegador:<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
+        `¿No funciona el botón? Copiá esta dirección en el navegador.<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
       ),
       note(
-        "El link vence en 30 minutos y sirve una sola vez. Si no pediste cambiarla, ignorá este mensaje: tu contraseña sigue siendo la de siempre."
+        "El link vence en 30 minutos y sirve una sola vez. Si no pediste cambiarla, ignorá este mensaje. Tu contraseña sigue siendo la de siempre."
       ),
     ].join("");
 

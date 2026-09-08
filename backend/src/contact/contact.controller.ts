@@ -52,7 +52,7 @@ function validate(body: any): ContactData {
 
   if (!REASONS[reason]) throw badRequest("Elegí un motivo para la consulta");
 
-  if (message.length < 10) throw badRequest("Contanos un poco más: el mensaje es muy corto");
+  if (message.length < 10) throw badRequest("Contanos un poco más. El mensaje es muy corto");
   if (message.length > LIMITS.message) throw badRequest("El mensaje es demasiado largo. Probá resumirlo");
 
   return { name, email, phone, reason, message };
@@ -79,7 +79,7 @@ function receiptHtml(data: ContactData): string {
     paragraph(
       `Hola ${escapeHtml(data.name)}, gracias por escribirnos. Te respondemos a este mismo mail dentro del horario de atención.`
     ),
-    paragraph(`Esto fue lo que nos contaste sobre <strong>${escapeHtml(REASONS[data.reason].toLowerCase())}</strong>:`),
+    paragraph(`Esto fue lo que nos contaste sobre <strong>${escapeHtml(REASONS[data.reason].toLowerCase())}</strong>.`),
     quote(data.message),
     note("Si no fuiste vos quien escribió, ignorá este mensaje."),
   ].join("");

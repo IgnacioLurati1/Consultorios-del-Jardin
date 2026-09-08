@@ -31,7 +31,7 @@ export async function isPersonActive(email: string): Promise<boolean> {
  * que pasó es que le robaron la contraseña le esconde justo lo que tiene que saber.
  */
 export const COMPROMISED_MESSAGE =
-  "Detectamos actividad que no reconocemos en esta cuenta y la cerramos por seguridad: es posible que alguien más " +
+  "Detectamos actividad que no reconocemos en esta cuenta y la cerramos por seguridad. Es posible que alguien más " +
   "haya conseguido tu contraseña. Para revisar el caso y volver a habilitarla tenés que hablar con un administrador " +
   "del consultorio.";
 

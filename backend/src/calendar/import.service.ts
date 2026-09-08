@@ -610,7 +610,7 @@ export class CalendarImportService {
     if (event.cancelled) return "En el calendario estaba cancelado.";
     if (event.allDay) return "Ocupa el día entero y no dice a qué hora era.";
     if (event.overnight) return "Empieza un día y termina en otro.";
-    if (minutesOf(event.finalHour) <= minutesOf(event.initialHour)) return "No dura nada: empieza y termina a la misma hora.";
+    if (minutesOf(event.finalHour) <= minutesOf(event.initialHour)) return "No dura nada. Empieza y termina a la misma hora.";
 
     const weekday = startOfDay(event.date).getDay();
     const day = DAY_NAMES[weekday];

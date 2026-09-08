@@ -295,7 +295,7 @@ export class RecurrenceService {
     // corriendo esa fecha: es lo que va a querer hacer quien puso "hasta fin de agosto"
     // y en agosto decide seguir. La que se frenó a mano no vuelve por acá.
     const finished = !recurrence.active && !!recurrence.endDate;
-    if (!recurrence.active && !finished) throw badRequest("Esa repetición está frenada: no queda nada por generar");
+    if (!recurrence.active && !finished) throw badRequest("Esa repetición está frenada. No queda nada por generar");
 
     if (data.frequency !== undefined) {
       if (!FREQUENCIES.includes(data.frequency)) throw badRequest("La repetición tiene que ser semanal o quincenal");

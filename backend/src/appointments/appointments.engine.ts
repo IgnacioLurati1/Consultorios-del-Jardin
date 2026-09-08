@@ -116,7 +116,7 @@ export class AppointmentEngine {
     const expectedFinal = addMinutes(initialHour, schedule.duration);
 
     if (finalHour !== expectedFinal)
-      throw badRequest(`Un turno de ese módulo dura ${schedule.duration} minutos: tendría que terminar a las ${expectedFinal}.`);
+      throw badRequest(`Un turno de ese módulo dura ${schedule.duration} minutos. Tendría que terminar a las ${expectedFinal}.`);
 
     if (expectedFinal > schedule.finalHour)
       throw badRequest(`Ese turno terminaría a las ${expectedFinal} y ese día atendés hasta las ${schedule.finalHour}.`);
@@ -175,7 +175,7 @@ export class AppointmentEngine {
 
     if (await this.appointmentService.checkAppointmentDurationFormat(initialHour, schedule.initialHour, schedule.duration))
       throw badRequest(
-        `Los turnos de ese día arrancan a las ${schedule.initialHour} y duran ${schedule.duration} minutos: ${initialHour} no cae en el inicio de ninguno`
+        `Los turnos de ese día arrancan a las ${schedule.initialHour} y duran ${schedule.duration} minutos. ${initialHour} no cae en el inicio de ninguno`
       );
 
     const room = schedule.room;
