@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { toast } from "react-toastify";
@@ -124,8 +124,25 @@ export function AppointmentsList() {
       .catch(() => setSchedules([]));
   }, [isProfessional, person]);
 
+  /**
+   * El número del último pedido que salió. Solo ese puede escribir en la pantalla.
+   *
+   * Cambiar de semana o de página dispara un pedido nuevo sin esperar al anterior, y no
+   * hay nada que garantice que vuelvan en orden. Sin esto, el que llegaba último ganaba:
+   * dos clics seguidos en "Semana siguiente" dejaban el encabezado en una semana y los
+   * turnos de otra, que con la agenda cargada se lee como una semana libre.
+   *
+   * Va en una referencia y no en el cierre del efecto porque esta función también se
+   * llama a mano después de cada acción —confirmar, cancelar, importar— y ahí no hay
+   * ningún efecto que limpiar.
+   */
+  const ultimoPedido = useRef(0);
+
   function loadAppointments() {
     if (!person) return;
+
+    const mio = ++ultimoPedido.current;
+    const vigente = () => mio === ultimoPedido.current;
 
     setLoading(true);
 
@@ -140,11 +157,18 @@ export function AppointmentsList() {
 
     request
       .then((data) => {
+        if (!vigente()) return;
         setAppointments(data);
         setHasMore(mode === "list" && data.length === 15);
       })
-      .catch((err) => toast.error(`Error al obtener turnos: ${err.message}`))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (vigente()) toast.error(`Error al obtener turnos: ${err.message}`);
+      })
+      // El cartel de "cargando" lo apaga el pedido vigente y nadie más: apagarlo desde uno
+      // viejo dejaría la pantalla quieta mientras el bueno todavía viene en camino.
+      .finally(() => {
+        if (vigente()) setLoading(false);
+      });
   }
 
   useEffect(loadAppointments, [person, viewMode, includeCancelled, page, monday]);

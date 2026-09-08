@@ -58,14 +58,28 @@ export function OfficeAnalyticsPage() {
       return;
     }
 
+    // Tocar un profesional y enseguida otro dispara dos pedidos, y nada garantiza que
+    // vuelvan en orden. Sin esto, el que llegaba último ganaba y la facturación de uno
+    // quedaba en pantalla debajo del nombre del otro.
+    let cancelled = false;
+
     setLoadingDetail(true);
     findProfessionalAnalytics(selected)
-      .then(setDetail)
+      .then((numeros) => {
+        if (!cancelled) setDetail(numeros);
+      })
       .catch((err) => {
+        if (cancelled) return;
         toast.error(`No pudimos cargar ese profesional: ${err.message}`);
         setDetail(null);
       })
-      .finally(() => setLoadingDetail(false));
+      .finally(() => {
+        if (!cancelled) setLoadingDetail(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selected]);
 
   const perProfessional = useMemo(() => {

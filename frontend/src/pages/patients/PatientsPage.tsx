@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaAddressBook, FaMoneyBillWave, FaPlus } from "react-icons/fa6";
@@ -181,7 +181,20 @@ export function PatientsPage() {
     });
   }, [search, patients, onlyDebtors]);
 
+  /**
+   * El número del último historial que se pidió. Solo ese puede escribir en la pantalla.
+   *
+   * Abrir una ficha, cerrarla y abrir otra dispara dos pedidos sin esperar al primero, y
+   * nada garantiza que vuelvan en orden. Sin esto, el que llegaba último ganaba: la ficha
+   * de una persona mostraba el historial clínico de otra, con su nombre arriba.
+   *
+   * Se adelanta también al abrir el alta y al cerrar, para que una respuesta que llega
+   * tarde no caiga sobre una ficha que ya no es la suya.
+   */
+  const ultimoHistorial = useRef(0);
+
   function openNew() {
+    ultimoHistorial.current += 1;
     setHistoryFilters([]);
     setEditing(null);
     setForm(emptyForm);
@@ -200,6 +213,7 @@ export function PatientsPage() {
 
   useEffect(() => {
     if (!searchParams.has("nuevo")) return;
+    ultimoHistorial.current += 1;
     setHistoryFilters([]);
     setEditing(null);
     setForm(emptyForm);
@@ -216,10 +230,19 @@ export function PatientsPage() {
     setHistoryFilters([]);
     setLoadingHistory(true);
 
+    const mio = ++ultimoHistorial.current;
+    const vigente = () => mio === ultimoHistorial.current;
+
     getPatientMedicalHistory(patient.email)
-      .then(setHistory)
-      .catch(() => setHistory([]))
-      .finally(() => setLoadingHistory(false));
+      .then((historial) => {
+        if (vigente()) setHistory(historial);
+      })
+      .catch(() => {
+        if (vigente()) setHistory([]);
+      })
+      .finally(() => {
+        if (vigente()) setLoadingHistory(false);
+      });
 
     setForm({
       email: patient.email,

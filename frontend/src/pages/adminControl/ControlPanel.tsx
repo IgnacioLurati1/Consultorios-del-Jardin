@@ -83,11 +83,26 @@ export function ControlPanel() {
   useEffect(() => {
     if (!professional) return;
 
+    // Cambiar de profesional, de página o de filtro dispara un pedido nuevo sin esperar
+    // al anterior, y nada garantiza que vuelvan en orden. Sin esto, el que llegaba último
+    // ganaba y la pantalla mostraba los turnos de un profesional con el nombre de otro.
+    let cancelled = false;
+
     setLoadingAppointments(true);
     findAppointmentsByProfessional(professional.email, page, includePast, kind)
-      .then(setAppointments)
-      .catch((err) => toast.error(`Error cargando turnos: ${err.message}`))
-      .finally(() => setLoadingAppointments(false));
+      .then((turnos) => {
+        if (!cancelled) setAppointments(turnos);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(`Error cargando turnos: ${err.message}`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAppointments(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [professional, page, includePast, kind]);
 
   function selectProfessional(selected: Person) {

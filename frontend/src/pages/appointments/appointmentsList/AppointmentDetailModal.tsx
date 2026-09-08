@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 import type { Appointment, PaymentState, Person, RecurrenceFrequency, Room } from "../../types.ts";
 import { RepeatFields } from "./RepeatFields.tsx";
@@ -125,8 +125,18 @@ export function AppointmentDetailModal({
 
   const isProfessional = user.type === "professional";
 
+  /**
+   * El número del último historial que se pidió. Solo ese puede escribir en la pantalla.
+   *
+   * La ventana muestra un turno por vez y al cambiar de turno el historial se vacía. Si
+   * el pedido del turno anterior vuelve después, sin esto pisaba al nuevo y la ficha
+   * terminaba mostrando el historial clínico del paciente equivocado.
+   */
+  const ultimoHistorial = useRef(0);
+
   useEffect(() => {
     if (!appointment) return;
+    ultimoHistorial.current += 1;
     setObservations(appointment.observations ?? "");
     setState(appointment.state);
     setHistory(null);
@@ -167,10 +177,20 @@ export function AppointmentDetailModal({
     if (history) return; // ya cargado
 
     setLoadingHistory(true);
+
+    const mio = ++ultimoHistorial.current;
+    const vigente = () => mio === ultimoHistorial.current;
+
     getPatientMedicalHistory(appointment.patient.email)
-      .then(setHistory)
-      .catch(() => setHistory([]))
-      .finally(() => setLoadingHistory(false));
+      .then((historial) => {
+        if (vigente()) setHistory(historial);
+      })
+      .catch(() => {
+        if (vigente()) setHistory([]);
+      })
+      .finally(() => {
+        if (vigente()) setLoadingHistory(false);
+      });
   }
 
   const recordChanged = state !== appointment.state || (observations ?? "") !== (appointment.observations ?? "");
