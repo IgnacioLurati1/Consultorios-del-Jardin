@@ -120,15 +120,14 @@
   content: "";
 }
 
-.hourly-module.read-only.taken {
-  border-left-color: var(--adm-slate);
-  background: var(--adm-surface-sunken);
-  border-color: var(--adm-border);
-  color: var(--adm-text);
-}
-
+/* Mirando la grilla de un consultorio, los módulos van con el color de la estación igual
+   que en la propia. Estaban en gris para decir "esto no se toca", y para eso el gris no
+   servía: en esta pantalla no se toca ninguno, así que no había con qué comparar y lo
+   único que lograba era que la grilla del consultorio se viera apagada al lado de la de
+   uno. Lo que dice que es de mirar es que no cambia nada al pasarle por encima. */
 .hourly-module.read-only.taken:hover {
-  background: var(--adm-surface-sunken);
+  background: var(--adm-green-soft);
+  box-shadow: none;
 }
 
 @media (max-width: 768px) {
