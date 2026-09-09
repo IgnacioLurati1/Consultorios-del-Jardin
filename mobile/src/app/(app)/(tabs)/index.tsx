@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { AppState, ScrollView, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { myPatientAppointments, myProfessionalAppointments, professionalRange, unpaidAppointments } from "../../../api/appointments";
@@ -18,7 +18,6 @@ import { OfficeSettings } from "../../../features/OfficeSettings";
 import { WeekSummary } from "../../../features/WeekSummary";
 import { delDia, describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
 import { money, numericDate, today } from "../../../lib/dates";
-import { revisarAvisos } from "../../../lib/avisos";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
 import { SCREEN_PADDING, space } from "../../../theme/tokens";
@@ -32,25 +31,9 @@ import { useTheme } from "../../../theme/useTheme";
 export default function HomeScreen() {
   const { role, email } = useUser();
 
-  /*
-   * Acá y no en un temporizador propio: el teléfono apaga los temporizadores de una app
-   * que está de fondo, así que uno acá correría justo cuando nadie está mirando. Volver a
-   * Inicio y volver a la app son los dos momentos en los que alguien va a mirar la
-   * campana, y son estos dos.
-   */
-  const revisar = useCallback(() => {
-    void revisarAvisos();
-  }, []);
-
-  useEffect(() => {
-    revisar();
-
-    const suscripcion = AppState.addEventListener("change", (estado) => {
-      if (estado === "active") revisar();
-    });
-
-    return () => suscripcion.remove();
-  }, [revisar]);
+  // De mantener los avisos al día se ocupa el layout de la sesión, que está arriba de
+  // todas las pantallas: acá miraba solo al abrir Inicio, y entonces el número no se movía
+  // mientras uno estaba en cualquier otra pantalla.
 
   if (role === "professional") return <ProfessionalHome />;
   if (role === "admin") return <AdminHome />;

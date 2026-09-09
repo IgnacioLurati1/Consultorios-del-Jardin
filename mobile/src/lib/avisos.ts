@@ -1,4 +1,6 @@
+import { usePathname } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
+import { AppState } from "react-native";
 import {
   dismissAllNotifications,
   dismissNotification,
@@ -97,14 +99,19 @@ function armar(avisos: Aviso[], sinVer: number): Vista {
 }
 
 /**
+ * Cada cuánto se vuelve a preguntar, con la app a la vista.
+ *
+ * El mismo minuto que la web. Nadie empuja nada: la campanita pregunta, así que este
+ * número es cuánto puede tardar en aparecer el número de un aviso.
+ */
+const CADA_MS = 60 * 1000;
+
+/**
  * Trae los avisos y los deja a la vista de todas las pantallas.
  *
- * Devuelve cuántos quedaron sin ver. La llaman Inicio al abrirse y al volver a la app: el
- * teléfono apaga los temporizadores de una app que está de fondo, así que un reloj propio
- * correría justo cuando nadie está mirando.
- *
- * Un error deja lo que ya había. Perder la conexión un rato no tiene por qué vaciar la
- * campanita, y lo que se muestre de más se corrige solo en la vuelta siguiente.
+ * Devuelve cuántos quedaron sin ver. Un error deja lo que ya había: perder la conexión un
+ * rato no tiene por qué vaciar la campanita, y lo que se muestre de más se corrige solo en
+ * la vuelta siguiente.
  */
 export async function revisarAvisos(): Promise<number> {
   try {
@@ -114,6 +121,44 @@ export async function revisarAvisos(): Promise<number> {
   } catch {
     return ultima.nuevos;
   }
+}
+
+/**
+ * Mantiene los avisos al día mientras haya alguien usando la app.
+ *
+ * Va una sola vez, arriba de todo, y no en cada pantalla: la campanita se ve desde varias
+ * y dos relojes preguntando lo mismo es preguntar el doble.
+ *
+ * Pregunta en tres momentos, que son los tres en los que puede haber algo nuevo para ver.
+ * Al volver a la app y al cambiar de pantalla, que es lo que uno hace justo después de
+ * sacar un turno; y cada minuto, que es lo único que cubre al que hizo algo y se quedó
+ * quieto mirando la misma pantalla. Hasta acá solo miraba al abrir Inicio y al volver del
+ * fondo: sacando un turno adentro de la app y quedándose ahí, el número no se movía nunca.
+ *
+ * El reloj se saltea los tics con la app de fondo. El teléfono suele apagarlos igual, pero
+ * no siempre y no en todos, y preguntar con nadie mirando es gastar batería y datos.
+ */
+export function useAvisosAlDia(activo: boolean): void {
+  const pantalla = usePathname();
+
+  useEffect(() => {
+    if (!activo) return;
+
+    void revisarAvisos();
+
+    const reloj = setInterval(() => {
+      if (AppState.currentState === "active") void revisarAvisos();
+    }, CADA_MS);
+
+    const suscripcion = AppState.addEventListener("change", (estado) => {
+      if (estado === "active") void revisarAvisos();
+    });
+
+    return () => {
+      clearInterval(reloj);
+      suscripcion.remove();
+    };
+  }, [activo, pantalla]);
 }
 
 /**
@@ -141,13 +186,19 @@ export function useAvisos(): Vista & { refrescar: () => Promise<number> } {
 /**
  * Se llama al abrir la pantalla de avisos, que es cuando se dan por leídos.
  *
+ * Se dan por leídos los que están en la lista y nada más: el más nuevo de ellos marca
+ * hasta dónde llegó la lectura. Lo que haya entrado desde la última consulta todavía no se
+ * mostró, así que vuelve con la consulta siguiente y con su número.
+ *
  * En pantalla se apagan de una y no cuando contesta el servidor: es lo que la persona
  * acaba de hacer, y esperar a que vuelva la respuesta para apagar un número se lee como
  * que la pantalla no reaccionó.
  */
 export function marcarLeidos(): void {
+  const hastaAca = ultima.avisos.reduce((mayor, aviso) => Math.max(mayor, aviso.id), 0);
+
   publicar(armar(ultima.avisos.map((aviso) => ({ ...aviso, read: true })), 0));
-  void markNotificationsSeen().catch(() => undefined);
+  if (hastaAca > 0) void markNotificationsSeen(hastaAca).catch(() => undefined);
 }
 
 export function borrarAviso(id: number): void {

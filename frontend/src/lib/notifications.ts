@@ -102,10 +102,24 @@ export function fetchNotifications(): Promise<Avisos> {
     .catch(() => VACIO);
 }
 
-/** Marca como visto todo lo que hay. Se llama al abrir la campanita. */
-export function markSeen(): Promise<void> {
+/**
+ * Marca como visto hasta el aviso `upTo`. Se llama al abrir la campanita.
+ *
+ * El tope es el más nuevo de los que están en pantalla. Sin él, el servidor da por visto
+ * todo lo que tenga sin leer, y lo que haya entrado en el último minuto —justo lo que uno
+ * abrió la campanita para ver— queda leído sin haberse mostrado nunca.
+ *
+ * Sin nada que mostrar no se marca nada: no hubo nada que leer.
+ *
+ * Contra un servidor que todavía no conoce el tope, el pedido llega igual y él marca todo,
+ * que es lo que hacía antes. La página y el servidor se publican por separado, así que ese
+ * rato tiene que funcionar.
+ */
+export function markSeen(upTo?: number): Promise<void> {
+  if (upTo === 0) return Promise.resolve();
+
   return api
-    .post("/notifications/seen")
+    .post("/notifications/seen", { upTo })
     .then(() => undefined)
     .catch(() => undefined);
 }

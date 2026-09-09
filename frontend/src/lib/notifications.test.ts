@@ -125,12 +125,27 @@ describe("Marcar y borrar", () => {
     borrar.mockReset();
   });
 
-  it("abrir la campanita marca todo como visto", async () => {
+  /*
+   * Abrir la campanita da por visto hasta el último que estaba en pantalla.
+   *
+   * Sin ese tope el servidor marcaba todo lo que tuviera sin leer, incluido lo que había
+   * entrado desde la última consulta y todavía no se dibujaba: ese aviso quedaba leído sin
+   * haberse mostrado nunca, y era justo el que uno estaba esperando ver aparecer.
+   */
+  it("abrir la campanita marca como visto hasta el último que estaba en pantalla", async () => {
     post.mockResolvedValue({});
 
-    await markSeen();
+    await markSeen(118);
 
-    expect(post).toHaveBeenCalledWith("/notifications/seen");
+    expect(post).toHaveBeenCalledWith("/notifications/seen", { upTo: 118 });
+  });
+
+  it("sin nada en pantalla no marca nada, que es lo que hubo para leer", async () => {
+    post.mockResolvedValue({});
+
+    await markSeen(0);
+
+    expect(post).not.toHaveBeenCalled();
   });
 
   it("borrar uno lo borra por su número", async () => {

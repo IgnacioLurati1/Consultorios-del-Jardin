@@ -1,4 +1,5 @@
 import { Redirect, Stack } from "expo-router";
+import { useAvisosAlDia } from "../../lib/avisos";
 import { useSession } from "../../session/SessionProvider";
 import { useTheme } from "../../theme/useTheme";
 
@@ -10,6 +11,10 @@ import { useTheme } from "../../theme/useTheme";
 export default function AppLayout() {
   const { session } = useSession();
   const { colors } = useTheme();
+
+  /* La campanita se ve desde varias pantallas, así que quien la mantiene al día es esto,
+     que está arriba de todas y vive lo que dura la sesión. Sin sesión no pregunta nada. */
+  useAvisosAlDia(!!session);
 
   if (!session) return <Redirect href="/(auth)/login" />;
 

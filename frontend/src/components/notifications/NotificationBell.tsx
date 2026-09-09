@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FaBell, FaCheck, FaCircleExclamation, FaCircleInfo, FaTrash, FaTriangleExclamation } from "react-icons/fa6";
 import { useAuth } from "../../context/AuthContext";
 import { getDecodedToken } from "../../pages/commonServices";
@@ -16,11 +16,16 @@ import "./notifications.css";
 /**
  * Cada cuánto se vuelve a mirar si pasó algo.
  *
- * Cinco minutos, y solo con la pestaña a la vista. Es un aviso, no un monitor: enterarse
- * cinco minutos después de que un paciente pidió turno no cambia nada, y cada consulta
- * que no se hace es una que el servidor no atiende.
+ * Un minuto, y solo con la pestaña a la vista. Eran cinco, y cinco eran demasiados para
+ * lo que se siente usando esto: se saca un turno, el aviso ya está anotado del lado del
+ * consultorio, y la campanita se queda en cero un rato largo. El que probaba iba a
+ * abrirla para ver si había llegado, y abrirla es justamente lo que da todo por visto,
+ * así que el número no aparecía nunca.
+ *
+ * Sigue siendo un aviso y no un monitor: es un pedido chico, solo con alguien mirando la
+ * pestaña, y abajo hay tres cosas que lo adelantan sin esperar al reloj.
  */
-const CADA_MS = 5 * 60 * 1000;
+const CADA_MS = 60 * 1000;
 
 const ICONOS: Record<NotificationTone, React.ComponentType> = {
   urgent: FaCircleExclamation,
@@ -57,6 +62,9 @@ export function NotificationBell() {
 
 function Campana() {
   const navigate = useNavigate();
+  // Cambiar de pantalla es la señal más clara de que hay alguien usando esto, y encima es
+  // lo que se hace justo después de sacar un turno.
+  const { pathname } = useLocation();
   const [avisos, setAvisos] = useState<AppNotification[]>([]);
   const [sinVer, setSinVer] = useState(0);
   const [open, setOpen] = useState(false);
@@ -81,13 +89,19 @@ function Campana() {
     mirar();
     const reloj = setInterval(mirar, CADA_MS);
     window.addEventListener("focus", mirar);
+    // Y también al volver a la pestaña. Volver de otra pestaña no siempre le devuelve el
+    // foco a la ventana —volviendo desde otra aplicación sí, cambiando de pestaña no
+    // siempre— así que con `focus` solo, el caso más común de "vuelvo a mirar" se
+    // quedaba sin preguntar nada.
+    document.addEventListener("visibilitychange", mirar);
 
     return () => {
       vivo = false;
       clearInterval(reloj);
       window.removeEventListener("focus", mirar);
+      document.removeEventListener("visibilitychange", mirar);
     };
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,16 +126,28 @@ function Campana() {
     setOpen(proximo);
     if (!proximo) return;
 
-    // Se marcan al abrir, y lo que ya estaba en pantalla se queda igual: esconder lo
-    // recién leído sería vaciar la lista en la cara de quien la está por leer. Lo único
-    // que cambia es el número y el punto de la izquierda.
-    //
-    // En pantalla se apaga de una y no cuando contesta el servidor. Es lo que la persona
-    // acaba de hacer, y esperar medio segundo para apagar un número se lee como que el
-    // botón no anduvo.
+    /*
+     * Se da por visto lo que está en la lista y nada más.
+     *
+     * El más nuevo de los que hay en pantalla marca hasta dónde llega la lectura. Antes se
+     * daba por visto todo lo que hubiera sin leer, incluido lo que había entrado después
+     * de la última consulta y todavía no se dibujaba: ese aviso quedaba leído sin haberse
+     * mostrado nunca, y era el que uno estaba esperando ver. Lo que llegue después de esto
+     * vuelve con la consulta siguiente, con su número.
+     *
+     * Lo que ya estaba en pantalla se queda igual: esconder lo recién leído sería vaciar
+     * la lista en la cara de quien la está por leer. Lo único que cambia es el número y el
+     * punto de la izquierda.
+     *
+     * En pantalla se apaga de una y no cuando contesta el servidor. Es lo que la persona
+     * acaba de hacer, y esperar medio segundo para apagar un número se lee como que el
+     * botón no anduvo.
+     */
+    const hastaAca = avisos.reduce((mayor, aviso) => Math.max(mayor, aviso.id), 0);
+
     setSinVer(0);
     setAvisos((actuales) => actuales.map((aviso) => ({ ...aviso, read: true })));
-    void markSeen();
+    void markSeen(hastaAca);
   }
 
   function tocar(aviso: AppNotification) {

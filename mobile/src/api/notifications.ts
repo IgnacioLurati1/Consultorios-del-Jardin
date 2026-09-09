@@ -32,9 +32,18 @@ export function myNotifications(): Promise<NotificationPage> {
   }));
 }
 
-/** Marca como visto todo lo que hay. Se llama al abrir la pantalla de avisos. */
-export function markNotificationsSeen(): Promise<void> {
-  return api.post("/notifications/seen").then(() => undefined);
+/**
+ * Marca como visto hasta el aviso `upTo`. Se llama al abrir la pantalla de avisos.
+ *
+ * El tope es el más nuevo de los que están en pantalla. Sin él, el servidor da por visto
+ * todo lo que tenga sin leer, y lo que haya entrado desde la última consulta —justo lo que
+ * uno entró a ver— queda leído sin haberse mostrado nunca.
+ *
+ * Un servidor que todavía no conoce el tope lo ignora y marca todo, que es lo que hacía
+ * antes. La app y el servidor se publican por separado, así que ese rato tiene que andar.
+ */
+export function markNotificationsSeen(upTo?: number): Promise<void> {
+  return api.post("/notifications/seen", { upTo }).then(() => undefined);
 }
 
 export function dismissNotification(id: number): Promise<void> {
