@@ -13,16 +13,48 @@ body {
   background-color: var(--adm-bg);
   color: var(--adm-text);
   font-family: 'Ubuntu', sans-serif;
-  height: 100%;
 }
 
 /* El fondo también en el html: al hacer scroll más allá del contenido, el navegador
    pinta lo que haya acá, y sin esto aparece una franja blanca abajo del todo. */
 html {
   background-color: var(--adm-bg);
-  /* El lugar de la barra de scroll queda reservado siempre. Sin esto, una pantalla que
-     empieza corta y crece (un listado que termina de cargar, un panel que se despliega)
-     estrena la barra y corre todo el contenido unos píxeles a la izquierda de golpe. */
+}
+
+/* ---------- el armazón de la página ----------
+
+   La ventana no se mueve: adentro se mueve una sola caja, la del contenido, y la barra
+   de arriba se queda afuera de ella.
+
+   Antes se movía la ventana entera y el lugar de la barra de scroll quedaba reservado
+   con scrollbar-gutter, para que una pantalla que empieza corta y crece no corriera
+   todo unos píxeles a la izquierda al estrenar la barra. El costo era que en las
+   pantallas cortas ese lugar quedaba vacío, y como esa franja la pinta el navegador
+   —nada del documento puede dibujar ahí— la barra de arriba se cortaba unos píxeles
+   antes del borde. Con el scroll adentro, la franja queda al lado del contenido y no
+   al lado de la barra: el contenido sigue sin moverse y el verde llega hasta el borde. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html,
+body {
+  overflow: hidden;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-scroll {
+  flex: 1;
+  /* Sin esto, un hijo alto estira el armazón en vez de hacer scroll. */
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-gutter: stable;
 }
 

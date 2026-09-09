@@ -5,9 +5,12 @@
    ============================================================ */
 
 .app-header {
-    position: sticky;
-    top: 0;
+    /* Ya no es sticky: está afuera de la caja que hace scroll, así que se queda arriba
+       sola. Sigue posicionada para que el z-index valga y los menús que cuelgan de ella
+       pasen por encima de la pantalla. */
+    position: relative;
     z-index: 1000;
+    flex-shrink: 0;
     background: linear-gradient(180deg, var(--adm-bar-top), var(--adm-bar-bottom));
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 16px rgba(16, 24, 40, 0.14);
 }

@@ -6,6 +6,7 @@ import { Toasts } from "../../components/toast/Toasts.tsx";
 import { API_BASE_URL } from "../../axios.ts";
 import { useAuth } from "../../context/AuthContext";
 import { useLogo } from "../../lib/useLogo";
+import { subirAlPrincipio } from "../../lib/scroll";
 import "../newPassword/passwordPages.css";
 
 /**
@@ -113,7 +114,7 @@ export function ConfirmAccount() {
                 className="adm-btn adm-btn-primary"
                 onClick={() => {
                   navigate("/");
-                  window.scrollTo(0, 0);
+                  subirAlPrincipio();
                 }}
               >
                 Empezar

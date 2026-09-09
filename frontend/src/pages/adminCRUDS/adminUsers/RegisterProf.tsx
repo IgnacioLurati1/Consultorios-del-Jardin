@@ -6,6 +6,7 @@ import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { SteppedForm, type FormStep } from "../../../components/steppedForm/SteppedForm.tsx";
 import { registerProfessional } from "./usersService";
 import { useLogo } from "../../../lib/useLogo";
+import { subirAlPrincipio } from "../../../lib/scroll";
 import {
   DOC_TYPES,
   MIN_PASSWORD,
@@ -52,7 +53,7 @@ export function RegisterProf() {
       .then(() => {
         toast.success("Profesional registrado");
         navigate("/AdminHome/UsersAdmin");
-        window.scrollTo(0, 0);
+        subirAlPrincipio();
       })
       .catch((err: Error) => {
         setServerError(err.message || "No pudimos registrar al profesional");
