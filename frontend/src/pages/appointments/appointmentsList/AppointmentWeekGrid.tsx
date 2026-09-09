@@ -7,6 +7,7 @@ import {
   cancellationNotice,
   describeState,
   isCancelled,
+  isOwnBooking,
   shortHour,
   toISODate,
 } from "../appointmentTypes.ts";
@@ -81,19 +82,27 @@ export function AppointmentWeekGrid({
      * Se calculan contra todos los turnos del día y no contra los que se están dibujando:
      * mostrar o esconder los cancelados no puede hacer aparecer ni desaparecer un hueco.
      * Lo que libera un horario es cancelar, no mirar.
+     *
+     * Los turnos que el profesional sacó para sí mismo también ocupan, y eso está bien:
+     * a esa hora lo están atendiendo a él, así que no hay nadie para ofrecer el "+".
      */
     const huecos = ofreceHuecos ? freeDaySlots(schedules!, key, dayAppointments) : [];
 
     const celdas: Celda[] = dayAppointments.map((appointment) => {
       const state = describeState(appointment.state);
 
+      // El turno que sacó para atenderse él. De acá para abajo la celda se arma como la
+      // de un paciente, porque en ese turno eso es lo que es.
+      const own = isOwnBooking(appointment, user);
+      const atiende = isProfessional && !own;
+
       // La misma marca que la lista, por lo mismo: entre todos los cancelados en gris, el
       // que avisó sobre la hora es el único que el profesional está buscando.
-      const notice = isProfessional ? cancellationNotice(appointment) : null;
+      const notice = atiende ? cancellationNotice(appointment) : null;
       const cancelled = isCancelled(appointment.state);
       const stateClass = cancelled ? (notice?.short ? "cancelled late" : "cancelled") : appointment.state;
 
-      const counterpart = isProfessional
+      const counterpart = atiende
         ? appointment.patient
           ? `${appointment.patient.surname}, ${appointment.patient.name}`
           : "Sin paciente"
@@ -105,15 +114,18 @@ export function AppointmentWeekGrid({
           <button
             type="button"
             key={`turno-${appointment.numAppointment}`}
-            className={`week-slot state-${stateClass} ${appointment.overbooked ? "overbooked" : ""}`}
+            className={`week-slot state-${stateClass} ${appointment.overbooked ? "overbooked" : ""} ${own ? "own" : ""}`}
             onClick={() => onOpen(appointment)}
-            title={`${shortHour(appointment.initialHour)} · ${counterpart} · ${state.label}${
+            title={`${shortHour(appointment.initialHour)} · ${own ? "te atiende " : ""}${counterpart} · ${state.label}${
               notice?.short ? " · dio de baja sobre la hora" : ""
             }${appointment.overbooked ? " · sobreturno" : ""}`}
             {...quickActions?.(appointment)}
           >
             <span className="week-slot-hour">
               {shortHour(appointment.initialHour)}
+              {/* En una celda de dos renglones no entra una frase. El nombre de abajo es
+                  el del colega, y esto dice de quién es el nombre. */}
+              {own && <span className="appt-slot-own">tuyo</span>}
               {appointment.overbooked && <span className="appt-slot-over">sobreturno</span>}
             </span>
             <span className="week-slot-note">{counterpart}</span>

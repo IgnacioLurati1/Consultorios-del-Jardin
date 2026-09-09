@@ -9,6 +9,7 @@ import {
   describeState,
   formatDayLabel,
   isCancelled,
+  isOwnBooking,
   cancellationNotice,
   formatCancellation,
   shortHour,
@@ -131,8 +132,6 @@ export function AppointmentDetailModal({
   const stateFieldRef = useRef<HTMLLabelElement>(null);
   const stateSelectRef = useRef<HTMLSelectElement>(null);
 
-  const isProfessional = user.type === "professional";
-
   /**
    * El número del último historial que se pidió. Solo ese puede escribir en la pantalla.
    *
@@ -177,6 +176,17 @@ export function AppointmentDetailModal({
   }, [flashingState]);
 
   if (!appointment) return null;
+
+  /*
+   * De qué lado del turno está quien lo abrió.
+   *
+   * No alcanza con el tipo de cuenta: el profesional que sacó turno con un colega es el
+   * paciente de ese turno, y la ficha tiene que ser la que ve un paciente. Ahí no cambia
+   * estados, no escribe el registro clínico, no cobra y no ve el historial de nadie; sí
+   * ve el seguimiento que le dejaron y puede dar de baja, que es lo que hace un paciente.
+   */
+  const ownBooking = isOwnBooking(appointment, user);
+  const isProfessional = user.type === "professional" && !ownBooking;
 
   const cancelled = isCancelled(appointment.state);
   // Solo tiene valor cuando la baja la hizo el paciente. La del profesional no se guarda.
@@ -393,6 +403,15 @@ export function AppointmentDetailModal({
           </div>
         ) : (
           <>
+            {/* Abierta desde su agenda, esta ficha se ve distinta de todas las otras: no
+                tiene registro, ni cobro, ni historial. Conviene decir por qué antes de que
+                la busque. */}
+            {ownBooking && (
+              <p className="ui-alert appt-own-note">
+                Este turno es tuyo como paciente. Lo maneja el profesional que te atiende, así que acá no hay registro ni cobro.
+              </p>
+            )}
+
             <div className="ui-section">
               <div className="ui-section-head">
                 <h3 className="ui-section-title">Datos del turno</h3>

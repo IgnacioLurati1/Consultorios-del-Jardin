@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { useUndo, type Undoable } from "../../context/UndoContext.tsx";
 import { escribiendo } from "../../lib/shortcuts.ts";
 import type { Appointment, PaymentState, Person, RecurrenceFrequency, Room } from "../types.ts";
-import { describePayment, describeState, isCancelled, type AppointmentState } from "./appointmentTypes.ts";
+import { describePayment, describeState, isCancelled, isOwnBooking, type AppointmentState } from "./appointmentTypes.ts";
 import {
   acceptAppointment,
   addPatientToAppointment,
@@ -194,6 +194,11 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
    */
   function quickActions(appointment: Appointment): HTMLAttributes<HTMLElement> {
     if (!isProfessional) return {};
+
+    // En el turno que el profesional sacó para atenderse él no hay nada que marcar: el
+    // estado lo maneja el colega que lo atiende, y el servidor lo rechazaría igual.
+    // También lo saca del alcance de Retroceso, que es lo que hace bajar un turno.
+    if (user && isOwnBooking(appointment, user)) return {};
 
     /* Al soltarlo se limpia solo si el que quedó anotado sigue siendo este: entrando de un
        turno al de al lado, el `enter` del nuevo llega antes que el `leave` del viejo. */

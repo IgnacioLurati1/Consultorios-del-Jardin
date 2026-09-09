@@ -147,19 +147,50 @@ export function AppointmentsList() {
     setLoading(true);
 
     const mode: ViewMode = person.type === "professional" ? viewMode : "list";
+    const desde = toISODate(monday);
+    const hasta = toISODate(addDays(monday, 6));
 
     const request =
       mode === "grid"
-        ? findProfessionalAppointmentsInRange(toISODate(monday), toISODate(addDays(monday, 6)), includeCancelled)
+        ? findProfessionalAppointmentsInRange(desde, hasta, includeCancelled)
         : person.type === "professional"
         ? findProfessionalAppointments(page, includeCancelled)
         : findPatientAppointments(page, includeCancelled);
 
-    request
-      .then((data) => {
+    /*
+     * Los turnos que el profesional sacó para sí mismo con un colega.
+     *
+     * Salen del mismo endpoint que usa el paciente para ver los suyos, porque en esos
+     * turnos eso es lo que él es. Hasta acá no aparecían en ninguna pantalla suya: los
+     * sacaba y después no tenía dónde mirar cuándo eran.
+     *
+     * Si el pedido falla no se dice nada y la agenda se dibuja igual. Es una lista de
+     * al lado, casi siempre de dos o tres turnos, y voltear la agenda entera del día
+     * por ella sería cambiar un problema chico por uno grande.
+     */
+    const propios =
+      person.type === "professional"
+        ? findPatientAppointments(mode === "grid" ? 0 : page, includeCancelled).catch(() => [] as Appointment[])
+        : Promise.resolve([] as Appointment[]);
+
+    Promise.all([request, propios])
+      .then(([agenda, mios]) => {
         if (!vigente()) return;
-        setAppointments(data);
-        setHasMore(mode === "list" && data.length === 15);
+
+        // En grilla se recortan a la semana que se está mirando; en lista ya vienen
+        // paginados igual que los otros y en el mismo orden.
+        const visibles =
+          mode === "grid"
+            ? mios.filter((appointment) => {
+                const key = toISODate(appointmentDate(appointment.date));
+                return key >= desde && key <= hasta;
+              })
+            : mios;
+
+        setAppointments([...agenda, ...visibles]);
+        // Lo que dice si hay otra página es la agenda del profesional, que es la que se
+        // pagina. Los turnos propios son un puñado y entran todos en la primera.
+        setHasMore(mode === "list" && agenda.length === 15);
       })
       .catch((err) => {
         if (vigente()) toast.error(`Error al obtener turnos: ${err.message}`);

@@ -44,9 +44,25 @@
      --sea-h por eso mismo. Los otros estados —el rojo, el ámbar, el gris— son colores
      fijos, y este seguía al acento: en otoño un turno confirmado quedaba marrón, o sea
      del mismo color que un aviso, y el color dejaba de querer decir algo. El tono es el
-     de la primavera, que es el verde del proyecto. */
+     de la primavera, que es el verde del proyecto.
+
+     Son cuatro y no dos porque un turno confirmado se pinta entero y no solo en el
+     cartel: la franja de su tarjeta, el fondo de su casillero en la grilla, el renglón
+     del panel del día. Cada uno cumple el mismo papel que su gemelo de la estación
+     —soft el fondo, line el borde suave, strong la franja, el pelado la letra— así que
+     cambiar de un juego al otro es cambiar el nombre y nada más. */
   --adm-ok-soft: hsl(116 32% 93%);
+  --adm-ok-line: hsl(116 32% 85%);
+  --adm-ok-strong: hsl(116 32% 35%);
   --adm-ok: hsl(116 32% 27%);
+  /* El dorado de "esto es tuyo": el turno que el profesional sacó para atenderse él.
+     No es un estado más, es de quién es el turno, así que no comparte color con ninguno
+     de los estados. Fijo como el verde de confirmado y por lo mismo: en otoño el acento
+     ya tira a dorado y la marca dejaría de distinguirse justo donde tiene que resaltar.
+     Va más amarillo que el ámbar de "Pendiente", que es su vecino más peligroso. */
+  --adm-gold-soft: hsl(45 88% 91%);
+  --adm-gold-line: hsl(43 80% 62%);
+  --adm-gold: hsl(40 78% 32%);
   /* El gris de un bloque que todavía está cargando, y el reflejo que lo recorre. El
      reflejo siempre tiene que ser más claro que la base: si se invierten, la animación
      se lee como una sombra que pasa y no como algo que está por llegar. */
@@ -108,7 +124,12 @@
   --adm-green-glow: hsl(var(--sea-h) var(--sea-s) 65%);
   /* Sube igual que los otros verdes: el mismo tono se pierde sobre el gris oscuro. */
   --adm-ok-soft: hsl(116 26% 14%);
+  --adm-ok-line: hsl(116 26% 22%);
+  --adm-ok-strong: hsl(116 34% 51%);
   --adm-ok: hsl(116 34% 62%);
+  --adm-gold-soft: hsl(44 34% 13%);
+  --adm-gold-line: hsl(43 55% 40%);
+  --adm-gold: hsl(45 85% 66%);
   --adm-skeleton: hsl(var(--sea-h) 11% 13%);
   --adm-skeleton-shine: hsl(var(--sea-h) 11% 19%);
   --adm-bar-top: hsl(var(--sea-h) var(--sea-s) 17%);
@@ -853,6 +874,16 @@ textarea::placeholder {
 /* ── El cartel del estado, arriba de todo ─────────────────────────
    Ahí no se cambia nada: lleva hasta donde sí se cambia. Es el cartel de siempre, sin
    nada de botón alrededor salvo la manito y el marco del foco. */
+/* El aviso de la ficha de un turno propio, el que el profesional sacó para atenderse él.
+   Sale del mismo dorado que la marca de la agenda, para que se lea como su explicación.
+   Vive acá y no en la hoja de la lista de turnos porque la ficha se abre desde tres
+   pantallas y solo dos de ellas cargan esa hoja. */
+.appt-own-note {
+  border-left: 3px solid var(--adm-gold);
+  background: var(--adm-gold-soft);
+  color: var(--adm-gold);
+}
+
 .appt-state-jump {
   /* En bloque y no en línea: como texto en línea, el renglón le agregaba el lugar de las
      colas de las letras debajo del cartel y el cartel salía aplastado contra el borde. */

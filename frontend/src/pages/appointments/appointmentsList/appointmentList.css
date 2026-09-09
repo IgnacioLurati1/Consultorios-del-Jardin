@@ -133,9 +133,14 @@
   box-shadow: var(--adm-shadow-lg);
 }
 
-/* La franja izquierda y el horario toman el color del estado, igual que el cartel */
-.appt-card.state-accepted { border-left-color: var(--adm-green); }
-.appt-card.state-accepted .appt-card-hours { color: var(--adm-green-dark); }
+/* La franja izquierda y el horario toman el color del estado, igual que el cartel.
+
+   El confirmado sale del verde fijo y no del de la estación, que es de donde salía. Los
+   otros tres estados son colores fijos, así que en otoño la agenda quedaba con la franja
+   marrón y el cartel verde al lado, discutiendo sobre el mismo turno. El color de un
+   turno tiene que ser el de su estado y nada más. */
+.appt-card.state-accepted { border-left-color: var(--adm-ok-strong); }
+.appt-card.state-accepted .appt-card-hours { color: var(--adm-ok); }
 
 .appt-card.state-pending { border-left-color: var(--adm-warn); }
 .appt-card.state-pending .appt-card-hours { color: #8a5d10; }
@@ -227,7 +232,20 @@
   font-weight: 600;
 }
 
-/* Colores por estado sobre la celda de components/weekGrid. */
+/* Colores por estado sobre la celda de components/weekGrid.
+
+   El confirmado va escrito y no se deja puesto el de la celda pelada, que es el de la
+   estación: la grilla entera del profesional son turnos confirmados, así que en otoño se
+   ponía marrón de punta a punta y el verde de los carteles quedaba solo. La celda pelada
+   sigue con el acento porque también la usa la grilla de horarios libres, y ahí el color
+   es el de la página y no el de ningún estado. */
+.week-slot.state-accepted {
+  background: var(--adm-ok-soft);
+  border-color: var(--adm-ok-line);
+  border-left-color: var(--adm-ok-strong);
+  color: var(--adm-ok);
+}
+
 .week-slot.state-pending {
   background: var(--adm-warn-soft);
   border-color: var(--adm-warn-soft);
@@ -435,6 +453,73 @@
 
 .week-slot.overbooked {
   border-style: dashed;
+}
+
+/* ── El turno que el profesional sacó para atenderse él ────────────
+   Entre cientos de turnos que da, estos son un puñado y son los únicos donde él es el
+   paciente. Van en dorado, que no es el color de ningún estado: el cartel de estado sigue
+   estando y sigue diciendo lo suyo, y el dorado dice de quién es el turno.
+
+   El dorado pisa al color del estado a propósito. Puesto al lado quedaban dos colores
+   discutiendo en una tarjeta, y de las dos cosas la que hay que ver de lejos es que ese
+   turno no es de un paciente. */
+
+.appt-card.own {
+  border-color: var(--adm-gold-line);
+  border-left-color: var(--adm-gold);
+  background: var(--adm-gold-soft);
+}
+
+.appt-card.own .appt-card-hours,
+.appt-card.own .appt-card-person {
+  color: var(--adm-gold);
+}
+
+.appt-card.own .appt-card-room {
+  color: var(--adm-gold);
+  opacity: 0.85;
+}
+
+/* El cartel de estado, sobre el dorado. El ámbar de "Pendiente" es casi el color de la
+   tarjeta y el cartel desaparecía; sobre el fondo de la página vuelve a ser un cartel, y
+   cada estado conserva el color de su letra. */
+.appt-card.own .adm-badge {
+  background: var(--adm-surface);
+}
+
+.appt-tag-own {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--adm-gold);
+  color: var(--adm-surface);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.week-slot.own {
+  border-color: var(--adm-gold-line);
+  border-left-color: var(--adm-gold);
+  background: var(--adm-gold-soft);
+  color: var(--adm-gold);
+}
+
+.week-slot.own:focus-visible {
+  outline-color: var(--adm-gold);
+}
+
+.appt-slot-own {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--adm-gold);
+  color: var(--adm-gold-soft);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .appt-slot-over {

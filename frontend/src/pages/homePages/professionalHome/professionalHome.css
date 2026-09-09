@@ -84,8 +84,10 @@
 /* La franja y la hora toman el color del estado, igual que el cartel de la derecha.
    Es lo mismo que ya hace la lista de turnos: deja recorrer el día de un vistazo sin
    leer los carteles uno por uno. */
-.prof-today-item.tone-green { border-left-color: var(--adm-green); }
-.prof-today-item.tone-green .prof-today-hour { color: var(--adm-green-dark); }
+/* Verde fijo, el mismo del cartel de "Confirmado", y no el de la estación: los otros
+   tonos del panel son colores fijos y en otoño este era el único que se corría. */
+.prof-today-item.tone-green { border-left-color: var(--adm-ok-strong); }
+.prof-today-item.tone-green .prof-today-hour { color: var(--adm-ok); }
 
 .prof-today-item.tone-amber { border-left-color: var(--adm-warn); }
 .prof-today-item.tone-amber .prof-today-hour { color: #8a5d10; }

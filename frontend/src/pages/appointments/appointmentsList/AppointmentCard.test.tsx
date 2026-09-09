@@ -25,6 +25,9 @@ const LUIS: Person = {
 
 const MARTA: Person = { ...LUIS, email: "marta@test.com", name: "Marta", surname: "Gómez", type: "client", speciality: "" };
 
+/** Otra profesional del consultorio, la que atiende a Luis cuando le toca a él. */
+const ANA: Person = { ...LUIS, email: "ana@test.com", name: "Ana", surname: "Ruiz", speciality: "Psicología" };
+
 /** Un turno dado de baja. `cancelledAt` en null es una baja del profesional. */
 function turno(cancelledAt: string | null, hours = 2): Appointment {
   const empieza = new Date(Date.now() + hours * 60 * 60 * 1000);
@@ -101,5 +104,34 @@ describe("La tarjeta de un turno dado de baja", () => {
 
     expect(tarjeta.className).toContain("state-cancelled");
     expect(tarjeta.className).not.toContain("late");
+  });
+});
+
+/**
+ * El turno que el profesional sacó para atenderse él.
+ *
+ * En su agenda es el único donde no es quien atiende, y hasta que existió la marca dorada
+ * se leía como un paciente más de su propia lista. Peor todavía, el nombre que mostraba
+ * era el del casillero "paciente", o sea el suyo.
+ */
+describe("La tarjeta de un turno propio", () => {
+  function turnoPropio(): Appointment {
+    return { ...turno(null), state: "accepted", patient: LUIS, professional: ANA } as Appointment;
+  }
+
+  it("lo marca en dorado y dice quién lo atiende", () => {
+    const tarjeta = dibujar(turnoPropio(), LUIS);
+
+    expect(tarjeta.className).toContain("own");
+    expect(screen.getByText("Te atienden a vos")).toBeTruthy();
+    expect(screen.getByText("Ruiz, Ana")).toBeTruthy();
+    expect(screen.queryByText("Peralta, Luis")).toBeNull();
+  });
+
+  it("el turno que da sigue siendo el de siempre", () => {
+    const tarjeta = dibujar({ ...turno(null), state: "accepted" } as Appointment, LUIS);
+
+    expect(tarjeta.className).not.toContain("own");
+    expect(screen.getByText("Gómez, Marta")).toBeTruthy();
   });
 });

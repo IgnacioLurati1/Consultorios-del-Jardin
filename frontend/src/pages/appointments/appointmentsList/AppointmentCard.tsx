@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 import type { Appointment, Person } from "../../types.ts";
-import { cancellationNotice, describeState, isCancelled, shortHour } from "../appointmentTypes.ts";
+import { cancellationNotice, describeState, isCancelled, isOwnBooking, shortHour } from "../appointmentTypes.ts";
 import { FaRegClock, FaLocationDot, FaUser } from "react-icons/fa6";
 
 interface AppointmentCardProps {
@@ -18,7 +18,10 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment, user, onOpen, quickActions }: AppointmentCardProps) {
   const state = describeState(appointment.state);
   const cancelled = isCancelled(appointment.state);
-  const isProfessional = user.type === "professional";
+  // El turno que sacó para atenderse él. Es el único de su agenda donde no es quien
+  // atiende, así que de acá para abajo la tarjeta se arma como la de un paciente.
+  const own = isOwnBooking(appointment, user);
+  const isProfessional = user.type === "professional" && !own;
 
   // La marca es para el profesional, que es quien decide qué hacer con una baja sobre la
   // hora. Al paciente no se le pone un cartel encima de algo que ya hizo: la fecha de su
@@ -42,7 +45,7 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
   return (
     <button
       type="button"
-      className={`appt-card state-${stateClass}`}
+      className={`appt-card state-${stateClass} ${own ? "own" : ""}`}
       onClick={() => onOpen(appointment)}
       {...quickActions?.(appointment)}
     >
@@ -64,6 +67,9 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
       </span>
 
       <span className="appt-card-tags">
+        {/* Con la agenda llena, el color solo dice "este es distinto". El cartel dice
+            por qué, que es lo que hace falta para no leerlo como un paciente más. */}
+        {own && <span className="appt-tag-own">Te atienden a vos</span>}
         {appointment.origin === "import" && <span className="appt-tag-import">Importado</span>}
         {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
         {notice?.short && <span className="adm-badge adm-badge-red">Baja con poco aviso</span>}

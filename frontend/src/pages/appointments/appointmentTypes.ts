@@ -10,6 +10,27 @@ export interface confirmAppointmentModalProps {
   professional: Person;
   office: Office;
   onCreate: (newAppointment: { date: string; initialHour: string; professionalEmail: string; officeId: string }) => Promise<void>;
+  /** Por qué esta persona no puede pedir este turno. En null lo pide como siempre. */
+  blockedReason?: string | null;
+}
+
+/**
+ * Por qué la persona que está mirando la agenda no puede sacar turno, o null si puede.
+ *
+ * El administrador entra a las agendas porque mirarlas es parte de su trabajo, pero su
+ * cuenta no es la de alguien que se atiende: un turno suyo le ocuparía el módulo a un
+ * paciente y quedaría sin historia clínica y sin nadie a quien avisarle. Antes la pantalla
+ * se lo ofrecía igual y el turno se creaba.
+ *
+ * Se dice acá y no escondido en la ventana de confirmar para que sea una sola frase, la
+ * misma en todos lados. El backend además lo rechaza, que es lo que de verdad lo impide.
+ */
+export function bookingBlockedFor(type: string | undefined): string | null {
+  if (type === "admin") {
+    return "Entraste como administrador y desde esta cuenta no se sacan turnos. Podés mirar las agendas, pero para pedir uno hace falta entrar con una cuenta de paciente.";
+  }
+
+  return null;
 }
 
 /* ============================================================
@@ -27,6 +48,21 @@ export const CLOSING_STATES: AppointmentState[] = ["assisted", "missed"];
 
 export function isCancelled(state: string): boolean {
   return !APPOINTMENT_STATES.includes(state as AppointmentState);
+}
+
+/**
+ * El turno que el profesional sacó para sí mismo con un colega del consultorio.
+ *
+ * En su agenda estos son la excepción: no los da, los recibe. Todo lo que la pantalla
+ * ofrece hacer con un turno —cambiarle el estado, escribir el registro, cobrarlo— es de
+ * quien atiende, y en estos el que mira es el paciente. Por eso se pregunta turno por
+ * turno y no una sola vez por el tipo de cuenta.
+ *
+ * Hasta que existió esto, un turno así no aparecía en ningún lado del lado del
+ * profesional: lo sacaba y después no tenía dónde ver ni cuándo era.
+ */
+export function isOwnBooking(appointment: { patient?: Person | null }, user: Pick<Person, "type" | "email">): boolean {
+  return user.type === "professional" && appointment.patient?.email === user.email;
 }
 
 /* ============================================================
