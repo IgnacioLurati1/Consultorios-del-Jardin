@@ -55,6 +55,25 @@ export function cancellationNotice(
   return { at, hours, short: hours < SHORT_NOTICE_HOURS };
 }
 
+/**
+ * Los turnos de un día que hay que ver, cancelados incluidos pero no todos.
+ *
+ * De los cancelados queda uno solo: el que el paciente dio de baja con menos de un día de
+ * aviso. El resto se liberó con tiempo y probablemente ya lo tomó otro, así que no explica
+ * ningún hueco de hoy. Este sí: el horario quedó vacío y no hubo tiempo de ofrecérselo a
+ * nadie, y si no aparece en el día no hay dónde enterarse.
+ *
+ * Es la misma regla que el panel del profesional de la página, escrita una vez para que
+ * las dos pantallas no se vayan separando.
+ */
+export function delDia<T extends Pick<Appointment, "date" | "initialHour" | "state" | "patientCancelledAt">>(
+  appointments: T[]
+): T[] {
+  return appointments.filter(
+    (appointment) => stateOf(appointment) !== "cancelled" || !!cancellationNotice(appointment)?.short
+  );
+}
+
 export const STATE_LABELS: Record<StateKey, string> = {
   pending: "A confirmar",
   accepted: "Confirmado",
@@ -81,6 +100,30 @@ export function stateColors(key: StateKey, colors: Colors): { bg: string; fg: st
       return { bg: colors.dangerSoft, fg: colors.danger };
     default:
       return { bg: colors.sunken, fg: colors.muted };
+  }
+}
+
+/**
+ * El color con el que se escribe la hora de un turno en una lista.
+ *
+ * Es el mismo del cartel de estado, y va sobre el dato que la vista busca primero. Recorrer
+ * una agenda es buscar un horario; que ese horario ya diga en qué estado está ahorra leer
+ * el cartel de la derecha renglón por renglón.
+ *
+ * Distinto de `stateAccent`, que pinta una línea: una línea puede ser tan tenue como el
+ * borde de una tarjeta, un texto no. Cancelado va en apagado y no en el gris del borde,
+ * que sobre el fondo no se leería.
+ */
+export function stateInk(key: StateKey, colors: Colors): string {
+  switch (key) {
+    case "accepted":
+      return colors.greenDark;
+    case "pending":
+      return colors.warn;
+    case "missed":
+      return colors.danger;
+    default:
+      return colors.muted;
   }
 }
 

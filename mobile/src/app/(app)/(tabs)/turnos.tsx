@@ -15,7 +15,7 @@ import { Sheet } from "../../../components/Sheet";
 import { DataState, EmptyState, SkeletonList } from "../../../components/States";
 import { Group, Note, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
-import { isUpcoming, stateOf } from "../../../lib/appointments";
+import { delDia, isUpcoming, stateOf } from "../../../lib/appointments";
 import { addDays, longDate, onDay, relativeDay, sentenceCase, toISODate, today } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { useUser } from "../../../session/SessionProvider";
@@ -199,7 +199,7 @@ function ProfessionalAgenda() {
 
   const list: Appointment[] = onlyPending
     ? toConfirm
-    : (agenda.data ?? []).filter((appointment) => stateOf(appointment) !== "cancelled");
+    : delDia(agenda.data ?? []);
 
   function shiftDay(days: number) {
     setDay((current) => toISODate(addDays(new Date(`${current}T00:00:00`), days)));

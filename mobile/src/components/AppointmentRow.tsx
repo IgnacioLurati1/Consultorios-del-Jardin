@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Appointment } from "../api/types";
-import { counterpart, stateAccent, stateOf } from "../lib/appointments";
+import { cancellationNotice, counterpart, stateAccent, stateInk, stateOf } from "../lib/appointments";
 import { hhmm, relativeDay } from "../lib/dates";
 import { radius, space, TOUCH } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
@@ -30,6 +30,18 @@ export function AppointmentRow({
   const state = stateOf(appointment);
   const who = counterpart(appointment, viewerEmail);
 
+  /*
+   * El turno que el paciente dio de baja sobre la hora.
+   *
+   * Es el único cancelado que se pinta. Los demás quedan apagados, que es lo que son: un
+   * horario que se liberó con tiempo y que probablemente ya tomó otro. Este dejó el hueco
+   * y no hubo tiempo de ofrecérselo a nadie, así que la fila entera se tiñe en vez de
+   * confiarle todo el trabajo a un cartel al final del renglón.
+   */
+  const late = state === "cancelled" && !!cancellationNotice(appointment)?.short;
+  const cancelled = state === "cancelled";
+  const ink = late ? colors.danger : stateInk(state, colors);
+
   const label = `${hhmm(appointment.initialHour)}, ${who}${showDay ? `, ${relativeDay(appointment.date)}` : ""}`;
 
   return (
@@ -40,12 +52,15 @@ export function AppointmentRow({
       android_ripple={{ color: colors.border }}
       style={({ pressed }) => [
         styles.row,
+        late && { backgroundColor: colors.dangerSoft },
         !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
         pressed && Platform.OS === "ios" && styles.pressed,
       ]}
     >
       <View style={styles.time}>
-        <AppText variant="bodyStrong" style={styles.hour}>
+        {/* La hora lleva el color del estado. Es el dato que la vista busca primero, así
+            que es donde más rinde el color. Tachada cuando el turno ya no va a pasar. */}
+        <AppText variant="bodyStrong" style={[styles.hour, { color: ink }, cancelled && styles.tachado]}>
           {hhmm(appointment.initialHour)}
         </AppText>
         <AppText variant="caption" tone="muted">
@@ -56,10 +71,10 @@ export function AppointmentRow({
       {/* La línea que separa la hora del resto lleva el color del estado. Es el mismo
           trazo que ya estaba, pintado: la agenda del día se recorre con la vista y recién
           se lee la que interesa. Ver stateAccent. */}
-      <View style={[styles.rule, { backgroundColor: stateAccent(state, colors) }]} />
+      <View style={[styles.rule, { backgroundColor: late ? colors.danger : stateAccent(state, colors) }]} />
 
       <View style={styles.body}>
-        <AppText variant="body" numberOfLines={1}>
+        <AppText variant="body" numberOfLines={1} style={cancelled && styles.tachado}>
           {who}
         </AppText>
 
@@ -69,7 +84,13 @@ export function AppointmentRow({
         </AppText>
 
         <View style={styles.tags}>
-          <StateBadge state={state} />
+          {/* Sobre la fila teñida el cartel rojo se pinta del mismo rosa que el fondo y la
+              pastilla desaparece, así que ahí lleva el fondo de la tarjeta. */}
+          {late ? (
+            <Tag label="Dio de baja sobre la hora" tone="danger" onSurface />
+          ) : (
+            <StateBadge state={state} />
+          )}
           {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
           {/* `active`, no la existencia: una repetición frenada le sigue colgando al turno. */}
           {appointment.recurrence?.active ? <Tag label="Se repite" tone="green" /> : null}
@@ -90,6 +111,7 @@ const styles = StyleSheet.create({
   },
   time: { width: 48, alignItems: "flex-start", gap: 1 },
   hour: { fontVariant: ["tabular-nums"] },
+  tachado: { textDecorationLine: "line-through" },
   rule: { width: 3, alignSelf: "stretch", marginVertical: space.xs, borderRadius: radius.full },
   body: { flex: 1, gap: space.xs },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: 2 },
