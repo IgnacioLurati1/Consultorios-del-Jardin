@@ -1,0 +1,157 @@
+@import "../../pages/adminCRUDS/adminPanel.css";
+
+/* ============================================================
+   Buscador de pacientes. Se usa adentro de las fichas, en el
+   lugar donde antes había una lista desplegable.
+   ============================================================ */
+
+.patient-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.patient-picker-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.patient-picker-icon {
+  position: absolute;
+  left: 13px;
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.patient-picker-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 40px 11px 38px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 400;
+}
+
+.patient-picker-input:focus {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.patient-picker-clear {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--adm-muted);
+  cursor: pointer;
+}
+
+.patient-picker-clear:hover {
+  background: var(--adm-bg);
+  color: var(--adm-text);
+}
+
+/* La lista empuja lo que tiene abajo en vez de flotar por encima. Flotando quedaba
+   recortada contra el borde del cuerpo de la ficha, que es lo que scrollea: abierta cerca
+   del pie no se veían los últimos nombres y no había forma de llegar a ellos. */
+.patient-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 5px;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  box-shadow: var(--adm-shadow);
+}
+
+.patient-picker-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--adm-radius-sm);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.patient-picker-item.marked {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green);
+}
+
+.patient-picker-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--adm-green);
+  color: var(--adm-on-green);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.patient-picker-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.patient-picker-name {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+/* Pegado al nombre, así que más chico que un cartelito del listado. */
+.patient-picker-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}
+
+.patient-picker-meta {
+  font-size: 0.79rem;
+  font-weight: 400;
+  color: var(--adm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-picker-empty,
+.patient-picker-more {
+  padding: 14px 12px;
+  color: var(--adm-muted);
+  font-size: 0.87rem;
+  font-weight: 400;
+  text-align: center;
+}
+
+.patient-picker-more {
+  border-top: 1px dashed var(--adm-border);
+}

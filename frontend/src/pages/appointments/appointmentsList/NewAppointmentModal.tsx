@@ -5,6 +5,7 @@ import type { Person, RecurrenceFrequency, Room, Schedule } from "../../types.ts
 import { toISODate } from "../appointmentTypes.ts";
 import { buildDaySlots, worksOn } from "../freeSlots.ts";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { PatientPicker } from "../../../components/patientPicker/PatientPicker.tsx";
 import { RepeatFields } from "./RepeatFields.tsx";
 
 type Mode = "regular" | "overbooked";
@@ -246,18 +247,18 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
         <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
 
-        <label className="ui-field">
+        {/* No es un <label> porque adentro hay una lista de botones, y un botón adentro
+            de una etiqueta no se comporta igual en todos los navegadores. */}
+        <div className="ui-field">
           <span>Paciente</span>
-          <select value={form.patientEmail} onChange={(e) => setForm({ ...form, patientEmail: e.target.value })}>
-            <option value="">Sin paciente por ahora</option>
-            {patients.map((p) => (
-              <option key={p.email} value={p.email}>
-                {p.surname}, {p.name} {p.anonymous ? "(anónimo)" : ""}
-              </option>
-            ))}
-          </select>
+          <PatientPicker
+            patients={patients}
+            value={form.patientEmail}
+            onChange={(patientEmail) => setForm({ ...form, patientEmail })}
+            placeholder="Sin paciente por ahora"
+          />
           <small>Podés dejar la franja reservada y asignar al paciente más adelante.</small>
-        </label>
+        </div>
 
       </div>
 
