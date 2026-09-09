@@ -219,6 +219,21 @@ async function getUnpaidAppointments(req: RequestWithUser, res: Response) {
 
 async function createPatientAppointment(req: RequestWithUser, res: Response) {
   try {
+    /*
+     * El administrador no saca turnos.
+     *
+     * Su cuenta es la que ordena el consultorio, no una persona que se atiende: un turno
+     * suyo le ocuparia el modulo a un paciente y despues no hay historia clinica ni nadie
+     * a quien avisarle. Entra igual a mirar las agendas, que es parte de su trabajo, y la
+     * pantalla se lo explica antes de que lo intente. Esto es el cierre de atras, para
+     * cuando el pedido no viene de la pantalla.
+     */
+    if (req.user.type === "admin") {
+      return res.status(403).json({
+        message: "La cuenta de administrador no saca turnos. Para pedir uno hace falta entrar con una cuenta de paciente",
+      });
+    }
+
     const { date, initialHour, professionalEmail, office } = req.body.sanitizedInput;
     const appointment = await appointmentService.createPatientAppointment(req.user.email, date, initialHour, professionalEmail, office);
     res.status(201).json({ message: "Turno creado con éxito", data: appointment });
@@ -359,7 +374,7 @@ async function getAppointment(req: RequestWithUser, res: Response) {
 async function cancelAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    const appointment = await appointmentService.cancelAppointment(numAppointment, req.user.email, req.user.type);
+    const appointment = await appointmentService.cancelAppointment(numAppointment, req.user.email);
 
     res.status(200).json({ message: "Turno cancelado con éxito" });
   } catch (error: any) {

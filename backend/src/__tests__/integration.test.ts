@@ -1063,7 +1063,7 @@ describe("Integracion: la baja que hace el paciente queda anotada", () => {
     const turno = turnoAceptado();
     mockEm.findOne.mockResolvedValue(turno);
 
-    await appointments.cancelAppointment(55, mockClient.email, "client");
+    await appointments.cancelAppointment(55, mockClient.email);
 
     expect(turno.patientCancelledAt).toBeInstanceOf(Date);
   });
@@ -1074,9 +1074,24 @@ describe("Integracion: la baja que hace el paciente queda anotada", () => {
     const turno = turnoAceptado();
     mockEm.findOne.mockResolvedValue(turno);
 
-    await appointments.cancelAppointment(55, mockProfessional.email, "professional");
+    await appointments.cancelAppointment(55, mockProfessional.email);
 
     expect(turno.patientCancelledAt).toBeNull();
+  });
+
+  /*
+   * El profesional tambien se atiende, y sacando turno con un colega el que baja es el
+   * paciente. Antes esto se decidia por el tipo de cuenta y la baja se anotaba como del
+   * profesional: al colega no le llegaba el aviso de que le quedaba libre el horario.
+   */
+  it("anota la fecha cuando el que baja es un profesional atendiendose", async () => {
+    const colega = { ...mockProfessional, email: "colega@test.com" };
+    const turno = { ...turnoAceptado(), patient: mockProfessional, professional: colega };
+    mockEm.findOne.mockResolvedValue(turno);
+
+    await appointments.cancelAppointment(55, mockProfessional.email);
+
+    expect(turno.patientCancelledAt).toBeInstanceOf(Date);
   });
 });
 
@@ -1269,6 +1284,35 @@ describe("Integracion: los avisos que quedan esperando a quien entra", () => {
     expect(filtro.createdAt.$gte).toBeInstanceOf(Date);
   });
 
+  /*
+   * Abrir la campanita da por visto lo que estaba en pantalla y nada mas.
+   *
+   * Antes marcaba todo lo que tuviera sin leer, incluido lo que habia entrado despues de
+   * la ultima consulta y todavia no se dibujaba. Ese aviso quedaba leido sin haberse
+   * mostrado nunca, y era justo el que uno estaba esperando ver: el numero no aparecia.
+   */
+  it("da por visto hasta el ultimo que estaba en pantalla", async () => {
+    mockEm.nativeUpdate.mockResolvedValue(1);
+
+    await notifications.markSeen(mockClient.email, 118);
+
+    const [, filtro] = mockEm.nativeUpdate.mock.calls[0];
+    expect(filtro.readAt).toBeNull();
+    expect(filtro.idNotification).toEqual({ $lte: 118 });
+  });
+
+  // Es lo que manda una version anterior de la pagina o de la app. Entre un deploy y el
+  // otro tiene que seguir marcando algo en vez de no marcar nada.
+  it("sin tope marca todo lo que este sin ver", async () => {
+    mockEm.nativeUpdate.mockResolvedValue(3);
+
+    await notifications.markSeen(mockClient.email);
+
+    const [, filtro] = mockEm.nativeUpdate.mock.calls[0];
+    expect(filtro.readAt).toBeNull();
+    expect(filtro.idNotification).toBeUndefined();
+  });
+
   it("cuenta como sin ver solo los que no tienen fecha de visto", async () => {
     mockEm.find.mockResolvedValue([
       { idNotification: 1, title: "Uno", body: null, tone: "info", target: null, createdAt: new Date(), readAt: null },
@@ -1391,7 +1435,7 @@ describe("Integracion: los hechos que llegan a la campanita", () => {
     conTurno(turno);
     mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
 
-    await appointments.cancelAppointment(88, mockClient.email, "client");
+    await appointments.cancelAppointment(88, mockClient.email);
 
     const claves = avisos().map((a) => a.key);
     expect(claves).toContain("t88:cancelado");
@@ -1408,7 +1452,7 @@ describe("Integracion: los hechos que llegan a la campanita", () => {
     });
     mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
 
-    await appointments.cancelAppointment(88, mockClient.email, "client");
+    await appointments.cancelAppointment(88, mockClient.email);
 
     const aviso = avisos().find((a) => a.key === "t88:libre");
     expect(aviso!.title).toBe("Te cancelaron un turno sobre la hora");
@@ -1420,7 +1464,7 @@ describe("Integracion: los hechos que llegan a la campanita", () => {
     const turno = turnoAceptado({ date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), initialHour: "10:00" });
     mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
 
-    await appointments.cancelAppointment(88, mockClient.email, "client");
+    await appointments.cancelAppointment(88, mockClient.email);
 
     const aviso = avisos().find((a) => a.key === "t88:libre");
     expect(aviso!.title).toBe("Se te liberó un horario");
@@ -1432,7 +1476,7 @@ describe("Integracion: los hechos que llegan a la campanita", () => {
     const turno = turnoAceptado();
     mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockClient : turno));
 
-    await appointments.cancelAppointment(88, mockProfessional.email, "professional");
+    await appointments.cancelAppointment(88, mockProfessional.email);
 
     const claves = avisos().map((a) => a.key);
     expect(claves).toContain("t88:cancelado");

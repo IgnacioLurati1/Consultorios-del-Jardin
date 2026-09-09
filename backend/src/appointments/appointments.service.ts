@@ -822,7 +822,7 @@ export class AppointmentService {
     return appointment;
   }
 
-  async cancelAppointment(num: number, email: string, type: "professional" | "client") {
+  async cancelAppointment(num: number, email: string) {
     const appointment = await em.findOne(
       Appointment,
       {
@@ -834,13 +834,23 @@ export class AppointmentService {
 
     if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
 
+    /*
+     * De que lado del turno esta el que lo baja.
+     *
+     * Sale del turno y no del tipo de cuenta, que es de donde salia antes. El profesional
+     * tambien se atiende, y sacando turno con un colega el que cancela es el paciente:
+     * mirando el tipo de cuenta esa baja se anotaba como un rechazo del colega, que no
+     * hizo nada, y ademas no le avisaba a nadie de que el horario quedaba libre.
+     */
+    const asProfessional = appointment.professional.email === email;
+
     if (appointment.state === "assisted") throw badRequest("No se puede cancelar un turno que ya figura como asistido");
     if (appointment.state === "missed") throw badRequest("No se puede cancelar un turno marcado como 'No vino'");
 
     if (appointment.state === "pending") {
       // Solo cuenta como rechazo si lo baja el profesional. Que el paciente se arrepienta
       // de su propio pedido no dice nada de quién iba a atenderlo.
-      await this.deleteAppointment(num, appointment.professional.email, type === "professional");
+      await this.deleteAppointment(num, appointment.professional.email, asProfessional);
       return appointment;
     }
 
@@ -850,14 +860,14 @@ export class AppointmentService {
     // De quién vino la baja no se puede sacar del estado, que guarda la misma fecha
     // cancele quien cancele. Se anota solo la del paciente, que es la que el profesional
     // mira después para saber con cuánta anticipación le avisaron.
-    if (type === "client") appointment.patientCancelledAt = new Date();
+    if (!asProfessional) appointment.patientCancelledAt = new Date();
     await em.flush();
 
     await this.sendAppointmentCanceledEmails(appointment).catch((err) =>
       console.error("Error avisándole al paciente del turno cancelado:", err)
     );
 
-    if (type === "client")
+    if (!asProfessional)
       await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email).catch((err) =>
         console.error("Error avisándole al profesional del horario liberado:", err)
       );

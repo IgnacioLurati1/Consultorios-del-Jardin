@@ -370,11 +370,7 @@ export class AssistantService {
         const resumen = await this.describeOwnAppointment(Number(args.numAppointment), user);
         if (!confirmed) return prepare(resumen as any);
 
-        await this.appointments.cancelAppointment(
-          Number(args.numAppointment),
-          user.email,
-          user.role === "professional" ? "professional" : "client"
-        );
+        await this.appointments.cancelAppointment(Number(args.numAppointment), user.email);
         return { ok: true, cancelado: resumen };
       }
 
