@@ -170,14 +170,25 @@ export class NotificationService {
   }
 
   /**
-   * Marca como visto todo lo que hay hasta ahora. Se llama al abrir la campanita.
+   * Marca como visto hasta el aviso `upTo`. Se llama al abrir la campanita.
    *
-   * Solo lo que todavía no estaba visto: volver a escribir la fecha de los que ya lo
-   * estaban no cambiaría nada y haría un update por cada aviso viejo.
+   * El tope lo pone quien mira, y es el mas nuevo de los que tenia en pantalla. Sin tope
+   * se marcaba todo lo que estuviera sin leer, incluido lo que habia entrado despues de la
+   * ultima consulta y que esa persona todavia no habia visto: ese aviso quedaba leido sin
+   * haberse mostrado nunca, y era justo el que estaban esperando ver aparecer. Los ids
+   * suben, asi que "hasta el que vi" es "menor o igual al suyo".
+   *
+   * Sin tope se sigue marcando todo. Es lo que manda una version anterior de la pagina o
+   * de la app, y entre un deploy y el otro tiene que seguir andando.
+   *
+   * Solo lo que todavia no estaba visto: volver a escribir la fecha de los que ya lo
+   * estaban no cambiaria nada y haria un update por cada aviso viejo.
    */
-  async markSeen(email: string): Promise<number> {
+  async markSeen(email: string, upTo?: number | null): Promise<number> {
     const em = orm.em;
-    return em.nativeUpdate(Notification, { person: { email }, readAt: null }, { readAt: new Date() });
+    const hasta = Number.isFinite(upTo) && (upTo as number) > 0 ? { idNotification: { $lte: upTo } } : {};
+
+    return em.nativeUpdate(Notification, { person: { email }, readAt: null, ...hasta }, { readAt: new Date() });
   }
 
   /** Saca un aviso de la lista de esa persona. Solo el suyo: el filtro lleva el email. */

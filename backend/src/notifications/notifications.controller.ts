@@ -25,7 +25,11 @@ export async function getMyNotifications(req: RequestWithUser, res: Response) {
 
 export async function markNotificationsSeen(req: RequestWithUser, res: Response) {
   try {
-    await notificationService.markSeen(req.user.email);
+    // Hasta donde leyo, dicho por quien mira. Sin esto se marca todo, que es lo que
+    // manda una version anterior de la pagina o de la app.
+    const upTo = Number.parseInt(req.body?.upTo);
+
+    await notificationService.markSeen(req.user.email, Number.isNaN(upTo) ? null : upTo);
     res.status(200).json({ message: "Avisos marcados como vistos" });
   } catch (error: any) {
     sendError(res, error);
