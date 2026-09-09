@@ -1,6 +1,7 @@
+import { router } from "expo-router";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, View } from "react-native";
-import { professionalRange } from "../api/appointments";
+import { myPatientAppointments, professionalRange } from "../api/appointments";
 import { Button } from "../components/Button";
 import { Choice } from "../components/Choice";
 import { Sheet } from "../components/Sheet";
@@ -98,8 +99,24 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const agenda = await professionalRange(today(), toISODate(addDays(new Date(), 7)));
-        setScheduled(await syncAlerts(agenda, next, session.email));
+        /*
+         * Los dos lados de su agenda: los turnos que da y los que sacó para atenderse él.
+         *
+         * Los propios salen del endpoint del paciente, porque en esos turnos eso es lo
+         * que es. Son los que más falta hace que avisen: a los suyos los tiene en la
+         * cabeza, y al que le toca ir como paciente es el que se olvida. `syncAlerts`
+         * recorta los dos a los próximos siete días, así que la página que trae de más no
+         * molesta.
+         *
+         * Si la lista de los propios falla, se programan igual los que da. Es un pedido
+         * de al lado y no puede llevarse puestos a los otros.
+         */
+        const [agenda, propios] = await Promise.all([
+          professionalRange(today(), toISODate(addDays(new Date(), 7))),
+          myPatientAppointments().catch(() => []),
+        ]);
+
+        setScheduled(await syncAlerts([...agenda, ...propios], next, session.email));
       } catch {
         // Que no se pueda programar un aviso no puede romper la app: es una comodidad,
         // no el turno. El profesional sigue viendo su agenda igual.
@@ -130,6 +147,52 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       alive = false;
     };
   }, [isProfessional, sync]);
+
+  /*
+   * Tocar el aviso abre la ficha de ese turno.
+   *
+   * El número del turno viaja adentro del aviso desde que existe, pero nadie lo leía:
+   * tocarlo abría la app donde la habías dejado y había que ir a buscar el turno a mano,
+   * que es lo contrario de para qué sirve un aviso de cinco minutos antes.
+   *
+   * Son dos caminos porque son dos situaciones. Con la app abierta o de fondo, el aviso
+   * llega al que escucha. Con la app cerrada, el toque es lo que la abre y ya pasó antes
+   * de que esto exista: para ese hay que ir a preguntar cuál fue, y una sola vez, o cada
+   * vuelta a esta pantalla reabriría el mismo turno.
+   *
+   * Espera a que haya sesión: sin ella la app está yendo al login y el salto se perdería.
+   */
+  const abrioLaApp = useRef(false);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const Notifications = notifications();
+    if (!Notifications) return;
+
+    function abrir(numAppointment: unknown) {
+      const num = Number(numAppointment);
+      if (Number.isFinite(num) && num > 0) router.push(`/(app)/turno/${num}`);
+    }
+
+    if (!abrioLaApp.current) {
+      abrioLaApp.current = true;
+
+      void Notifications.getLastNotificationResponseAsync()
+        .then((respuesta) => {
+          if (respuesta) abrir(respuesta.notification.request.content.data?.numAppointment);
+        })
+        .catch(() => {
+          // Sin esto no hay salto y nada más. El aviso ya cumplió con avisar.
+        });
+    }
+
+    const subscription = Notifications.addNotificationResponseReceivedListener((respuesta) =>
+      abrir(respuesta.notification.request.content.data?.numAppointment)
+    );
+
+    return () => subscription.remove();
+  }, [session]);
 
   // Cada vez que la app vuelve al frente: la agenda pudo cambiar mientras estaba cerrada.
   useEffect(() => {

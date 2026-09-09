@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import { secureStorage } from "../api/secureStorage";
 import { Appointment } from "../api/types";
-import { counterpart, stateOf } from "./appointments";
+import { counterpart, isOwnBooking, stateOf } from "./appointments";
 import { notifications } from "./notifications";
 
 /**
@@ -185,10 +185,17 @@ export async function syncAlerts(appointments: Appointment[], prefs: AlertPrefs,
     const withWhom = counterpart(appointment, viewerEmail);
     const unconfirmed = stateOf(appointment) === "pending" ? " · sin confirmar" : "";
 
+    /* En el turno que sacó para atenderse él, el nombre que aparece es el del colega que
+       lo atiende. Sin decirlo, el aviso se lee igual que el de un paciente suyo y manda a
+       la persona equivocada al consultorio. */
+    const body = isOwnBooking(appointment, viewerEmail)
+      ? `Te atiende ${withWhom}, en ${MINUTES_BEFORE} minutos${unconfirmed}`
+      : `${withWhom}, en ${MINUTES_BEFORE} minutos${unconfirmed}`;
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: `Turno a las ${hour}`,
-        body: `${withWhom}, en ${MINUTES_BEFORE} minutos${unconfirmed}`,
+        body,
         data: { numAppointment: appointment.numAppointment },
         ...(Platform.OS === "android" ? { channelId: prefs.vibrate ? CHANNEL_LOUD : CHANNEL_QUIET } : {}),
         // En iOS el canal no existe: lo que hace vibrar es que el aviso tenga sonido.
