@@ -39,6 +39,14 @@
   /* Apenas más claro que --adm-green, para el degradé fino que corona una ventana modal.
      En oscuro también sube, para seguir leyéndose como un brillo y no como una mancha. */
   --adm-green-glow: hsl(var(--sea-h) var(--sea-s) 54%);
+  /* El verde de "esto está bien": un turno confirmado, una cuenta activa.
+     Es el único verde que no se mueve con la estación, y va escrito a mano y no con
+     --sea-h por eso mismo. Los otros estados —el rojo, el ámbar, el gris— son colores
+     fijos, y este seguía al acento: en otoño un turno confirmado quedaba marrón, o sea
+     del mismo color que un aviso, y el color dejaba de querer decir algo. El tono es el
+     de la primavera, que es el verde del proyecto. */
+  --adm-ok-soft: hsl(116 32% 93%);
+  --adm-ok: hsl(116 32% 27%);
   /* El gris de un bloque que todavía está cargando, y el reflejo que lo recorre. El
      reflejo siempre tiene que ser más claro que la base: si se invierten, la animación
      se lee como una sombra que pasa y no como algo que está por llegar. */
@@ -98,6 +106,9 @@
   --adm-green-line: hsl(var(--sea-h) var(--sea-s) 22%);
   --adm-on-green: hsl(var(--sea-h) 17% 7%);
   --adm-green-glow: hsl(var(--sea-h) var(--sea-s) 65%);
+  /* Sube igual que los otros verdes: el mismo tono se pierde sobre el gris oscuro. */
+  --adm-ok-soft: hsl(116 26% 14%);
+  --adm-ok: hsl(116 34% 62%);
   --adm-skeleton: hsl(var(--sea-h) 11% 13%);
   --adm-skeleton-shine: hsl(var(--sea-h) 11% 19%);
   --adm-bar-top: hsl(var(--sea-h) var(--sea-s) 17%);
@@ -771,8 +782,8 @@ textarea::placeholder {
 }
 
 .adm-badge-green {
-  background: var(--adm-green-soft);
-  color: var(--adm-green-dark);
+  background: var(--adm-ok-soft);
+  color: var(--adm-ok);
 }
 
 .adm-badge-grey {
@@ -811,6 +822,80 @@ textarea::placeholder {
 
 /* Cuándo dio de baja el paciente el turno, con la marca de poca anticipación al lado.
    En columna cuando las dos cosas no entran en una línea. */
+/* ── El nombre del paciente, en los datos del turno ───────────────
+   Abre su ficha, así que tiene que verse tocable, pero sigue siendo el dato de la fila:
+   se le sacan los adornos de botón y queda leyéndose como el resto de los valores, con
+   un subrayado punteado que dice que hay algo detrás. */
+.appt-person-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--adm-muted-soft);
+  cursor: pointer;
+}
+
+.appt-person-link:hover {
+  color: var(--adm-green);
+  text-decoration-color: var(--adm-green);
+}
+
+.appt-person-link:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── El cartel del estado, arriba de todo ─────────────────────────
+   Ahí no se cambia nada: lleva hasta donde sí se cambia. Es el cartel de siempre, sin
+   nada de botón alrededor salvo la manito y el marco del foco. */
+.appt-state-jump {
+  /* En bloque y no en línea: como texto en línea, el renglón le agregaba el lugar de las
+     colas de las letras debajo del cartel y el cartel salía aplastado contra el borde. */
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.appt-state-jump:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* Llegando desde el cartel de arriba, el nombre del campo se prende un momento y se
+   apaga solo: es un resaltador que dice "acá", no un estilo nuevo del campo. */
+@keyframes appt-flash-on {
+  0%,
+  55% {
+    background: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+  }
+  100% {
+    background: transparent;
+    color: var(--adm-muted);
+  }
+}
+
+.ui-field.appt-flash > span:first-child {
+  /* Hasta donde llega el texto y no hasta el borde del campo: lo que hay que encontrar
+     es la frase, y pintado de lado a lado parece un cartel de otra cosa. */
+  align-self: flex-start;
+  /* Márgenes al revés del relleno: el resaltador se sale un poco del texto sin correr
+     de lugar nada de lo que tiene al lado. */
+  padding: 3px 7px;
+  margin: -3px -7px;
+  border-radius: 5px;
+  animation: appt-flash-on 1.4s ease-out;
+}
+
 .appt-notice {
   display: flex;
   flex-wrap: wrap;

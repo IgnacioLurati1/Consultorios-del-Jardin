@@ -16,6 +16,8 @@ import {
 import { getPatientMedicalHistory } from "../appointmentsService.ts";
 import { SkeletonLine } from "../../../components/skeleton/Skeleton.tsx";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { PatientPicker } from "../../../components/patientPicker/PatientPicker.tsx";
+import { PatientDetailModal } from "../../patients/PatientDetailModal.tsx";
 
 /**
  * Una sección de la ficha que se abre y se cierra.
@@ -122,6 +124,12 @@ export function AppointmentDetailModal({
   // arrancado en cero, escribir 3000 obliga a borrar el cero de adelante.
   const [payment, setPayment] = useState<PaymentState>("unpaid");
   const [paidAmount, setPaidAmount] = useState("");
+  /** Si está abierta la ficha del paciente, que se abre desde su nombre. */
+  const [showingPatient, setShowingPatient] = useState(false);
+  /** Si el "Estado del turno" del registro está prendido, señalado desde arriba. */
+  const [flashingState, setFlashingState] = useState(false);
+  const stateFieldRef = useRef<HTMLLabelElement>(null);
+  const stateSelectRef = useRef<HTMLSelectElement>(null);
 
   const isProfessional = user.type === "professional";
 
@@ -143,6 +151,8 @@ export function AppointmentDetailModal({
     setShowHistory(false);
     setPatientToAdd("");
     setEditing(false);
+    setShowingPatient(false);
+    setFlashingState(false);
     // Los turnos viejos no tienen registro de cobro. Arrancan en "no pagó", que es lo que
     // hay que elegir para que empiecen a contar, y no cuentan como deuda hasta guardarlo.
     setPayment(appointment.paymentState ?? "unpaid");
@@ -158,6 +168,13 @@ export function AppointmentDetailModal({
       value: appointment.value ? String(appointment.value) : "",
     });
   }, [appointment]);
+
+  // Se apaga solo.
+  useEffect(() => {
+    if (!flashingState) return;
+    const id = window.setTimeout(() => setFlashingState(false), 1400);
+    return () => window.clearTimeout(id);
+  }, [flashingState]);
 
   if (!appointment) return null;
 
@@ -194,6 +211,40 @@ export function AppointmentDetailModal({
   }
 
   const recordChanged = state !== appointment.state || (observations ?? "") !== (appointment.observations ?? "");
+
+  // El registro de la consulta, que es donde se cambia el estado, solo existe para el
+  // profesional y mientras el turno no esté cancelado.
+  const canChangeState = isProfessional && !cancelled;
+
+  /**
+   * Lleva al campo donde se cambia el estado, lo prende un momento y le abre la lista.
+   *
+   * El cartel de arriba dice en qué anda el turno y es lo primero que se toca para
+   * cambiarlo, pero ahí no se cambia nada: se cambia más abajo, en el registro de la
+   * consulta, que con la ficha larga muchas veces ni se ve. Tocarlo deja el turno a un
+   * paso de cambiar de estado, y de paso enseña dónde estaba ese paso.
+   */
+  function showWhereState() {
+    // Sin animación: enseguida se abre la lista del campo, y una lista del navegador que
+    // se abre mientras la ventana todavía se está moviendo se cierra sola o queda corrida.
+    stateFieldRef.current?.scrollIntoView({ block: "center" });
+
+    // Apagar y prender: tocándolo dos veces seguidas, la segunda tiene que volver a
+    // prenderse, y para eso la animación tiene que arrancar de nuevo.
+    setFlashingState(false);
+    requestAnimationFrame(() => setFlashingState(true));
+
+    const campo = stateSelectRef.current;
+    campo?.focus({ preventScroll: true });
+
+    // Abrirla no lo saben hacer todos los navegadores. Donde no, queda el campo con el
+    // foco puesto y el nombre prendido, que ya dice dónde se cambia.
+    try {
+      campo?.showPicker();
+    } catch {
+      // El foco alcanza.
+    }
+  }
 
   // ---- cobro ----
   const value = appointment.value ?? 0;
@@ -275,401 +326,444 @@ export function AppointmentDetailModal({
     </>
   );
 
+  /**
+   * La ficha completa del paciente, para la ventana que se abre desde su nombre.
+   *
+   * El turno trae de la persona lo justo para escribirla en una fila, así que el
+   * documento, el teléfono y si tiene cuenta propia salen de la lista de pacientes que
+   * esta ficha ya tiene cargada. No hace falta ir a buscar nada a ningún lado.
+   */
+  const patientFile = appointment.patient
+    ? patients.find((p) => p.email === appointment.patient!.email) ?? appointment.patient
+    : null;
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={editing ? "Editar turno" : `Turno #${appointment.numAppointment}`}
-      subtitle={`${formatDayLabel(date)} · ${shortHour(appointment.initialHour)} a ${shortHour(appointment.finalHour)}`}
-      footer={footer}
-    >
-      {editing ? (
-        <div className="ui-section">
-          <label className="ui-field">
-            <span>Fecha</span>
-            <input type="date" value={edit.date} onChange={(e) => setEdit({ ...edit, date: e.target.value })} />
-          </label>
-
-          <div className="ui-field-row">
-            <label className="ui-field">
-              <span>Hora de inicio</span>
-              <input type="time" value={edit.initialHour} onChange={(e) => setEdit({ ...edit, initialHour: e.target.value })} />
-            </label>
-            <label className="ui-field">
-              <span>Hora de fin</span>
-              <input type="time" value={edit.finalHour} onChange={(e) => setEdit({ ...edit, finalHour: e.target.value })} />
-            </label>
-          </div>
-
-          <label className="ui-field">
-            <span>Consultorio</span>
-            <select value={edit.room} onChange={(e) => setEdit({ ...edit, room: e.target.value })}>
-              {rooms.map((room) => (
-                <option key={room.idRoom} value={room.idRoom}>
-                  {room.description}
-                  {room.office?.description ? ` · ${room.office.description}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="ui-field">
-            <span>Valor</span>
-            <input
-              type="number"
-              min={0}
-              step={100}
-              placeholder="0"
-              value={edit.value}
-              onChange={(e) => setEdit({ ...edit, value: e.target.value })}
-            />
-            <small>Lo que cobrás por esta consulta. Vacío queda en 0.</small>
-          </label>
-
-          <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
-        </div>
-      ) : (
-        <>
+    <>
+      <Modal
+        open
+        onClose={onClose}
+        title={editing ? "Editar turno" : `Turno #${appointment.numAppointment}`}
+        subtitle={`${formatDayLabel(date)} · ${shortHour(appointment.initialHour)} a ${shortHour(appointment.finalHour)}`}
+        footer={footer}
+      >
+        {editing ? (
           <div className="ui-section">
-            <div className="ui-section-head">
-              <h3 className="ui-section-title">Datos del turno</h3>
-              {isProfessional && !cancelled && (
-                <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setEditing(true)}>
-                  Editar
-                </button>
-              )}
+            <label className="ui-field">
+              <span>Fecha</span>
+              <input type="date" value={edit.date} onChange={(e) => setEdit({ ...edit, date: e.target.value })} />
+            </label>
+
+            <div className="ui-field-row">
+              <label className="ui-field">
+                <span>Hora de inicio</span>
+                <input type="time" value={edit.initialHour} onChange={(e) => setEdit({ ...edit, initialHour: e.target.value })} />
+              </label>
+              <label className="ui-field">
+                <span>Hora de fin</span>
+                <input type="time" value={edit.finalHour} onChange={(e) => setEdit({ ...edit, finalHour: e.target.value })} />
+              </label>
             </div>
 
-            <div className="ui-detail-list">
-              <div className="ui-detail-row">
-                <span>Estado</span>
-                <span className={badge.className}>{badge.label}</span>
-              </div>
-              {notice && (
-                <div className="ui-detail-row">
-                  <span>{isProfessional ? "Lo dio de baja el paciente" : "Lo diste de baja"}</span>
-                  <span className="appt-notice">
-                    <strong>{formatCancellation(notice.at)}</strong>
-                    {notice.short && (
-                      <span className="adm-badge adm-badge-red">
-                        {notice.hours < 0 ? "Después de la hora del turno" : "Menos de 24 horas antes"}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-              {appointment.overbooked && (
-                <div className="ui-detail-row">
-                  <span>Tipo</span>
-                  <span className="appt-tag-over">Sobreturno</span>
-                </div>
-              )}
-              <div className="ui-detail-row">
-                <span>{isProfessional ? "Paciente" : "Profesional"}</span>
-                <strong>
-                  {isProfessional ? (
-                    appointment.patient ? (
-                      `${appointment.patient.surname}, ${appointment.patient.name}`
-                    ) : (
-                      <span className="ui-detail-empty">Sin paciente asignado</span>
-                    )
-                  ) : (
-                    `${appointment.professional.surname}, ${appointment.professional.name}`
-                  )}
-                </strong>
-              </div>
-              <div className="ui-detail-row">
-                <span>Consultorio</span>
-                <strong>
-                  {appointment.room?.description}
-                  {appointment.room?.office?.description ? ` · ${appointment.room.office.description}` : ""}
-                </strong>
-              </div>
-              <div className="ui-detail-row">
-                <span>Valor</span>
-                <strong>{appointment.value ? `$${appointment.value}` : <span className="ui-detail-empty">Sin definir</span>}</strong>
-              </div>
-              {/* De dónde salió el turno se dice solo cuando explica algo. En uno importado
-                  explica bastante: por qué no tiene paciente, por qué puede no tener valor,
-                  y por qué está corrido de la grilla. */}
-              {appointment.origin === "import" && (
-                <div className="ui-detail-row">
-                  <span>Origen</span>
-                  <strong>Importado de un calendario</strong>
-                </div>
-              )}
-            </div>
+            <label className="ui-field">
+              <span>Consultorio</span>
+              <select value={edit.room} onChange={(e) => setEdit({ ...edit, room: e.target.value })}>
+                {rooms.map((room) => (
+                  <option key={room.idRoom} value={room.idRoom}>
+                    {room.description}
+                    {room.office?.description ? ` · ${room.office.description}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ui-field">
+              <span>Valor</span>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                placeholder="0"
+                value={edit.value}
+                onChange={(e) => setEdit({ ...edit, value: e.target.value })}
+              />
+              <small>Lo que cobrás por esta consulta. Vacío queda en 0.</small>
+            </label>
+
+            <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
           </div>
-
-          {/* ---- el seguimiento, del lado del paciente ---- */}
-          {/* Lo que escribe el profesional no es una nota interna: es lo que le queda a
-              la persona de la consulta, y muchas veces es lo único que se lleva —un plan
-              de alimentación, ejercicios para practicar, qué mirar hasta la próxima—.
-              Guardarlo donde no lo puede leer lo vuelve inútil justo para quien lo
-              necesita. */}
-          {!isProfessional && appointment.observations && (
+        ) : (
+          <>
             <div className="ui-section">
-              <h3 className="ui-section-title">Seguimiento</h3>
-              <p className="appt-followup">{appointment.observations}</p>
-              <p className="ui-hint appt-followup-who">
-                Lo escribió {appointment.professional.surname}, {appointment.professional.name} después de la consulta.
-              </p>
-            </div>
-          )}
-
-          {/* ---- asignar paciente a un turno que no tiene ---- */}
-          {isProfessional && !appointment.patient && !cancelled && (
-            <div className="ui-section">
-              <h3 className="ui-section-title">Asignar paciente</h3>
-              <div className="ui-field-row">
-                <label className="ui-field">
-                  <select value={patientToAdd} onChange={(e) => setPatientToAdd(e.target.value)}>
-                    <option value="">Elegí un paciente…</option>
-                    {patients.map((p) => (
-                      <option key={p.email} value={p.email}>
-                        {p.surname}, {p.name} {p.anonymous ? "(anónimo)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-primary"
-                  disabled={!patientToAdd}
-                  onClick={() => onAddPatient(appointment, patientToAdd)}
-                >
-                  Asignar
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ---- parte clínica: solo el profesional ---- */}
-          {isProfessional && !cancelled && (
-            <div className="ui-section">
-              <h3 className="ui-section-title">Registro de la consulta</h3>
-
-              <label className="ui-field">
-                <span>Estado del turno</span>
-                <select value={state} onChange={(e) => setState(e.target.value)}>
-                  <option value="pending">Pendiente</option>
-                  <option value="accepted">Confirmado</option>
-                  <option value="assisted">Asistió</option>
-                  <option value="missed">No vino</option>
-                </select>
-                {!isPast && state === "missed" && <small className="ui-hint">Ojo, este turno todavía no pasó.</small>}
-              </label>
-
-              <label className="ui-field">
-                <span>Observaciones</span>
-                <textarea
-                  rows={3}
-                  maxLength={OBSERVATIONS_MAX}
-                  value={observations}
-                  onChange={(e) => setObservations(e.target.value.slice(0, OBSERVATIONS_MAX))}
-                  placeholder="Qué trabajaron y qué sigue hasta la próxima…"
-                />
-                {/* El contador aparece recién sobre el final: mientras sobra lugar es un
-                    número que no le sirve a nadie, y avisar cuando ya no entra más es
-                    tarde. */}
-                {observations.length >= OBSERVATIONS_MAX - 100 && (
-                  <small className={observations.length >= OBSERVATIONS_MAX ? "ui-hint appt-count-full" : "ui-hint"}>
-                    {observations.length} de {OBSERVATIONS_MAX} caracteres
-                  </small>
+              <div className="ui-section-head">
+                <h3 className="ui-section-title">Datos del turno</h3>
+                {isProfessional && !cancelled && (
+                  <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setEditing(true)}>
+                    Editar
+                  </button>
                 )}
-              </label>
-
-              {/* Antes esto no se le mostraba a nadie más y era fácil escribirlo como una
-                  nota para uno mismo. Ahora lo lee el paciente, y eso cambia cómo se
-                  escribe: decirlo acá, al lado del campo, es la única forma de que se
-                  entere antes de guardar y no después. */}
-              <p className="ui-alert ui-alert-info">
-                Esto lo ven el paciente y vos. Sirve para dejarle el seguimiento —un plan, indicaciones, qué mirar hasta la
-                próxima consulta—.
-              </p>
-
-              <div className="ui-section-actions">
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-primary"
-                  disabled={!recordChanged}
-                  onClick={() => onSaveRecord(appointment, { state, observations })}
-                >
-                  Guardar registro
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ---- cobro ---- */}
-          {/* Aparte del registro clínico a propósito: son dos decisiones que se toman en
-              momentos distintos —una al terminar la consulta, la otra cuando la persona
-              paga— y guardar una no tiene por qué tocar la otra. */}
-          {isProfessional && !cancelled && (
-            <Fold
-              title="Cobro"
-              summary={
-                paymentBadge ? (
-                  <span className={paymentBadge.className}>{paymentBadge.label}</span>
-                ) : (
-                  <span className="appt-fold-hint">Sin registrar</span>
-                )
-              }
-            >
-              <div className="ui-field">
-                <span>¿Pagó este turno?</span>
-                <div className="ui-choice-row">
-                  {PAYMENT_OPTIONS.map((option) => (
-                    <label className="ui-choice" key={option.value}>
-                      <input
-                        type="radio"
-                        name="payment-state"
-                        checked={payment === option.value}
-                        onChange={() => setPayment(option.value)}
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
-                </div>
               </div>
 
-              {payment === "partial" && (
-                <label className="ui-field">
-                  <span>¿Cuánto pagó?</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={Math.max(0, value - 1)}
-                    step={100}
-                    placeholder="0"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                  />
-                  <small>
-                    {value > 0 ? `El turno vale $${value}.` : "Este turno no tiene valor cargado."}
-                    {!paymentIssue && amount > 0 && value > 0 ? ` Quedan debiendo $${value - amount}.` : ""}
-                  </small>
-                </label>
-              )}
-
-              {paymentIssue && <p className="ui-alert ui-alert-error">{paymentIssue}</p>}
-
-              {!savedPayment && (
-                <p className="ui-hint">
-                  Este turno es anterior al registro de cobros, así que no figura como impago en ningún lado hasta que
-                  elijas algo acá.
-                </p>
-              )}
-
-              <div className="ui-section-actions">
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-primary"
-                  disabled={!paymentChanged || !!paymentIssue}
-                  onClick={() => onSavePayment(appointment, payment, payment === "partial" ? amount : null)}
-                >
-                  Guardar cobro
-                </button>
-              </div>
-            </Fold>
-          )}
-
-          {/* ---- turno repetible ---- */}
-          {isProfessional && !cancelled && (
-            <Fold
-              title="Turno repetible"
-              summary={
-                appointment.recurrence?.active ? (
-                  <span className="adm-badge adm-badge-green">
-                    {appointment.recurrence.frequency === "weekly" ? "Todas las semanas" : "Cada dos semanas"}
-                  </span>
-                ) : (
-                  <span className="appt-fold-hint">No se repite</span>
-                )
-              }
-            >
-
-              {/* Vale `active` y no que la repetición exista: al frenarla, el turno le sigue
-                  apuntando (es el registro de lo que pasó) y con solo mirar el objeto la
-                  ficha seguía diciendo que se repetía. */}
-              {appointment.recurrence?.active ? (
-                <>
-                  <p className="ui-alert ui-alert-info">
-                    Este turno se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}
-                    {appointment.recurrence.endDate ? ` hasta el ${new Date(`${appointment.recurrence.endDate.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR")}` : ", sin fecha de corte"}. El
-                    sistema deja creados los de las próximas cuatro semanas y va agregando los que siguen.
-                  </p>
-
-                  <div className="ui-section-actions">
-                    <button type="button" className="adm-btn adm-btn-danger" onClick={() => onStopRepeat(appointment)}>
-                      Frenar la repetición
-                    </button>
-                  </div>
-                  <p className="ui-hint">Frenarla no borra los turnos ya creados. Esos se cancelan de a uno.</p>
-                </>
-              ) : (
-                <>
-                  <RepeatFields
-                    frequency={frequency}
-                    onFrequency={setFrequency}
-                    forever={repeatForever}
-                    onForever={setRepeatForever}
-                    until={repeatUntil}
-                    onUntil={setRepeatUntil}
-                    minDate={appointment.date?.slice(0, 10)}
-                  />
-
-                  <div className="ui-section-actions">
+              <div className="ui-detail-list">
+                <div className="ui-detail-row">
+                  <span>Estado</span>
+                  {canChangeState ? (
                     <button
                       type="button"
-                      className="adm-btn adm-btn-primary"
-                      disabled={!repeatForever && !repeatUntil}
-                      onClick={() => onRepeat(appointment, frequency, repeatForever ? null : repeatUntil)}
+                      className="appt-state-jump"
+                      onClick={showWhereState}
+                      title="Cambiar el estado, en el registro de la consulta"
                     >
-                      Repetir turno
+                      <span className={badge.className}>{badge.label}</span>
                     </button>
+                  ) : (
+                    <span className={badge.className}>{badge.label}</span>
+                  )}
+                </div>
+                {notice && (
+                  <div className="ui-detail-row">
+                    <span>{isProfessional ? "Lo dio de baja el paciente" : "Lo diste de baja"}</span>
+                    <span className="appt-notice">
+                      <strong>{formatCancellation(notice.at)}</strong>
+                      {notice.short && (
+                        <span className="adm-badge adm-badge-red">
+                          {notice.hours < 0 ? "Después de la hora del turno" : "Menos de 24 horas antes"}
+                        </span>
+                      )}
+                    </span>
                   </div>
-                </>
-              )}
-            </Fold>
-          )}
+                )}
+                {appointment.overbooked && (
+                  <div className="ui-detail-row">
+                    <span>Tipo</span>
+                    <span className="appt-tag-over">Sobreturno</span>
+                  </div>
+                )}
+                <div className="ui-detail-row">
+                  <span>{isProfessional ? "Paciente" : "Profesional"}</span>
+                  <strong>
+                    {isProfessional ? (
+                      appointment.patient ? (
+                        /* El nombre abre su ficha, la misma del listado de pacientes. Mirando
+                           un turno la pregunta que sigue casi siempre es sobre la persona
+                           —el teléfono para avisarle, si ya faltó otras veces, qué se le
+                           viene cobrando— y hasta acá había que salir de la ficha, ir a
+                           Pacientes y buscarla de nuevo. */
+                        <button type="button" className="appt-person-link" onClick={() => setShowingPatient(true)}>
+                          {appointment.patient.surname}, {appointment.patient.name}
+                        </button>
+                      ) : (
+                        <span className="ui-detail-empty">Sin paciente asignado</span>
+                      )
+                    ) : (
+                      `${appointment.professional.surname}, ${appointment.professional.name}`
+                    )}
+                  </strong>
+                </div>
+                <div className="ui-detail-row">
+                  <span>Consultorio</span>
+                  <strong>
+                    {appointment.room?.description}
+                    {appointment.room?.office?.description ? ` · ${appointment.room.office.description}` : ""}
+                  </strong>
+                </div>
+                <div className="ui-detail-row">
+                  <span>Valor</span>
+                  <strong>{appointment.value ? `$${appointment.value}` : <span className="ui-detail-empty">Sin definir</span>}</strong>
+                </div>
+                {/* De dónde salió el turno se dice solo cuando explica algo. En uno importado
+                    explica bastante: por qué no tiene paciente, por qué puede no tener valor,
+                    y por qué está corrido de la grilla. */}
+                {appointment.origin === "import" && (
+                  <div className="ui-detail-row">
+                    <span>Origen</span>
+                    <strong>Importado de un calendario</strong>
+                  </div>
+                )}
+              </div>
+            </div>
 
-          {/* ---- historial del paciente ---- */}
-          {isProfessional && appointment.patient && (
-            <div className="ui-section">
-              <h3 className="ui-section-title">Historial del paciente</h3>
+            {/* ---- el seguimiento, del lado del paciente ---- */}
+            {/* Lo que escribe el profesional no es una nota interna: es lo que le queda a
+                la persona de la consulta, y muchas veces es lo único que se lleva —un plan
+                de alimentación, ejercicios para practicar, qué mirar hasta la próxima—.
+                Guardarlo donde no lo puede leer lo vuelve inútil justo para quien lo
+                necesita. */}
+            {!isProfessional && appointment.observations && (
+              <div className="ui-section">
+                <h3 className="ui-section-title">Seguimiento</h3>
+                <p className="appt-followup">{appointment.observations}</p>
+                <p className="ui-hint appt-followup-who">
+                  Lo escribió {appointment.professional.surname}, {appointment.professional.name} después de la consulta.
+                </p>
+              </div>
+            )}
 
-              {!showHistory ? (
-                <div>
-                  <button type="button" className="adm-btn adm-btn-ghost" onClick={loadHistory}>
-                    Ver historial
+            {/* ---- asignar paciente a un turno que no tiene ---- */}
+            {isProfessional && !appointment.patient && !cancelled && (
+              <div className="ui-section">
+                <h3 className="ui-section-title">Asignar paciente</h3>
+                {/* El buscador y el botón uno debajo del otro, y no al lado: la lista de
+                    nombres se abre empujando lo que tiene abajo, y al costado el botón
+                    quedaba estirado a lo alto de la lista entera. */}
+                <PatientPicker
+                  patients={patients}
+                  value={patientToAdd}
+                  onChange={setPatientToAdd}
+                  placeholder="Buscá por nombre, apellido o email"
+                />
+
+                <div className="ui-section-actions">
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn-primary"
+                    disabled={!patientToAdd}
+                    onClick={() => onAddPatient(appointment, patientToAdd)}
+                  >
+                    Asignar
                   </button>
                 </div>
-              ) : loadingHistory ? (
-                <div className="appt-history-loading">
-                  <SkeletonLine height={16} />
-                  <SkeletonLine width="80%" height={16} />
-                  <SkeletonLine width="60%" height={16} />
+              </div>
+            )}
+
+            {/* ---- parte clínica: solo el profesional ---- */}
+            {isProfessional && !cancelled && (
+              <div className="ui-section">
+                <h3 className="ui-section-title">Registro de la consulta</h3>
+
+                <label className={`ui-field ${flashingState ? "appt-flash" : ""}`} ref={stateFieldRef}>
+                  <span>Estado del turno</span>
+                  <select ref={stateSelectRef} value={state} onChange={(e) => setState(e.target.value)}>
+                    <option value="pending">Pendiente</option>
+                    <option value="accepted">Confirmado</option>
+                    <option value="assisted">Asistió</option>
+                    <option value="missed">No vino</option>
+                  </select>
+                  {!isPast && state === "missed" && <small className="ui-hint">Ojo, este turno todavía no pasó.</small>}
+                </label>
+
+                <label className="ui-field">
+                  <span>Observaciones</span>
+                  <textarea
+                    rows={3}
+                    maxLength={OBSERVATIONS_MAX}
+                    value={observations}
+                    onChange={(e) => setObservations(e.target.value.slice(0, OBSERVATIONS_MAX))}
+                    placeholder="Qué trabajaron y qué sigue hasta la próxima…"
+                  />
+                  {/* El contador aparece recién sobre el final: mientras sobra lugar es un
+                      número que no le sirve a nadie, y avisar cuando ya no entra más es
+                      tarde. */}
+                  {observations.length >= OBSERVATIONS_MAX - 100 && (
+                    <small className={observations.length >= OBSERVATIONS_MAX ? "ui-hint appt-count-full" : "ui-hint"}>
+                      {observations.length} de {OBSERVATIONS_MAX} caracteres
+                    </small>
+                  )}
+                </label>
+
+                {/* Antes esto no se le mostraba a nadie más y era fácil escribirlo como una
+                    nota para uno mismo. Ahora lo lee el paciente, y eso cambia cómo se
+                    escribe: decirlo acá, al lado del campo, es la única forma de que se
+                    entere antes de guardar y no después. */}
+                <p className="ui-alert ui-alert-info">
+                  Esto lo ven el paciente y vos. Sirve para dejarle el seguimiento —un plan, indicaciones, qué mirar hasta la
+                  próxima consulta—.
+                </p>
+
+                <div className="ui-section-actions">
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn-primary"
+                    disabled={!recordChanged}
+                    onClick={() => onSaveRecord(appointment, { state, observations })}
+                  >
+                    Guardar registro
+                  </button>
                 </div>
-              ) : history && history.length > 0 ? (
-                <ul className="appt-history">
-                  {history.map((item) => (
-                    <li key={item.numAppointment}>
-                      <span className="appt-history-date">
-                        {formatDayLabel(appointmentDate(item.date))} · {shortHour(item.initialHour)}
-                      </span>
-                      <span className={describeState(item.state).className}>{describeState(item.state).label}</span>
-                      {item.observations && <p className="appt-history-obs">{item.observations}</p>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="ui-detail-empty">No hay consultas anteriores con este paciente.</p>
-              )}
-            </div>
-          )}
-        </>
+              </div>
+            )}
+
+            {/* ---- cobro ---- */}
+            {/* Aparte del registro clínico a propósito: son dos decisiones que se toman en
+                momentos distintos —una al terminar la consulta, la otra cuando la persona
+                paga— y guardar una no tiene por qué tocar la otra. */}
+            {isProfessional && !cancelled && (
+              <Fold
+                title="Cobro"
+                summary={
+                  paymentBadge ? (
+                    <span className={paymentBadge.className}>{paymentBadge.label}</span>
+                  ) : (
+                    <span className="appt-fold-hint">Sin registrar</span>
+                  )
+                }
+              >
+                <div className="ui-field">
+                  <span>¿Pagó este turno?</span>
+                  <div className="ui-choice-row">
+                    {PAYMENT_OPTIONS.map((option) => (
+                      <label className="ui-choice" key={option.value}>
+                        <input
+                          type="radio"
+                          name="payment-state"
+                          checked={payment === option.value}
+                          onChange={() => setPayment(option.value)}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {payment === "partial" && (
+                  <label className="ui-field">
+                    <span>¿Cuánto pagó?</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(0, value - 1)}
+                      step={100}
+                      placeholder="0"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(e.target.value)}
+                    />
+                    <small>
+                      {value > 0 ? `El turno vale $${value}.` : "Este turno no tiene valor cargado."}
+                      {!paymentIssue && amount > 0 && value > 0 ? ` Quedan debiendo $${value - amount}.` : ""}
+                    </small>
+                  </label>
+                )}
+
+                {paymentIssue && <p className="ui-alert ui-alert-error">{paymentIssue}</p>}
+
+                {!savedPayment && (
+                  <p className="ui-hint">
+                    Este turno es anterior al registro de cobros, así que no figura como impago en ningún lado hasta que
+                    elijas algo acá.
+                  </p>
+                )}
+
+                <div className="ui-section-actions">
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn-primary"
+                    disabled={!paymentChanged || !!paymentIssue}
+                    onClick={() => onSavePayment(appointment, payment, payment === "partial" ? amount : null)}
+                  >
+                    Guardar cobro
+                  </button>
+                </div>
+              </Fold>
+            )}
+
+            {/* ---- turno repetible ---- */}
+            {isProfessional && !cancelled && (
+              <Fold
+                title="Turno repetible"
+                summary={
+                  appointment.recurrence?.active ? (
+                    <span className="adm-badge adm-badge-green">
+                      {appointment.recurrence.frequency === "weekly" ? "Todas las semanas" : "Cada dos semanas"}
+                    </span>
+                  ) : (
+                    <span className="appt-fold-hint">No se repite</span>
+                  )
+                }
+              >
+
+                {/* Vale `active` y no que la repetición exista: al frenarla, el turno le sigue
+                    apuntando (es el registro de lo que pasó) y con solo mirar el objeto la
+                    ficha seguía diciendo que se repetía. */}
+                {appointment.recurrence?.active ? (
+                  <>
+                    <p className="ui-alert ui-alert-info">
+                      Este turno se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}
+                      {appointment.recurrence.endDate ? ` hasta el ${new Date(`${appointment.recurrence.endDate.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR")}` : ", sin fecha de corte"}. El
+                      sistema deja creados los de las próximas cuatro semanas y va agregando los que siguen.
+                    </p>
+
+                    <div className="ui-section-actions">
+                      <button type="button" className="adm-btn adm-btn-danger" onClick={() => onStopRepeat(appointment)}>
+                        Frenar la repetición
+                      </button>
+                    </div>
+                    <p className="ui-hint">Frenarla no borra los turnos ya creados. Esos se cancelan de a uno.</p>
+                  </>
+                ) : (
+                  <>
+                    <RepeatFields
+                      frequency={frequency}
+                      onFrequency={setFrequency}
+                      forever={repeatForever}
+                      onForever={setRepeatForever}
+                      until={repeatUntil}
+                      onUntil={setRepeatUntil}
+                      minDate={appointment.date?.slice(0, 10)}
+                    />
+
+                    <div className="ui-section-actions">
+                      <button
+                        type="button"
+                        className="adm-btn adm-btn-primary"
+                        disabled={!repeatForever && !repeatUntil}
+                        onClick={() => onRepeat(appointment, frequency, repeatForever ? null : repeatUntil)}
+                      >
+                        Repetir turno
+                      </button>
+                    </div>
+                  </>
+                )}
+              </Fold>
+            )}
+
+            {/* ---- historial del paciente ---- */}
+            {isProfessional && appointment.patient && (
+              <div className="ui-section">
+                <h3 className="ui-section-title">Historial del paciente</h3>
+
+                {!showHistory ? (
+                  <div>
+                    <button type="button" className="adm-btn adm-btn-ghost" onClick={loadHistory}>
+                      Ver historial
+                    </button>
+                  </div>
+                ) : loadingHistory ? (
+                  <div className="appt-history-loading">
+                    <SkeletonLine height={16} />
+                    <SkeletonLine width="80%" height={16} />
+                    <SkeletonLine width="60%" height={16} />
+                  </div>
+                ) : history && history.length > 0 ? (
+                  <ul className="appt-history">
+                    {history.map((item) => (
+                      <li key={item.numAppointment}>
+                        <span className="appt-history-date">
+                          {formatDayLabel(appointmentDate(item.date))} · {shortHour(item.initialHour)}
+                        </span>
+                        <span className={describeState(item.state).className}>{describeState(item.state).label}</span>
+                        {item.observations && <p className="appt-history-obs">{item.observations}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="ui-detail-empty">No hay consultas anteriores con este paciente.</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </Modal>
+
+      {/* La ficha del paciente, la misma del listado. Va afuera de la ventana del
+          turno y no adentro: una ventana adentro de otra hereda su ancho y su scroll.
+          Desde acá el historial se lee y nada más, para no terminar con la ficha de un
+          turno abierta arriba de la de otro. */}
+      {patientFile && (
+        <PatientDetailModal
+          open={showingPatient}
+          onClose={() => setShowingPatient(false)}
+          patient={patientFile}
+        />
       )}
-    </Modal>
+    </>
   );
 }

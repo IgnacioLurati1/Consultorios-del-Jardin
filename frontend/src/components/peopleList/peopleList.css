@@ -273,6 +273,15 @@ button.people-row:focus-visible {
     outline-offset: 1px;
 }
 
+/* Salvo cuando la ficha del paciente se abrió desde la de un turno: ahí el historial se
+   lee y nada más, porque abrir otro turno encima apilaría ventanas sobre ventanas. */
+.patients-history-item.readonly,
+.patients-history-item.readonly:hover {
+    background: var(--adm-bg);
+    border-color: transparent;
+    cursor: default;
+}
+
 .patients-history-when {
     display: flex;
     flex-direction: column;
