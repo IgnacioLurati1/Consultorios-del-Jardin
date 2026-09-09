@@ -294,6 +294,14 @@
   color: var(--adm-green-dark, #2f5e46);
 }
 
+/* Ni error ni dato al pasar: algo que la persona tiene que saber antes de seguir. En
+   verde se lee como "todo bien" y en rojo como "algo se rompió", y no es ninguna de las
+   dos. */
+.ui-alert-warn {
+  background: var(--adm-warn-soft, #fdf3e0);
+  color: var(--adm-warn-dark, #8a5d10);
+}
+
 .ui-hint {
   margin: 0;
   font-size: 0.85rem;

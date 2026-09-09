@@ -12,7 +12,15 @@ export function diffInMinutes(time1: string, time2: string): number {
 }
 
 /** Confirmación del turno antes de pedirlo. */
-export function ConfirmAppointmentModal({ isOpen, onClose, appointment, professional, office, onCreate }: confirmAppointmentModalProps) {
+export function ConfirmAppointmentModal({
+  isOpen,
+  onClose,
+  appointment,
+  professional,
+  office,
+  onCreate,
+  blockedReason,
+}: confirmAppointmentModalProps) {
   const [sending, setSending] = useState(false);
 
   if (!isOpen || !appointment) return null;
@@ -51,9 +59,13 @@ export function ConfirmAppointmentModal({ isOpen, onClose, appointment, professi
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
             Volver
           </button>
-          <button type="button" className="adm-btn adm-btn-primary" onClick={handleSubmit} disabled={sending}>
-            {sending ? "Pidiendo…" : "Pedir turno"}
-          </button>
+          {/* Quien no puede pedirlo no se lleva un botón apagado. Un botón que no se puede
+              apretar deja preguntándose qué falta para poder; abajo está dicho. */}
+          {!blockedReason && (
+            <button type="button" className="adm-btn adm-btn-primary" onClick={handleSubmit} disabled={sending}>
+              {sending ? "Pidiendo…" : "Pedir turno"}
+            </button>
+          )}
         </>
       }
     >
@@ -90,9 +102,16 @@ export function ConfirmAppointmentModal({ isOpen, onClose, appointment, professi
           </div>
         </div>
 
-        <p className="ui-alert ui-alert-info">
-          El turno queda pendiente hasta que el profesional lo acepte. Vas a ver el estado en “Mis turnos”.
-        </p>
+        {/* El horario se muestra igual, y eso es a propósito: mirar la agenda de un
+            profesional es lo que el administrador vino a hacer. Lo que no puede es
+            quedarse con el turno. */}
+        {blockedReason ? (
+          <p className="ui-alert ui-alert-warn">{blockedReason}</p>
+        ) : (
+          <p className="ui-alert ui-alert-info">
+            El turno queda pendiente hasta que el profesional lo acepte. Vas a ver el estado en “Mis turnos”.
+          </p>
+        )}
       </div>
     </Modal>
   );

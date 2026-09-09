@@ -9,6 +9,7 @@ import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeServic
 import { findPerson, getDecodedToken } from "../../commonServices";
 import { findProfessionalsOfficeSpecialty } from "../../adminCRUDS/adminUsers/usersService.ts";
 import { SPECIALITIES, sameSpeciality } from "../../specialities.ts";
+import { bookingBlockedFor } from "../appointmentTypes.ts";
 import type { Office, Person } from "../../types.ts";
 import { AboutProfessionalModal } from "./AboutProfessionalModal.tsx";
 import { ProfessionalSchedule } from "./ProfessionalSchedule.tsx";
@@ -35,6 +36,8 @@ export function BookAppointment() {
   // saca de la lista.
   const me = getDecodedToken();
   const bookingForSelf = me?.type === "professional";
+  /** Por qué no puede sacar turno, si es que no puede. Hoy solo le pasa al administrador. */
+  const blockedReason = bookingBlockedFor(me?.type);
   const [office, setOffice] = useState<Office | undefined>(undefined);
   const [professionals, setProfessionals] = useState<Person[]>([]);
   /** El profesional cuya ficha se está mirando. Es independiente de a quién se le pide turno. */
@@ -154,6 +157,11 @@ export function BookAppointment() {
         </p>
       )}
 
+      {/* Dicho al entrar y no recién al final: recorrer agendas y elegir un horario para
+          enterarse ahí de que no se podía es hacerle perder el rato. En la ventana de
+          confirmar se repite, porque es donde se toca el botón que no está. */}
+      {blockedReason && <p className="ui-alert ui-alert-warn booking-self-note">{blockedReason}</p>}
+
       <div className="adm-filters">
         <div className="adm-chips" role="group" aria-label="Especialidad">
           <button type="button" className={speciality === "" ? "active" : ""} onClick={() => setSpeciality("")}>
@@ -246,7 +254,9 @@ export function BookAppointment() {
       </div>
 
       <div ref={scheduleRef}>
-        {selected && office && <ProfessionalSchedule professional={selected} office={office} />}
+        {selected && office && (
+          <ProfessionalSchedule professional={selected} office={office} blockedReason={blockedReason} />
+        )}
       </div>
 
       <AboutProfessionalModal open={!!about} onClose={() => setAbout(undefined)} professional={about} patient={profile} />

@@ -16,9 +16,11 @@ const menuItems = [
   { faviconName: "appointments", title: "Mis turnos", path: "/AppointmentsList", userType: "client" },
   { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "client" },
   { faviconName: "appointments", title: "Turnos", path: "/AppointmentsList", userType: "professional" },
-  // El profesional también se atiende: pide turno como cualquier otro paciente,
-  // con la única diferencia de que no puede elegirse a sí mismo.
-  { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "professional" },
+  // El profesional también se atiende: pide turno como cualquier otro paciente, con la
+  // única diferencia de que no puede elegirse a sí mismo. Dice "para mí" y no "Pedir un
+  // turno" como el del paciente porque del lado del profesional el menú entero habla de
+  // los turnos que da, y ahí "pedir un turno" se lee como dárselo a alguien.
+  { faviconName: "requestAppointments", title: "Sacar un turno para mí", path: "/Appointment", userType: "professional" },
   { faviconName: "calendar", title: "Horarios", path: "/scheduleProfessional", userType: "professional" },
   // Solo para quien viene a atenderse. Un profesional o un admin no necesitan que les
   // expliquen dónde queda el consultorio.

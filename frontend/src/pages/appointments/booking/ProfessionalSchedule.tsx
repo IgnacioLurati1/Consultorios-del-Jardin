@@ -15,6 +15,8 @@ const WEEKS_AHEAD = 1;
 interface ProfessionalScheduleProps {
   professional: Person;
   office: Office;
+  /** Por qué quien mira no puede sacar turno. En null la agenda funciona como siempre. */
+  blockedReason?: string | null;
 }
 
 /**
@@ -22,7 +24,7 @@ interface ProfessionalScheduleProps {
  * elegir otro profesional cambia esta sección y nada más, así comparar agendas es
  * ir tocando nombres en vez de entrar y salir de una vista.
  */
-export function ProfessionalSchedule({ professional, office }: ProfessionalScheduleProps) {
+export function ProfessionalSchedule({ professional, office, blockedReason }: ProfessionalScheduleProps) {
   const [slots, setSlots] = useState<partialAppointment[] | null>(null);
   // Aparte de la lista, porque una lista vacía y un error son dos cosas distintas y la
   // pantalla tiene que decirlas distinto. Antes las dos terminaban en "no tiene horarios".
@@ -185,6 +187,7 @@ export function ProfessionalSchedule({ professional, office }: ProfessionalSched
         professional={professional}
         office={office}
         onCreate={handleCreate}
+        blockedReason={blockedReason}
       />
     </section>
   );
