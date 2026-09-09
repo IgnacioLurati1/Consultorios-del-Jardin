@@ -1,16 +1,50 @@
 import { FontAwesome6 } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router } from "expo-router";
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import { AppearanceSheet } from "../features/Appearance";
 import { useAvisos } from "../lib/avisos";
 import { longDate, sentenceCase, today } from "../lib/dates";
-import { useUser } from "../session/SessionProvider";
-import { palette, radius, SCREEN_PADDING, space, TOUCH } from "../theme/tokens";
+import { radius, SCREEN_PADDING, space, TOUCH } from "../theme/tokens";
+import { useTheme } from "../theme/useTheme";
+import { Leaf } from "./Leaf";
 import { AppText } from "./Text";
 
-const leaf = require("../../assets/images/leaf.png");
+/**
+ * El fondo del encabezado: un degradado del verde profundo de la marca.
+ *
+ * Es el único lugar de la app que se permite algo así, y por eso está acá y no repartido:
+ * una app que decora todas las pantallas no decora ninguna. Lo que se busca es que el
+ * primer golpe de vista al abrir sea el verde del consultorio y no una pantalla oscura
+ * más.
+ *
+ * Se probó con una hoja de agua enorme detrás y se sacó: recortada por las esquinas
+ * redondeadas se leía como una mancha y no como una hoja, y encima le competía a la fecha,
+ * que es lo único que hay que leer acá. La hoja de la marca ya está arriba a la izquierda,
+ * chica y nítida, que es donde se entiende.
+ */
+function Fondo() {
+  const { band } = useTheme();
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Svg width="100%" height="100%">
+        <Defs>
+          {/* En diagonal y no de arriba abajo: el claro queda arriba a la izquierda, donde
+              está la marca, y se apaga hacia la esquina de abajo, que es por donde el
+              encabezado se entrega a la pantalla. */}
+          <LinearGradient id="banda" x1="0" y1="0" x2="0.35" y2="1">
+            <Stop offset="0" stopColor={band.from} />
+            <Stop offset="1" stopColor={band.to} />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#banda)" />
+      </Svg>
+    </View>
+  );
+}
 
 /**
  * El encabezado de Inicio: el verde profundo de la marca, la fecha de hoy en la
@@ -22,12 +56,17 @@ const leaf = require("../../assets/images/leaf.png");
  */
 export function DayBand({ children, onOpenAssistant }: { children: ReactNode; onOpenAssistant?: () => void }) {
   const insets = useSafeAreaInsets();
+  const { colors, band } = useTheme();
 
   return (
-    <View style={[styles.band, { paddingTop: insets.top + space.lg }]}>
+    <View style={[styles.band, { backgroundColor: band.to, paddingTop: insets.top + space.lg }]}>
+      <Fondo />
+
       <View style={styles.top}>
         <View style={styles.brand}>
-          <Image source={leaf} style={styles.leaf} contentFit="contain" accessibilityIgnoresInvertColors />
+          {/* La hoja dibujada y no la imagen: la misma que arma el arranque de la app, y
+              se ve nítida en cualquier pantalla. */}
+          <Leaf size={20} colors={{ blade: band.leaf, veins: band.leafVeins }} />
           <AppText variant="caption" chrome style={styles.brandName}>
             Consultorios del Jardín
           </AppText>
@@ -35,6 +74,7 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
 
         <View style={styles.acciones}>
           <Campana />
+          <Apariencia />
 
           {onOpenAssistant ? (
             <Pressable
@@ -44,7 +84,7 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
               hitSlop={10}
               style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
             >
-              <FontAwesome6 name="comment-dots" size={16} color={palette.light.cream} />
+              <FontAwesome6 name="comment-dots" size={16} color={colors.cream} />
             </Pressable>
           ) : null}
         </View>
@@ -73,6 +113,7 @@ export function DayBand({ children, onOpenAssistant }: { children: ReactNode; on
  */
 function Campana() {
   const { nuevos, urgente } = useAvisos();
+  const { colors, band } = useTheme();
   const latido = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -97,12 +138,13 @@ function Campana() {
       hitSlop={10}
       style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
     >
-      <FontAwesome6 name="bell" size={16} color={palette.light.cream} />
+      <FontAwesome6 name="bell" size={16} color={colors.cream} />
 
       {nuevos > 0 ? (
         <Animated.View
           style={[
             styles.globo,
+            { borderColor: band.from },
             { transform: [{ scale: latido.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] }) }] },
           ]}
         >
@@ -112,6 +154,35 @@ function Campana() {
         </Animated.View>
       ) : null}
     </Pressable>
+  );
+}
+
+/**
+ * Cómo se ve la app, al lado de la campana.
+ *
+ * Es el mismo lugar que en la web, donde el engranaje está pegado a la campanita: son las
+ * dos cosas que uno toca sin salir de donde está. Y es el encabezado y no la pantalla de
+ * Más porque acá lo ven los tres roles, y porque de lo que se trata es del color del
+ * encabezado, que es justo lo que se está mirando cuando se toca.
+ */
+function Apariencia() {
+  const { colors, dark } = useTheme();
+  const [abierto, setAbierto] = useState(false);
+
+  return (
+    <>
+      <Pressable
+        onPress={() => setAbierto(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Cómo se ve la app"
+        hitSlop={10}
+        style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
+      >
+        <FontAwesome6 name={dark ? "sun" : "moon"} size={16} color={colors.cream} />
+      </Pressable>
+
+      <AppearanceSheet visible={abierto} onClose={() => setAbierto(false)} />
+    </>
   );
 }
 
@@ -126,16 +197,16 @@ export function BandHeadline({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   band: {
-    backgroundColor: palette.light.ink,
     paddingHorizontal: SCREEN_PADDING,
     paddingBottom: space.xxl,
     gap: space.md,
     borderBottomLeftRadius: radius.lg + 8,
     borderBottomRightRadius: radius.lg + 8,
+    // Para que el degradado y la hoja se corten en las esquinas redondeadas.
+    overflow: "hidden",
   },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md },
   brand: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  leaf: { width: 20, height: 20 },
   brandName: { color: "rgba(254, 250, 224, 0.72)", letterSpacing: 0.3 },
   assistant: {
     width: TOUCH - 6,
@@ -143,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(254, 250, 224, 0.12)",
+    backgroundColor: "rgba(254, 250, 224, 0.14)",
   },
   acciones: { flexDirection: "row", alignItems: "center", gap: space.sm },
   /* El globito monta sobre el borde del botón, como el de cualquier campana del sistema.
@@ -157,7 +228,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: palette.light.ink,
     backgroundColor: "#d93025",
     alignItems: "center",
     justifyContent: "center",

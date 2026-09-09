@@ -7,12 +7,13 @@
    ============================================================ */
 
 .home {
-  /* Verde muy oscuro para el hero: deja respirar al crema de la marca sin pelearse
-     con el verde de la barra de arriba. */
-  --home-ink: #12211a;
+  /* El tono más profundo de la estación: el fondo del hero y el del pie. Sale del
+     extremo lejano del degradado, no del acento, para dejar respirar al crema de la
+     marca sin pelearse con la barra de arriba. */
+  --home-ink: hsl(var(--sea-h2) var(--sea-s2) 10%);
   --home-green: var(--adm-green, #3b7658);
   --home-green-dark: var(--adm-green-dark, #2f5e46);
-  --home-green-light: #7fb494;
+  --home-green-light: hsl(var(--sea-h) var(--sea-s) 60%);
   --home-cream: #fefae0;
   --home-paper: var(--adm-bg, #f1f4f6);
   --home-surface: var(--adm-surface, #ffffff);
@@ -44,9 +45,12 @@
   position: relative;
   overflow: hidden;
   padding: clamp(52px, 8vw, 104px) 22px clamp(64px, 9vw, 116px);
+  /* Dos luces de la estación sobre el fondo profundo: una arriba a la derecha, otra
+     abajo a la izquierda. Son los dos extremos del degradado —el acento y el color al
+     que va— así que el hero cambia entero con el calendario. */
   background:
-    radial-gradient(900px 520px at 88% -12%, rgba(93, 127, 63, 0.42), transparent 62%),
-    radial-gradient(760px 520px at -6% 104%, rgba(47, 111, 107, 0.34), transparent 60%),
+    radial-gradient(900px 520px at 88% -12%, hsl(var(--sea-h) var(--sea-s) 37% / 0.45), transparent 62%),
+    radial-gradient(760px 520px at -6% 104%, hsl(var(--sea-h2) var(--sea-s2) 31% / 0.38), transparent 60%),
     var(--home-ink);
   color: var(--home-cream);
 }
@@ -144,7 +148,7 @@
 
 .home-btn-primary {
   background: var(--home-cream);
-  color: #16261e;
+  color: hsl(var(--sea-h2) var(--sea-s2) 12%);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
 }
 
@@ -337,7 +341,7 @@
 .home-slot.is-mine {
   background: var(--home-green);
   border-color: var(--home-green-dark);
-  box-shadow: 0 8px 20px rgba(59, 118, 88, 0.32);
+  box-shadow: 0 8px 20px hsl(var(--sea-h) var(--sea-s) 35% / 0.32);
 }
 
 .home-slot.is-mine .home-slot-hour,
@@ -441,7 +445,7 @@
   font-size: 2.5rem;
   background:
     radial-gradient(120% 100% at 25% 12%, rgba(255, 255, 255, 0.26), transparent 58%),
-    var(--tint, #3b7658);
+    var(--tint, var(--adm-green));
 }
 
 .home-photo::after {

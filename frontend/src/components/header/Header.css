@@ -381,10 +381,102 @@
     color: var(--adm-muted);
 }
 
+/* La raya entre el modo oscuro y el color. Son dos preguntas distintas metidas en el
+   mismo panel porque las dos son "cómo se ve", pero no se contestan juntas. */
+.app-theme-split {
+    height: 1px;
+    margin: 14px 12px 4px;
+    background: var(--adm-border);
+}
+
+.app-season-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px 12px 0;
+}
+
+/* Apagado se sigue viendo, pero desteñido, igual que los horarios: así se entiende qué
+   se va a poder elegir sin que el panel salte de alto al prender y apagar. Destiñe menos
+   que los horarios porque acá lo que hay que seguir distinguiendo es un color. */
+.app-season-grid[aria-hidden="true"] {
+    opacity: 0.6;
+}
+
+.app-season-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    padding: 8px 9px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-surface);
+    color: var(--adm-text);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.app-season-option:hover:not(:disabled) {
+    border-color: var(--adm-green);
+}
+
+.app-season-option.active {
+    border-color: var(--adm-green);
+    background: var(--adm-green-soft);
+    color: var(--adm-green-dark);
+}
+
+.app-season-option:disabled {
+    cursor: default;
+}
+
+/* La muestra es la barra de arriba en chiquito. El botón lleva puesto su propio
+   data-season, así que --sea-h y compañía valen acá adentro los de la estación que
+   representa: el color sale solo, sin repetir ningún número.
+
+   Arranca más claro que la barra de verdad. A la luminosidad con la que va arriba de la
+   página, las cuatro se parecen demasiado en un cuadrado de 22 píxeles, y lo que tiene
+   que hacer la muestra es justamente distinguirlas de un vistazo. Las dos luminosidades
+   son fijas para que se lea igual sobre el panel claro y sobre el oscuro. */
+.app-season-swatch {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: linear-gradient(150deg, hsl(var(--sea-h) var(--sea-s) 50%), hsl(var(--sea-h2) var(--sea-s2) 26%));
+}
+
+.app-season-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 750px) {
-    /* En el celular la barra tiene el ancho justo: la configuración del horario se hace
-       una vez y se puede hacer desde una pantalla grande. */
+    /* En el celular la barra va ajustada, así que el engranaje achica todo lo que puede
+       sin dejar de ser tocable. Estuvo escondido mientras acá adentro solo vivía el
+       horario, que se configura una vez; el color de la estación es otra cosa, se va a
+       querer probar, y esconderlo justo en la pantalla donde más se mira no iba. */
     .app-theme-gear {
-        display: none;
+        width: 28px;
+        height: 28px;
+        font-size: 0.76rem;
+    }
+
+    /* Colgado de la pantalla y no del engranaje. El panel es más ancho que lo que queda
+       a la izquierda del botón, así que anclado al botón se le iba medio panel afuera.
+       El 76 es la barra —66— más el aire de siempre. */
+    .app-theme-menu {
+        position: fixed;
+        top: 76px;
+        left: 12px;
+        right: 12px;
+        width: auto;
     }
 }

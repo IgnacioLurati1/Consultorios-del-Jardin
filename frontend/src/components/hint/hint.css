@@ -27,7 +27,10 @@
   border-radius: var(--adm-radius-sm);
   /* Fondo propio, oscuro en los dos temas: un globo del color de la tarjeta que tiene
      abajo se confunde con ella justo cuando se lo quiere leer aparte. */
-  background: #1f2a26;
+  /* Oscuro en los dos temas, con el tono de la estación: el globo se despega de la
+     pantalla por ser lo único oscuro que hay, en claro, y por ser lo único con borde,
+     en oscuro. */
+  background: hsl(var(--sea-h) 12% 14%);
   color: #eef3f0;
   font-size: 0.88rem;
   font-weight: 500;
@@ -42,8 +45,8 @@
 }
 
 [data-theme="dark"] .ui-hint-bubble {
-  background: #2b3733;
-  border: 1px solid #3c4a45;
+  background: var(--adm-skeleton-shine);
+  border: 1px solid var(--adm-border-strong);
 }
 
 /* La punta. Es un cuadrado girado, que es la única forma de que el vértice quede

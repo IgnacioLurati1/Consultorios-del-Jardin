@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { FaGear, FaMoon, FaSun } from "react-icons/fa6";
+import type { IconType } from "react-icons";
+import { FaGear, FaLeaf, FaMoon, FaSeedling, FaSnowflake, FaSun, FaUmbrellaBeach } from "react-icons/fa6";
+import type { Season } from "../../context/SeasonContext";
+import { nextSeason, SEASONS, useSeason } from "../../context/SeasonContext";
 import { useTheme } from "../../context/ThemeContext";
 import "./Header.css";
 
@@ -9,14 +12,34 @@ function describe(from: string, to: string): string {
 }
 
 /**
- * Claro y oscuro, con el engranaje al lado para dejarlo en automático.
+ * El dibujito de cada estación.
+ *
+ * Son cuatro siluetas que no se parecen entre sí, que es lo único que importa a dieciséis
+ * píxeles: un brote, una sombrilla, una hoja y un copo.
+ *
+ * El sol quedó afuera aunque sea lo primero que uno piensa para el verano: es el botón de
+ * al lado. Y el árbol también, aunque cerraba mejor con el brote y la hoja: el de la
+ * tipografía es un pino, y un pino dice diciembre en el hemisferio de arriba, que es
+ * justo al revés de acá.
+ */
+const SEASON_ICONS: Record<Season, IconType> = {
+  primavera: FaSeedling,
+  verano: FaUmbrellaBeach,
+  otono: FaLeaf,
+  invierno: FaSnowflake,
+};
+
+/**
+ * Claro y oscuro, con el engranaje al lado para el resto.
  *
  * Son dos botones y no un menú desplegable porque el 99% de las veces lo que se quiere
  * es la acción, no la configuración: cambiar el tema tiene que ser un click. El horario
- * se elige una vez en la vida y por eso vive detrás del engranaje.
+ * y el color de la estación se eligen una vez en la vida y por eso viven detrás del
+ * engranaje.
  */
 export function ThemeToggle() {
   const { preference, theme, toggle, setPreference } = useTheme();
+  const { choice, season, setChoice } = useSeason();
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,32 +63,57 @@ export function ThemeToggle() {
   }, [open]);
 
   const scheduled = preference.mode === "schedule";
+  const automatic = choice === "auto";
+  const showing = SEASONS.find((option) => option.key === season);
+
+  const SeasonIcon = SEASON_ICONS[season];
+  const siguiente = SEASONS.find((option) => option.key === nextSeason(season));
 
   return (
     <div className="app-theme" ref={boxRef}>
       <button
         type="button"
         className="app-header-menu"
+        // Adelanta una estación y, de paso, la deja fija. Es lo mismo que hace la luna
+        // de al lado con el horario: el botón es la acción, y usarlo quiere decir que
+        // de acá en más elegís vos.
+        onClick={() => setChoice(nextSeason(season))}
+        aria-label={`Pasar a ${siguiente?.label.toLowerCase()}`}
+        title={showing?.label}
+      >
+        <SeasonIcon />
+      </button>
+
+      <button
+        type="button"
+        className="app-header-menu"
         onClick={toggle}
         aria-label={theme === "dark" ? "Pasar al modo claro" : "Pasar al modo oscuro"}
-        title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+        title={theme === "dark" ? "Modo oscuro" : "Modo claro"}
       >
-        {theme === "dark" ? <FaSun /> : <FaMoon />}
+        {/* La luna cuando está oscuro y el sol cuando está claro: el dibujo dice cómo
+            está la pantalla, no adónde va a ir. Lo que hace el botón lo dice el rótulo.
+
+            Es al revés de lo que suele hacerse, y es a propósito: el de al lado no tiene
+            manera de mostrar "a dónde va" —son cuatro estaciones, no dos— así que muestra
+            la que está puesta. Dos botones pegados leyéndose al revés uno del otro es
+            peor que apartarse de la costumbre. */}
+        {theme === "dark" ? <FaMoon /> : <FaSun />}
       </button>
 
       <button
         type="button"
         className={`app-header-menu app-theme-gear ${open ? "open" : ""}`}
         onClick={() => setOpen((value) => !value)}
-        aria-label="Configurar el modo oscuro"
+        aria-label="Configurar cómo se ve"
         aria-expanded={open}
-        title="Configurar el modo oscuro"
+        title="Cómo se ve"
       >
         <FaGear />
       </button>
 
       {open && (
-        <div className="app-user-menu app-theme-menu" role="dialog" aria-label="Modo oscuro">
+        <div className="app-user-menu app-theme-menu" role="dialog" aria-label="Cómo se ve">
           <div className="app-user-menu-head">
             <span className="app-user-menu-name">Modo oscuro</span>
             <span className="app-user-menu-mail">
@@ -115,6 +163,52 @@ export function ThemeToggle() {
             {scheduled
               ? "Podés poner un rango que cruce la medianoche, como de 20:00 a 07:00."
               : "Sirve para no acordarte de cambiarlo todas las noches."}
+          </p>
+
+          <div className="app-theme-split" />
+
+          <div className="app-user-menu-head">
+            <span className="app-user-menu-name">Color</span>
+            <span className="app-user-menu-mail">
+              {automatic ? `Ahora estamos en ${showing?.label.toLowerCase()}.` : "La elegís vos."}
+            </span>
+          </div>
+
+          <label className="app-theme-check">
+            <input
+              type="checkbox"
+              checked={automatic}
+              // Igual que el horario, apagarlo deja puesta la que se está viendo: dejar
+              // de seguir al calendario no tiene por qué cambiar nada en pantalla.
+              onChange={(event) => setChoice(event.target.checked ? "auto" : season)}
+            />
+            <span>Que cambie con la estación</span>
+          </label>
+
+          <div className="app-season-grid" aria-hidden={automatic}>
+            {SEASONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                // El mismo atributo que lleva <html>. Puesto acá, adentro del botón
+                // vale su estación: la muestra de color se dibuja sola y no hay que
+                // repetir en ningún lado de qué color es cada una.
+                data-season={option.key}
+                className={`app-season-option ${season === option.key ? "active" : ""}`}
+                disabled={automatic}
+                aria-pressed={season === option.key}
+                onClick={() => setChoice(option.key)}
+              >
+                <span className="app-season-swatch" />
+                <span className="app-season-name">{option.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <p className="app-theme-note">
+            {automatic
+              ? "Cambia sola cuatro veces al año, con el calendario de acá."
+              : "Va a quedar así hasta que la vuelvas a mover."}
           </p>
         </div>
       )}

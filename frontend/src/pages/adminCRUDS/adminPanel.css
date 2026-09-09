@@ -10,44 +10,63 @@
    pedazo de la app que se queda en claro cuando todo lo demás se apaga. */
 
 :root {
-  --adm-green: #3b7658;
-  /* En claro es un verde más oscuro que --adm-green; en oscuro es más claro. Lo que se
-     mantiene entre los dos no es el tono sino el rol: contrasta contra --adm-green-soft
-     y marca el estado activo. */
-  --adm-green-dark: #2f5e46;
-  --adm-green-soft: #e8f1ec;
-  --adm-green-line: #cfe2d7;
-  /* Lo que se escribe encima de --adm-green. En claro, blanco sobre verde medio; en
-     oscuro el verde sube de luminosidad para verse y entonces lo legible encima es el
+  /* ---------- La estación ----------
+     De estos cuatro números sale todo el color de la página, en los dos temas.
+
+     `--sea-h` es el tono del acento y `--sea-s` cuánto tira de ese tono. `--sea-h2` y
+     `--sea-s2` son el otro extremo del degradado de la barra de arriba: no es el mismo
+     color más oscuro sino otro, que es lo que le da profundidad en vez de dejarla plana.
+
+     Lo que queda escrito acá es la primavera, y es el respaldo: se ve en el instante que
+     va entre que carga la hoja y que el navegador dice en qué estación estamos, y en
+     cualquier pantalla que se dibuje sin el atributo puesto. */
+  --sea-h: 116;
+  --sea-s: 32%;
+  --sea-h2: 128;
+  --sea-s2: 42%;
+
+  --adm-green: hsl(var(--sea-h) var(--sea-s) 35%);
+  /* En claro es más oscuro que --adm-green; en oscuro es más claro. Lo que se mantiene
+     entre los dos no es el tono sino el rol: contrasta contra --adm-green-soft y marca
+     el estado activo. */
+  --adm-green-dark: hsl(var(--sea-h) var(--sea-s) 27%);
+  --adm-green-soft: hsl(var(--sea-h) var(--sea-s) 93%);
+  --adm-green-line: hsl(var(--sea-h) var(--sea-s) 85%);
+  /* Lo que se escribe encima de --adm-green. En claro, blanco sobre un tono medio; en
+     oscuro el acento sube de luminosidad para verse y entonces lo legible encima es el
      fondo, no el blanco. Es el mismo rol resuelto al revés. */
   --adm-on-green: #ffffff;
-  /* Verde apenas más claro que --adm-green, para el degradé fino que corona una ventana
-     modal. En oscuro también sube, para seguir leyéndose como un brillo y no como una
-     mancha. */
-  --adm-green-glow: #6fa588;
+  /* Apenas más claro que --adm-green, para el degradé fino que corona una ventana modal.
+     En oscuro también sube, para seguir leyéndose como un brillo y no como una mancha. */
+  --adm-green-glow: hsl(var(--sea-h) var(--sea-s) 54%);
   /* El gris de un bloque que todavía está cargando, y el reflejo que lo recorre. El
      reflejo siempre tiene que ser más claro que la base: si se invierten, la animación
      se lee como una sombra que pasa y no como algo que está por llegar. */
-  --adm-skeleton: #e9edf1;
-  --adm-skeleton-shine: #f5f7f9;
-  /* La barra de arriba es marca, no superficie: se mantiene verde en los dos temas. Por
-     eso tiene sus propios valores y no sale de --adm-green, que en oscuro se aclara para
-     poder leerse sobre el fondo y dejaría la barra más clara que la página. */
-  --adm-bar-top: #3f7d5d;
-  --adm-bar-bottom: #3b7658;
+  --adm-skeleton: hsl(var(--sea-h) 12% 93%);
+  --adm-skeleton-shine: hsl(var(--sea-h) 12% 97%);
+  /* La barra de arriba es marca, no superficie: lleva el color de la estación en los dos
+     temas. Por eso tiene sus propios valores y no sale de --adm-green, que en oscuro se
+     aclara para poder leerse sobre el fondo y dejaría la barra más clara que la página. */
+  --adm-bar-top: hsl(var(--sea-h) var(--sea-s) 37%);
+  --adm-bar-bottom: hsl(var(--sea-h2) var(--sea-s2) 28%);
   --adm-surface: #ffffff;
   /* Superficie apenas separada de la principal: encabezados de tabla, pies de tarjeta,
      franjas que agrupan sin llegar a ser un panel aparte. */
-  --adm-surface-alt: #fafbfc;
+  --adm-surface-alt: hsl(var(--sea-h) 10% 98%);
   /* Hundida: lo que está detrás de la superficie, como el fondo de una fila al pasarle
      el mouse o el riel de un control. */
-  --adm-surface-sunken: #eef1f4;
-  --adm-bg: #f1f4f6;
-  --adm-text: #1f2a33;
-  --adm-muted: #64748b;
-  --adm-muted-soft: #94a3b8;
-  --adm-border: #e2e8f0;
-  --adm-border-strong: #cbd5e1;
+  --adm-surface-sunken: hsl(var(--sea-h) 12% 94%);
+  --adm-bg: hsl(var(--sea-h) 14% 95%);
+  /* Los grises tampoco son neutros acá: llevan una pizca de la estación, igual que en
+     oscuro. Un gris azulado sobre un papel tibio se ve francamente azul, y la pantalla
+     se parte en dos. */
+  --adm-text: hsl(var(--sea-h) 18% 16%);
+  --adm-muted: hsl(var(--sea-h) 12% 41%);
+  --adm-muted-soft: hsl(var(--sea-h) 12% 63%);
+  /* Los bordes también son de la estación, con muy poco color. Es lo que hace que en
+     otoño la página entera se sienta tibia, y no que solo cambiaron los botones. */
+  --adm-border: hsl(var(--sea-h) 20% 90%);
+  --adm-border-strong: hsl(var(--sea-h) 20% 82%);
   /* Gris azulado de los gráficos y las leyendas: el neutro que acompaña al verde. */
   --adm-slate: #6c788e;
   --adm-danger: #c0392b;
@@ -73,25 +92,28 @@
    desaparece sobre gris oscuro. */
 
 [data-theme="dark"] {
-  --adm-green: #5fa37e;
-  --adm-green-dark: #85c4a1;
-  --adm-green-soft: #1b2c24;
-  --adm-green-line: #2c463a;
-  --adm-on-green: #0f1513;
-  --adm-green-glow: #8ecdaa;
-  --adm-skeleton: #1e2624;
-  --adm-skeleton-shine: #2b3733;
-  --adm-bar-top: #1e3b2c;
-  --adm-bar-bottom: #172d22;
-  --adm-surface: #171e1b;
-  --adm-surface-alt: #1c2421;
-  --adm-surface-sunken: #222b28;
-  --adm-bg: #0f1513;
-  --adm-text: #e6ece9;
-  --adm-muted: #97a69f;
-  --adm-muted-soft: #74837c;
-  --adm-border: #2a3531;
-  --adm-border-strong: #3b4844;
+  --adm-green: hsl(var(--sea-h) var(--sea-s) 51%);
+  --adm-green-dark: hsl(var(--sea-h) var(--sea-s) 61%);
+  --adm-green-soft: hsl(var(--sea-h) var(--sea-s) 14%);
+  --adm-green-line: hsl(var(--sea-h) var(--sea-s) 22%);
+  --adm-on-green: hsl(var(--sea-h) 17% 7%);
+  --adm-green-glow: hsl(var(--sea-h) var(--sea-s) 65%);
+  --adm-skeleton: hsl(var(--sea-h) 11% 13%);
+  --adm-skeleton-shine: hsl(var(--sea-h) 11% 19%);
+  --adm-bar-top: hsl(var(--sea-h) var(--sea-s) 17%);
+  --adm-bar-bottom: hsl(var(--sea-h2) var(--sea-s2) 12%);
+  --adm-surface: hsl(var(--sea-h) 13% 10%);
+  --adm-surface-alt: hsl(var(--sea-h) 11% 13%);
+  --adm-surface-sunken: hsl(var(--sea-h) 11% 15%);
+  --adm-bg: hsl(var(--sea-h) 17% 7%);
+  /* En oscuro los grises tampoco son neutros: llevan una pizca de la estación. Un gris
+     neutro al lado de un acento marrón se ve azulado por contraste, y la pantalla se
+     parte en dos. */
+  --adm-text: hsl(var(--sea-h) 14% 91%);
+  --adm-muted: hsl(var(--sea-h) 8% 62%);
+  --adm-muted-soft: hsl(var(--sea-h) 6% 48%);
+  --adm-border: hsl(var(--sea-h) 11% 19%);
+  --adm-border-strong: hsl(var(--sea-h) 10% 26%);
   --adm-slate: #93a0b5;
   --adm-danger: #ef8a7d;
   --adm-danger-soft: #32201e;
@@ -103,6 +125,42 @@
   --adm-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
   --adm-shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
+}
+
+/* Las cuatro estaciones, medidas en Argentina. El atributo lo pone SeasonContext sobre
+   <html>, al lado de data-theme.
+
+   Cada una mueve el acento y el extremo lejano del degradado. Otoño se va del verde a
+   propósito: es la única del año en que afuera tampoco hay verde.
+
+   El logo no entra en esto: es lo único que no cambia, que es lo que lo hace logo. */
+
+[data-season="otono"] {
+  --sea-h: 26;
+  --sea-s: 38%;
+  --sea-h2: 18;
+  --sea-s2: 42%;
+}
+
+[data-season="invierno"] {
+  --sea-h: 165;
+  --sea-s: 30%;
+  --sea-h2: 190;
+  --sea-s2: 34%;
+}
+
+[data-season="primavera"] {
+  --sea-h: 116;
+  --sea-s: 32%;
+  --sea-h2: 128;
+  --sea-s2: 42%;
+}
+
+[data-season="verano"] {
+  --sea-h: 95;
+  --sea-s: 40%;
+  --sea-h2: 130;
+  --sea-s2: 40%;
 }
 
 /* El texto de ejemplo de un campo vacío.
@@ -137,6 +195,26 @@ textarea::placeholder {
 [data-theme="dark"] .pw-logo,
 [data-theme="dark"] .sf-logo {
   transform: scale(1.06);
+}
+
+/* Las hojas de la marca acompañan a la estación, en todos los logos: la hojita suelta de
+   la barra y del pie, y las dos que le salen al nombre escrito.
+
+   Es un giro de tono y no cuatro archivos por logo. Las hojas están pintadas de un solo
+   verde plano —tono 128 en los seis archivos— así que girarlas hasta el tono de la
+   estación da el color justo, y el giro sale de la misma variable que todo lo demás: no
+   hay ningún número repetido en ningún lado. El nombre escrito no se entera de nada
+   porque es blanco o negro, y un gris no tiene tono que girar.
+
+   El dibujo, el encuadre y la letra quedan iguales. Lo único que cambia es de qué color
+   está la hoja, que es lo que cambia afuera. */
+.app-header-logo,
+.home-footer-logo,
+.lateral-menu-logo,
+.login-logo,
+.pw-logo,
+.sf-logo {
+  filter: hue-rotate(calc((var(--sea-h) - 128) * 1deg));
 }
 
 /* ---------- layout de página ---------- */

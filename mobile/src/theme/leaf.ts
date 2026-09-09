@@ -8,6 +8,8 @@
  * cabito abajo. Nace parada a propósito: así el ángulo lo pone la animación, que es la
  * que sabe si la hoja está por caer o dando una vuelta.
  */
+import { Season, seasonOf } from "./season";
+
 export const LEAF_BOX = { width: 100, height: 124 };
 
 /** El contorno. Ancha en el medio y en punta arriba, que es lo que la hace leerse chica. */
@@ -41,8 +43,6 @@ export const LEAF_STEM = "M50 102 C52 108 50 114 47 120";
  */
 export const LEAF_TILT = -33;
 
-export type Season = "primavera" | "verano" | "otono" | "invierno";
-
 export interface LeafColors {
   blade: string;
   veins: string;
@@ -73,21 +73,6 @@ export const SEASON_COLORS: Record<Season, LeafColors> = {
   otono: { blade: "#d07c2e", veins: "#9c5312" },
   invierno: { blade: "#2c9079", veins: "#1a6355" },
 };
-
-/**
- * En qué estación cae una fecha, en Argentina.
- *
- * Los cortes son los solsticios y equinoccios del hemisferio sur, redondeados al día 21
- * que es como se cuentan acá. El mes va de 1 a 12 para que se lea sin traducir.
- */
-export function seasonOf(date: Date): Season {
-  const key = (date.getMonth() + 1) * 100 + date.getDate();
-
-  if (key >= 921 && key <= 1220) return "primavera";
-  if (key >= 1221 || key <= 320) return "verano";
-  if (key >= 321 && key <= 620) return "otono";
-  return "invierno";
-}
 
 export function leafColorsFor(date: Date): LeafColors {
   return SEASON_COLORS[seasonOf(date)];

@@ -31,7 +31,7 @@
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.04em;
-    color: #b7d2c2;
+    color: hsl(var(--sea-h) var(--sea-s) 77%);
 }
 
 .nf-title {

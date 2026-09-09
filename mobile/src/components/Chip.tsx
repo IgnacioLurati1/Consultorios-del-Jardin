@@ -72,7 +72,21 @@ export function StateBadge({ state }: { state: StateKey }) {
 }
 
 /** Etiqueta neutra para un dato suelto: "Sobreturno", "Se repite", una especialidad. */
-export function Tag({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "green" | "warn" | "danger" }) {
+export function Tag({
+  label,
+  tone = "neutral",
+  onSurface,
+}: {
+  label: string;
+  tone?: "neutral" | "green" | "warn" | "danger";
+  /**
+   * La etiqueta va sobre una fila ya teñida de su mismo color.
+   *
+   * Sin esto la pastilla se pinta del mismo tono que el fondo de atrás y desaparece: queda
+   * el texto suelto, que se lee peor y no parece una etiqueta.
+   */
+  onSurface?: boolean;
+}) {
   const { colors } = useTheme();
 
   const skin = {
@@ -83,7 +97,7 @@ export function Tag({ label, tone = "neutral" }: { label: string; tone?: "neutra
   }[tone];
 
   return (
-    <View style={[styles.badge, { backgroundColor: skin.bg }]}>
+    <View style={[styles.badge, { backgroundColor: onSurface ? colors.surface : skin.bg }]}>
       <AppText variant="caption" chrome style={{ color: skin.fg }}>
         {label}
       </AppText>

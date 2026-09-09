@@ -6,14 +6,17 @@ import 'react-toastify/dist/ReactToastify.css'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
+import { SeasonProvider } from './context/SeasonContext.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <AuthProvider>
-        <App/>
-      </AuthProvider>
+      <SeasonProvider>
+        <AuthProvider>
+          <App/>
+        </AuthProvider>
+      </SeasonProvider>
     </ThemeProvider>
   </StrictMode>,
 )

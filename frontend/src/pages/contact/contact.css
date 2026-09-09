@@ -263,7 +263,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 12px 0;
-    border-top: 1px solid rgba(47, 94, 70, 0.16);
+    border-top: 1px solid hsl(var(--sea-h) var(--sea-s) 28% / 0.16);
     color: var(--adm-green-dark);
     font-weight: 700;
     text-decoration: none;

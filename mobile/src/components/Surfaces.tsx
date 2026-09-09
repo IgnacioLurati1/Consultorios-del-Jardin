@@ -77,36 +77,76 @@ interface RowProps {
   last?: boolean;
   right?: ReactNode;
   destructive?: boolean;
+  /**
+   * De qué color va el ícono, cuando decir cuál es aporta algo.
+   *
+   * `green` es para la fila que lleva a una pantalla del consultorio: el ícono deja de ser
+   * un adorno gris y pasa a ser la marca de "esto abre algo". `danger` es para un dato que
+   * hay que atender, como plata sin cobrar.
+   *
+   * Sin esto el ícono va gris, que sigue siendo lo correcto para la mayoría: una columna
+   * de cuadraditos de color delante de cada fila es decoración y no información.
+   */
+  tone?: "green" | "danger";
 }
 
 /**
  * Una fila de lista. Lleva ícono solo cuando el ícono dice algo que el texto no dice;
  * una columna de cuadraditos de color delante de cada fila es decoración, no información.
  */
-export function Row({ title, subtitle, subtitleIsData, value, icon, onPress, last, right, destructive }: RowProps) {
+export function Row({ title, subtitle, subtitleIsData, value, icon, onPress, last, right, destructive, tone }: RowProps) {
   const { colors } = useTheme();
   const [simple] = useSimpleText();
   const tint = destructive ? colors.danger : colors.text;
+
+  /*
+   * El ícono de una fila va en el verde de la marca.
+   *
+   * Sigue valiendo lo de siempre —una fila lleva ícono solo cuando el ícono dice algo que
+   * el texto no dice, y la mayoría no lleva—, y justamente por eso el que está puesto se
+   * pinta: si sobrevivió a esa regla es porque significa algo.
+   *
+   * Es una regla y no una decisión fila por fila, así que las listas de toda la app se ven
+   * iguales sin que nadie tenga que acordarse. Se probó pintando solo las que llevaban a
+   * otra pantalla y quedaba peor: en el mismo grupo convivían tres verdes y un gris, y la
+   * diferencia no significaba nada para el que la mira.
+   */
+  const cual = tone ?? "green";
+
+  const iconColor = destructive
+    ? colors.danger
+    : cual === "green"
+      ? colors.greenDark
+      : cual === "danger"
+        ? colors.danger
+        : colors.muted;
 
   const shown = subtitle && (!simple || subtitleIsData) ? subtitle : undefined;
 
   const body = (
     <View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
-      {icon ? <FontAwesome6 name={icon} size={16} color={destructive ? colors.danger : colors.muted} style={styles.rowIcon} /> : null}
+      {icon ? <FontAwesome6 name={icon} size={16} color={iconColor} style={styles.rowIcon} /> : null}
 
       <View style={styles.rowText}>
         <AppText variant="body" numberOfLines={1} style={{ color: tint }}>
           {title}
         </AppText>
         {shown ? (
-          <AppText variant="caption" tone="muted" numberOfLines={2}>
+          // El dato de una fila marcada va del color de la marca: en "Faltan $17.500" lo
+          // que hay que ver es el numero, no la flecha de al lado.
+          <AppText variant="caption" tone={tone === "danger" ? "danger" : "muted"} numberOfLines={2}>
             {shown}
           </AppText>
         ) : null}
       </View>
 
       {value ? (
-        <AppText variant="caption" tone="muted" numberOfLines={1} style={styles.rowValue}>
+        <AppText
+          variant="caption"
+          tone={tone === "danger" ? "danger" : "muted"}
+          numberOfLines={1}
+          style={styles.rowValue}
+        >
           {value}
         </AppText>
       ) : null}
@@ -184,7 +224,12 @@ const styles = StyleSheet.create({
   },
   rowIcon: { width: 20, textAlign: "center" },
   rowText: { flex: 1, gap: 2 },
-  rowValue: { maxWidth: "40%", textAlign: "right" },
+  /* El dato de la derecha se lleva el ancho que necesita y el título cede.
+     Estaba topeado en el 40%, y una comparación como "$ 78.000 → $ 110.000" no entraba:
+     se cortaba justo en el número que se venía a comparar. Al revés funciona mejor porque
+     el título de estas filas es corto ("Cobrado", "Turnos") y el dato no. El tope sigue,
+     más arriba, para que un valor enorme no se coma el título del todo. */
+  rowValue: { flexShrink: 0, maxWidth: "62%", textAlign: "right" },
   pressed: { opacity: 0.6 },
   note: {
     borderRadius: radius.md,

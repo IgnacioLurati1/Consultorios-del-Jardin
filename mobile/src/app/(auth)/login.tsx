@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -6,21 +5,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorMessage } from "../../api/client";
 import { Button } from "../../components/Button";
 import { Field } from "../../components/Field";
+import { Leaf } from "../../components/Leaf";
 import { AppText } from "../../components/Text";
 import { OFFICE_INFO } from "../../lib/specialities";
 import { useSession } from "../../session/SessionProvider";
-import { palette, radius, SCREEN_PADDING, space } from "../../theme/tokens";
+import { radius, SCREEN_PADDING, space } from "../../theme/tokens";
 import { useTheme } from "../../theme/useTheme";
 
-const leaf = require("../../../assets/images/leaf.png");
 
 /**
- * La única pantalla de la app con fondo oscuro. Es la portada: el verde profundo y la
- * tipografía de la marca aparecen una vez, acá, y de la sesión para adentro manda el
- * papel claro. Que sea la excepción es lo que la hace valer.
+ * La única pantalla de la app con fondo oscuro. Es la portada: el color profundo de la
+ * estación y la tipografía de la marca aparecen una vez, acá, y de la sesión para
+ * adentro manda el papel claro. Que sea la excepción es lo que la hace valer.
  */
 export default function LoginScreen() {
-  const { colors } = useTheme();
+  const { colors, band } = useTheme();
   const insets = useSafeAreaInsets();
   const { signIn } = useSession();
 
@@ -49,7 +48,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.fill, { backgroundColor: palette.light.ink }]}
+      style={[styles.fill, { backgroundColor: band.to }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
@@ -58,7 +57,8 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.hero, { paddingTop: insets.top + space.xxxl }]}>
-          <Image source={leaf} style={styles.leaf} contentFit="contain" accessibilityIgnoresInvertColors />
+          {/* Dibujada y no la imagen: a este tamaño el PNG se veía borroso. */}
+          <Leaf size={44} colors={{ blade: band.leaf, veins: band.leafVeins }} />
 
           <AppText variant="display" tone="cream" style={styles.heroTitle}>
             {OFFICE_INFO.name}
@@ -160,7 +160,6 @@ const styles = StyleSheet.create({
     paddingBottom: space.xxxl + space.sm,
     gap: space.md,
   },
-  leaf: { width: 44, height: 44 },
   heroTitle: { marginTop: space.xs },
   // El crema al 80% sobre el verde oscuro: la bajada acompaña al título sin competirle.
   heroLine: { color: "rgba(254, 250, 224, 0.78)" },

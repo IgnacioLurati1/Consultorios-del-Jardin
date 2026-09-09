@@ -16,7 +16,7 @@ import { AppText } from "../../../components/Text";
 import { AnnouncementBanner } from "../../../features/Announcements";
 import { OfficeSettings } from "../../../features/OfficeSettings";
 import { WeekSummary } from "../../../features/WeekSummary";
-import { describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
+import { delDia, describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
 import { money, numericDate, today } from "../../../lib/dates";
 import { revisarAvisos } from "../../../lib/avisos";
 import { useAsync } from "../../../lib/useAsync";
@@ -144,7 +144,8 @@ function PatientHome() {
 function ProfessionalHome() {
   const { email } = useUser();
 
-  const day = useAsync(() => professionalRange(today(), today()), []);
+  // Con los cancelados: de esos queda solo la baja sobre la hora. Ver `delDia`.
+  const day = useAsync(() => professionalRange(today(), today(), true), []);
   const all = useAsync(() => myProfessionalAppointments(0), []);
   const unpaid = useAsync(() => unpaidAppointments(), []);
 
@@ -158,7 +159,7 @@ function ProfessionalHome() {
   const unpaidCount = unpaid.data?.total.appointments ?? 0;
   const owed = unpaid.data?.total.amount ?? 0;
 
-  const agenda = (day.data ?? []).filter((appointment) => stateOf(appointment) !== "cancelled");
+  const agenda = delDia(day.data ?? []);
   const toConfirm = (all.data ?? []).filter(
     (appointment) => stateOf(appointment) === "pending" && isUpcoming(appointment)
   );
@@ -206,6 +207,9 @@ function ProfessionalHome() {
                 }
                 subtitleIsData
                 icon={unpaidOpen ? "chevron-up" : "chevron-down"}
+                // Plata que falta cobrar: la flecha no lleva a otra pantalla, abre la
+                // lista, y el color dice de qué se trata lo que hay adentro.
+                tone="danger"
                 last
                 onPress={() => setUnpaidOpen(!unpaidOpen)}
               />
@@ -284,9 +288,14 @@ function ProfessionalHome() {
 
 function headlineFor(agenda: Appointment[], loading: boolean): string {
   if (loading) return "Mirando tu agenda";
-  if (agenda.length === 0) return "Hoy no tenés turnos.";
-  if (agenda.length === 1) return "Hoy atendés a una persona.";
-  return `Hoy atendés a ${agenda.length} personas.`;
+
+  // Las bajas sobre la hora están en la lista de abajo, pero acá no cuentan: nadie viene a
+  // un turno que se dio de baja, y el encabezado dice a cuánta gente se atiende hoy.
+  const vienen = agenda.filter((appointment) => stateOf(appointment) !== "cancelled").length;
+
+  if (vienen === 0) return "Hoy no tenés turnos.";
+  if (vienen === 1) return "Hoy atendés a una persona.";
+  return `Hoy atendés a ${vienen} personas.`;
 }
 
 /* ============================================================

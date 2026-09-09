@@ -20,7 +20,13 @@ export function Headline({ label, value, note }: { label: string; value: string;
       <AppText variant="caption" tone="muted" chrome>
         {label.toUpperCase()}
       </AppText>
-      <AppText variant="display">{value}</AppText>
+      {/* El número que da la pantalla, en el verde de la marca. Es el mismo criterio que
+          la web usa en su tarjeta principal: de todo lo que hay abajo, este es el que se
+          vino a mirar, y el color es lo que lo separa de la lista de cifras grises que
+          sigue. Lo que está mal —la plata sin cobrar— se pinta aparte y en rojo. */}
+      <AppText variant="display" tone="green">
+        {value}
+      </AppText>
       {note ? (
         <AppText variant="small" tone="muted">
           {note}
