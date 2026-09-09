@@ -26,6 +26,16 @@ export interface Colors {
   green: string;
   greenDark: string;
   greenSoft: string;
+  /**
+   * El verde de "esto está bien": un turno confirmado.
+   *
+   * Es igual que el trío de arriba pero quieto: mismos tres papeles —el pelado para la
+   * línea, `okDark` para el texto, `okSoft` para el fondo— y el mismo tono en las cuatro
+   * estaciones.
+   */
+  ok: string;
+  okDark: string;
+  okSoft: string;
   /** El tono más profundo de la estación. Es el fondo del encabezado de Inicio. */
   ink: string;
   cream: string;
@@ -59,10 +69,35 @@ export interface Band {
  *
  * El rojo y el ámbar son señales, no decoración: el turno que no vino tiene que verse
  * igual de rojo en verano que en otoño. Y el crema es de la marca, como la hoja.
+ *
+ * El verde de confirmado está acá por lo mismo, y es el que faltaba. Salía del acento, y
+ * el acento se mueve: en otoño un turno confirmado quedaba marrón, del mismo color que un
+ * aviso, al lado de un "No vino" rojo y un "A confirmar" ámbar que no se movían. Un
+ * estado no puede cambiar de color según el mes. El tono es el de la primavera, que es el
+ * verde del proyecto, y son los mismos números que usa la web.
  */
 const SIGNALS = {
-  light: { cream: "#fefae0", danger: "#c0392b", dangerSoft: "#fdecea", warn: "#b7791f", warnSoft: "#fdf3e3" },
-  dark: { cream: "#fefae0", danger: "#ef8a7d", dangerSoft: "#32201e", warn: "#dfb264", warnSoft: "#2e2617" },
+  light: {
+    cream: "#fefae0",
+    danger: "#c0392b",
+    dangerSoft: "#fdecea",
+    warn: "#b7791f",
+    warnSoft: "#fdf3e3",
+    ok: hsl(116, 32, 35),
+    okDark: hsl(116, 32, 27),
+    okSoft: hsl(116, 32, 93),
+  },
+  dark: {
+    cream: "#fefae0",
+    danger: "#ef8a7d",
+    dangerSoft: "#32201e",
+    warn: "#dfb264",
+    warnSoft: "#2e2617",
+    /* Sube igual que el acento en oscuro: el mismo tono se pierde sobre el gris. */
+    ok: hsl(116, 34, 51),
+    okDark: hsl(116, 34, 62),
+    okSoft: hsl(116, 26, 14),
+  },
 } as const;
 
 /*

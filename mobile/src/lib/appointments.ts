@@ -89,11 +89,14 @@ export const STATE_LABELS: Record<StateKey, string> = {
  * es la agenda cumplida y el otro es un horario que se perdió: dejarlos del mismo gris
  * obligaba a leer las dos palabras para distinguirlos, que es justo lo que una etiqueta
  * de color tiene que ahorrar.
+ *
+ * El confirmado va con el verde quieto y no con el acento, igual que el rojo y el ámbar
+ * de al lado. Ver `ok` en la paleta.
  */
 export function stateColors(key: StateKey, colors: Colors): { bg: string; fg: string } {
   switch (key) {
     case "accepted":
-      return { bg: colors.greenSoft, fg: colors.greenDark };
+      return { bg: colors.okSoft, fg: colors.okDark };
     case "pending":
       return { bg: colors.warnSoft, fg: colors.warn };
     case "missed":
@@ -117,7 +120,7 @@ export function stateColors(key: StateKey, colors: Colors): { bg: string; fg: st
 export function stateInk(key: StateKey, colors: Colors): string {
   switch (key) {
     case "accepted":
-      return colors.greenDark;
+      return colors.okDark;
     case "pending":
       return colors.warn;
     case "missed":
@@ -142,7 +145,7 @@ export function stateInk(key: StateKey, colors: Colors): string {
 export function stateAccent(key: StateKey, colors: Colors): string {
   switch (key) {
     case "accepted":
-      return colors.green;
+      return colors.ok;
     case "pending":
       return colors.warn;
     case "missed":
@@ -225,6 +228,17 @@ export function counterpart(appointment: Appointment, viewerEmail: string): stri
 
   if (!other) return "Sin paciente asignado";
   return fullName(other) || emailOf(other) || "Sin datos";
+}
+
+/**
+ * El turno que el profesional sacó para atenderse él con un colega.
+ *
+ * En su agenda estos son la excepción: no los da, los recibe. Sirve para decirlo cuando
+ * el texto solo no alcanza —un nombre suelto no dice de qué lado del turno está— como en
+ * el aviso de cinco minutos antes, donde no hay pantalla que mirar.
+ */
+export function isOwnBooking(appointment: Appointment, viewerEmail: string): boolean {
+  return !!appointment.patient && emailOf(appointment.patient) === viewerEmail;
 }
 
 /** El email de una relación, esté populada o no. */
