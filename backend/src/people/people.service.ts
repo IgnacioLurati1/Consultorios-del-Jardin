@@ -240,6 +240,7 @@ export class PeopleService {
       active: true,
       // Solo significa algo en un profesional, pero la columna no admite nulos.
       bookable: true,
+      waitlistEnabled: true,
       autoAccept: false,
       autoMarkWhen: "appointment" as const,
       autoPay: false,
@@ -364,6 +365,20 @@ export class PeopleService {
     if (person.type !== "professional") throw badRequest("Esto es solo para profesionales");
 
     person.bookable = !person.bookable;
+    await em.flush();
+    return person;
+  }
+
+  /**
+   * Prende o apaga la lista de espera de un profesional. Apagarla vacía la lista, pero eso
+   * lo hace quien llama: acá solo se da vuelta la marca.
+   */
+  async toggleWaitlist(email: string): Promise<Person> {
+    const person = await em.findOneOrFail(Person, { email });
+
+    if (person.type !== "professional") throw badRequest("Esto es solo para profesionales");
+
+    person.waitlistEnabled = !person.waitlistEnabled;
     await em.flush();
     return person;
   }

@@ -837,6 +837,20 @@ describe("Integracion: los avisos por mail de un turno", () => {
     expect(sobres).toEqual([{ to: mockClient.email, subject: "Cambiamos tu turno de horario" }]);
   });
 
+  // La fecha de un turno leído de la base vuelve como medianoche UTC, que acá es el día
+  // anterior. Mandada así a la consulta, mover un turno cambiándole solo la hora buscaba
+  // los cruces en otra fecha y lo dejaba encimarse con cualquier cosa.
+  it("mover solo la hora busca los cruces en el día del turno", async () => {
+    const turno = { ...pedido(), state: "accepted", date: new Date(Date.UTC(2026, 8, 17)) };
+    mockEm.findOne.mockResolvedValueOnce(turno).mockResolvedValue(null);
+
+    await appointments.updateAppointment(77, mockProfessional.email, { initialHour: "11:00", finalHour: "12:00" } as any);
+
+    const cruces = mockEm.findOne.mock.calls.filter(([, where]: any[]) => where?.initialHour).map(([, where]: any[]) => where.date);
+    expect(cruces).toHaveLength(2);
+    for (const date of cruces) expect(date).toEqual(new Date(2026, 8, 17));
+  });
+
   it("cambiarle solo el valor no le manda nada", async () => {
     mockEm.findOne.mockResolvedValueOnce({ ...pedido(), state: "accepted" }).mockResolvedValue(null);
 

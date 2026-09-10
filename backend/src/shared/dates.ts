@@ -91,6 +91,18 @@ export function dayName(date: Date): string {
   return DAY_NAMES[date.getDay()];
 }
 
+/** El lunes de la semana de esa fecha, a medianoche. La semana arranca el lunes, como se lee una agenda acá. */
+export function startOfWeek(date: Date | string): Date {
+  const day = startOfDay(date);
+  return addDays(day, -((day.getDay() + 6) % 7));
+}
+
+/** "martes 22 de septiembre", para escribir en un mail o en un aviso. */
+export function longDate(date: Date | string): string {
+  const day = startOfDay(date);
+  return `${DAY_NAMES[day.getDay()]} ${day.getDate()} de ${MONTH_NAMES[day.getMonth()]}`;
+}
+
 export function toISODate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }

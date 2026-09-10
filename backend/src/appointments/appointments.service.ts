@@ -9,7 +9,7 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { RoomService } from "../rooms/rooms.service.js";
 import { AppointmentEngine } from "./appointments.engine.js";
 import MailService from "../config/mailer.js";
-import { button, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
+import { button, buttonPair, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
@@ -17,6 +17,8 @@ import { addDays, monthKey, parseISODate, startOfDay } from "../shared/dates.js"
 import { SecurityService } from "../security/security.service.js";
 import { NotificationService } from "../notifications/notifications.service.js";
 import { noticeOf } from "../shared/shortNotice.js";
+import { WaitlistService } from "../waitlist/waitlist.service.js";
+import { attendanceLinks } from "../attendance/attendance.token.js";
 
 const em = orm.em;
 
@@ -70,6 +72,7 @@ export class AppointmentService {
   private mailService: MailService;
   private securityService: SecurityService;
   private notificationService: NotificationService;
+  private waitlistService: WaitlistService;
 
   constructor() {
     this.peopleService = new PeopleService();
@@ -79,6 +82,7 @@ export class AppointmentService {
     this.mailService = new MailService();
     this.securityService = new SecurityService();
     this.notificationService = new NotificationService();
+    this.waitlistService = new WaitlistService();
   }
 
   private toDiagnosticView(appointment: Appointment): DiagnosticView {
@@ -690,11 +694,16 @@ export class AppointmentService {
     excludeNumAppointment?: number
   ): Promise<Appointment | null> {
     const appointment = await (emT || em).findOne(Appointment, {
-      date,
+      // El día pasa por `startOfDay` porque a veces llega la fecha de un turno leído de la
+      // base, que vuelve como medianoche UTC. Mandada así, la consulta buscaba en el día
+      // anterior: mover un turno cambiándole solo la hora no veía los que se le cruzaban.
+      date: startOfDay(date),
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
       state: { $in: ACTIVE_APPOINTMENT_STATES },
-      patient: { email: patientEmail },
+      // También los que atiende: un profesional se atiende con colegas, y a la hora en que
+      // tiene un paciente no puede estar sentado del otro lado.
+      $or: [{ patient: { email: patientEmail } }, { professional: { email: patientEmail } }],
       // Al editar un turno, no tiene que chocar consigo mismo
       ...(excludeNumAppointment ? { numAppointment: { $ne: excludeNumAppointment } } : {}),
     });
@@ -710,11 +719,14 @@ export class AppointmentService {
     excludeNumAppointment?: number
   ): Promise<Appointment | null> {
     const appointment = await (emT || em).findOne(Appointment, {
-      date,
+      // Por `startOfDay` por lo mismo que el chequeo del paciente.
+      date: startOfDay(date),
       initialHour: { $lt: finalHour },
       finalHour: { $gt: initialHour },
       state: { $in: ACTIVE_APPOINTMENT_STATES },
-      professional: { email: professionalEmail },
+      // También los turnos en que él es el paciente: si a esa hora se atiende con un colega,
+      // no puede dar turno. Es lo mismo que mira el chequeo del paciente, del otro lado.
+      $or: [{ professional: { email: professionalEmail } }, { patient: { email: professionalEmail } }],
       // Al editar un turno, no tiene que chocar consigo mismo
       ...(excludeNumAppointment ? { numAppointment: { $ne: excludeNumAppointment } } : {}),
     });
@@ -822,7 +834,12 @@ export class AppointmentService {
     return appointment;
   }
 
-  async cancelAppointment(num: number, email: string) {
+  /**
+   * `notifyWaitlist` es la respuesta del profesional a "¿les avisamos a los que esperan?".
+   * Cuando cancela el paciente no se pregunta: el aviso sale solo si llegó con tiempo.
+   * Una pantalla vieja no lo manda, y en ese caso la baja del profesional no avisa.
+   */
+  async cancelAppointment(num: number, email: string, options: { notifyWaitlist?: boolean } = {}) {
     const appointment = await em.findOne(
       Appointment,
       {
@@ -851,6 +868,7 @@ export class AppointmentService {
       // Solo cuenta como rechazo si lo baja el profesional. Que el paciente se arrepienta
       // de su propio pedido no dice nada de quién iba a atenderlo.
       await this.deleteAppointment(num, appointment.professional.email, asProfessional);
+      await this.waitlistService.onSlotFreed(appointment, asProfessional ? "professional" : "patient", options.notifyWaitlist === true);
       return appointment;
     }
 
@@ -871,6 +889,10 @@ export class AppointmentService {
       await this.sendAppointmentCanceledToProfessional(appointment, appointment.professional.email).catch((err) =>
         console.error("Error avisándole al profesional del horario liberado:", err)
       );
+
+    // Después de todo lo demás: el horario ya quedó libre en la base, que es lo que el
+    // aviso le promete a quien lo recibe.
+    await this.waitlistService.onSlotFreed(appointment, asProfessional ? "professional" : "patient", options.notifyWaitlist === true);
 
     return appointment; // Not used for now
   }
@@ -934,6 +956,9 @@ export class AppointmentService {
     await this.sendNewBookingToProfessional(refreshed).catch((err) =>
       console.error("Error avisándole al profesional del turno nuevo:", err)
     );
+
+    // Si lo estaba esperando, ya lo tiene: sale de esa lista. No falla nunca.
+    await this.waitlistService.onBooked(patientEmail, refreshed);
 
     const result = {
       numAppointment: refreshed.numAppointment,
@@ -1437,13 +1462,35 @@ export class AppointmentService {
     );
   }
 
+  /**
+   * El recordatorio de la víspera, con la pregunta de si viene.
+   *
+   * Los dos botones abren una página que pide un toque más para confirmar. No contestan
+   * solos al abrirse porque los programas de correo abren los links por su cuenta para
+   * revisarlos, y un "No puedo ir" que se contesta al abrirse cancelaría turnos que nadie
+   * canceló. Si los links no se pudieron firmar, el mail sale como antes, sin la pregunta.
+   */
   private async sendReminderEmail(patientEmail: string, appointment: Appointment) {
+    const links = attendanceLinks(appointment);
+
     const htmlContent = [
       title("Mañana tenés turno"),
       factsCard("Tu turno de mañana", this.appointmentFacts(appointment)),
       paragraph("Es en <strong>9 de Julio 3672</strong>. Llegá cinco minutos antes."),
-      button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-      note("Si no vas a poder ir, cancelalo hoy. Así el horario le queda a otra persona."),
+      ...(links
+        ? [
+            paragraph("¿Vas a poder venir? Contestá con un toque, así el profesional sabe con tiempo quién viene."),
+            buttonPair({ label: "Sí, voy", href: links.yes }, { label: "No puedo ir", href: links.no }),
+            note(
+              `Si no podés, el horario le queda a otra persona. También lo podés ver en <a href="${this.appUrl(
+                "/AppointmentsList"
+              )}" style="color:#2f5e46">tus turnos</a>.`
+            ),
+          ]
+        : [
+            button("Ver mis turnos", this.appUrl("/AppointmentsList")),
+            note("Si no vas a poder ir, cancelalo hoy. Así el horario le queda a otra persona."),
+          ]),
     ].join("");
 
     const message = await this.mailService.createMessage(patientEmail, "Mañana tenés turno", htmlContent);

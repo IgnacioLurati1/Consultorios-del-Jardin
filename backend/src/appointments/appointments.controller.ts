@@ -374,7 +374,9 @@ async function getAppointment(req: RequestWithUser, res: Response) {
 async function cancelAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    const appointment = await appointmentService.cancelAppointment(numAppointment, req.user.email);
+    const appointment = await appointmentService.cancelAppointment(numAppointment, req.user.email, {
+      notifyWaitlist: req.body?.notifyWaitlist === true,
+    });
 
     res.status(200).json({ message: "Turno cancelado con éxito" });
   } catch (error: any) {

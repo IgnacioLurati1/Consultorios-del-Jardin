@@ -56,6 +56,7 @@ export async function ensureAdmins(): Promise<number> {
       type: "admin",
       active: true,
       bookable: false,
+      waitlistEnabled: false,
       autoAccept: false,
       autoMarkWhen: "appointment" as const,
       autoPay: false,

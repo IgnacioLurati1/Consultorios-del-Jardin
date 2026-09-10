@@ -123,4 +123,16 @@ const importLimiter = rateLimit({
   message: { message: 'Probaste varias importaciones seguidas. Esperá un rato antes de la próxima.' },
 });
 
-export { generalLimiter, authLimiter, lookupLimiter, contactLimiter, importLimiter };
+// Los links del mail del día anterior, que se abren sin sesión. Una persona los abre una o
+// dos veces por turno; treinta en diez minutos desde la misma dirección ya es alguien
+// probando firmas, que igual no va a acertar ninguna.
+const attendanceLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  handler: announce("el limitador de los links de asistencia", 10 * 60 * 1000),
+  max: 30 * RELAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Demasiados intentos con este link. Esperá un rato y volvé a abrirlo.' },
+});
+
+export { generalLimiter, authLimiter, lookupLimiter, contactLimiter, importLimiter, attendanceLimiter };

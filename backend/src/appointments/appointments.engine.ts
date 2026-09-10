@@ -69,6 +69,12 @@ export class AppointmentEngine {
     if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
       throw conflict("Ya tenés otro turno que se superpone con ese horario");
 
+    // El sobreturno se saltea los módulos, no la agenda del paciente: nadie está en dos
+    // turnos a la vez. Sin esto se le podía cargar uno encima de otro que ya tenía, con
+    // este profesional o con otro.
+    if (patientEmail && (await this.appointmentService.checkPatientAppointmentOverlap(initialHour, finalHour, patientEmail, date, this.em)))
+      throw conflict("El paciente ya tiene otro turno que se superpone con ese horario");
+
     const room = await this.roomService.findRoomById(idRoom, this.em);
 
     if (!room.active) throw badRequest("El consultorio que elegiste está dado de baja");

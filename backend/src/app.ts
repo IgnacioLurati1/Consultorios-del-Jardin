@@ -32,8 +32,11 @@ import { securityRouter } from "./security/security.routes.js";
 import { contactRouter } from "./contact/contact.routes.js";
 import { assistantRouter } from "./assistant/assistant.routes.js";
 import { calendarRouter } from "./calendar/calendar.routes.js";
+import { waitlistRouter } from "./waitlist/waitlist.routes.js";
+import { attendanceRouter } from "./attendance/attendance.routes.js";
+import { startWaitlistJob } from "./jobs/waitlist.job.js";
 import { setupSwagger } from './config/swagger.js';
-import { authLimiter, generalLimiter } from "./config/rateLimiter.js";
+import { attendanceLimiter, authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
 
 const app = express();
@@ -127,8 +130,11 @@ app.use("/api/notifications", verifyToken, notificationRouter);
 app.use("/api/security", verifyToken, securityRouter);
 app.use("/api/assistant", verifyToken, assistantRouter);
 app.use("/api/calendar", verifyToken, calendarRouter);
+app.use("/api/waitlist", verifyToken, waitlistRouter);
 // Sin verifyToken a propósito: cualquiera tiene que poder escribirle al consultorio.
 app.use("/api/contact", contactRouter);
+// Tampoco: son los links del mail del día anterior, que se contestan sin iniciar sesión.
+app.use("/api/attendance", attendanceLimiter, attendanceRouter);
 
 app.use((_, res) => {
   return res.status(404).send({ message: "Resource not found" });
@@ -144,6 +150,7 @@ startExpiryJob();
 startAttendanceJob();
 startPaymentJob();
 startNotificationCleanupJob();
+startWaitlistJob();
 
 // El puerto lo asigna la plataforma y llega por variable; en local no está y sigue
 // siendo 3000, que es lo que espera el proxy de Vite.

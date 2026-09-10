@@ -1,5 +1,6 @@
 import { orm } from "../shared/db/orm.js";
 import { AppointmentService } from "../appointments/appointments.service.js";
+import { WaitlistService } from "../waitlist/waitlist.service.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import { Person } from "../people/people.entity.js";
 import { AssistantUsage } from "../assistant/assistant.entity.js";
@@ -264,6 +265,7 @@ function closedMonths(): { key: string; label: string; from: Date; to: Date }[] 
 
 export class AnalyticsService {
   private appointments = new AppointmentService();
+  private waitlist = new WaitlistService();
 
   /** Turnos de un rango, con lo justo para calcular las métricas. */
   private async loadRows(from: Date, to: Date, professionalEmail?: string): Promise<Row[]> {
@@ -328,6 +330,10 @@ export class AnalyticsService {
     const denials = await this.appointments.denialsByMonth(professionalEmail);
     const deniedIn = (key: string) => denials.get(key) ?? { denied: 0, expired: 0 };
 
+    // La lista de espera tampoco sale de los turnos: se vacía sola, así que el promedio
+    // viene de la foto que se saca cada noche. Lo ven el profesional y el admin: no es plata.
+    const waitlist = await this.waitlist.statsFor(professionalEmail);
+
     const report = {
       professional: {
         email: professional.email,
@@ -345,6 +351,11 @@ export class AnalyticsService {
           ...loadByDay(subset),
           denials: deniedIn(month.key),
           debt: debtOf(subset),
+          waitlist: {
+            enabled: waitlist.enabled,
+            current: waitlist.current,
+            average: waitlist.averages.get(month.key) ?? null,
+          },
         };
       }),
       // Acumulado de los meses cerrados: es el número que se lee "en general".

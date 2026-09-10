@@ -52,6 +52,16 @@ export class Appointment {
   @Property({ nullable: true, type: "datetime" })
   patientCancelledAt?: Date | null;
 
+  /**
+   * Cuándo contestó el paciente "Sí, voy" desde el mail del día anterior.
+   *
+   * No cambia el estado del turno: sigue confirmado, y la asistencia se marca después como
+   * siempre. Es un dato para el profesional, que así sabe con tiempo quién viene seguro y
+   * a quién conviene llamar. En null no contestó, que es lo normal y no quiere decir nada.
+   */
+  @Property({ nullable: true, type: "datetime" })
+  attendanceConfirmedAt?: Date | null;
+
   // Observaciones clínicas que carga el profesional (antes vivían en Diagnostic)
   @Property({ nullable: true, type: "text" })
   observations?: string | null;

@@ -93,6 +93,14 @@ export class Person {
   @Property({ default: true })
   bookable: boolean = true;
 
+  // Si trabaja con lista de espera. Lo decide el admin, igual que `bookable`: hay quien no
+  // quiere que le lleguen pacientes avisados de un hueco, y en ese caso el botón de la
+  // lista le dice al paciente que este profesional no la usa.
+  //
+  // Solo tiene sentido en un profesional. En el resto queda en true y no molesta a nadie.
+  @Property({ default: true })
+  waitlistEnabled: boolean = true;
+
   // Confirmar solos los turnos que pide un paciente, en vez de dejarlos esperando.
   //
   // Un turno pedido nace en "pending" y no ocupa el horario hasta que el profesional lo

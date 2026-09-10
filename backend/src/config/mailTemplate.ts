@@ -194,6 +194,29 @@ export function button(label: string, href: string): string {
     </table>`;
 }
 
+/**
+ * Dos botones lado a lado, para una pregunta con dos respuestas. El primero va lleno y el
+ * segundo con borde: los dos se pueden tocar, pero no pesan lo mismo.
+ */
+export function buttonPair(primary: { label: string; href: string }, secondary: { label: string; href: string }): string {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto">
+      <tr>
+        <td style="background:${C.green};border-radius:8px">
+          <a href="${primary.href}" style="display:inline-block;padding:14px 30px;font-family:${SANS};font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none">${escapeHtml(
+            primary.label
+          )}</a>
+        </td>
+        <td style="width:12px">&nbsp;</td>
+        <td style="border:2px solid ${C.green};border-radius:8px">
+          <a href="${secondary.href}" style="display:inline-block;padding:12px 26px;font-family:${SANS};font-size:15px;font-weight:bold;color:${C.greenDark};text-decoration:none">${escapeHtml(
+            secondary.label
+          )}</a>
+        </td>
+      </tr>
+    </table>`;
+}
+
 /** Aviso de que algo no salió como se esperaba: mismo lugar, otro color. */
 export function warning(html: string): string {
   return `

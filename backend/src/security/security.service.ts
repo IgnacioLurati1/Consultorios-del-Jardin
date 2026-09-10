@@ -561,6 +561,33 @@ export class SecurityService {
   }
 
   /**
+   * Cierra una cuenta por usar mal una función propia.
+   *
+   * Es la otra clase de baja automática, la de "abuse": no hay nadie ajeno manejando la
+   * cuenta, es la misma persona haciendo algo que la aplicación no deja hacer usándola.
+   * Hoy la dispara una sola regla, anotarse en demasiadas listas de espera en el mes.
+   *
+   * A diferencia de la ráfaga de turnos, esta sí les avisa a los administradores, igual
+   * que un cierre por intrusión: la persona queda afuera sin poder pedir nada, y la única
+   * forma de que alguien lo revise es que alguien se entere.
+   */
+  async lockForAbuse(email: string, reason: string): Promise<void> {
+    const fork = em.fork();
+    const person = await fork.findOne(Person, { email });
+    if (!person || !person.active) return;
+
+    person.active = false;
+    person.bannedBy = "system";
+    person.banKind = "abuse";
+    person.bannedAt = new Date();
+    person.banReason = reason;
+    await fork.flush();
+
+    console.warn(`Cuenta deshabilitada por el sistema: ${email} (${reason})`);
+    await this.warnAdmins(person, reason, true);
+  }
+
+  /**
    * Le avisa por mail a la administración.
    *
    * Hasta acá el único mail salía para la cuenta cerrada, y del otro lado el aviso vivía

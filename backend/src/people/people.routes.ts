@@ -13,6 +13,7 @@ import {
   remove,
   toggleState,
   toggleBookable,
+  toggleWaitlist,
   changePassword,
   sendPasswordMail,
   requestSignup,
@@ -636,6 +637,31 @@ personRouter.patch("/:email/toggleState", verifyToken, verifyAdmin, sanitizePers
  *         description: Acceso denegado
  */
 personRouter.patch("/:email/toggleBookable", verifyToken, verifyAdmin, sanitizePersonInput, toggleBookable);
+
+/**
+ * @swagger
+ * /api/people/{email}/toggleWaitlist:
+ *   patch:
+ *     summary: Prender o apagar la lista de espera de un profesional (solo admin)
+ *     description: >
+ *       Apagarla vacía la lista y les avisa a los que estaban. Con la lista apagada, el
+ *       paciente que toca el botón ve que ese profesional no trabaja con lista de espera.
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cambiado con éxito
+ *       400:
+ *         description: Esa persona no es un profesional
+ */
+personRouter.patch("/:email/toggleWaitlist", verifyToken, verifyAdmin, sanitizePersonInput, toggleWaitlist);
 
 /**
  * @swagger

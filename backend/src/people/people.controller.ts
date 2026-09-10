@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
+import { WaitlistService } from "../waitlist/waitlist.service.js";
 import { sendError } from "../shared/errors.js";
 import { clientChannel } from "../config/clients.js";
 import { describeLockout } from "../config/middlewares.js";
@@ -388,6 +389,30 @@ async function toggleBookable(req: Request, res: Response) {
   }
 }
 
+/**
+ * Prender o apagar la lista de espera de un profesional.
+ *
+ * Apagarla la vacía en el momento y les avisa a los que estaban: una lista apagada que
+ * sigue teniendo gente adentro es gente esperando algo que no va a llegar.
+ */
+async function toggleWaitlist(req: Request, res: Response) {
+  try {
+    const person = await peopleService.toggleWaitlist(req.params.email);
+    const closed = person.waitlistEnabled ? 0 : await new WaitlistService().closeForProfessional(person.email);
+
+    res.status(200).json({
+      message: person.waitlistEnabled
+        ? "El profesional vuelve a trabajar con lista de espera"
+        : closed > 0
+          ? `Se apagó la lista de espera. Les avisamos a las ${closed} personas que estaban`
+          : "Se apagó la lista de espera",
+      data: { waitlistEnabled: person.waitlistEnabled },
+    });
+  } catch (error: any) {
+    sendError(res, error, { missing: "Ese profesional no existe" });
+  }
+}
+
 async function changePassword(req: Request, res: Response) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -499,6 +524,7 @@ export {
   logOut,
   toggleState,
   toggleBookable,
+  toggleWaitlist,
   changePassword,
   sendPasswordMail,
   requestSignup,

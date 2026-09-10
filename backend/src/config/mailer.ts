@@ -40,15 +40,23 @@ export default class MailService {
       return false;
     }
 
+    // En la máquina de desarrollo los mails pueden ir todos a una sola casilla. La base de
+    // prueba tiene direcciones de verdad —administradores, pacientes cargados a mano— y
+    // probar una función que manda mails no puede terminar escribiéndole a esa gente. En
+    // producción esto no existe: ahí el destinatario es siempre el del mensaje.
+    const redirect = process.env.NODE_ENV !== "production" ? process.env.MAIL_DEV_TO?.trim() : "";
+    const to = redirect || msg.to;
+    const subject = redirect && redirect !== msg.to ? `[para ${msg.to}] ${msg.subject}` : msg.subject;
+
     try {
       const response = await fetch(BREVO_URL, {
         method: "POST",
         headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({
           sender: { name: SENDER_NAME, email: msg.from },
-          to: [{ email: msg.to }],
+          to: [{ email: to }],
           replyTo: { email: msg.replyTo },
-          subject: msg.subject,
+          subject,
           htmlContent: msg.html,
           textContent: msg.text,
         }),
