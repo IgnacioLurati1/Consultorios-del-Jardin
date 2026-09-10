@@ -30,6 +30,7 @@ import { OfficeAnalyticsPage } from "./pages/analytics/OfficeAnalyticsPage.tsx";
 import { ContactPage } from "./pages/contact/ContactPage.tsx";
 import { FaqPage } from "./pages/faq/FaqPage.tsx";
 import { ErrorPage } from "./pages/errorPage/ErrorPage.tsx";
+import { AttendancePage } from "./pages/attendance/AttendancePage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -45,6 +46,9 @@ const router = createBrowserRouter([
       { path: "/Register", element: <Register /> },
       // El link del mail que termina de crear la cuenta del paciente.
       { path: "/confirmar-cuenta", element: <ConfirmAccount /> },
+      // Los botones "Sí, voy" y "No puedo ir" del mail del día anterior. Sin sesión: lo
+      // que autoriza es la firma del link.
+      { path: "/asistencia", element: <AttendancePage /> },
       { path: "/Login", element: <Login /> },
       { path: "/contacto", element: <ContactPage /> },
       { path: "/preguntas", element: <FaqPage /> },

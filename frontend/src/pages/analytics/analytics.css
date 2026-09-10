@@ -104,20 +104,31 @@
    Se comporta como lo que es, un enlace: cambia el cursor, se levanta apenas al pasarle
    por encima y se ve dónde está el foco al llegar con el tabulador. El texto no cambia
    de color, porque adentro tiene un número grande que es lo que hay que leer. */
-a.an-kpi {
+a.an-kpi,
+button.an-kpi {
   text-decoration: none;
   color: inherit;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 
-a.an-kpi:hover {
+/* La que abre una ventana en vez de llevar a otra pantalla. Es un botón, y sin esto se
+   dibuja con la letra y la alineación que el navegador le pone a los botones. */
+button.an-kpi {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+}
+
+a.an-kpi:hover,
+button.an-kpi:hover {
   transform: translateY(-1px);
   border-color: var(--adm-border-strong);
   box-shadow: var(--adm-shadow-lg);
 }
 
-a.an-kpi:focus-visible {
+a.an-kpi:focus-visible,
+button.an-kpi:focus-visible {
   outline: 2px solid var(--adm-green);
   outline-offset: 2px;
 }

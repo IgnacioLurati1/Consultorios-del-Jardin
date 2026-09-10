@@ -28,6 +28,10 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
   // baja la ve igual al abrir el turno.
   const notice = isProfessional ? cancellationNotice(appointment) : null;
 
+  // Contestó "Sí, voy" desde el mail del día anterior. Es para quien atiende: le dice a
+  // quién no hace falta llamar.
+  const confirmed = isProfessional && !!appointment.attendanceConfirmedAt && appointment.state === "accepted";
+
   /*
    * Un cancelado sale apagado, y está bien: es lo que ya no va a pasar. Pero prendiendo
    * "ver los cancelados" quedan todos iguales, y el que avisó sobre la hora es el único
@@ -73,6 +77,7 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
         {appointment.origin === "import" && <span className="appt-tag-import">Importado</span>}
         {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
         {notice?.short && <span className="adm-badge adm-badge-red">Baja con poco aviso</span>}
+        {confirmed && <span className="appt-tag-confirmed">Confirmó que viene</span>}
         <span className={state.className}>{state.label}</span>
       </span>
     </button>

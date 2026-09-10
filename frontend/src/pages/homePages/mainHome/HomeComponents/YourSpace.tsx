@@ -42,7 +42,7 @@ const ACCESSES: Record<string, Access[]> = {
     {
       icon: FaUserPen,
       title: "Mis datos",
-      description: "Tu teléfono, tu mail y tu contraseña.",
+      description: "Tu nombre, tu teléfono y tu documento.",
       to: "/EditProfile",
     },
   ],

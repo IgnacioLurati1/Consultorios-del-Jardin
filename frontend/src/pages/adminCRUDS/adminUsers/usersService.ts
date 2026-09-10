@@ -83,6 +83,19 @@ export function toggleBookable(email: string){
 }
 
 /**
+ * Prende o apaga la lista de espera de un profesional. Apagarla la vacía y les avisa a
+ * los que estaban; el mensaje del servidor dice a cuántos.
+ */
+export function toggleWaitlist(email: string){
+    return api.patch(`/people/${email}/toggleWaitlist`)
+    .then(response => ({ ...(response.data.data as { waitlistEnabled: boolean }), message: response.data.message as string }))
+    .catch((err: { response?: { data?: { message?: string } }; message: string }) => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
+}
+
+/**
  * Habilita o deshabilita una cuenta.
  *
  * Devuelve cómo quedó y no solamente que salió bien, porque deshabilitar a un

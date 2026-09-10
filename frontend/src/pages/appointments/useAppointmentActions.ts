@@ -13,6 +13,7 @@ import {
   updateAppointmentPayment,
 } from "./appointmentsService.ts";
 import { createRecurrence, stopRecurrence } from "./recurrencesService.ts";
+import { countWaitlistMatches } from "./waitlist/waitlistService.ts";
 import { findAllPatients } from "../patients/patientsService.ts";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
 
@@ -32,6 +33,12 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   const [selected, setSelected] = useState<Appointment | undefined>(undefined);
   /** El turno que el teclado quiere bajar y todavía no se confirmó. */
   const [cancelling, setCancelling] = useState<Appointment | undefined>(undefined);
+  /**
+   * Cuánta gente espera el horario del turno que se está por bajar. Va con el número de
+   * turno porque la respuesta llega después de abrir la ventana, y si en el medio se abrió
+   * otra, esa cuenta es de otro turno.
+   */
+  const [waitlist, setWaitlist] = useState<{ num: number; count: number } | null>(null);
 
   /*
    * El turno que la tecla va a agarrar: el que está debajo del mouse, y si no hay ninguno,
@@ -149,7 +156,22 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       return;
     }
 
+    setWaitlist(null);
     setCancelling(appointment);
+    waitingFor(appointment).then((count) => setWaitlist({ num: appointment.numAppointment, count }));
+  }
+
+  /**
+   * Cuánta gente de la lista de espera recibiría el aviso si este turno se da de baja.
+   *
+   * Solo del lado de quien atiende: cuando baja el paciente el aviso sale solo. Y nunca en
+   * el turno que el profesional sacó para atenderse él, que ahí es el paciente. Si no se
+   * puede preguntar, es cero y la baja es la de siempre: la lista de espera no puede frenar
+   * una cancelación.
+   */
+  function waitingFor(appointment: Appointment): Promise<number> {
+    if (!isProfessional || (user && isOwnBooking(appointment, user))) return Promise.resolve(0);
+    return countWaitlistMatches(appointment.numAppointment).catch(() => 0);
   }
 
   /**
@@ -257,11 +279,31 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
     });
 
   // Un turno pendiente se borra; uno confirmado queda cancelado y en el historial.
-  const onCancel = (appointment: Appointment) =>
+  const doCancel = (appointment: Appointment, notifyWaitlist: boolean) =>
     refreshAfter(
-      cancelAppointmentService(appointment.numAppointment),
-      appointment.state === "pending" ? "Turno eliminado" : "Turno cancelado"
+      cancelAppointmentService(appointment.numAppointment, isProfessional ? notifyWaitlist : undefined),
+      appointment.state === "pending"
+        ? "Turno eliminado"
+        : notifyWaitlist
+          ? "Turno cancelado. Les avisamos a los que esperaban ese horario"
+          : "Turno cancelado"
     );
+
+  /*
+   * El botón rojo de la ficha. Cancela directo, como siempre, salvo que haya gente
+   * esperando ese horario: ahí hay algo que decidir y se abre la ventana que pregunta.
+   */
+  const onCancel = (appointment: Appointment) => {
+    waitingFor(appointment).then((count) => {
+      if (count === 0) {
+        doCancel(appointment, false);
+        return;
+      }
+
+      setWaitlist({ num: appointment.numAppointment, count });
+      setCancelling(appointment);
+    });
+  };
 
   const onSaveRecord = (appointment: Appointment, data: { state?: string; observations?: string }) =>
     refreshAfter(
@@ -348,10 +390,11 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
     /** Todo lo que le hace falta a <CancelAppointmentModal>. */
     cancelProps: {
       appointment: cancelling,
+      waitlistCount: waitlist && cancelling && waitlist.num === cancelling.numAppointment ? waitlist.count : 0,
       onClose: () => setCancelling(undefined),
-      onConfirm: (appointment: Appointment) => {
+      onConfirm: (appointment: Appointment, notifyWaitlist: boolean) => {
         setCancelling(undefined);
-        onCancel(appointment);
+        doCancel(appointment, notifyWaitlist);
       },
     },
     /** Todo lo que le hace falta a <AppointmentDetailModal>, menos `user`. */

@@ -451,6 +451,14 @@ export function AppointmentDetailModal({
                     </span>
                   </div>
                 )}
+                {/* La respuesta al mail del día anterior. Solo se dice cuando contestó que
+                    sí: no contestar es lo normal y no quiere decir nada. */}
+                {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
+                  <div className="ui-detail-row">
+                    <span>{isProfessional ? "Asistencia" : "Tu respuesta"}</span>
+                    <span className="appt-tag-confirmed">{isProfessional ? "Confirmó que viene" : "Confirmaste que venís"}</span>
+                  </div>
+                )}
                 {appointment.overbooked && (
                   <div className="ui-detail-row">
                     <span>Tipo</span>

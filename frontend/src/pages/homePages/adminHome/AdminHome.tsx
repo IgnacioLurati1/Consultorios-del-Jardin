@@ -95,7 +95,7 @@ export function AdminHome() {
       <header className="adm-header">
         <div className="adm-header-titles">
           <h1 className="adm-title">Panel de administración</h1>
-          <p className="adm-subtitle">Consultorios Jardín</p>
+          <p className="adm-subtitle">Consultorios del Jardín</p>
         </div>
       </header>
 

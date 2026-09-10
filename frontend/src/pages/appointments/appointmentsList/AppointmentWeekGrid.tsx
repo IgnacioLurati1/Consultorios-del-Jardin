@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { FaPlus } from "react-icons/fa6";
+import { FaCircleCheck, FaPlus } from "react-icons/fa6";
 import type { Appointment, Person, Schedule } from "../../types.ts";
 import {
   addDays,
@@ -102,6 +102,10 @@ export function AppointmentWeekGrid({
       const cancelled = isCancelled(appointment.state);
       const stateClass = cancelled ? (notice?.short ? "cancelled late" : "cancelled") : appointment.state;
 
+      // Contestó "Sí, voy" desde el mail del día anterior. En la celda no entra una frase:
+      // va una tilde, y la frase en el title.
+      const confirmed = atiende && !!appointment.attendanceConfirmedAt && appointment.state === "accepted";
+
       const counterpart = atiende
         ? appointment.patient
           ? `${appointment.patient.surname}, ${appointment.patient.name}`
@@ -118,7 +122,7 @@ export function AppointmentWeekGrid({
             onClick={() => onOpen(appointment)}
             title={`${shortHour(appointment.initialHour)} · ${own ? "te atiende " : ""}${counterpart} · ${state.label}${
               notice?.short ? " · dio de baja sobre la hora" : ""
-            }${appointment.overbooked ? " · sobreturno" : ""}`}
+            }${appointment.overbooked ? " · sobreturno" : ""}${confirmed ? " · confirmó que viene" : ""}`}
             {...quickActions?.(appointment)}
           >
             <span className="week-slot-hour">
@@ -127,6 +131,7 @@ export function AppointmentWeekGrid({
                   el del colega, y esto dice de quién es el nombre. */}
               {own && <span className="appt-slot-own">tuyo</span>}
               {appointment.overbooked && <span className="appt-slot-over">sobreturno</span>}
+              {confirmed && <FaCircleCheck className="appt-slot-confirmed" aria-hidden="true" />}
             </span>
             <span className="week-slot-note">{counterpart}</span>
           </button>

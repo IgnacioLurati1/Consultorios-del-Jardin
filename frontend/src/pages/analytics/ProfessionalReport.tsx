@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { StackedBars, ChartLegend, type Band } from "./Charts.tsx";
 import { Kpi, KpiGrid, AnalyticsSection, MonthTabs } from "./Kpi.tsx";
-import { decimal, money, type Denials, type ProfessionalAnalytics } from "./analyticsService.ts";
+import { decimal, money, type Denials, type ProfessionalAnalytics, type ProfessionalRecentMonth } from "./analyticsService.ts";
+import { WaitlistPeopleModal } from "../appointments/waitlist/WaitlistPeopleModal.tsx";
 
 const BILLING_BANDS: Band[] = [
   { key: "billed", label: "Cobrado", color: "#3b7658" },
@@ -27,6 +28,12 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
   // La plata llega solo cuando el profesional mira lo suyo. Al admin el backend se la
   // saca, y esa ausencia es la que decide acá: no hace falta que nadie avise quién mira.
   const showsBilling = total.billed !== undefined;
+
+  // La lista de espera se abre solo desde los números propios. El admin ve cuánta gente
+  // espera, que es un dato de la carga del equipo, pero no quiénes son.
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  /** Cuántos quedaron después de sacar a alguien desde la ventana, sin volver a pedir todo. */
+  const [waitingNow, setWaitingNow] = useState<number | null>(null);
 
   const billingColumns = months.map((month) => ({
     label: shortMonth(month.label),
@@ -108,6 +115,15 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
           )}
           <Kpi label="Sobreturnos" value={month.overbooked} note="dados fuera de tus módulos" />
           <Kpi label="Pedidos rechazados" value={month.denials.denied} note={splitOf(month.denials)} />
+          {month.waitlist && (
+            <Kpi
+              label="Lista de espera"
+              value={month.waitlist.enabled ? (waitingNow ?? month.waitlist.current) : "—"}
+              note={waitlistNote(month.waitlist, month.inProgress)}
+              onClick={showsBilling && month.waitlist.enabled ? () => setWaitlistOpen(true) : undefined}
+              toHint="Ver quiénes están en tu lista de espera"
+            />
+          )}
         </KpiGrid>
       </AnalyticsSection>
 
@@ -187,8 +203,30 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
           />
         </KpiGrid>
       </AnalyticsSection>
+
+      {showsBilling && (
+        <WaitlistPeopleModal
+          open={waitlistOpen}
+          onClose={() => setWaitlistOpen(false)}
+          onChanged={(list) => setWaitingNow(list.length)}
+        />
+      )}
     </>
   );
+}
+
+/**
+ * La aclaración de la tarjeta de la lista de espera.
+ *
+ * El número grande es cuántos esperan hoy, sea el mes que sea: es lo único que la lista
+ * sabe de sí misma. El promedio sí es del mes elegido, y sale de la foto de cada noche,
+ * así que el primer día que se mide todavía no hay.
+ */
+function waitlistNote(waitlist: NonNullable<ProfessionalRecentMonth["waitlist"]>, inProgress: boolean): string {
+  if (!waitlist.enabled) return "no trabaja con lista de espera";
+  if (waitlist.average === null)
+    return inProgress ? "esperando hoy · el promedio se calcula cada noche" : "esperando hoy · de ese mes no hay datos";
+  return `esperando hoy · ${decimal(waitlist.average)} por día en promedio`;
 }
 
 /**

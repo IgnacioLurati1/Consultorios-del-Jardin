@@ -546,6 +546,7 @@
    "Pedro, Juanjueves, 27 de agosto". */
 
 .prof-pending .prof-today-person,
+.prof-waitlist .prof-today-person,
 .prof-unpaid .prof-today-person {
     display: flex;
     flex-direction: column;

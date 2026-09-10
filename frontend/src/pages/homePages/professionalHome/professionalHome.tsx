@@ -41,6 +41,9 @@ import { Modal } from "../../../components/modal/Modal.tsx";
 import { acceptPendingAppointments, settleUnpaidAppointments } from "./settingsService.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
 import { ShortcutsPanel } from "../../../components/shortcuts/ShortcutsPanel.tsx";
+import { WaitlistPeopleModal } from "../../appointments/waitlist/WaitlistPeopleModal.tsx";
+import { findMyWaitlist, type WaitingPatient } from "../../appointments/waitlist/waitlistService.ts";
+import { describeDaysTitle } from "../../appointments/waitlist/waitlistRules.ts";
 import "../../adminCRUDS/adminPanel.css";
 import { useSimpleText } from "../../../lib/textMode";
 import { useSimpleView } from "../../../lib/simpleView";
@@ -97,6 +100,9 @@ export function ProfessionalHome() {
   // Arranca cerrada. Es una cuenta pendiente, no algo que haya que hacer hoy: se abre
   // cuando uno viene a reclamar, y mientras tanto alcanza con el número del renglón.
   const [unpaidOpen, setUnpaidOpen] = useState(false);
+  /** Quiénes esperan que se libere un horario suyo. */
+  const [waitlist, setWaitlist] = useState<WaitingPatient[] | null>(null);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -163,6 +169,14 @@ export function ProfessionalHome() {
   }
 
   useEffect(loadUnpaid, []);
+
+  // Contra un servidor de antes no hay lista, y eso es lo mismo que una lista vacía: la
+  // caja no se dibuja.
+  useEffect(() => {
+    findMyWaitlist()
+      .then(setWaitlist)
+      .catch(() => setWaitlist([]));
+  }, []);
 
   function refresh() {
     loadToday();
@@ -343,6 +357,9 @@ export function ProfessionalHome() {
                       </span>
                       <span className="prof-today-room">{appointment.room?.description}</span>
                       {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                      {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
+                        <span className="appt-tag-confirmed">Confirmó</span>
+                      )}
                       <span className={state.className}>{state.label}</span>
                     </button>
                   </li>
@@ -446,6 +463,55 @@ export function ProfessionalHome() {
       )}
 
 
+      {/* La lista de espera, con la misma caja que el día. Es gente que ya pidió algo y
+          todavía no lo tiene, así que va junto a los pedidos y antes de la plata. Como los
+          pedidos, sin nadie no se dibuja, y tampoco con la vista simplificada: se sigue
+          viendo entera desde los números. */}
+      {!simpleView && waitlist && waitlist.length > 0 && (
+        <section className="prof-today prof-waitlist">
+          <div className="prof-today-head">
+            <div>
+              <h2 className="prof-today-title">Lista de espera</h2>
+              <p className="prof-today-date">
+                {waitlist.length === 1
+                  ? "Una persona espera que se libere un horario"
+                  : `${waitlist.length} personas esperan que se libere un horario`}
+              </p>
+            </div>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setWaitlistOpen(true)}>
+              Ver la lista
+              <FaArrowRight />
+            </button>
+          </div>
+
+          <div className="adm-panel">
+            <ul className="prof-today-list">
+              {waitlist.map((person) => (
+                <li key={person.id}>
+                  <button type="button" className="prof-today-item" onClick={() => setWaitlistOpen(true)}>
+                    <span className="prof-today-hour">
+                      <FaRegClock aria-hidden="true" />
+                      {person.fromHour} a {person.toHour}
+                    </span>
+                    <span className="prof-today-person">
+                      {person.patient.surname}, {person.patient.name}
+                      <span className="prof-pending-day">{describeDaysTitle(person.days)}</span>
+                    </span>
+                    <span className="prof-today-room">
+                      {person.noticesSent === 0
+                        ? "Todavía sin avisos"
+                        : person.noticesSent === 1
+                          ? "Un aviso"
+                          : `${person.noticesSent} avisos`}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       {/* Debajo de los pedidos y con la misma caja: es la otra cosa que quedó abierta,
           pero de otra clase. Un pedido espera una respuesta hoy; una consulta sin cobrar
           espera una conversación, y por eso esta caja arranca plegada y solo muestra el
@@ -534,6 +600,8 @@ export function ProfessionalHome() {
       {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
 
       <CancelAppointmentModal {...cancelProps} />
+
+      <WaitlistPeopleModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} onChanged={setWaitlist} />
 
       {/*
         Preguntar antes de saldar todo.

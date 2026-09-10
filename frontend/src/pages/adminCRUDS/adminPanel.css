@@ -948,6 +948,132 @@ textarea::placeholder {
   white-space: nowrap;
 }
 
+/* Contestó "Sí, voy" desde el mail del día anterior. En el verde fijo de los estados y
+   con el borde lleno: no es algo para mirar, es una buena noticia que se ve de lejos. Va
+   acá y no en la hoja de la lista porque lo usan también el panel y la ficha del turno. */
+.appt-tag-confirmed {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--adm-ok-line);
+  background: var(--adm-ok-soft);
+  color: var(--adm-ok);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.appt-slot-confirmed {
+  margin-left: 5px;
+  color: var(--adm-ok-strong);
+  font-size: 0.85em;
+  vertical-align: -1px;
+}
+
+/* ── Lista de espera ──────────────────────────────────────────────
+   Las dos ventanas, la del paciente y la del profesional. Van acá porque la del
+   profesional se abre desde su panel y desde sus números, que no comparten hoja. */
+.waitlist-lead {
+  margin: 0 0 16px;
+  color: var(--adm-text);
+  line-height: 1.55;
+}
+
+.waitlist-days {
+  flex-wrap: wrap;
+}
+
+.waitlist-days button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Lo elegido dicho en una frase, que es como se chequea sin releer los campos. En gris
+   mientras falta algo, y ahí dice qué. */
+.waitlist-summary {
+  margin: 4px 0 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--adm-ok-soft);
+  color: var(--adm-ok);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.waitlist-summary.muted {
+  background: var(--adm-surface-alt);
+  color: var(--adm-muted);
+  font-weight: 500;
+}
+
+.waitlist-fineprint {
+  margin: 8px 0 0;
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.waitlist-notices {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--adm-text);
+  line-height: 1.7;
+}
+
+.waitlist-loading {
+  display: grid;
+  gap: 10px;
+}
+
+.waitlist-people {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waitlist-person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  background: var(--adm-surface);
+}
+
+.waitlist-person-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.waitlist-person-when {
+  color: var(--adm-text);
+  font-size: 0.93rem;
+}
+
+.waitlist-person-meta {
+  color: var(--adm-muted);
+  font-size: 0.84rem;
+}
+
+.waitlist-person-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* La página de los links del mail del día anterior: el turno arriba de la pregunta. */
+.attendance-facts {
+  margin: 0 0 18px;
+  text-align: left;
+}
+
 /* Vino de un calendario de afuera. Va en gris y no en color: no es una alerta ni una
    excepción, es de dónde salió el dato. Lo que explica es por qué a ese turno le puede
    faltar el paciente o el valor. */

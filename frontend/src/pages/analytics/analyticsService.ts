@@ -92,6 +92,11 @@ export type ProfessionalRecentMonth = ProfessionalMetrics &
     denials: Denials;
     /** Lo que quedó sin cobrar de ese mes. Ausente cuando el que mira es un administrador. */
     debt?: Debt;
+    /**
+     * La lista de espera: cuántos esperan hoy y el promedio por día de ese mes, que sale
+     * de la foto de cada noche. Ausente contra un servidor de antes, y ahí no se dibuja.
+     */
+    waitlist?: { enabled: boolean; current: number; average: number | null };
   };
 
 export interface ProfessionalAnalytics {

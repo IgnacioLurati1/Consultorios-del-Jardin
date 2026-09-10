@@ -16,7 +16,9 @@ export function CellModule({cellKey,schedule,height,setScheduleModalOpen,setSele
     return(
         <div
             className={`hourly-module ${schedule ? "taken" : "empty"}${locked ? " read-only" : ""}`}
-            style={{ height: `calc(${height*5}vh + ${((height*0.4)-0.4)}em)` }} //calculo la altura segun su duracion, le sumo la altura de cada uno (6vh) y la de los margenes 0.5em c/coso
+            // Las horas que dura, más los espacios entre ellas que se come al ocuparlas. Las dos
+            // medidas son las de .schedule, las mismas de la columna de las horas.
+            style={{ height: `calc(${height} * var(--hour-h, 5vh) + ${Math.max(0, height - 1)} * var(--hour-gap, 2px))` }}
             onClick={handleClick}
         >
 

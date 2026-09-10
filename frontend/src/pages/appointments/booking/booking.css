@@ -214,6 +214,41 @@
   margin-top: 14px;
 }
 
+/* La lista de espera, al pie de la agenda. Con borde punteado y en voz baja: es la
+   salida para quien no encontró nada, no algo que compita con los horarios de arriba.
+   El botón dice la pregunta que se hace la persona, que es por donde la va a buscar. */
+.booking-waitlist {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  border: 1px dashed var(--adm-border-strong);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface);
+}
+
+.booking-waitlist-text {
+  flex: 1 1 260px;
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.booking-waitlist-btn {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .booking-waitlist-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .booking-week-nav {
     display: grid;

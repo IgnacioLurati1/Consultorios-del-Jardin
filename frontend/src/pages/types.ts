@@ -47,6 +47,11 @@ export interface Person{
      * false sigue trabajando igual: entra, ve su agenda y carga turnos a mano.
      */
     bookable?: boolean;
+    /**
+     * Si el profesional trabaja con lista de espera. Lo decide el admin. Opcional porque
+     * un servidor de antes no lo manda, y ahí se toma como que sí.
+     */
+    waitlistEnabled?: boolean;
     /** Paciente cargado por un profesional, sin cuenta propia. */
     anonymous?: boolean;
     /** Email del profesional que lo cargó, si es (o fue) un paciente anónimo. */
@@ -139,6 +144,11 @@ export interface Appointment {
      * servidor todavía sin este dato el turno se muestra igual, sin la línea de la baja.
      */
     patientCancelledAt?: string | null;
+    /**
+     * Cuándo contestó el paciente "Sí, voy" desde el mail del día anterior. En null no
+     * contestó, que es lo normal. Opcional por el servidor de antes, igual que el anterior.
+     */
+    attendanceConfirmedAt?: string | null;
     /**
      * Quién lo dio de alta. "import" son los que vinieron de un calendario externo: se
      * cargaron tal como estaban ahí, así que pueden no tener paciente ni valor y pueden

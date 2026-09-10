@@ -113,6 +113,26 @@ export function BookAppointment() {
     }
   }, [results, selected]);
 
+  /*
+   * El aviso de la lista de espera trae al profesional en la dirección, para que el
+   * horario que se liberó esté a un toque y no haya que buscarlo en la lista. Se elige
+   * una sola vez: si después la persona toca otro, no se lo vuelve a poner.
+   */
+  const askedProfessional = params.get("profesional");
+  const preselected = useRef(false);
+
+  useEffect(() => {
+    if (preselected.current || !askedProfessional || professionals.length === 0) return;
+    preselected.current = true;
+
+    const found = professionals.find((professional) => professional.email.toLowerCase() === askedProfessional.toLowerCase());
+    if (!found) return;
+
+    // No pasa por `pick`, que da vuelta la selección: acá siempre es abrir, nunca cerrar.
+    setSelected(found);
+    requestAnimationFrame(() => scheduleRef.current?.scrollIntoView({ behavior: "auto", block: "nearest" }));
+  }, [professionals, askedProfessional]);
+
   // Si falla, el modal se abre igual: el mensaje va sin nombre pero con el email, que es
   // lo que hace falta para que le contesten.
   useEffect(() => {

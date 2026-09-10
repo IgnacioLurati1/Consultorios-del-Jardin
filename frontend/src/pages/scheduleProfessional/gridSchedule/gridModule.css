@@ -8,8 +8,18 @@
    ============================================================ */
 
 .schedule {
+  /* Cuánto mide una hora, y el espacio entre dos. Todo lo que tiene que caer a la misma
+     altura sale de acá: las celdas (cellModule.tsx) y los rótulos de la columna de las
+     horas. Antes cada celda sumaba vh y em por su cuenta, y un módulo de varias horas se
+     iba corriendo de las filas vacías de al lado; con un rótulo al costado eso se vería.
+
+     El clamp es por las pantallas bajas y las altas: en 5vh a secas una notebook chica
+     dejaba filas de treinta píxeles, donde no entra el horario, y un monitor vertical las
+     estiraba sin razón. */
+  --hour-h: clamp(44px, 5vh, 64px);
+  --hour-gap: 2px;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: 4.5rem repeat(6, minmax(0, 1fr));
   gap: 1px;
   width: 100%;
   box-sizing: border-box;
@@ -57,11 +67,38 @@
   width: 100%;
   padding: 8px 8px 12px;
   box-sizing: border-box;
-  gap: 2px;
+  gap: var(--hour-gap);
 }
 
 .show-more-icon {
   display: none;
+}
+
+/* ---------- la columna de las horas ---------- */
+
+.hours-column {
+  background: var(--adm-surface-alt);
+}
+
+.hours-cells {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* El rótulo va arriba, contra la línea donde empieza la hora: es donde se lee en
+   cualquier agenda, y deja claro que la fila es la hora entera y no un punto. */
+.hour-label {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--hour-h);
+  flex-shrink: 0;
+  padding: 4px 12px 0 0;
+  border-top: 1px solid var(--adm-border);
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .day-cells .hourly-module:last-child,
@@ -70,6 +107,11 @@
 }
 
 @media (max-width: 768px) {
+  /* Plegado por día no hay filas que alinear: cada módulo dice su horario. */
+  .hours-column {
+    display: none;
+  }
+
   .schedule {
     grid-template-columns: 1fr;
     gap: 12px;

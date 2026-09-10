@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
+import { FaBell, FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { SkeletonGrid } from "../../../components/skeleton/Skeleton.tsx";
 import { createAppointment, getAvailableAppointmentsForPatient } from "../appointmentsService.ts";
 import { addDays, appointmentDate, formatWeekRange, startOfWeek, toISODate } from "../appointmentTypes.ts";
@@ -8,6 +8,7 @@ import type { partialAppointment } from "../appointmentTypes.ts";
 import type { Office, Person } from "../../types.ts";
 import { AvailableWeekGrid } from "./AvailableWeekGrid.tsx";
 import { ConfirmAppointmentModal } from "./ConfirmAppointmentModal.tsx";
+import { WaitlistModal } from "../waitlist/WaitlistModal.tsx";
 
 /** Hasta dónde se puede pedir turno: esta semana y la que viene. */
 const WEEKS_AHEAD = 1;
@@ -34,6 +35,7 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
   const [modalOpen, setModalOpen] = useState(false);
   /** Cambia al tocar "Probar de nuevo" y con eso se vuelve a pedir la agenda. */
   const [attempt, setAttempt] = useState(0);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   const firstMonday = useMemo(() => startOfWeek(new Date()), []);
   const lastMonday = useMemo(() => addDays(firstMonday, WEEKS_AHEAD * 7), [firstMonday]);
@@ -179,6 +181,24 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
           )}
         </>
       )}
+
+      {/* La salida para quien miró la agenda y no encontró nada que le sirva. Va también
+          cuando no queda ningún horario, que es justo cuando más se la necesita. No va
+          cuando no se pudo traer la agenda: ahí lo que hay que hacer es volver a probar, y
+          tampoco para quien no puede sacar turnos. */}
+      {slots !== null && !failed && !blockedReason && (
+        <div className="booking-waitlist">
+          <p className="booking-waitlist-text">
+            Si ningún horario te sirve, anotate en la lista de espera y te avisamos cuando se libere uno.
+          </p>
+          <button type="button" className="adm-btn adm-btn-ghost booking-waitlist-btn" onClick={() => setWaitlistOpen(true)}>
+            <FaBell aria-hidden="true" />
+            ¿No encontrás tu turno ideal?
+          </button>
+        </div>
+      )}
+
+      <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} professional={professional} />
 
       <ConfirmAppointmentModal
         isOpen={modalOpen}

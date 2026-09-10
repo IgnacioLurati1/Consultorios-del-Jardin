@@ -6,7 +6,7 @@ import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow, type PersonBadge } from "../../../components/peopleList/PeopleList.tsx";
-import { getAllUsers, toggleBookable, toggleState, updatePerson } from "./usersService";
+import { getAllUsers, toggleBookable, toggleState, toggleWaitlist, updatePerson } from "./usersService";
 import { getDecodedToken } from "../../commonServices.ts";
 import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
 import { explainCompromise } from "../../analytics/compromisedService.ts";
@@ -161,6 +161,16 @@ export function UsersAdmin() {
       .catch((err) => toast.error(`No pudimos cambiarlo: ${err.message}`));
   }
 
+  /** Prender o apagar su lista de espera. El aviso lo arma el servidor, que sabe a cuántos les avisó. */
+  function toggleWaitlistUser(email: string) {
+    toggleWaitlist(email)
+      .then(({ waitlistEnabled, message }) => {
+        toast.success(message);
+        setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, waitlistEnabled })));
+      })
+      .catch((err) => toast.error(`No pudimos cambiarlo: ${err.message}`));
+  }
+
   // Solo se editan profesionales, y nunca la contraseña (ver UserModal).
   async function editUser(email: string, data: Partial<Person>) {
     try {
@@ -294,6 +304,7 @@ export function UsersAdmin() {
         onClose={() => setModalVisible(false)}
         onToggleState={toggleStateUser}
         onToggleBookable={toggleBookableUser}
+        onToggleWaitlist={toggleWaitlistUser}
         onEdit={editUser}
       />
     </div>

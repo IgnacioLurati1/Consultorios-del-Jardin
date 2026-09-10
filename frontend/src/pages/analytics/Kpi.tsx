@@ -24,10 +24,15 @@ interface KpiProps {
   to?: string;
   /** Qué se va a ver del otro lado. Va al title, para no adivinar antes de tocar. */
   toHint?: string;
+  /**
+   * Lo mismo que `to`, pero abriendo algo en la misma pantalla en vez de ir a otra. Es
+   * para cuando lo que explica el número entra en una ventana, como la lista de espera.
+   */
+  onClick?: () => void;
 }
 
-export function Kpi({ label, value, note, lead, tone, to, toHint }: KpiProps) {
-  const className = `an-kpi ${lead ? "an-kpi-lead" : ""} ${tone === "danger" ? "an-kpi-danger" : ""} ${to ? "an-kpi-link" : ""}`;
+export function Kpi({ label, value, note, lead, tone, to, toHint, onClick }: KpiProps) {
+  const className = `an-kpi ${lead ? "an-kpi-lead" : ""} ${tone === "danger" ? "an-kpi-danger" : ""} ${to || onClick ? "an-kpi-link" : ""}`;
 
   const cuerpo = (
     <>
@@ -42,6 +47,13 @@ export function Kpi({ label, value, note, lead, tone, to, toHint }: KpiProps) {
       <Link to={to} className={className} title={toHint}>
         {cuerpo}
       </Link>
+    );
+
+  if (onClick)
+    return (
+      <button type="button" className={className} title={toHint} onClick={onClick}>
+        {cuerpo}
+      </button>
     );
 
   return <div className={className}>{cuerpo}</div>;

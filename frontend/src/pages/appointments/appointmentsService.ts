@@ -109,9 +109,13 @@ export function acceptAppointment(numAppointment: number): Promise<boolean> {
     .catch(backendError);
 }
 
-export function cancelAppointmentService(numAppointment: number): Promise<boolean> {
+/**
+ * `notifyWaitlist` es la respuesta del profesional a si les avisa a los que esperan ese
+ * horario. Del lado del paciente no se manda: ahí el servidor avisa solo.
+ */
+export function cancelAppointmentService(numAppointment: number, notifyWaitlist?: boolean): Promise<boolean> {
   return api
-    .patch(`/appointments/${numAppointment}/cancel`)
+    .patch(`/appointments/${numAppointment}/cancel`, notifyWaitlist === undefined ? undefined : { notifyWaitlist })
     .then(() => true)
     .catch(backendError);
 }

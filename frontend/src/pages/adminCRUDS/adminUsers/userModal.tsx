@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
+import { FaBell, FaBellSlash, FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import type { Person } from "../../types";
 import { SPECIALITIES } from "../../specialities.ts";
@@ -15,6 +15,8 @@ interface UserModalProps {
   onToggleState: (email: string) => void;
   /** Muestra o esconde al profesional de la búsqueda de turnos. Solo para profesionales. */
   onToggleBookable: (email: string) => void;
+  /** Prende o apaga su lista de espera. Solo para profesionales. */
+  onToggleWaitlist?: (email: string) => void;
   /** Guarda los cambios. Solo se ofrece para profesionales. */
   onEdit: (email: string, data: Partial<Person>) => void;
 }
@@ -32,11 +34,14 @@ export function UserModal({
   onClose,
   onToggleState,
   onToggleBookable,
+  onToggleWaitlist,
   onEdit,
 }: UserModalProps) {
   const [userData, setUserData] = useState(emptyUser);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Apagar la lista se pregunta: la vacía, y a la gente que estaba le llega un aviso. */
+  const [confirmingWaitlistOff, setConfirmingWaitlistOff] = useState(false);
 
   // El admin solo edita profesionales. Los pacientes quedan en modo lectura: los suyos
   // los mantiene cada persona, y los anónimos, el profesional que los cargó.
@@ -58,6 +63,7 @@ export function UserModal({
     });
     setEditing(false);
     setError(null);
+    setConfirmingWaitlistOff(false);
   }, [visible, user]);
 
   if (!visible || !user) return null;
@@ -106,6 +112,23 @@ export function UserModal({
         Guardar cambios
       </button>
     </>
+  ) : confirmingWaitlistOff ? (
+    <>
+      <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingWaitlistOff(false)}>
+        Volver
+      </button>
+      <button
+        type="button"
+        className="adm-btn adm-btn-danger"
+        onClick={() => {
+          onToggleWaitlist?.(user.email);
+          onClose();
+        }}
+      >
+        <FaBellSlash />
+        Sí, apagarla
+      </button>
+    </>
   ) : (
     <>
       {isProfessional && (
@@ -128,6 +151,25 @@ export function UserModal({
         >
           {user.bookable === false ? <FaEye /> : <FaEyeSlash />}
           {user.bookable === false ? "Volver a ofrecerlo" : "Sacar de la búsqueda"}
+        </button>
+      )}
+
+      {/* Prenderla es inmediato; apagarla se confirma, porque se lleva puesta la lista. */}
+      {isProfessional && user.active && onToggleWaitlist && (
+        <button
+          type="button"
+          className="adm-btn adm-btn-ghost"
+          onClick={() => {
+            if (user.waitlistEnabled === false) {
+              onToggleWaitlist(user.email);
+              onClose();
+            } else {
+              setConfirmingWaitlistOff(true);
+            }
+          }}
+        >
+          {user.waitlistEnabled === false ? <FaBell /> : <FaBellSlash />}
+          {user.waitlistEnabled === false ? "Prender la lista de espera" : "Apagar la lista de espera"}
         </button>
       )}
 
@@ -261,6 +303,14 @@ export function UserModal({
                 </span>
               </div>
             )}
+            {isProfessional && (
+              <div className="ui-detail-row">
+                <span>Lista de espera</span>
+                <span className={`adm-badge ${user.waitlistEnabled === false ? "adm-badge-amber" : "adm-badge-green"}`}>
+                  {user.waitlistEnabled === false ? "No la usa" : "La usa"}
+                </span>
+              </div>
+            )}
             <div className="ui-detail-row">
               <span>Cuenta</span>
               <strong>
@@ -305,6 +355,13 @@ export function UserModal({
             <p className="ui-alert ui-alert-info">
               Lo cargó un profesional para poder darle turnos. Si la persona se registra con este email, la cuenta pasa a ser real y
               conserva su historial.
+            </p>
+          )}
+
+          {confirmingWaitlistOff && (
+            <p className="ui-alert ui-alert-warn">
+              Si la apagás, se vacía su lista de espera y les avisamos a las personas que estaban. Desde ese momento, el paciente
+              que toque el botón de la lista va a ver que este profesional no trabaja con lista de espera.
             </p>
           )}
 
