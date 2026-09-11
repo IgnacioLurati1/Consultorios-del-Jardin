@@ -58,8 +58,11 @@ jobs:
       - name: Construir
         run: npm run build
         env:
-          # Pages sirve el sitio colgado del nombre del repo, no de la raíz del dominio.
-          VITE_BASE: /${{ github.event.repository.name }}/
+          # Con el dominio propio (consultoriosdeljardin.com.ar) el sitio vive en la raíz.
+          # Sin dominio, Pages lo sirve colgado del nombre del repo y esto tendría que
+          # volver a ser /${{ github.event.repository.name }}/: si no coincide con donde
+          # se publica, el HTML pide sus archivos a una ruta que no existe y carga en blanco.
+          VITE_BASE: "/"
           # La dirección del backend. Se configura en el repo (Settings → Secrets and
           # variables → Actions → Variables) para no dejarla escrita en el código: cambia
           # con el deploy y no es lo mismo en una prueba que en producción.
