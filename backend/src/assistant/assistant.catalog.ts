@@ -71,7 +71,7 @@ export const PAGES: Page[] = [
     key: "agenda",
     path: "/ProfessionalHome",
     label: "Ir a mi agenda",
-    description: "Agenda del profesional: turnos del día, pendientes de aceptar y sobreturnos.",
+    description: "Agenda del profesional: turnos del día, pendientes de aceptar y turnos especiales.",
     roles: ["professional", "admin"],
   },
   {

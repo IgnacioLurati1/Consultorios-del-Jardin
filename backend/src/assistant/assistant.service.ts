@@ -216,7 +216,8 @@ export class AssistantService {
       asistidos: source.assisted,
       noVinieron: source.missed,
       cancelados: source.cancelled,
-      sobreturnos: source.overbooked,
+      // Con el nombre de pantalla: el modelo repite las claves que ve.
+      turnosEspeciales: source.overbooked,
       pacientesDistintos: source.patients,
       facturado: source.billed,
       agendadoSinCobrar: source.scheduled,
@@ -234,7 +235,7 @@ export class AssistantService {
       profesionalesActivos: data.headcount ?? undefined,
       mesEnCurso: { mes: current?.label ?? null, ...this.summarizeMetrics(current) },
       acumulado: { meses: data.total?.months ?? null, ...this.summarizeMetrics(data.total) },
-      quienDioMasSobreturnos: data.total?.topOverbooker ?? undefined,
+      quienDioMasTurnosEspeciales: data.total?.topOverbooker ?? undefined,
     };
   }
 

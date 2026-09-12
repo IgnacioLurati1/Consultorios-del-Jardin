@@ -13,7 +13,7 @@ import { button, buttonPair, factsCard, note, paragraph, title, warning } from "
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
-import { addDays, monthKey, parseISODate, startOfDay } from "../shared/dates.js";
+import { addDays, monthKey, parseISODate, sameCalendarDay, startOfDay } from "../shared/dates.js";
 import { SecurityService } from "../security/security.service.js";
 import { NotificationService } from "../notifications/notifications.service.js";
 import { noticeOf } from "../shared/shortNotice.js";
@@ -610,12 +610,14 @@ export class AppointmentService {
     // Solo se revalidan horarios (y se avisa por mail) si realmente cambió la franja.
     // Cambiarle el valor a un turno no tiene por qué mandarle un mail al paciente.
     const sameHour = (a?: string, b?: string) => (a ?? "").slice(0, 5) === (b ?? "").slice(0, 5);
-    const sameDay = (a?: Date, b?: Date) => new Date(a as Date).toDateString() === new Date(b as Date).toDateString();
-
+    // La ficha manda siempre fecha y horario, aunque solo se haya tocado el valor. La
+    // fecha guardada vuelve de la base como medianoche UTC y la que llega es medianoche
+    // local: compararlas sin `sameCalendarDay` las daba siempre distintas y el paciente
+    // recibía "tu turno se movió" por un cambio de precio.
     const scheduleChanged =
       (changes.initialHour !== undefined && !sameHour(changes.initialHour, appointment.initialHour)) ||
       (changes.finalHour !== undefined && !sameHour(changes.finalHour, appointment.finalHour)) ||
-      (changes.date !== undefined && !sameDay(changes.date, appointment.date));
+      (changes.date !== undefined && !sameCalendarDay(changes.date, appointment.date));
 
     if (scheduleChanged) {
       const initialHour = (changes.initialHour ?? appointment.initialHour).slice(0, 5);
@@ -1474,22 +1476,24 @@ export class AppointmentService {
     const links = attendanceLinks(appointment);
 
     const htmlContent = [
-      title("Mañana tenés turno"),
-      factsCard("Tu turno de mañana", this.appointmentFacts(appointment)),
-      paragraph("Es en <strong>9 de Julio 3672</strong>. Llegá cinco minutos antes."),
+      // Los botones dicen lo mismo que la página que abren ("Confirmar asistencia" y
+      // "Cancelar turno"), y el mail va en el mismo registro impersonal que la web.
+      title("Turno de mañana"),
+      factsCard("Turno de mañana", this.appointmentFacts(appointment)),
+      paragraph("En <strong>9 de Julio 3672</strong>. Se recomienda llegar cinco minutos antes."),
       ...(links
         ? [
-            paragraph("¿Vas a poder venir? Contestá con un toque, así el profesional sabe con tiempo quién viene."),
-            buttonPair({ label: "Sí, voy", href: links.yes }, { label: "No puedo ir", href: links.no }),
+            paragraph("La respuesta le avisa al profesional con tiempo."),
+            buttonPair({ label: "Confirmar asistencia", href: links.yes }, { label: "Cancelar turno", href: links.no }),
             note(
-              `Si no podés, el horario le queda a otra persona. También lo podés ver en <a href="${this.appUrl(
+              `Al cancelar, el horario queda disponible para otra persona. El turno también figura en <a href="${this.appUrl(
                 "/AppointmentsList"
-              )}" style="color:#2f5e46">tus turnos</a>.`
+              )}" style="color:#2f5e46">Mis turnos</a>.`
             ),
           ]
         : [
             button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-            note("Si no vas a poder ir, cancelalo hoy. Así el horario le queda a otra persona."),
+            note("Para cancelar, conviene hacerlo hoy. Así el horario queda disponible para otra persona."),
           ]),
     ].join("");
 

@@ -154,7 +154,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     ["professional"],
     "get_my_analytics",
     "Números del profesional",
-    "Estadísticas propias del profesional: turnos, asistencia, cancelaciones, sobreturnos, pacientes distintos y facturación, del mes en curso y del acumulado."
+    "Estadísticas propias del profesional: turnos, asistencia, cancelaciones, turnos especiales (sobreturnos), pacientes distintos y facturación, del mes en curso y del acumulado."
   ),
 
   // ---------- administración ----------
@@ -170,7 +170,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     ["admin"],
     "get_professional_analytics",
     "Números de un profesional",
-    "Estadísticas de un profesional en particular: turnos, asistencias, ausencias y sobreturnos. No incluye lo que factura, que es dato suyo; si te lo preguntan, decilo así y ofrecé el total del consultorio.",
+    "Estadísticas de un profesional en particular: turnos, asistencias, ausencias y turnos especiales (sobreturnos). No incluye lo que factura, que es dato suyo; si te lo preguntan, decilo así y ofrecé el total del consultorio.",
     { professionalEmail: { type: "string", description: "Email del profesional." } },
     ["professionalEmail"]
   ),
@@ -185,8 +185,8 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["admin"],
     "get_overbooking_this_week",
-    "Sobreturnos de la semana",
-    "Qué profesionales están dando sobreturnos esta semana y cuántos, con el detalle de cada uno.",
+    "Turnos especiales de la semana",
+    "Qué profesionales están dando turnos especiales (sobreturnos) esta semana y cuántos, con el detalle de cada uno.",
     {
       weeksAgo: {
         type: "number",

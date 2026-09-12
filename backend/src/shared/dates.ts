@@ -43,6 +43,19 @@ export function startOfDay(value: Date | string): Date {
 }
 
 /**
+ * Si dos fechas de turno caen el mismo día de calendario.
+ *
+ * Las dos pasan por `startOfDay` porque suelen venir de lados distintos: una leída de la
+ * base (medianoche UTC) y otra recién parseada (medianoche local). Comparadas con
+ * `toDateString`, en UTC-3 la de la base se lee como el día anterior y dos fechas iguales
+ * dan distintas. Eso hacía que cambiarle solo el valor a un turno le mandara al paciente
+ * el mail de "tu turno se movió".
+ */
+export function sameCalendarDay(a: Date | string, b: Date | string): boolean {
+  return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
+
+/**
  * El día de calendario de un "AAAA-MM-DD", o null si ese día no existe.
  *
  * `new Date(2026, 1, 30)` no falla: el 30 de febrero se desborda al 2 de marzo, y el mes

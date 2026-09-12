@@ -16,8 +16,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 const REASONS: Record<string, string> = {
   turnos: "Turnos",
-  profesional: "Quiero atender en el consultorio",
-  sugerencia: "Sugerencia o reclamo",
+  profesional: "Quiero trabajar en el consultorio",
+  sugerencia: "Sugerencia",
   otro: "Otra consulta",
 };
 
