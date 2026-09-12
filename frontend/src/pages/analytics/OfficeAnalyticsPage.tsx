@@ -49,7 +49,7 @@ export function OfficeAnalyticsPage() {
   useEffect(() => {
     findOfficeAnalytics()
       .then(setData)
-      .catch((err) => toast.error(`No pudimos cargar los números: ${err.message}`));
+      .catch((err) => toast.error(`Error al cargar los números: ${err.message}`));
   }, []);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function OfficeAnalyticsPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        toast.error(`No pudimos cargar ese profesional: ${err.message}`);
+        toast.error(`Error al cargar ese profesional: ${err.message}`);
         setDetail(null);
       })
       .finally(() => {
@@ -205,7 +205,7 @@ export function OfficeAnalyticsPage() {
           <Kpi label="Asistencias" value={month.assisted} note={averageCount(month.assisted)} />
           <Kpi label="Cancelados" value={month.cancelled} note={averageCount(month.cancelled)} />
           <Kpi
-            label="Sobreturnos"
+            label="Turnos especiales"
             value={month.overbooked}
             note={month.topOverbooker ? `más: ${month.topOverbooker.name} (${month.topOverbooker.count})` : "ninguno"}
           />
@@ -247,7 +247,7 @@ export function OfficeAnalyticsPage() {
           <Kpi label="Asistencias" value={total.assisted} note={averageCount(total.assisted)} />
           <Kpi label="Turnos cancelados" value={total.cancelled} note={averageCount(total.cancelled)} />
           <Kpi
-            label="Sobreturnos"
+            label="Turnos especiales"
             value={total.overbooked}
             note={total.topOverbooker ? `más: ${total.topOverbooker.name} (${total.topOverbooker.count})` : "ninguno"}
           />

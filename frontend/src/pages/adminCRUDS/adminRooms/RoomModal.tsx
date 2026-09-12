@@ -72,7 +72,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
   function submit() {
     const newErrors: typeof errors = {};
     if (!roomData.description.trim()) newErrors.description = "La descripción es obligatoria";
-    if (!roomData.office) newErrors.office = "Elegí una sucursal";
+    if (!roomData.office) newErrors.office = "Falta la sucursal";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -159,7 +159,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
               setRoomData({ ...roomData, office: "" });
             }}
           >
-            <option value="">Elegí una localidad…</option>
+            <option value="">Seleccionar localidad…</option>
             {cities.map((c) => (
               <option key={c.idCity} value={c.idCity}>
                 {c.nameCity}
@@ -171,7 +171,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         <label className="ui-field">
           <span>Sucursal</span>
           <select value={roomData.office} disabled={!city} onChange={(e) => setRoomData({ ...roomData, office: e.target.value })}>
-            <option value="">{city ? "Elegí una sucursal…" : "Elegí primero la localidad"}</option>
+            <option value="">{city ? "Seleccionar sucursal…" : "Primero, la localidad"}</option>
             {filteredOffices.map((office) => (
               <option key={office.idOffice} value={office.idOffice}>
                 {office.description}

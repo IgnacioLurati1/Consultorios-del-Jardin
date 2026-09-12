@@ -98,7 +98,7 @@ describe("Panel de usuarios", () => {
 
     await abrirFicha("admin@admin.com");
     expect(screen.queryByRole("button", { name: "Deshabilitar" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Es tu propia cuenta/)).toBeInTheDocument();
+    expect(screen.getByText(/Cuenta propia\. Solo otro administrador/)).toBeInTheDocument();
 
     // La ventana tiene dos: la cruz de arriba y el botón del pie. Va el del pie.
     const cerrar = screen.getAllByRole("button", { name: "Cerrar" });

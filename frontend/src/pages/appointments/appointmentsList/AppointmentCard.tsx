@@ -73,9 +73,9 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
       <span className="appt-card-tags">
         {/* Con la agenda llena, el color solo dice "este es distinto". El cartel dice
             por qué, que es lo que hace falta para no leerlo como un paciente más. */}
-        {own && <span className="appt-tag-own">Te atienden a vos</span>}
+        {own && <span className="appt-tag-own">Turno propio</span>}
         {appointment.origin === "import" && <span className="appt-tag-import">Importado</span>}
-        {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+        {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
         {notice?.short && <span className="adm-badge adm-badge-red">Baja con poco aviso</span>}
         {confirmed && <span className="appt-tag-confirmed">Confirmó que viene</span>}
         <span className={state.className}>{state.label}</span>

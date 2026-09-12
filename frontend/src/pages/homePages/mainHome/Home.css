@@ -1,13 +1,13 @@
 /* ============================================================
    Portada pública.
    Es la única pantalla que ve alguien sin cuenta, así que es la
-   única que se permite tipografía de display, fondo oscuro y
-   animación de entrada. De la barra para adentro manda el
-   sistema del panel: los verdes y el crema son los mismos.
+   única que se permite fotos a todo el ancho, tipografía de display
+   y animación de entrada. De la barra para adentro manda el sistema
+   del panel: los verdes y el crema son los mismos.
    ============================================================ */
 
 .home {
-  /* El tono más profundo de la estación: el fondo del hero y el del pie. Sale del
+  /* El tono más profundo de la estación: la franja de los accesos y el pie. Sale del
      extremo lejano del degradado, no del acento, para dejar respirar al crema de la
      marca sin pelearse con la barra de arriba. */
   --home-ink: hsl(var(--sea-h2) var(--sea-s2) 10%);
@@ -22,15 +22,41 @@
   --home-border: var(--adm-border, #e2e8f0);
   --home-display: "Fraunces", "Ubuntu", Georgia, serif;
 
+  /* Alto de la barra de arriba (.app-header-inner). La capa de fotos es fija contra la
+     ventana, así que tiene que saber dónde termina la barra para arrancar ahí. */
+  --home-header: 66px;
+  --home-hero-h: clamp(440px, 76vh, 820px);
+
+  /* Las hojas del nombre, del color de la estación. Son los mismos cuatro de la app del
+     celular (mobile/src/theme/leaf.ts): colores de verdad y no el tono lavado del panel,
+     porque van encima de una foto y tienen que leerse. */
+  --home-leaf: #2e9a5c;
+  --home-leaf-vein: rgba(255, 255, 255, 0.34);
+
   background: var(--home-paper);
   color: var(--home-text);
 }
 
+[data-season="primavera"] .home {
+  --home-leaf: #57bd6b;
+}
+
+[data-season="verano"] .home {
+  --home-leaf: #2e9a5c;
+}
+
+[data-season="otono"] .home {
+  --home-leaf: #d07c2e;
+}
+
+[data-season="invierno"] .home {
+  --home-leaf: #2c9079;
+}
+
 /* La cursiva orgánica de Fraunces es la firma tipográfica: se usa solo en títulos
    y nunca en texto corrido. */
-.home-title,
+.home-wordmark,
 .home-section-title,
-.home-agenda-day,
 .home-footer-name {
   font-family: var(--home-display);
   font-optical-sizing: auto;
@@ -39,92 +65,155 @@
   letter-spacing: -0.015em;
 }
 
-/* ---------- hero ---------- */
-
-.home-hero {
-  position: relative;
+.home-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
   overflow: hidden;
-  padding: clamp(52px, 8vw, 104px) 22px clamp(64px, 9vw, 116px);
-  /* Dos luces de la estación sobre el fondo profundo: una arriba a la derecha, otra
-     abajo a la izquierda. Son los dos extremos del degradado —el acento y el color al
-     que va— así que el hero cambia entero con el calendario. */
-  background:
-    radial-gradient(900px 520px at 88% -12%, hsl(var(--sea-h) var(--sea-s) 37% / 0.45), transparent 62%),
-    radial-gradient(760px 520px at -6% 104%, hsl(var(--sea-h2) var(--sea-s2) 31% / 0.38), transparent 60%),
-    var(--home-ink);
-  color: var(--home-cream);
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* Trama diagonal muy tenue: le saca el plano al fondo sin que se lea como textura. */
-.home-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(
-    118deg,
-    rgba(254, 250, 224, 0.05) 0 1px,
-    transparent 1px 26px
-  );
+/* ---------- hero: las fotos del consultorio ---------- */
+
+/* Las fotos quedan quietas y la página sube por encima. La capa de fotos es
+   `position: fixed` y esta sección la recorta con clip-path, que —a diferencia de
+   overflow— sí recorta a lo que está fijo adentro. Así se ve solo el pedazo que cae
+   dentro de la sección, y al bajar ese pedazo se achica desde abajo mientras las fotos
+   no se mueven. Es el efecto de background-attachment: fixed, que el Safari del celular
+   no respeta. */
+.home-hero {
+  position: relative;
+  height: var(--home-hero-h);
+  clip-path: inset(0);
+}
+
+/* `pointer-events: none` no es decorativo: lo fijo queda afuera del contenedor que
+   scrollea (.app-scroll), así que la rueda o el dedo encima de las fotos no movían la
+   página. Así el mouse las atraviesa y cae en .home-hero, que sí está adentro. Acá no hay
+   nada que tocar. */
+.home-hero-stage {
+  position: fixed;
+  top: var(--home-header);
+  left: 0;
+  right: 0;
+  height: var(--home-hero-h);
   pointer-events: none;
 }
 
-.home-hero-inner {
+/* Tiras verticales separadas por una línea del color del papel, como un contacto de
+   fotos. */
+.home-collage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: clamp(6px, 0.8vw, 12px);
+  background: var(--home-paper);
+}
+
+.home-collage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Viñeta del color de la estación: suave en los bordes y más densa abajo, donde tiene
+   que leerse el nombre. */
+.home-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to top,
+      hsl(var(--sea-h2) var(--sea-s2) 9% / 0.8) 0%,
+      hsl(var(--sea-h2) var(--sea-s2) 9% / 0.34) 26%,
+      transparent 50%
+    ),
+    radial-gradient(ellipse 80% 78% at 50% 42%, transparent 58%, hsl(var(--sea-h) var(--sea-s) 20% / 0.5) 100%);
+  box-shadow: inset 0 0 90px 12px hsl(var(--sea-h) var(--sea-s) 22% / 0.5);
+}
+
+.home-wordmark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(26px, 5.5vh, 60px);
+  margin: 0;
+  padding: 0 22px;
+  text-align: center;
+  font-size: clamp(2.3rem, 6.4vw, 5.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  color: var(--home-cream);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-wrap: balance;
+  animation: home-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards;
+}
+
+/* "ın": la caja sobre la que se apoyan las hojas. */
+.home-wordmark-accent {
   position: relative;
+  display: inline-block;
+}
+
+/* Las hojas hacen de tilde: centradas sobre la "ı" y la "n", apenas por encima de la
+   altura de las minúsculas. */
+.home-wordmark-leaves {
+  position: absolute;
+  left: 50%;
+  bottom: 0.68em;
+  width: 0.92em;
+  translate: -50% 0;
+  overflow: visible;
+  fill: var(--home-leaf);
+  color: var(--home-leaf-vein);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+  transition: fill 0.4s ease;
+}
+
+/* ---------- los accesos, debajo de las fotos ---------- */
+
+.home-intro {
+  position: relative;
+  padding: clamp(28px, 4.5vw, 46px) 22px;
+  background: var(--home-ink);
+  color: var(--home-cream);
+}
+
+.home-intro-inner {
   width: min(1240px, 100%);
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
+  display: flex;
   align-items: center;
-  gap: clamp(36px, 6vw, 80px);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px 32px;
 }
 
-.home-hero-copy > * {
-  animation: home-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-
-.home-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0 0 20px;
-  padding: 7px 15px 7px 12px;
-  border: 1px solid rgba(254, 250, 224, 0.28);
-  border-radius: 999px;
-  background: rgba(254, 250, 224, 0.08);
-  font-size: 0.93rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  animation-delay: 0.04s;
-}
-
-.home-eyebrow svg {
-  color: var(--home-green-light);
-}
-
-.home-title {
+.home-intro-lead {
+  max-width: 44ch;
   margin: 0;
-  font-size: clamp(2.5rem, 5.4vw, 4.1rem);
-  line-height: 1.03;
-  color: #fff;
-  text-wrap: balance;
-  animation-delay: 0.1s;
+  font-size: clamp(1.08rem, 1.6vw, 1.3rem);
+  line-height: 1.5;
+  color: rgba(254, 250, 224, 0.86);
 }
 
-.home-lead {
-  max-width: 46ch;
-  margin: 22px 0 0;
-  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
-  line-height: 1.62;
-  color: rgba(254, 250, 224, 0.82);
-  animation-delay: 0.18s;
+/* Con sesión la franja lleva solo los botones, y solos van al medio. */
+.home-intro-inner > .home-actions:only-child {
+  margin-inline: auto;
 }
 
 .home-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 13px;
-  margin-top: 34px;
-  animation-delay: 0.26s;
 }
 
 .home-btn {
@@ -146,6 +235,15 @@
   transform: translateY(-2px);
 }
 
+.home-btn svg {
+  transition: transform 0.16s ease;
+}
+
+.home-btn:hover svg {
+  transform: translateX(3px);
+}
+
+/* Sobre el fondo oscuro. */
 .home-btn-primary {
   background: var(--home-cream);
   color: hsl(var(--sea-h2) var(--sea-s2) 12%);
@@ -154,14 +252,6 @@
 
 .home-btn-primary:hover {
   background: var(--adm-surface);
-}
-
-.home-btn-primary svg {
-  transition: transform 0.16s ease;
-}
-
-.home-btn-primary:hover svg {
-  transform: translateX(3px);
 }
 
 .home-btn-ghost {
@@ -174,7 +264,16 @@
   border-color: var(--home-cream);
 }
 
-/* Mismo botón, pero sobre fondo claro. */
+/* Los mismos dos, sobre fondo claro. */
+.home-btn-primary-light {
+  background: var(--home-green);
+  color: var(--adm-on-green, #fff);
+}
+
+.home-btn-primary-light:hover {
+  background: var(--home-green-dark);
+}
+
 .home-btn-outline {
   border-color: var(--home-green);
   color: var(--home-green-dark);
@@ -183,179 +282,6 @@
 
 .home-btn-outline:hover {
   background: var(--adm-green-soft, #e8f1ec);
-}
-
-.home-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 26px;
-  margin: 38px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.95rem;
-  color: rgba(254, 250, 224, 0.7);
-  animation-delay: 0.34s;
-}
-
-.home-facts li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.home-facts li::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--home-green-light);
-}
-
-/* ---------- la agenda de muestra ---------- */
-
-.home-agenda {
-  animation: home-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
-}
-
-/* La muestra de agenda es además el camino a pedir turno, así que se comporta como algo
-   que se toca: se levanta un poco y se enciende el borde. Es el mismo gesto que hacen las
-   tarjetas de especialidad más abajo, para que la página tenga un solo idioma. */
-.home-agenda-card {
-  display: block;
-  padding: 22px;
-  border-radius: 18px;
-  border: 1px solid transparent;
-  background: var(--home-surface);
-  color: var(--home-text);
-  text-decoration: none;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.home-agenda-card:hover,
-.home-agenda-card:focus-visible {
-  transform: translateY(-4px);
-  border-color: var(--home-green-light);
-  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.45);
-}
-
-.home-agenda-card:focus-visible {
-  outline: 2px solid var(--home-green-light);
-  outline-offset: 4px;
-}
-
-/* Quien pidió menos movimiento recibe el encendido del borde y nada más. */
-@media (prefers-reduced-motion: reduce) {
-  .home-agenda-card {
-    transition: border-color 0.18s ease;
-  }
-
-  .home-agenda-card:hover,
-  .home-agenda-card:focus-visible {
-    transform: none;
-  }
-}
-
-.home-agenda-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--home-border);
-  margin-bottom: 8px;
-}
-
-.home-agenda-day {
-  display: block;
-  font-size: 1.24rem;
-  color: var(--home-text);
-}
-
-/* Solo la inicial: el día viene en minúscula del locale. */
-.home-agenda-day::first-letter {
-  text-transform: uppercase;
-}
-
-.home-agenda-who {
-  display: block;
-  margin-top: 3px;
-  font-size: 0.92rem;
-  color: var(--home-muted);
-}
-
-.home-agenda-tag {
-  flex-shrink: 0;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px dashed var(--home-border);
-  color: var(--home-muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.home-agenda-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.home-slot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 14px;
-  border-radius: 11px;
-  border: 1px solid transparent;
-  font-weight: 600;
-  animation: home-slot-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease;
-}
-
-.home-slot-hour {
-  font-variant-numeric: tabular-nums;
-  color: var(--home-green-dark);
-}
-
-.home-slot-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.92rem;
-  color: var(--home-green-dark);
-}
-
-.home-slot.is-taken {
-  background: var(--adm-surface-alt);
-}
-
-.home-slot.is-taken .home-slot-hour,
-.home-slot.is-taken .home-slot-state {
-  color: var(--home-muted);
-  font-weight: 400;
-}
-
-.home-slot.is-mine {
-  background: var(--home-green);
-  border-color: var(--home-green-dark);
-  box-shadow: 0 8px 20px hsl(var(--sea-h) var(--sea-s) 35% / 0.32);
-}
-
-.home-slot.is-mine .home-slot-hour,
-.home-slot.is-mine .home-slot-state {
-  color: var(--adm-on-green);
-}
-
-.home-agenda-caption {
-  max-width: 34ch;
-  margin: 18px auto 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  text-align: center;
-  color: rgba(254, 250, 224, 0.6);
 }
 
 /* ---------- secciones claras ---------- */
@@ -376,17 +302,7 @@
 }
 
 .home-section-head {
-  max-width: 62ch;
-  margin-bottom: 40px;
-}
-
-.home-kicker {
-  margin: 0 0 12px;
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--home-green);
+  margin-bottom: 28px;
 }
 
 .home-section-title {
@@ -396,18 +312,11 @@
   color: var(--home-text);
 }
 
-.home-section-lead {
-  margin: 16px 0 0;
-  font-size: 1.08rem;
-  line-height: 1.6;
-  color: var(--home-muted);
-}
-
 /* ---------- especialidades ---------- */
 
 .home-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 22px;
 }
 
@@ -434,33 +343,19 @@
   box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
 }
 
-/* Marcador de foto. Cuando lleguen las imágenes reales, este bloque se reemplaza por
-   un <img> con el mismo aspecto y el resto de la tarjeta no cambia. */
+/* El bloque de color de cada especialidad, con su ícono. */
 .home-photo {
-  position: relative;
   display: grid;
   place-items: center;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   color: #fff;
-  font-size: 2.5rem;
+  font-size: 2.3rem;
   background:
-    radial-gradient(120% 100% at 25% 12%, rgba(255, 255, 255, 0.26), transparent 58%),
+    radial-gradient(120% 100% at 25% 12%, rgba(255, 255, 255, 0.24), transparent 58%),
     var(--tint, var(--adm-green));
 }
 
-.home-photo::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.11) 0 2px,
-    transparent 2px 12px
-  );
-}
-
 .home-photo svg {
-  position: relative;
   transition: transform 0.25s ease;
 }
 
@@ -468,25 +363,12 @@
   transform: scale(1.08) rotate(-3deg);
 }
 
-.home-photo-tag {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.28);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .home-card-body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 9px;
-  padding: 22px 22px 24px;
+  gap: 8px;
+  padding: 20px 22px 22px;
 }
 
 .home-card-title {
@@ -494,18 +376,10 @@
   font-weight: 700;
 }
 
-.home-card-desc {
-  flex: 1;
-  font-size: 0.99rem;
-  line-height: 1.5;
-  color: var(--home-muted);
-}
-
 .home-card-cta {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
   font-size: 0.96rem;
   font-weight: 700;
   color: var(--tint, var(--home-green-dark));
@@ -590,7 +464,7 @@
   transform: none;
 }
 
-/* ---------- tres pasos, para quien no tiene cuenta ---------- */
+/* ---------- los pasos, para quien no tiene cuenta ---------- */
 
 .home-steps {
   display: grid;
@@ -599,14 +473,13 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  counter-reset: none;
 }
 
 .home-step {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  padding: 28px 24px;
+  padding: 26px 24px;
   border-radius: 14px;
   border: 1px solid var(--home-border);
   background: var(--home-surface);
@@ -638,31 +511,312 @@
 }
 
 .home-join {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 22px;
-  margin-top: 32px;
-  padding: 28px 30px;
-  border-radius: 16px;
-  border: 1px solid var(--adm-green-soft, #e8f1ec);
+  margin-top: 30px;
+}
+
+/* ---------- galería ---------- */
+
+/* Su propia franja, igual que la ubicación: el tinte suave de la estación de lado a
+   lado. Lleva línea abajo también porque, a diferencia del mapa, después viene otra
+   sección sobre el papel. */
+.home-gallery-band {
   background: var(--adm-green-soft, #e8f1ec);
+  border-block: 1px solid var(--adm-green-line, #d3e3da);
 }
 
-.home-join-text {
+/* Más ajustada en alto que las otras secciones: la foto ya ocupa bastante, y con el
+   aire de siempre la franja quedaba más alta que la pantalla. */
+.home-gallery-band .home-section {
+  padding-block: clamp(30px, 4vw, 46px);
+}
+
+.home-gallery-band .home-section-head {
+  margin-bottom: 16px;
+}
+
+/* Carrusel: la foto del medio entera y la anterior y la siguiente asomándose a los
+   costados, más chicas y apagadas. Cada foto se ubica con --offset (0 el medio, -1 y 1
+   las vecinas, el resto escondidas) y se mueve animando el transform. Las fotos son
+   horizontales, 4:3, así que la caja también; el tope de ancho es lo que decide el alto
+   de toda la franja. */
+.home-gallery-viewport {
+  --slide-w: clamp(260px, 44vw, 560px);
+  --slide-gap: 18px;
+  --step: calc(var(--slide-w) * 0.9 + var(--slide-gap));
+  overflow: hidden;
+  padding-block: 6px 20px;
+  /* El dedo en vertical sigue bajando la página; en horizontal pasa de foto. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.home-gallery-stage {
+  position: relative;
+  height: calc(var(--slide-w) * 3 / 4);
+}
+
+.home-gallery-slide {
+  --scale: 1;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--slide-w);
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  background: var(--home-border);
+  cursor: zoom-in;
+  transform: translateX(calc(-50% + var(--offset) * var(--step))) scale(var(--scale));
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.4s ease,
+    filter 0.4s ease;
+}
+
+.home-gallery-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.home-gallery-slide[data-place="center"] {
+  z-index: 2;
+  box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
+}
+
+.home-gallery-slide[data-place="near"] {
+  --scale: 0.84;
+  z-index: 1;
+  opacity: 0.6;
+  filter: saturate(0.7);
+}
+
+.home-gallery-slide[data-place="near"]:hover {
+  opacity: 0.9;
+  filter: none;
+}
+
+.home-gallery-slide[data-place="far"] {
+  --scale: 0.7;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-gallery-controls {
   display: flex;
   align-items: center;
-  gap: 11px;
-  margin: 0;
-  font-size: 1.04rem;
-  font-weight: 600;
-  color: var(--home-green-dark);
+  justify-content: center;
+  gap: 16px;
 }
 
-.home-join .home-actions {
-  margin-top: 0;
-  animation: none;
+.home-gallery-arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--adm-green-line, #d3e3da);
+  border-radius: 50%;
+  background: var(--home-surface);
+  color: var(--home-green-dark);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.home-gallery-arrow:hover {
+  background: var(--adm-green-soft, #e8f1ec);
+  border-color: var(--home-green);
+}
+
+.home-gallery-dots {
+  display: flex;
+}
+
+/* El botón es más grande que el punto, para que se pueda tocar con el dedo. */
+.home-gallery-dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.home-gallery-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--adm-green-line, #d3e3da);
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.home-gallery-dot[aria-current="true"]::before {
+  width: 22px;
+  background: var(--home-green);
+}
+
+/* La foto en grande. Va directo en el body (fuera de .home), así que usa los colores de
+   la estación de la raíz y no las variables de la portada. */
+.home-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  align-items: center;
+  padding: 68px 16px 18px;
+  background: hsl(var(--sea-h2) var(--sea-s2) 5% / 0.95);
+  /* Deslizar en horizontal pasa de foto; pellizcar sigue haciendo zoom. */
+  touch-action: pan-y pinch-zoom;
+  animation: home-fade 0.2s ease;
+}
+
+.home-lightbox-img {
+  max-width: min(100%, 1000px);
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  animation: home-fade 0.25s ease;
+}
+
+.home-lightbox-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-top: 16px;
+}
+
+.home-lightbox-count {
+  min-width: 4ch;
+  text-align: center;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(254, 250, 224, 0.8);
+}
+
+.home-lightbox-btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(254, 250, 224, 0.12);
+  color: #fefae0;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.home-lightbox-btn:hover {
+  background: rgba(254, 250, 224, 0.22);
+}
+
+.home-lightbox-btn:focus-visible {
+  outline: 2px solid #fefae0;
+  outline-offset: 3px;
+}
+
+.home-lightbox-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+@keyframes home-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* En el celular el carrusel toma también el margen de la sección, así las vecinas
+   asoman un poco más. La foto horizontal pide casi todo el ancho para leerse; con menos
+   espacio entre fotos las vecinas siguen asomando a los costados. */
+@media (max-width: 620px) {
+  .home-gallery-viewport {
+    --slide-w: 76vw;
+    --slide-gap: 10px;
+    margin-inline: -22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-gallery-slide,
+  .home-gallery-dot::before {
+    transition: none;
+  }
+
+  .home-lightbox,
+  .home-lightbox-img {
+    animation: none;
+  }
+}
+
+/* ---------- ubicación ---------- */
+
+/* Franja del ancho de la página con el tinte suave de la estación: separa el mapa de
+   las secciones de arriba, que van sobre el papel. El token ya cambia con el modo
+   oscuro, así que la franja también. */
+.home-location-band {
+  background: var(--adm-green-soft, #e8f1ec);
+  border-top: 1px solid var(--adm-green-line, #d3e3da);
+}
+
+.home-location-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  margin-bottom: 26px;
+}
+
+.home-location-address {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 1.02rem;
+  color: var(--home-text);
+}
+
+.home-location-address svg {
+  color: var(--home-green);
+}
+
+.home-location-link {
+  margin-left: auto;
+  padding: 11px 20px;
+  font-size: 0.97rem;
+}
+
+/* Del ancho del contenedor. El alto sale del ancho para que en el celular no quede una
+   tira finita ni en el escritorio una pared. */
+.home-map {
+  display: block;
+  width: 100%;
+  height: clamp(300px, 38vw, 460px);
+  border: 1px solid var(--adm-green-line, #d3e3da);
+  border-radius: 16px;
+  background: var(--home-surface);
+  box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
+}
+
+@media (max-width: 620px) {
+  .home-location-link {
+    margin-left: 0;
+  }
 }
 
 /* ---------- pie ---------- */
@@ -788,33 +942,47 @@
   }
 }
 
-@keyframes home-slot-in {
-  from {
-    opacity: 0;
-    transform: translateX(18px);
-  }
-}
-
 /* ---------- pantallas chicas ---------- */
 
-@media (max-width: 940px) {
-  .home-hero-inner {
-    grid-template-columns: minmax(0, 1fr);
+/* En el celular, una foto por vez con fundido en vez de tiras: en tiras de un tercio de
+   pantalla no se entendía ninguna. Todas apiladas y apagadas; la activa aparece encima
+   y la que se va queda prendida debajo hasta que la tapa, así a mitad del fundido nunca
+   se ve el fondo. Cuál es cuál lo decide Hero.tsx (useSlideshow), con el mismo corte de
+   700px. Y un poco más bajas que antes. */
+@media (max-width: 700px) {
+  .home {
+    --home-hero-h: clamp(340px, 54vh, 480px);
   }
 
-  .home-agenda {
-    max-width: 460px;
-    width: 100%;
+  /* `isolation` encierra los z-index de las fotos acá adentro: sin eso la activa (z-index
+     2) quedaba por encima de la viñeta y del nombre, que no tienen z-index. */
+  .home-collage {
+    display: block;
+    isolation: isolate;
+    background: var(--home-ink);
   }
 
-  .home-agenda-caption {
-    text-align: left;
-    margin-left: 0;
+  .home-collage img {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+
+  .home-collage img.is-leaving {
+    z-index: 1;
+    opacity: 1;
+    transition: none;
+  }
+
+  .home-collage img.is-active {
+    z-index: 2;
+    opacity: 1;
   }
 }
 
-/* En pantallas angostas la tarjeta se acuesta: cuatro fotos de 4:3 apiladas hacían
-   una página tres veces más larga de lo necesario. */
+/* En pantallas angostas la tarjeta se acuesta: los bloques de color apilados hacían una
+   página mucho más larga de lo necesario. */
 @media (max-width: 620px) {
   .home-card {
     flex-direction: row;
@@ -822,20 +990,15 @@
   }
 
   .home-photo {
-    width: 108px;
+    width: 92px;
     flex-shrink: 0;
     aspect-ratio: auto;
-    font-size: 1.9rem;
-  }
-
-  .home-photo-tag {
-    right: 6px;
-    bottom: 6px;
-    font-size: 0.62rem;
+    font-size: 1.7rem;
   }
 
   .home-card-body {
-    padding: 18px 18px 20px;
+    justify-content: center;
+    padding: 18px;
   }
 
   .home-card-title {
@@ -844,21 +1007,20 @@
 }
 
 @media (max-width: 560px) {
-  .home-btn {
-    justify-content: center;
+  .home-actions {
+    width: 100%;
   }
 
-  .home-join {
-    padding: 24px 20px;
+  .home-btn {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
 
 /* ---------- sin animación ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .home-hero-copy > *,
-  .home-agenda,
-  .home-slot,
+  .home-wordmark,
   .home-section.is-visible .home-card,
   .home-section.is-visible .home-access,
   .home-section.is-visible .home-step {

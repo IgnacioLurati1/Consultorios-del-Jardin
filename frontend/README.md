@@ -12,6 +12,20 @@ Sistema web para la gestión de turnos con tres roles de usuario:
 
 Incluye autenticación JWT, integración con Google reCAPTCHA, notificaciones toast y un asistente de IA integrado.
 
+## Glosario
+
+Algunos conceptos se llaman distinto en pantalla que en el código. El cambio de nombre fue
+solo de la web: el backend, la base, la API y la app del celular conservan el nombre viejo.
+
+| En pantalla | En el código y la API | Qué es |
+| --- | --- | --- |
+| Turno especial | `overbooked`, "sobreturno" | Turno dado fuera de los módulos de atención del profesional. |
+| Cobrado | `paymentState: "paid"`, antes "Pagado" | Turno con el valor completo registrado como cobrado. |
+| Cobro parcial | `paymentState: "partial"` | Parte del valor registrada como cobrada, con el monto en `paidAmount`. |
+| Sin cobrar | `paymentState: "unpaid"` | Turno con el cobro registrado como pendiente. |
+
+Al agregar un texto nuevo sobre alguno de estos conceptos, usar el nombre de pantalla.
+
 ## Requisitos previos
 
 - Node.js >= 18

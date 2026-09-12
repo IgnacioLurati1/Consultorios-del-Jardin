@@ -16,14 +16,14 @@ export function AnalyticsPage() {
   useEffect(() => {
     findMyAnalytics()
       .then(setData)
-      .catch((err) => toast.error(`No pudimos cargar los números: ${err.message}`));
+      .catch((err) => toast.error(`Error al cargar los números: ${err.message}`));
   }, []);
 
   return (
     <div className="adm-page an-page">
       <AdminHeader
         title="Números"
-        subtitle="Tu facturación, tus turnos y cómo se movieron mes a mes"
+        subtitle="Facturación y turnos, mes a mes"
         backTo="/ProfessionalHome"
         actions={
           <button type="button" className="adm-btn adm-btn-ghost" disabled={!data} onClick={() => window.print()}>

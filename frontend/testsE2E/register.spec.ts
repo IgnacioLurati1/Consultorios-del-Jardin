@@ -6,8 +6,9 @@ import { test, expect } from '@playwright/test';
 test('Flujo completo de Register exitoso', async ({ page }) => {
   await page.goto('http://localhost:5173/');
 
-  // En la barra superior, el acceso al registro es un link.
-  await page.getByRole('link', { name: /Crear cuenta/i }).click();
+  // El acceso al registro es un link. En la portada hay más de uno (barra, franja de
+  // accesos y pasos), así que se toca el primero, que es el de la barra.
+  await page.getByRole('link', { name: /Crear cuenta/i }).first().click();
 
   // Paso 1: cuenta
   await page.getByLabel('Email').fill(`prueba.${Date.now()}@demo.local`);
@@ -24,7 +25,7 @@ test('Flujo completo de Register exitoso', async ({ page }) => {
   await page.getByLabel('Teléfono').fill('3411234567');
   await page.getByLabel('Tipo de documento').selectOption('DNI');
   await page.getByLabel('Número de documento').fill('12345678');
-  await page.getByRole('button', { name: /Crear cuenta/i }).click();
+  await page.getByRole('button', { name: /Enviar mail de confirmación/i }).click();
 
   await expect(page).toHaveURL('http://localhost:5173/');
 });
@@ -34,7 +35,7 @@ test('El registro no deja avanzar con datos incompletos', async ({ page }) => {
 
   // Sin email no se pasa de paso.
   await page.getByRole('button', { name: /Siguiente/i }).click();
-  await expect(page.getByText(/Escribí un email/i)).toBeVisible();
+  await expect(page.getByText(/Falta el email/i)).toBeVisible();
 
   // Las contraseñas se comparan en el mismo paso, no al final.
   await page.getByLabel('Email').fill('prueba@demo.local');

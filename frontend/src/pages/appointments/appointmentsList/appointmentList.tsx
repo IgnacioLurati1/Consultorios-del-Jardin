@@ -261,7 +261,7 @@ export function AppointmentsList() {
     repeat: { frequency: RecurrenceFrequency; endDate: string | null } | null;
   }) {
     const created = await createProfessionalAppointment(data);
-    const label = data.overbooked ? "Sobreturno" : "Turno";
+    const label = data.overbooked ? "Turno especial" : "Turno";
 
     /**
      * Cómo se deshace un turno recién creado.
@@ -351,8 +351,8 @@ export function AppointmentsList() {
           effectiveMode === "grid"
             ? formatWeekRange(monday)
             : isProfessional
-            ? "Tus turnos, del más reciente al más viejo"
-            : "Tus turnos"
+            ? "Del más reciente al más antiguo"
+            : "Próximos y anteriores"
         }
         backTo={isProfessional ? "/ProfessionalHome" : "/"}
         actions={
@@ -386,7 +386,7 @@ export function AppointmentsList() {
                 type="button"
                 className="adm-btn adm-btn-accent"
                 onClick={() => setExportModalOpen(true)}
-                title="Bajar tu agenda como archivo de calendario"
+                title="Descargar la agenda como archivo de calendario"
               >
                 <FaFileArrowDown />
                 Exportar
@@ -472,7 +472,7 @@ export function AppointmentsList() {
       ) : appointments.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">
-            {includeCancelled ? "No hay turnos para mostrar." : "No hay turnos activos. Probá mostrando también los cancelados."}
+            {includeCancelled ? "Sin turnos para mostrar." : "Sin turnos activos. Los cancelados se ven con “Ver cancelados”."}
           </div>
         </div>
       ) : (

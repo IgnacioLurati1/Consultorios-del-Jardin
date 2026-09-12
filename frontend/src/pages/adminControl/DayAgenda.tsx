@@ -84,7 +84,7 @@ export function DayAgenda() {
       })
       .catch((err) => {
         if (cancelled) return;
-        toast.error(`No pudimos cargar el día: ${err.message}`);
+        toast.error(`Error al cargar el día: ${err.message}`);
         setAgenda(null);
       })
       .finally(() => {
@@ -281,7 +281,7 @@ export function DayAgenda() {
                           </span>
 
                           <span className="day-visit-tags">
-                            {visit.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                            {visit.overbooked && <span className="appt-tag-over">Turno especial</span>}
                             <span className={state.className}>{state.label}</span>
                           </span>
                         </li>

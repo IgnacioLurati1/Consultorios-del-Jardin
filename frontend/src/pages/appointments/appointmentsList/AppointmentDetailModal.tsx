@@ -272,10 +272,10 @@ export function AppointmentDetailModal({
    */
   function paymentProblem(): string | null {
     if (payment !== "partial") return null;
-    if (value <= 0) return "Para registrar un pago parcial el turno tiene que tener un valor cargado.";
-    if (!paidAmount.trim() || !Number.isFinite(amount) || amount <= 0) return "Escribí cuánto pagó.";
-    if (amount > value) return `El turno vale $${value}. No puede haber pagado más que eso.`;
-    if (amount === value) return `Pagó los $${value} completos. Marcalo como "Pagó".`;
+    if (value <= 0) return "Un cobro parcial requiere un valor cargado en el turno.";
+    if (!paidAmount.trim() || !Number.isFinite(amount) || amount <= 0) return "Falta el monto cobrado.";
+    if (amount > value) return `El monto supera el valor del turno, que es de $${value}.`;
+    if (amount === value) return `Es el valor completo del turno. Corresponde la opción "Cobrado".`;
     return null;
   }
 
@@ -396,10 +396,10 @@ export function AppointmentDetailModal({
                 value={edit.value}
                 onChange={(e) => setEdit({ ...edit, value: e.target.value })}
               />
-              <small>Lo que cobrás por esta consulta. Vacío queda en 0.</small>
+              <small>Valor de la consulta. Vacío equivale a 0.</small>
             </label>
 
-            <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
+            <p className="ui-alert ui-alert-info">Dato visible solo para el profesional y el paciente.</p>
           </div>
         ) : (
           <>
@@ -408,7 +408,7 @@ export function AppointmentDetailModal({
                 la busque. */}
             {ownBooking && (
               <p className="ui-alert appt-own-note">
-                Este turno es tuyo como paciente. Lo maneja el profesional que te atiende, así que acá no hay registro ni cobro.
+                Turno propio como paciente. El registro y el cobro los maneja el profesional que atiende.
               </p>
             )}
 
@@ -440,7 +440,7 @@ export function AppointmentDetailModal({
                 </div>
                 {notice && (
                   <div className="ui-detail-row">
-                    <span>{isProfessional ? "Lo dio de baja el paciente" : "Lo diste de baja"}</span>
+                    <span>{isProfessional ? "Baja del paciente" : "Dado de baja"}</span>
                     <span className="appt-notice">
                       <strong>{formatCancellation(notice.at)}</strong>
                       {notice.short && (
@@ -455,14 +455,14 @@ export function AppointmentDetailModal({
                     sí: no contestar es lo normal y no quiere decir nada. */}
                 {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
                   <div className="ui-detail-row">
-                    <span>{isProfessional ? "Asistencia" : "Tu respuesta"}</span>
-                    <span className="appt-tag-confirmed">{isProfessional ? "Confirmó que viene" : "Confirmaste que venís"}</span>
+                    <span>Asistencia</span>
+                    <span className="appt-tag-confirmed">Confirmada</span>
                   </div>
                 )}
                 {appointment.overbooked && (
                   <div className="ui-detail-row">
                     <span>Tipo</span>
-                    <span className="appt-tag-over">Sobreturno</span>
+                    <span className="appt-tag-over">Turno especial</span>
                   </div>
                 )}
                 <div className="ui-detail-row">
@@ -536,7 +536,7 @@ export function AppointmentDetailModal({
                   patients={patients}
                   value={patientToAdd}
                   onChange={setPatientToAdd}
-                  placeholder="Buscá por nombre, apellido o email"
+                  placeholder="Buscar por nombre, apellido o email"
                 />
 
                 <div className="ui-section-actions">
@@ -565,7 +565,7 @@ export function AppointmentDetailModal({
                     <option value="assisted">Asistió</option>
                     <option value="missed">No vino</option>
                   </select>
-                  {!isPast && state === "missed" && <small className="ui-hint">Ojo, este turno todavía no pasó.</small>}
+                  {!isPast && state === "missed" && <small className="ui-hint">El turno todavía no ocurrió.</small>}
                 </label>
 
                 <label className="ui-field">
@@ -575,7 +575,7 @@ export function AppointmentDetailModal({
                     maxLength={OBSERVATIONS_MAX}
                     value={observations}
                     onChange={(e) => setObservations(e.target.value.slice(0, OBSERVATIONS_MAX))}
-                    placeholder="Qué trabajaron y qué sigue hasta la próxima…"
+                    placeholder="Trabajo realizado y pasos hasta la próxima consulta…"
                   />
                   {/* El contador aparece recién sobre el final: mientras sobra lugar es un
                       número que no le sirve a nadie, y avisar cuando ya no entra más es
@@ -592,8 +592,8 @@ export function AppointmentDetailModal({
                     escribe: decirlo acá, al lado del campo, es la única forma de que se
                     entere antes de guardar y no después. */}
                 <p className="ui-alert ui-alert-info">
-                  Esto lo ven el paciente y vos. Sirve para dejarle el seguimiento —un plan, indicaciones, qué mirar hasta la
-                  próxima consulta—.
+                  Visible para el paciente. Sirve para el seguimiento, con plan, indicaciones y pautas hasta la próxima
+                  consulta.
                 </p>
 
                 <div className="ui-section-actions">
@@ -625,7 +625,7 @@ export function AppointmentDetailModal({
                 }
               >
                 <div className="ui-field">
-                  <span>¿Pagó este turno?</span>
+                  <span>Estado del cobro</span>
                   <div className="ui-choice-row">
                     {PAYMENT_OPTIONS.map((option) => (
                       <label className="ui-choice" key={option.value}>
@@ -643,7 +643,7 @@ export function AppointmentDetailModal({
 
                 {payment === "partial" && (
                   <label className="ui-field">
-                    <span>¿Cuánto pagó?</span>
+                    <span>Monto cobrado</span>
                     <input
                       type="number"
                       min={1}
@@ -654,8 +654,8 @@ export function AppointmentDetailModal({
                       onChange={(e) => setPaidAmount(e.target.value)}
                     />
                     <small>
-                      {value > 0 ? `El turno vale $${value}.` : "Este turno no tiene valor cargado."}
-                      {!paymentIssue && amount > 0 && value > 0 ? ` Quedan debiendo $${value - amount}.` : ""}
+                      {value > 0 ? `Valor del turno $${value}.` : "Turno sin valor cargado."}
+                      {!paymentIssue && amount > 0 && value > 0 ? ` Saldo pendiente $${value - amount}.` : ""}
                     </small>
                   </label>
                 )}
@@ -664,8 +664,7 @@ export function AppointmentDetailModal({
 
                 {!savedPayment && (
                   <p className="ui-hint">
-                    Este turno es anterior al registro de cobros, así que no figura como impago en ningún lado hasta que
-                    elijas algo acá.
+                    Turno anterior al registro de cobros. Figura como impago recién cuando se elige una opción.
                   </p>
                 )}
 

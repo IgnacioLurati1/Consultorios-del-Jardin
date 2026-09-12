@@ -85,7 +85,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
 
       const entry = await joinWaitlist(professional.email, { days, fromHour, toHour });
       setStatus({ ...fresh, entry, active: [...fresh.active, entry.professional], monthUsed: fresh.monthUsed + 1 });
-      toast.success("Quedaste en la lista de espera");
+      toast.success("Inscripción en la lista de espera confirmada");
     } catch (err) {
       setError(messageOf(err));
     } finally {
@@ -101,7 +101,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
       await leaveWaitlist(professional.email);
       setStatus(await getWaitlistStatus(professional.email));
       setConfirmingLeave(false);
-      toast.success("Saliste de la lista de espera");
+      toast.success("Baja de la lista de espera confirmada");
     } catch (err) {
       setError(messageOf(err));
     } finally {
@@ -121,9 +121,9 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
   if (loadError) {
     body = (
       <>
-        <p className="ui-alert ui-alert-error">No pudimos consultar la lista de espera. {loadError}</p>
+        <p className="ui-alert ui-alert-error">Error al consultar la lista de espera. {loadError}</p>
         <button type="button" className="adm-btn adm-btn-primary" onClick={() => setAttempt((n) => n + 1)}>
-          Probar de nuevo
+          Reintentar
         </button>
       </>
     );
@@ -141,8 +141,8 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
     body = (
       <>
         <p className="ui-alert ui-alert-info">
-          Estás en la lista de espera. Si alguien da de baja un turno que te sirve con más de un día de anticipación, te
-          avisamos por mail y en la campanita.
+          Inscripción activa. Si se libera un turno de la franja elegida con más de un día de anticipación, llega un
+          aviso por mail y en la campanita.
         </p>
 
         <div className="ui-detail-list">
@@ -157,7 +157,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
             </strong>
           </div>
           <div className="ui-detail-row">
-            <span>Anotado hasta el</span>
+            <span>Vigente hasta el</span>
             <strong>{formatMoment(entry.expiresAt)}</strong>
           </div>
           <div className="ui-detail-row">
@@ -170,7 +170,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
 
         {entry.notices.length > 0 && (
           <div className="ui-section">
-            <h3 className="ui-section-title">Los horarios que te avisamos</h3>
+            <h3 className="ui-section-title">Horarios avisados</h3>
             <ul className="waitlist-notices">
               {entry.notices.map((notice) => (
                 <li key={`${notice.date}-${notice.initialHour}`}>
@@ -183,7 +183,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
 
         {confirmingLeave && (
           <p className="ui-alert ui-alert-warn">
-            Si salís, dejamos de avisarte de los horarios de {professional.name}. Salir no te devuelve la inscripción de este mes.
+            Con la baja se dejan de recibir avisos de {professional.name}. La inscripción del mes sigue contando.
           </p>
         )}
 
@@ -197,16 +197,16 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
           Volver
         </button>
         <button type="button" className="adm-btn adm-btn-danger" onClick={leave} disabled={saving}>
-          {saving ? "Saliendo…" : "Sí, salir de la lista"}
+          {saving ? "Dando de baja…" : "Confirmar baja"}
         </button>
       </>
     ) : (
       <>
         <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingLeave(true)}>
-          Salir de la lista
+          Darse de baja
         </button>
         <button type="button" className="adm-btn adm-btn-primary" onClick={onClose}>
-          Listo
+          Cerrar
         </button>
       </>
     );
@@ -221,7 +221,9 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
           <p className="ui-alert ui-alert-warn">{reason}</p>
           {status.enabled && others.length > 0 && (
             <p className="waitlist-fineprint">
-              {others.length === 1 ? `Ahora estás en la lista de ${others[0]}.` : `Ahora estás en las listas de ${others.join(" y de ")}.`}
+              {others.length === 1
+                ? `Inscripción activa en la lista de ${others[0]}.`
+                : `Inscripción activa en las listas de ${others.join(" y de ")}.`}
             </p>
           )}
         </>
@@ -233,13 +235,13 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
       body = (
         <>
           <p className="waitlist-lead">
-            Elegí qué días y en qué horario te sirve. Si alguien da de baja un turno que cae ahí con más de un día de
-            anticipación, te avisamos por mail y en la campanita.
+            Días y franja horaria de interés. Si se libera un turno en esa franja con más de un día de anticipación, llega
+            un aviso por mail y en la campanita.
           </p>
 
           <div className="ui-field">
             <span>Días, hasta {status.limits.maxDays}</span>
-            <div className="adm-chips waitlist-days" role="group" aria-label="Días que te sirven">
+            <div className="adm-chips waitlist-days" role="group" aria-label="Días de interés">
               {WEEK_DAYS.map((day) => {
                 const on = days.includes(day.value);
                 const topped = !on && days.length >= status.limits.maxDays;
@@ -288,13 +290,13 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
           </div>
 
           <p className={`waitlist-summary ${problem ? "muted" : ""}`}>
-            {problem ?? `Te avisamos si se libera un turno los ${describeDays(days)} entre las ${fromHour} y las ${toHour}.`}
+            {problem ?? `Aviso si se libera un turno los ${describeDays(days)} entre las ${fromHour} y las ${toHour}.`}
           </p>
 
           <p className="waitlist-fineprint">
-            Quedás anotado {status.limits.lifetimeDays} días o hasta recibir {status.limits.maxNotices} avisos. Les avisamos a
-            todos los que esperan el mismo horario, así que se lo queda el primero que lo reserva.{" "}
-            {remaining === 1 ? "Este mes te queda una inscripción." : `Este mes te quedan ${remaining} inscripciones.`}
+            La inscripción dura {status.limits.lifetimeDays} días o hasta {status.limits.maxNotices} avisos. El aviso llega a
+            todas las personas que esperan ese horario, y el turno queda para quien lo reserve primero.{" "}
+            {remaining === 1 ? "Queda una inscripción este mes." : `Quedan ${remaining} inscripciones este mes.`}
           </p>
 
           {error && <p className="ui-alert ui-alert-error">{error}</p>}
@@ -305,7 +307,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
         <>
           {closeButton}
           <button type="button" className="adm-btn adm-btn-primary" onClick={join} disabled={saving || !!problem}>
-            {saving ? "Anotando…" : "Anotarme"}
+            {saving ? "Inscribiendo…" : "Inscribirse"}
           </button>
         </>
       );

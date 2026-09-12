@@ -66,13 +66,13 @@ const entries: MenuEntry[] = [
   {
     icon: FaCalendarAlt,
     title: "Horarios",
-    description: "Tu agenda semanal y la duración de los turnos de cada módulo.",
+    description: "Agenda semanal y duración de los turnos de cada módulo.",
     link: "/scheduleProfessional",
   },
   {
     icon: FaUserInjured,
     title: "Pacientes",
-    description: "Pacientes con cuenta y pacientes anónimos cargados por vos.",
+    description: "Pacientes con cuenta y pacientes anónimos.",
     link: "/Patients",
   },
   {
@@ -116,7 +116,7 @@ export function ProfessionalHome() {
         }
         setProfessional(data);
       })
-      .catch((err) => toast.error(`No pudimos cargar tus datos: ${err.message}`))
+      .catch((err) => toast.error(`Error al cargar los datos: ${err.message}`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -216,8 +216,8 @@ export function ProfessionalHome() {
       .then(({ settled, amount }) => {
         toast.success(
           settled === 1
-            ? `Diste por cobrado el turno${amount > 0 ? `, $${amount}` : ""}`
-            : `Diste por cobrados ${settled} turnos${amount > 0 ? `, $${amount}` : ""}`
+            ? `Turno dado por cobrado${amount > 0 ? `, $${amount}` : ""}`
+            : `${settled} turnos dados por cobrados${amount > 0 ? `, $${amount}` : ""}`
         );
         refresh();
       })
@@ -322,7 +322,7 @@ export function ProfessionalHome() {
               <SkeletonLine width="45%" height={18} />
             </div>
           ) : today.length === 0 ? (
-            <div className="adm-empty">No tenés turnos para hoy.</div>
+            <div className="adm-empty">Sin turnos para hoy.</div>
           ) : (
             <ul className="prof-today-list">
               {today.map((appointment) => {
@@ -356,7 +356,7 @@ export function ProfessionalHome() {
                         )}
                       </span>
                       <span className="prof-today-room">{appointment.room?.description}</span>
-                      {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                      {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
                       {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
                         <span className="appt-tag-confirmed">Confirmó</span>
                       )}
@@ -384,7 +384,7 @@ export function ProfessionalHome() {
             <div>
               <h2 className="prof-today-title">Pendientes de confirmación</h2>
               <p className="prof-today-date">
-                {pendingCount === 1 ? "Un turno espera tu respuesta" : `${pendingCount} turnos esperan tu respuesta`}
+                {pendingCount === 1 ? "Un turno pendiente de respuesta" : `${pendingCount} turnos pendientes de respuesta`}
               </p>
             </div>
             <div className="prof-pending-actions adm-btn-row">
@@ -424,7 +424,7 @@ export function ProfessionalHome() {
                       <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
                     </span>
                     <span className="prof-today-room">{appointment.room?.description}</span>
-                    {appointment.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                    {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
                     <span className={describeState(appointment.state).className}>
                       {describeState(appointment.state).label}
                     </span>
@@ -629,11 +629,11 @@ export function ProfessionalHome() {
         }
       >
         <p className="adm-confirm-lead">
-          {unpaidCount === 1 ? "Vas a marcar como cobrado 1 turno" : `Vas a marcar como cobrados ${unpaidCount} turnos`}
+          {unpaidCount === 1 ? "Se marca como cobrado 1 turno" : `Se marcan como cobrados ${unpaidCount} turnos`}
           {owed > 0 ? `, $${owed}` : ""}.
         </p>
         <p className="adm-confirm-note">
-          Son todos los que ya atendiste y quedaron sin saldar. Para volver atrás hay que abrir cada turno y cambiarlo a mano.
+          Incluye todos los turnos atendidos sin saldar. Para revertirlo hay que cambiar cada turno a mano.
         </p>
       </Modal>
 

@@ -6,41 +6,23 @@ import { useFadeIn } from "../useFadeIn";
 
 interface SpecialityCard {
   name: string;
-  description: string;
   icon: IconType;
   /** Tinte propio de la especialidad: es lo único que las distingue a simple vista. */
   tint: string;
 }
 
 /**
- * Las cuatro que se atienden. El nombre tiene que coincidir con `SPECIALITIES`, que es
- * lo que el pedido de turno usa para filtrar profesionales.
+ * Las especialidades que se atienden. El nombre tiene que coincidir con `SPECIALITIES`,
+ * que es lo que el pedido de turno usa para filtrar.
+ *
+ * Van sin descripción y el título no dice cuántas son: el consultorio pidió que la
+ * portada no se comprometa con nada que cambie cuando se sume o se vaya una.
  */
 const CARDS: SpecialityCard[] = [
-  {
-    name: "Psicopedagogía",
-    description: "Aprendizaje, atención y acompañamiento escolar, de la primaria en adelante.",
-    icon: FaBookOpenReader,
-    tint: "#5d7f3f",
-  },
-  {
-    name: "Psicología",
-    description: "Terapia individual para adolescentes y adultos, con turnos fijos si hacen falta.",
-    icon: FaBrain,
-    tint: "#2f6f6b",
-  },
-  {
-    name: "Nutrición",
-    description: "Planes de alimentación y seguimiento sostenido, sin dietas de manual.",
-    icon: FaAppleWhole,
-    tint: "#a8763a",
-  },
-  {
-    name: "Fonoaudiología",
-    description: "Voz, habla y deglución, en chicos y en grandes.",
-    icon: FaEarListen,
-    tint: "#6b5a8e",
-  },
+  { name: "Psicopedagogía", icon: FaBookOpenReader, tint: "#5d7f3f" },
+  { name: "Psicología", icon: FaBrain, tint: "#2f6f6b" },
+  { name: "Nutrición", icon: FaAppleWhole, tint: "#a8763a" },
+  { name: "Fonoaudiología", icon: FaEarListen, tint: "#6b5a8e" },
 ];
 
 interface SpecialitiesProps {
@@ -61,14 +43,9 @@ export function Specialities({ session }: SpecialitiesProps) {
       aria-labelledby="home-specialities-title"
     >
       <div className="home-section-head">
-        <p className="home-kicker">Qué se atiende</p>
         <h2 className="home-section-title" id="home-specialities-title">
-          Cuatro especialidades, un solo consultorio
+          Especialidades
         </h2>
-        <p className="home-section-lead">
-          Cada profesional tiene su propia agenda y sus horarios cargados, y todas las especialidades comparten el
-          mismo consultorio. Los turnos quedan siempre en la misma lista.
-        </p>
       </div>
 
       <div className="home-cards">
@@ -82,17 +59,14 @@ export function Specialities({ session }: SpecialitiesProps) {
               style={{ "--tint": card.tint, "--delay": `${index * 90}ms` } as React.CSSProperties}
               to={guest ? "/Login" : `/Appointment?especialidad=${encodeURIComponent(card.name)}`}
             >
-              {/* Marcador de foto: cuando haya imágenes del consultorio, va un <img> acá. */}
-              <span className="home-photo" role="img" aria-label={`Foto de ${card.name} pendiente`}>
+              <span className="home-photo" aria-hidden="true">
                 <Icon />
-                <span className="home-photo-tag">Foto</span>
               </span>
 
               <span className="home-card-body">
                 <span className="home-card-title">{card.name}</span>
-                <span className="home-card-desc">{card.description}</span>
                 <span className="home-card-cta">
-                  {guest ? "Ingresar para ver horarios" : "Ver horarios libres"}
+                  Ver horarios
                   <FaArrowRight aria-hidden="true" />
                 </span>
               </span>

@@ -26,8 +26,8 @@ export function RecoverPassword() {
     event.preventDefault();
 
     const clean = email.trim();
-    if (!clean) return setError("Escribí tu email");
-    if (!EMAIL_REGEX.test(clean)) return setError("Ese email no parece válido. Revisá que tenga @ y un punto");
+    if (!clean) return setError("Falta el email");
+    if (!EMAIL_REGEX.test(clean)) return setError("Formato de email inválido. Debe incluir @ y un punto");
 
     setError(null);
     setSending(true);
@@ -35,7 +35,7 @@ export function RecoverPassword() {
     api
       .post(`people/${encodeURIComponent(clean)}/passwordMail`)
       .then(() => setSentTo(clean))
-      .catch((err) => setError(err.response?.data?.message || "No pudimos mandar el mail. Probá de nuevo en un rato"))
+      .catch((err) => setError(err.response?.data?.message || "Error al enviar el mail. Reintentar en unos minutos"))
       .finally(() => setSending(false));
   }
 
@@ -47,12 +47,12 @@ export function RecoverPassword() {
             <span className="pw-result-icon">
               <FaEnvelopeCircleCheck />
             </span>
-            <h1 className="pw-result-title">Revisá tu correo</h1>
+            <h1 className="pw-result-title">Revisar el correo</h1>
             <p className="pw-result-text">
-              Si hay una cuenta con <span className="pw-result-mail">{sentTo}</span>, te llega un link para elegir una
+              Si existe una cuenta con <span className="pw-result-mail">{sentTo}</span>, llega un link para elegir una
               contraseña nueva. Vence en 30 minutos.
             </p>
-            <p className="pw-result-text">¿No lo ves? Fijate en correo no deseado antes de pedir otro.</p>
+            <p className="pw-result-text">Si no aparece, revisar la carpeta de correo no deseado antes de pedir otro.</p>
 
             <div className="pw-result-actions">
               <Link className="adm-btn adm-btn-primary" to="/Login">
@@ -76,8 +76,8 @@ export function RecoverPassword() {
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
           <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
-          <h1 className="pw-title">¿Olvidaste tu contraseña?</h1>
-          <p className="pw-subtitle">Escribí tu email y te mandamos un link para elegir una nueva.</p>
+          <h1 className="pw-title">Recuperar contraseña</h1>
+          <p className="pw-subtitle">Llega un link por mail para elegir una nueva.</p>
         </div>
 
         <div className="pw-body">
@@ -88,7 +88,7 @@ export function RecoverPassword() {
                 autoFocus
                 type="email"
                 autoComplete="username"
-                placeholder="vos@mail.com"
+                placeholder="nombre@mail.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -102,11 +102,11 @@ export function RecoverPassword() {
         </div>
 
         <button type="submit" className="adm-btn adm-btn-primary pw-submit" disabled={sending}>
-          {sending ? "Mandando…" : "Mandarme el link"}
+          {sending ? "Enviando…" : "Enviar link"}
         </button>
 
         <p className="pw-foot">
-          ¿Te acordaste? <Link to="/Login">Volver a iniciar sesión</Link>
+          <Link to="/Login">Volver a iniciar sesión</Link>
         </p>
       </form>
 

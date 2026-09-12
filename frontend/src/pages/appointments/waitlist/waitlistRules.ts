@@ -56,12 +56,12 @@ function minutesOf(hour: string): number {
 
 /** Por qué no se puede mandar lo que está elegido, o null si se puede. */
 export function formProblem(days: number[], fromHour: string, toHour: string, limits: WaitlistLimits): string | null {
-  if (days.length === 0) return "Elegí al menos un día";
-  if (days.length > limits.maxDays) return `Podés elegir hasta ${limits.maxDays} días`;
+  if (days.length === 0) return "Falta elegir al menos un día";
+  if (days.length > limits.maxDays) return `Máximo ${limits.maxDays} días`;
 
   const length = minutesOf(toHour) - minutesOf(fromHour);
-  if (length <= 0) return "La hora de fin tiene que ser después de la de inicio";
-  if (length > limits.maxHours * 60) return `La franja puede ser de hasta ${limits.maxHours} horas`;
+  if (length <= 0) return "La hora de fin debe ser posterior a la de inicio";
+  if (length > limits.maxHours * 60) return `Franja máxima de ${limits.maxHours} horas`;
 
   return null;
 }
@@ -83,15 +83,15 @@ export interface JoinState {
  * pantalla no tiene que dejar mandarlo nunca.
  */
 export function blockReason(status: JoinState): string | null {
-  if (!status.enabled) return "Este profesional no trabaja con lista de espera.";
+  if (!status.enabled) return "Profesional sin lista de espera.";
 
   if (status.monthUsed >= status.limits.maxPerMonth)
-    return `Este mes ya te anotaste ${status.limits.maxPerMonth} veces en listas de espera, que es el máximo. El mes que viene podés volver a anotarte.`;
+    return `Máximo de ${status.limits.maxPerMonth} inscripciones mensuales alcanzado. El mes próximo se habilitan nuevas inscripciones.`;
 
   if (status.active.length >= status.limits.maxActive)
-    return `Ya estás en ${status.limits.maxActive} listas de espera, que es el máximo a la vez. Para anotarte en esta, salí de alguna de las otras.`;
+    return `Máximo de ${status.limits.maxActive} listas de espera simultáneas alcanzado. Para inscribirse en esta, primero dar de baja otra.`;
 
-  if (status.full) return "La lista de espera de este profesional está completa. Probá de nuevo en unos días.";
+  if (status.full) return "Lista de espera completa. Puede haber lugar en unos días.";
 
   return null;
 }

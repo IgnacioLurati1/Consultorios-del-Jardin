@@ -54,9 +54,9 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
 
   function submit() {
     if (!form.description.trim()) return setError("La descripción es obligatoria");
-    if (!form.openingTime || !form.closingTime) return setError("Cargá el horario de apertura y el de cierre");
-    if (form.openingTime >= form.closingTime) return setError("El horario de apertura tiene que ser anterior al de cierre");
-    if (!form.city) return setError("Elegí una localidad");
+    if (!form.openingTime || !form.closingTime) return setError("Faltan el horario de apertura y el de cierre");
+    if (form.openingTime >= form.closingTime) return setError("El horario de apertura debe ser anterior al de cierre");
+    if (!form.city) return setError("Falta la localidad");
 
     setError(null);
 
@@ -148,11 +148,11 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
 
         <div className="ui-field-row">
           <label className="ui-field">
-            <span>Abre a las</span>
+            <span>Apertura</span>
             <input type="time" value={form.openingTime} onChange={(e) => setForm({ ...form, openingTime: e.target.value })} />
           </label>
           <label className="ui-field">
-            <span>Cierra a las</span>
+            <span>Cierre</span>
             <input type="time" value={form.closingTime} onChange={(e) => setForm({ ...form, closingTime: e.target.value })} />
           </label>
         </div>
@@ -161,7 +161,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
           <label className="ui-field">
             <span>Provincia</span>
             <select value={form.province} onChange={(e) => setForm({ ...form, province: e.target.value, city: "" })}>
-              <option value="">Elegí una provincia…</option>
+              <option value="">Seleccionar provincia…</option>
               {provinces.map((province) => (
                 <option key={province.idProvince} value={province.idProvince}>
                   {province.nameProvince}
@@ -173,7 +173,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
           <label className="ui-field">
             <span>Localidad</span>
             <select value={form.city} disabled={!form.province} onChange={(e) => setForm({ ...form, city: e.target.value })}>
-              <option value="">{form.province ? "Elegí una localidad…" : "Elegí primero la provincia"}</option>
+              <option value="">{form.province ? "Seleccionar localidad…" : "Primero, la provincia"}</option>
               {filteredCities.map((city) => (
                 <option key={city.idCity} value={city.idCity}>
                   {city.nameCity}

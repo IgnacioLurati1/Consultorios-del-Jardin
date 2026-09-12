@@ -214,9 +214,19 @@
   margin-top: 14px;
 }
 
+/* Horarios de una especialidad con alguna agenda que no llegó: se avisa de cuál falta,
+   con el botón para volver a pedirla al lado del aviso. */
+.booking-partial {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 16px;
+}
+
 /* La lista de espera, al pie de la agenda. Con borde punteado y en voz baja: es la
-   salida para quien no encontró nada, no algo que compita con los horarios de arriba.
-   El botón dice la pregunta que se hace la persona, que es por donde la va a buscar. */
+   salida para quien no encontró nada, no algo que compita con los horarios de arriba. */
 .booking-waitlist {
   display: flex;
   align-items: center;

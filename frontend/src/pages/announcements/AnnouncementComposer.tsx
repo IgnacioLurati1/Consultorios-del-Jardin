@@ -241,7 +241,7 @@ export function AnnouncementComposer() {
                 </span>
                 <div className="anc-text">
                   <h2 className="anc-title">{title.trim() || "Título del aviso"}</h2>
-                  <p className="anc-body">{body.trim() || "Acá va lo que querés contar."}</p>
+                  <p className="anc-body">{body.trim() || "Texto del aviso."}</p>
                 </div>
               </article>
 

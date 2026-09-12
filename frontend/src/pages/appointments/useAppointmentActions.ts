@@ -285,7 +285,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       appointment.state === "pending"
         ? "Turno eliminado"
         : notifyWaitlist
-          ? "Turno cancelado. Les avisamos a los que esperaban ese horario"
+          ? "Turno cancelado. Aviso enviado a quienes esperaban ese horario"
           : "Turno cancelado"
     );
 
@@ -327,7 +327,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
 
     refreshAfter(
       updateAppointmentPayment(appointment.numAppointment, paymentState, paidAmount),
-      paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Pago parcial registrado" : "Turno marcado como impago",
+      paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Cobro parcial registrado" : "Turno marcado sin cobrar",
       antes
         ? {
             label: `El cobro volvió a "${describePayment({ ...appointment, paymentState: antes })?.label ?? antes}"`,

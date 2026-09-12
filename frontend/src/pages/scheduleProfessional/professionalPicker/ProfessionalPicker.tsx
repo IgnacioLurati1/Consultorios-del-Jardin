@@ -119,9 +119,9 @@ export function ProfessionalPicker({
       >
         <div className="picker-head">
           <div>
-            <h2 className="picker-title">{offersRooms ? "¿Qué querés ver?" : "Buscar profesional"}</h2>
+            <h2 className="picker-title">{offersRooms ? "Agenda a consultar" : "Buscar profesional"}</h2>
             <p className="picker-subtitle">
-              {offersRooms ? "Un profesional, un consultorio o un día entero." : "Elegí de quién querés ver la agenda semanal."}
+              {offersRooms ? "Un profesional, un consultorio o un día entero." : "Agenda semanal de un profesional."}
             </p>
           </div>
           {onClose && (
@@ -152,9 +152,9 @@ export function ProfessionalPicker({
               {loading ? (
                 <SkeletonList rows={4} />
               ) : professionals.length === 0 ? (
-                <div className="picker-empty">No hay profesionales cargados.</div>
+                <div className="picker-empty">Sin profesionales cargados.</div>
               ) : filtered.length === 0 ? (
-                <div className="picker-empty">Ningún profesional coincide con “{search}”.</div>
+                <div className="picker-empty">Sin coincidencias para “{search}”.</div>
               ) : (
                 <ul className="picker-list">
                   {filtered.map((professional) => (
@@ -212,9 +212,9 @@ export function ProfessionalPicker({
 
               <div className="picker-results">
                 {rooms!.length === 0 ? (
-                  <div className="picker-empty">No hay consultorios activos cargados.</div>
+                  <div className="picker-empty">Sin consultorios activos cargados.</div>
                 ) : filteredRooms.length === 0 ? (
-                  <div className="picker-empty">Ningún consultorio coincide con “{roomSearch}”.</div>
+                  <div className="picker-empty">Sin coincidencias para “{roomSearch}”.</div>
                 ) : (
                   <ul className="picker-list">
                     {filteredRooms.map((room) => (

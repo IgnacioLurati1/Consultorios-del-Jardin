@@ -252,7 +252,7 @@ export function UserModal({
           <label className="ui-field">
             <span>Especialidad</span>
             <select value={userData.speciality} onChange={(e) => setUserData({ ...userData, speciality: e.target.value })}>
-              <option value="">Elegí una…</option>
+              <option value="">Seleccionar…</option>
               {/* Si el profesional tiene cargada una especialidad vieja que ya no está
                   en la lista, se ofrece igual: guardar no debería cambiársela sola. */}
               {(SPECIALITIES.includes(userData.speciality) || !userData.speciality
@@ -271,12 +271,12 @@ export function UserModal({
             <textarea
               rows={4}
               maxLength={ABOUT_MAX}
-              placeholder="Con qué trabaja, con qué enfoque, a quiénes atiende…"
+              placeholder="Áreas de trabajo, enfoque, población que se atiende…"
               value={userData.about}
               onChange={(e) => setUserData({ ...userData, about: e.target.value })}
             />
             <small>
-              Opcional. Es lo que lee el paciente antes de elegir con quién atenderse. {userData.about.length}/{ABOUT_MAX}
+              Opcional. Visible para el paciente al elegir profesional. {userData.about.length}/{ABOUT_MAX}
             </small>
           </label>
 
@@ -360,15 +360,15 @@ export function UserModal({
 
           {confirmingWaitlistOff && (
             <p className="ui-alert ui-alert-warn">
-              Si la apagás, se vacía su lista de espera y les avisamos a las personas que estaban. Desde ese momento, el paciente
-              que toque el botón de la lista va a ver que este profesional no trabaja con lista de espera.
+              Al desactivarla, la lista de espera se vacía y las personas anotadas reciben un aviso. Desde ese momento, el
+              profesional figura sin lista de espera.
             </p>
           )}
 
           {isSelf && user.active && (
             <p className="ui-alert ui-alert-info">
-              Es tu propia cuenta. Deshabilitarla tiene que hacerlo otro administrador. Desde afuera no podrías volver a entrar ni
-              pedir que te habiliten.
+              Cuenta propia. Solo otro administrador puede deshabilitarla, porque sin acceso no habría forma de pedir la
+              habilitación.
             </p>
           )}
         </div>

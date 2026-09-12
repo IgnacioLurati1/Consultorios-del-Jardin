@@ -163,7 +163,11 @@ export interface Appointment {
     paymentState?: PaymentState | null;
     /** Cuánto se cobró, solo cuando el pago fue parcial. */
     paidAmount?: number | null;
-    /** Sobreturno: el profesional lo dio fuera de sus módulos de atención. */
+    /**
+     * Turno especial: el profesional lo dio fuera de sus módulos de atención.
+     * En el backend, la base y la app del celular sigue llamándose sobreturno; el nombre
+     * cambió solo en las pantallas de la web (ver "Glosario" en el README).
+     */
     overbooked?: boolean;
     /** Si salió de un turno repetible, la configuración que lo generó. */
     recurrence?: {

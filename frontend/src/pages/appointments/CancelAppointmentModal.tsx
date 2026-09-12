@@ -81,10 +81,10 @@ export function CancelAppointmentModal({ appointment, waitlistCount = 0, onClose
       {esperan > 0 && (
         <p className="ui-alert ui-alert-info">
           {esperan === 1
-            ? "Hay una persona en tu lista de espera que busca este horario."
-            : `Hay ${esperan} personas en tu lista de espera que buscan este horario.`}{" "}
-          Si les avisás, les llega un mail y se lo queda el primero que lo reserva. Si lo cancelás porque ese día no vas a
-          estar, mejor no avisarles.
+            ? "Una persona en la lista de espera busca este horario."
+            : `${esperan} personas en la lista de espera buscan este horario.`}{" "}
+          Con el aviso reciben un mail y el turno queda para quien lo reserve primero. Si la cancelación es por ausencia
+          ese día, conviene no avisar.
         </p>
       )}
 

@@ -103,7 +103,7 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
         )
       );
     } catch (error: any) {
-      toast.error(`No pudimos pedir el turno: ${error.message}`);
+      toast.error(`Error al solicitar el turno: ${error.message}`);
       throw error;
     }
   }
@@ -119,7 +119,7 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
             Horarios de {professional.surname}, {professional.name}
           </h2>
           <p className="booking-schedule-sub">
-            {professional.speciality} · se puede pedir turno hasta dos semanas para adelante
+            {professional.speciality} · hasta dos semanas en adelante
           </p>
         </div>
       </div>
@@ -140,25 +140,21 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
         <SkeletonGrid columns={7} />
       ) : failed ? (
         <div className="adm-panel">
+          {/* "Error al consultar" y no "sin horarios": con el servidor caído, decir que no
+              hay lugar manda al paciente a otro lado cuando lo que tiene que hacer es
+              volver a intentar. */}
           <div className="adm-empty">
-            No pudimos traer la agenda de {professional.name}. Esto no quiere decir que no
-            tenga lugar, quiere decir que no la pudimos consultar.
-            <br />
-            Probá de nuevo en un momento.
+            Error al consultar la agenda de {professional.name}.
             <div className="booking-retry">
               <button type="button" className="adm-btn adm-btn-primary" onClick={() => setAttempt((n) => n + 1)}>
-                Probar de nuevo
+                Reintentar
               </button>
             </div>
           </div>
         </div>
       ) : bookable.length === 0 ? (
         <div className="adm-panel">
-          <div className="adm-empty">
-            {professional.name} no tiene horarios libres en las próximas dos semanas.
-            <br />
-            Probá con otro profesional de la lista.
-          </div>
+          <div className="adm-empty">Sin horarios libres en las próximas dos semanas.</div>
         </div>
       ) : (
         <>
@@ -175,9 +171,7 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
           />
 
           {weekSlots.length === 0 && (
-            <p className="booking-empty-week">
-              Esta semana no queda ningún horario libre. {canGoForward ? "Mirá la semana siguiente." : "Probá con otro profesional."}
-            </p>
+            <p className="booking-empty-week">Sin horarios libres esta semana.</p>
           )}
         </>
       )}
@@ -188,12 +182,10 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
           tampoco para quien no puede sacar turnos. */}
       {slots !== null && !failed && !blockedReason && (
         <div className="booking-waitlist">
-          <p className="booking-waitlist-text">
-            Si ningún horario te sirve, anotate en la lista de espera y te avisamos cuando se libere uno.
-          </p>
+          <p className="booking-waitlist-text">Lista de espera, con aviso por mail cuando se libera un horario.</p>
           <button type="button" className="adm-btn adm-btn-ghost booking-waitlist-btn" onClick={() => setWaitlistOpen(true)}>
             <FaBell aria-hidden="true" />
-            ¿No encontrás tu turno ideal?
+            Anotarse en la lista de espera
           </button>
         </div>
       )}

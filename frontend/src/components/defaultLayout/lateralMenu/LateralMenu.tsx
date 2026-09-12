@@ -13,6 +13,7 @@ import {
   faDatabase,
   faCalendarCheck,
   faCircleQuestion,
+  faBriefcase,
 } from "@fortawesome/free-solid-svg-icons";
 import { getDecodedToken } from "../../../pages/commonServices";
 import "./LateralMenu.css";
@@ -41,6 +42,7 @@ const iconMap: Record<string, IconDefinition> = {
   appointments: faCalendarCheck,
   requestAppointments: faCalendarDays,
   faq: faCircleQuestion,
+  work: faBriefcase,
 };
 
 export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
@@ -61,7 +63,9 @@ export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
 
       <div className="lateral-menu-items">
         {visible.map((item) => (
-          <Link className="lateral-menu-item" onClick={onClose} key={`${item.userType}-${item.path}`} to={item.path}>
+          // El título va en la clave porque hay dos accesos distintos a la misma ruta:
+          // "Iniciar sesión" y "Login profesional" llevan los dos a /Login.
+          <Link className="lateral-menu-item" onClick={onClose} key={`${item.userType}-${item.path}-${item.title}`} to={item.path}>
             <span className="lateral-menu-icon">
               <FontAwesomeIcon icon={iconMap[item.faviconName] ?? faHouse} />
             </span>

@@ -47,7 +47,7 @@ export function AttendancePage() {
     axios
       .get(`${API_BASE_URL}/attendance/${encodeURIComponent(token)}`)
       .then((response) => setView(response.data.data))
-      .catch((err) => setError(err.response?.data?.message || "No pudimos abrir este turno. Probá de nuevo en un rato"));
+      .catch((err) => setError(err.response?.data?.message || "Error al abrir el turno. Reintentar en unos minutos"));
   }, [token]);
 
   async function answer(value: "yes" | "no") {
@@ -60,7 +60,7 @@ export function AttendancePage() {
       setAnswered(value);
     } catch (err) {
       const data = (err as { response?: { data?: { message?: string } } }).response?.data;
-      setError(data?.message || "No pudimos guardar tu respuesta. Probá de nuevo en un rato");
+      setError(data?.message || "Error al guardar la respuesta. Reintentar en unos minutos");
     } finally {
       setSaving(false);
     }
@@ -85,20 +85,20 @@ export function AttendancePage() {
 
   const toBooking = (
     <Link className="adm-btn adm-btn-primary" to="/Appointment">
-      Pedir otro turno
+      Solicitar otro turno
     </Link>
   );
 
-  if (!token) return result("warn", "Este link no sirve", "Le falta la parte que identifica tu turno. Puede que se haya cortado al copiarlo del mail.");
-  if (error) return result("warn", "No pudimos abrir tu turno", error);
+  if (!token) return result("warn", "Link incompleto", "Parte del link se perdió, probablemente al copiarlo desde el mail.");
+  if (error) return result("warn", "Error al abrir el turno", error);
 
   if (!view) {
     return (
       <div className="pw-page">
         <div className="pw-card">
           <div className="pw-head">
-            <h1 className="pw-title">Tu turno</h1>
-            <p className="pw-subtitle">Un segundo, lo estamos buscando.</p>
+            <h1 className="pw-title">Turno</h1>
+            <p className="pw-subtitle">Buscando el turno…</p>
           </div>
         </div>
       </div>
@@ -108,31 +108,31 @@ export function AttendancePage() {
   const who = `${view.professional.name} ${view.professional.surname}`;
   const when = `${formatDayLabel(appointmentDate(view.date))}, de ${view.initialHour} a ${view.finalHour}`;
 
-  if (answered === "yes") return result("ok", "¡Gracias por avisar!", `${who} ya sabe que vas. ${when}.`);
+  if (answered === "yes") return result("ok", "Asistencia confirmada", `Aviso enviado a ${who}. ${when}.`);
   if (answered === "no" || view.status === "cancelled")
     return result(
       "ok",
-      answered === "no" ? "Listo, cancelamos tu turno" : "Este turno está cancelado",
-      answered === "no" ? "Gracias por avisar con tiempo. El horario queda libre para otra persona." : `Era ${when}, con ${who}.`,
+      "Turno cancelado",
+      answered === "no" ? "El horario queda disponible para otra persona. Gracias por el aviso." : `${when}, con ${who}.`,
       toBooking
     );
-  if (view.status === "assisted" || view.status === "missed") return result("warn", "Este turno ya pasó", `Era ${when}, con ${who}.`);
+  if (view.status === "assisted" || view.status === "missed") return result("warn", "Turno finalizado", `${when}, con ${who}.`);
 
   return (
     <div className="pw-page">
       <div className="pw-card">
         <div className="pw-head">
-          <h1 className="pw-title">¿Vas a poder venir?</h1>
-          <p className="pw-subtitle">Contestá con un toque, así {view.professional.name} sabe con tiempo quién viene.</p>
+          <h1 className="pw-title">Confirmación de asistencia</h1>
+          <p className="pw-subtitle">La respuesta le llega a {view.professional.name}.</p>
         </div>
 
         <div className="ui-detail-list attendance-facts">
           <div className="ui-detail-row">
-            <span>Cuándo</span>
+            <span>Fecha</span>
             <strong>{when}</strong>
           </div>
           <div className="ui-detail-row">
-            <span>Con quién</span>
+            <span>Profesional</span>
             <strong>
               {who}
               {view.professional.speciality ? ` · ${view.professional.speciality}` : ""}
@@ -140,22 +140,22 @@ export function AttendancePage() {
           </div>
           {view.room && (
             <div className="ui-detail-row">
-              <span>Dónde</span>
+              <span>Lugar</span>
               <strong>{view.room} · 9 de Julio 3672</strong>
             </div>
           )}
         </div>
 
-        {view.confirmedAt && !confirmingNo && <p className="ui-alert ui-alert-info">Ya nos avisaste que venís. Si cambió algo, podés cancelarlo acá.</p>}
+        {view.confirmedAt && !confirmingNo && (
+          <p className="ui-alert ui-alert-info">Asistencia ya confirmada. La cancelación sigue disponible acá.</p>
+        )}
 
         {confirmingNo ? (
           <>
-            <p className="ui-alert ui-alert-warn">
-              Si no vas a poder ir, tu turno se cancela y el horario queda libre para otra persona.
-            </p>
+            <p className="ui-alert ui-alert-warn">Al cancelar, el horario queda disponible para otra persona.</p>
             <div className="pw-result-actions">
               <button type="button" className="adm-btn adm-btn-danger" onClick={() => answer("no")} disabled={saving}>
-                {saving ? "Cancelando…" : "Sí, cancelar mi turno"}
+                {saving ? "Cancelando…" : "Cancelar turno"}
               </button>
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingNo(false)} disabled={saving}>
                 Volver
@@ -166,11 +166,11 @@ export function AttendancePage() {
           <div className="pw-result-actions">
             {view.status === "accepted" && !view.confirmedAt && (
               <button type="button" className="adm-btn adm-btn-primary" onClick={() => answer("yes")} disabled={saving}>
-                {saving ? "Guardando…" : "Sí, voy"}
+                {saving ? "Guardando…" : "Confirmar asistencia"}
               </button>
             )}
             <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingNo(true)} disabled={saving}>
-              No puedo ir
+              Cancelar turno
             </button>
           </div>
         )}

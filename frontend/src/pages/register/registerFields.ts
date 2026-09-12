@@ -41,11 +41,11 @@ export const emptyRegisterForm: RegisterForm = {
 };
 
 export function validateAccount(form: RegisterForm): string | null {
-  if (!form.email.trim()) return "Escribí un email";
-  if (!EMAIL_REGEX.test(form.email.trim())) return "Ese email no parece válido. Revisá que tenga @ y un punto";
-  if (!form.password) return "Elegí una contraseña";
-  if (form.password.length < MIN_PASSWORD) return `La contraseña tiene que tener al menos ${MIN_PASSWORD} caracteres`;
-  if (!form.confirmPassword) return "Repetí la contraseña para confirmarla";
+  if (!form.email.trim()) return "Falta el email";
+  if (!EMAIL_REGEX.test(form.email.trim())) return "Formato de email inválido. Debe incluir @ y un punto";
+  if (!form.password) return "Falta la contraseña";
+  if (form.password.length < MIN_PASSWORD) return `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres`;
+  if (!form.confirmPassword) return "Falta repetir la contraseña";
   if (form.password !== form.confirmPassword) return "Las contraseñas no coinciden";
   return null;
 }
@@ -66,17 +66,17 @@ export async function validateAccountAsync(form: RegisterForm): Promise<string |
 }
 
 export function validatePersonalData(form: RegisterForm): string | null {
-  if (!form.name.trim()) return "Escribí el nombre";
-  if (!form.surname.trim()) return "Escribí el apellido";
+  if (!form.name.trim()) return "Falta el nombre";
+  if (!form.surname.trim()) return "Falta el apellido";
   return null;
 }
 
 export function validateContact(form: RegisterForm, options: { requireSpeciality?: boolean } = {}): string | null {
   if (!/^\d{10}$/.test(form.phoneNumber.replace(/\D/g, "")))
-    return "El teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)";
-  if (!form.docType) return "Elegí el tipo de documento";
-  if (!form.docNumber.trim()) return "Escribí el número de documento";
-  if (!/^\d+$/.test(form.docNumber.trim())) return "El documento tiene que tener solo dígitos";
-  if (options.requireSpeciality && !form.speciality.trim()) return "Escribí la especialidad";
+    return "El teléfono debe tener 10 dígitos, sin 0 ni 15 (por ejemplo 3411234567)";
+  if (!form.docType) return "Falta el tipo de documento";
+  if (!form.docNumber.trim()) return "Falta el número de documento";
+  if (!/^\d+$/.test(form.docNumber.trim())) return "El documento debe tener solo dígitos";
+  if (options.requireSpeciality && !form.speciality.trim()) return "Falta la especialidad";
   return null;
 }

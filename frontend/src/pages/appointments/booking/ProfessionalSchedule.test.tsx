@@ -40,8 +40,8 @@ describe("Los horarios de un profesional", () => {
 
     render(<ProfessionalSchedule professional={professional} office={office} />);
 
-    await waitFor(() => expect(screen.getByText(/no pudimos traer la agenda/i)).toBeInTheDocument());
-    expect(screen.queryByText(/no tiene horarios libres/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/error al consultar la agenda/i)).toBeInTheDocument());
+    expect(screen.queryByText(/sin horarios libres/i)).not.toBeInTheDocument();
   });
 
   it("cuando de verdad no queda lugar, lo dice y no ofrece reintentar", async () => {
@@ -49,8 +49,8 @@ describe("Los horarios de un profesional", () => {
 
     render(<ProfessionalSchedule professional={professional} office={office} />);
 
-    await waitFor(() => expect(screen.getByText(/no tiene horarios libres/i)).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /probar de nuevo/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/sin horarios libres/i)).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /reintentar/i })).not.toBeInTheDocument();
   });
 
   // Volver a preguntar es lo único que puede hacer la persona, así que tiene que estar y
@@ -59,11 +59,11 @@ describe("Los horarios de un profesional", () => {
     traerHorarios.mockRejectedValueOnce(new Error("Se cayó la base")).mockResolvedValueOnce([]);
 
     render(<ProfessionalSchedule professional={professional} office={office} />);
-    await waitFor(() => expect(screen.getByText(/no pudimos traer la agenda/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/error al consultar la agenda/i)).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: /probar de nuevo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /reintentar/i }));
 
-    await waitFor(() => expect(screen.getByText(/no tiene horarios libres/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/sin horarios libres/i)).toBeInTheDocument());
     expect(traerHorarios).toHaveBeenCalledTimes(2);
   });
 });

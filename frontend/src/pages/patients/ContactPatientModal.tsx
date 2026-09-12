@@ -80,7 +80,7 @@ export function ContactPatientModal({ open, onClose, patient, professional }: Co
         )}
 
         <p className="ui-hint">
-          "Escribirle" abre Gmail con el mensaje empezado. Podés cambiarlo antes de mandarlo.
+          "Escribirle" abre Gmail con el mensaje empezado, editable antes de enviarlo.
         </p>
       </div>
     </Modal>

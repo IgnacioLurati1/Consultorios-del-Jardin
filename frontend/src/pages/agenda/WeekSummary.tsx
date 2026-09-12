@@ -163,7 +163,7 @@ function WeekDayCard({ day, open, onTogglePeak }: { day: AgendaWeekDay; open: bo
                         <strong>{item.patient ? `${item.patient.name} ${item.patient.surname}` : "Sin paciente"}</strong>
                         <span className="wk-who">
                           con {item.professional.name} {item.professional.surname} · {item.room}
-                          {item.overbooked ? " · sobreturno" : ""}
+                          {item.overbooked ? " · turno especial" : ""}
                         </span>
                       </span>
                     </li>

@@ -28,7 +28,7 @@ function explainBanned(person: BannedPatient): string {
 
   return (
     `El sistema la deshabilitó solo porque ${reason}. Los turnos de esa tanda se dieron de baja junto con la cuenta. ` +
-    "La persona no puede entrar hasta que la vuelvas a habilitar desde Usuarios."
+    "La persona queda sin acceso hasta volver a habilitarla desde Usuarios."
   );
 }
 

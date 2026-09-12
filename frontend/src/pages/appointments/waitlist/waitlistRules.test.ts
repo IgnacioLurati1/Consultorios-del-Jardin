@@ -16,9 +16,9 @@ const libre = { enabled: true, full: false, active: [], monthUsed: 0, limits };
 describe("La lista de espera, del lado de la pantalla", () => {
   it("dice qué falta antes de dejar mandar", () => {
     expect(formProblem([], "09:00", "12:00", limits)).toMatch(/al menos un día/);
-    expect(formProblem([1, 2, 3, 4], "09:00", "12:00", limits)).toMatch(/hasta 3 días/);
-    expect(formProblem([1], "12:00", "12:00", limits)).toMatch(/después de la de inicio/);
-    expect(formProblem([1], "08:00", "16:30", limits)).toMatch(/hasta 8 horas/);
+    expect(formProblem([1, 2, 3, 4], "09:00", "12:00", limits)).toMatch(/Máximo 3 días/);
+    expect(formProblem([1], "12:00", "12:00", limits)).toMatch(/posterior a la de inicio/);
+    expect(formProblem([1], "08:00", "16:30", limits)).toMatch(/máxima de 8 horas/);
     expect(formProblem([1, 3], "08:00", "16:00", limits)).toBeNull();
   });
 
@@ -27,8 +27,8 @@ describe("La lista de espera, del lado de la pantalla", () => {
    * nunca: con el tope alcanzado el motivo aparece aunque todo lo demás esté bien.
    */
   it("con el tope del mes alcanzado no deja anotarse, y lo dice antes que cualquier otra cosa", () => {
-    expect(blockReason({ ...libre, monthUsed: 5 })).toMatch(/ya te anotaste 5 veces/);
-    expect(blockReason({ ...libre, monthUsed: 5, active: [{}, {}], full: true })).toMatch(/ya te anotaste 5 veces/);
+    expect(blockReason({ ...libre, monthUsed: 5 })).toMatch(/5 inscripciones mensuales/);
+    expect(blockReason({ ...libre, monthUsed: 5, active: [{}, {}], full: true })).toMatch(/5 inscripciones mensuales/);
   });
 
   it("frena en dos listas a la vez y con la lista del profesional llena", () => {
@@ -38,7 +38,7 @@ describe("La lista de espera, del lado de la pantalla", () => {
   });
 
   it("si el profesional no trabaja con lista de espera, es lo único que dice", () => {
-    expect(blockReason({ ...libre, enabled: false, monthUsed: 5 })).toBe("Este profesional no trabaja con lista de espera.");
+    expect(blockReason({ ...libre, enabled: false, monthUsed: 5 })).toBe("Profesional sin lista de espera.");
   });
 
   it("nombra los días como se dicen y ofrece las horas cada media hora", () => {

@@ -25,7 +25,7 @@ export function DataInputPassword({ label, showForgotPasswordLink, value, onChan
       <div className="password-options">
         {showForgotPasswordLink && (
           <Link to='/forgot-password' className="forgot-password">
-            ¿Olvidaste tu contraseña?
+            Recuperar contraseña
           </Link>
         )}
         <ShowPassword visible={visible} onClick={toggleVisibility} />

@@ -78,7 +78,7 @@ export function UsersAdmin() {
   useEffect(() => {
     getAllUsers()
       .then(setUsers)
-      .catch((err) => toast.error(`No pudimos cargar los usuarios: ${err.message}`))
+      .catch((err) => toast.error(`Error al cargar los usuarios: ${err.message}`))
       .finally(() => setLoading(false));
 
     // Sin ruido si falla: la marca es un extra sobre el listado, y quedarse sin ella no
@@ -143,12 +143,12 @@ export function UsersAdmin() {
 
         toast.success(
           active && antes?.type === "professional" && bookable === false
-            ? "La cuenta vuelve a estar habilitada. Para que aparezca cuando se busca turno hay que volver a ofrecerlo"
+            ? "Cuenta habilitada. Para que aparezca en la búsqueda de turnos, volver a ofrecerla"
             : "Estado del usuario cambiado"
         );
         setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, active, bookable })));
       })
-      .catch((err) => toast.error(`No pudimos cambiar el estado: ${err.message}`));
+      .catch((err) => toast.error(`Error al cambiar el estado: ${err.message}`));
   }
 
   /** Esconderlo de la búsqueda de turnos no lo deshabilita: sigue trabajando igual. */
@@ -158,7 +158,7 @@ export function UsersAdmin() {
         toast.success(bookable ? "Vuelve a aparecer cuando se busca turno" : "Deja de aparecer cuando se busca turno");
         setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, bookable })));
       })
-      .catch((err) => toast.error(`No pudimos cambiarlo: ${err.message}`));
+      .catch((err) => toast.error(`Error al guardar el cambio: ${err.message}`));
   }
 
   /** Prender o apagar su lista de espera. El aviso lo arma el servidor, que sabe a cuántos les avisó. */
@@ -168,7 +168,7 @@ export function UsersAdmin() {
         toast.success(message);
         setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, waitlistEnabled })));
       })
-      .catch((err) => toast.error(`No pudimos cambiarlo: ${err.message}`));
+      .catch((err) => toast.error(`Error al guardar el cambio: ${err.message}`));
   }
 
   // Solo se editan profesionales, y nunca la contraseña (ver UserModal).
@@ -179,7 +179,7 @@ export function UsersAdmin() {
       toast.success("Profesional actualizado");
       setModalVisible(false);
     } catch (err: any) {
-      toast.error(`No pudimos guardar los cambios: ${err.message}`);
+      toast.error(`Error al guardar los cambios: ${err.message}`);
     }
   }
 
@@ -192,7 +192,7 @@ export function UsersAdmin() {
         : { label: "Paciente", tone: "grey" },
     ];
 
-    if (user.email === self) badges.push({ label: "Sos vos", tone: "grey" });
+    if (user.email === self) badges.push({ label: "Cuenta propia", tone: "grey" });
 
     if (user.anonymous) badges.push({ label: "Anónimo", tone: "amber" });
 

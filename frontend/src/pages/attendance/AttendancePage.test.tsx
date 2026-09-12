@@ -46,32 +46,32 @@ describe("La página de los links de asistencia", () => {
   it("abrir el link de 'No puedo ir' no cancela: pide confirmarlo", async () => {
     abrir("t=firma&r=no");
 
-    await waitFor(() => expect(screen.getByText(/tu turno se cancela/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/al cancelar/i)).toBeInTheDocument());
     expect(post).not.toHaveBeenCalled();
 
     post.mockResolvedValue({ data: { data: { ...turno, status: "cancelled" } } });
-    await userEvent.click(screen.getByRole("button", { name: "Sí, cancelar mi turno" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar turno" }));
 
     expect(post).toHaveBeenCalledWith(expect.stringContaining("/attendance/firma"), { answer: "no" });
-    await waitFor(() => expect(screen.getByText("Listo, cancelamos tu turno")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Turno cancelado")).toBeInTheDocument());
   });
 
-  it("'Sí, voy' se contesta con un toque y lo agradece", async () => {
+  it("'Sí, voy' se contesta con un toque y lo confirma", async () => {
     abrir("t=firma&r=si");
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Sí, voy" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirmar asistencia" })).toBeInTheDocument());
     expect(post).not.toHaveBeenCalled();
 
     post.mockResolvedValue({ data: { data: { ...turno, confirmedAt: "2026-09-10T12:00:00Z" } } });
-    await userEvent.click(screen.getByRole("button", { name: "Sí, voy" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar asistencia" }));
 
     expect(post).toHaveBeenCalledWith(expect.stringContaining("/attendance/firma"), { answer: "yes" });
-    await waitFor(() => expect(screen.getByText("¡Gracias por avisar!")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Asistencia confirmada")).toBeInTheDocument());
   });
 
   it("un link sin firma lo dice en vez de quedarse cargando", () => {
     abrir("r=si");
-    expect(screen.getByText("Este link no sirve")).toBeInTheDocument();
+    expect(screen.getByText("Link incompleto")).toBeInTheDocument();
     expect(get).not.toHaveBeenCalled();
   });
 });

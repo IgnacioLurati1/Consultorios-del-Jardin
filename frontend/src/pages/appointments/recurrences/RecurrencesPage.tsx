@@ -63,7 +63,7 @@ export function RecurrencesPage() {
     findRecurrences()
       .then(setRecurrences)
       .catch((err) => {
-        toast.error(`No pudimos cargar los turnos repetibles: ${err.message}`);
+        toast.error(`Error al cargar los turnos repetibles: ${err.message}`);
         setRecurrences([]);
       });
   }
@@ -100,7 +100,7 @@ export function RecurrencesPage() {
       endDate: form.forever ? null : form.endDate,
     })
       .then(() => {
-        toast.success("Listo. Los próximos turnos se van a generar así");
+        toast.success("Cambios guardados. Los próximos turnos se generan así");
         setEditing(undefined);
         load();
       })
@@ -145,9 +145,9 @@ export function RecurrencesPage() {
       ) : ordered.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">
-            No tenés turnos repetibles.
+            Sin turnos repetibles.
             <br />
-            Abrí un turno desde la agenda y marcalo como repetible para que se agende solo.
+            Un turno se marca como repetible desde su ficha en la agenda.
           </div>
         </div>
       ) : (
@@ -208,7 +208,7 @@ export function RecurrencesPage() {
               </div>
 
               <footer className="rec-card-foot">
-                {recurrence.overbooked && <span className="appt-tag-over">Sobreturno</span>}
+                {recurrence.overbooked && <span className="appt-tag-over">Turno especial</span>}
                 {recurrence.endDate && <span className="appt-tag-until">hasta el {shortDate(recurrence.endDate)}</span>}
                 <button type="button" className="adm-btn adm-btn-ghost" onClick={() => openEdit(recurrence)}>
                   Configurar
@@ -244,8 +244,8 @@ export function RecurrencesPage() {
         }
       >
         <p className="ui-alert ui-alert-info">
-          Lo que cambies vale para los turnos que falta generar. Los que ya están agendados quedan como están. Se editan
-          o se cancelan desde la agenda, uno por uno.
+          Los cambios aplican a los turnos que faltan generar. Los ya agendados quedan sin cambios y se editan o cancelan
+          desde la agenda, uno por uno.
         </p>
 
         <div className="ui-section">
@@ -264,7 +264,7 @@ export function RecurrencesPage() {
           </label>
 
           <div className="ui-field">
-            <span>¿Hasta cuándo?</span>
+            <span>Fin</span>
             <div className="ui-choice-row">
               <label className="ui-choice">
                 <input
@@ -297,7 +297,7 @@ export function RecurrencesPage() {
 
             <small>
               {form.forever
-                ? "Se repite hasta que la frenes a mano."
+                ? "Se repite hasta frenarla a mano."
                 : "Adelantar la fecha no borra los turnos ya creados. Esos se cancelan desde la agenda."}
             </small>
           </div>
@@ -323,8 +323,8 @@ export function RecurrencesPage() {
               value={form.value}
               onChange={(e) => setForm({ ...form, value: e.target.value })}
             />
-            <small>Lo que vas a cobrar por cada uno de los próximos. Vacío queda en 0.</small>
-            <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
+            <small>Valor de cada uno de los próximos turnos. Vacío equivale a 0.</small>
+            <p className="ui-alert ui-alert-info">Dato visible solo para el profesional y el paciente.</p>
           </label>
         </div>
 

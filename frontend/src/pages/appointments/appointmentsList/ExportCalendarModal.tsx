@@ -82,14 +82,14 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
       open={isOpen}
       onClose={close}
       title="Llevar la agenda a otro calendario"
-      subtitle={simple ? "Un archivo para tu calendario" : "Un archivo para Google Calendar, Outlook o el calendario del teléfono"}
+      subtitle={simple ? "Archivo de calendario" : "Archivo para Google Calendar, Outlook o el calendario del teléfono"}
       footer={
         <>
           <button type="button" className="adm-btn adm-btn-ghost" onClick={close} disabled={busy}>
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={download} disabled={busy}>
-            {busy ? "Armando el archivo…" : "Bajar el archivo"}
+            {busy ? "Preparando el archivo…" : "Descargar archivo"}
           </button>
         </>
       }
@@ -110,14 +110,14 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
 
         <label className="imp-check">
           <span>
-            Poner el nombre del paciente en el título
+            Incluir el nombre del paciente en el título
             {/* Lo que pasa con el paciente se queda siempre: es el único dato del archivo
                 que identifica a alguien, y también el que decide si el turno vuelve entero
                 cuando este mismo archivo se importa de nuevo. */}
             <small>
               {simple
-                ? "Sin esto no viaja el paciente, ni al importar de vuelta."
-                : "Sin esto cada evento dice sólo «Turno», y si volvés a importar el archivo los turnos entran sin paciente."}
+                ? "Sin esta opción el paciente queda fuera del archivo."
+                : "Sin esta opción cada evento dice solo «Turno», y al volver a importar el archivo los turnos entran sin paciente."}
             </small>
           </span>
           <input

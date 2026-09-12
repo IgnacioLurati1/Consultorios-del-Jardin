@@ -49,7 +49,7 @@ export function EditProfile() {
     findPerson(decoded.email)
       .then((data) => {
         if (!data) {
-          toast.error("No encontramos tus datos");
+          toast.error("Datos no encontrados");
           return;
         }
 
@@ -64,15 +64,15 @@ export function EditProfile() {
           about: data.about || "",
         });
       })
-      .catch((err) => toast.error(`No pudimos cargar tus datos: ${err.message}`))
+      .catch((err) => toast.error(`Error al cargar los datos: ${err.message}`))
       .finally(() => setLoading(false));
   }, []);
 
   function validate(): string | null {
     if (!form.name.trim() || !form.surname.trim()) return "El nombre y el apellido no pueden quedar vacíos";
-    if (!/^\d+$/.test(form.docNumber.trim())) return "El documento tiene que tener solo dígitos";
+    if (!/^\d+$/.test(form.docNumber.trim())) return "El documento debe tener solo dígitos";
     if (!/^\d{10}$/.test(form.phoneNumber.replace(/\D/g, "")))
-      return "El teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)";
+      return "El teléfono debe tener 10 dígitos, sin 0 ni 15 (por ejemplo 3411234567)";
     return null;
   }
 
@@ -114,7 +114,7 @@ export function EditProfile() {
     <div className="adm-page">
       <AdminHeader
         title="Mis datos"
-        subtitle="Lo que ven los profesionales cuando te dan un turno"
+        subtitle="Datos visibles para los profesionales"
         backTo={decoded ? HOME_BY_TYPE[decoded.type] ?? "/" : "/"}
         backLabel="Volver"
       />
@@ -167,7 +167,7 @@ export function EditProfile() {
                 <label className="ui-field">
                   <span>Email</span>
                   <input value={form.email} disabled />
-                  <small>El email identifica tu cuenta, así que no se puede cambiar.</small>
+                  <small>El email identifica la cuenta y no se puede cambiar.</small>
                 </label>
               </div>
 
@@ -206,11 +206,11 @@ export function EditProfile() {
                   <h2 className="ui-section-title">Acerca de mí</h2>
 
                   <label className="ui-field">
-                    <span>Tu presentación</span>
+                    <span>Presentación</span>
                     <textarea
                       rows={5}
                       maxLength={ABOUT_MAX}
-                      placeholder="Con qué trabajás, con qué enfoque, a quiénes atendés…"
+                      placeholder="Áreas de trabajo, enfoque, población que se atiende…"
                       value={form.about}
                       onChange={(e) => setForm({ ...form, about: e.target.value })}
                     />

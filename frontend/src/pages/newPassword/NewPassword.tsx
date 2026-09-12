@@ -51,7 +51,7 @@ export function NewPassword() {
       )
       .then(() => setDone(true))
       .catch((err) =>
-        setError(err.response?.data?.message || "No pudimos cambiar la contraseña. Probá de nuevo en un rato")
+        setError(err.response?.data?.message || "Error al cambiar la contraseña. Reintentar en unos minutos")
       )
       .finally(() => setSaving(false));
   }
@@ -65,10 +65,8 @@ export function NewPassword() {
             <span className="pw-result-icon warn">
               <FaTriangleExclamation />
             </span>
-            <h1 className="pw-result-title">Este link no sirve</h1>
-            <p className="pw-result-text">
-              Le falta la parte que identifica tu pedido. Puede que se haya cortado al copiarlo desde el mail.
-            </p>
+            <h1 className="pw-result-title">Link incompleto</h1>
+            <p className="pw-result-text">Parte del link se perdió, probablemente al copiarlo desde el mail.</p>
             <div className="pw-result-actions">
               <Link className="adm-btn adm-btn-primary" to="/forgot-password">
                 Pedir un link nuevo
@@ -90,7 +88,7 @@ export function NewPassword() {
               <FaCircleCheck />
             </span>
             <h1 className="pw-result-title">Contraseña cambiada</h1>
-            <p className="pw-result-text">Ya podés entrar con la nueva. El link del mail dejó de servir.</p>
+            <p className="pw-result-text">La contraseña nueva ya está activa. El link del mail quedó sin efecto.</p>
             <div className="pw-result-actions">
               <Link className="adm-btn adm-btn-primary" to="/Login">
                 Iniciar sesión
@@ -108,8 +106,7 @@ export function NewPassword() {
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
           <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
-          <h1 className="pw-title">Elegí tu contraseña nueva</h1>
-          <p className="pw-subtitle">La vas a usar para entrar a partir de ahora.</p>
+          <h1 className="pw-title">Contraseña nueva</h1>
         </div>
 
         <div className="pw-body">
@@ -138,7 +135,7 @@ export function NewPassword() {
           </label>
 
           <label className="ui-field">
-            <span>Repetila</span>
+            <span>Repetir contraseña</span>
             <div className="pw-input-wrap">
               <input
                 type={visible ? "text" : "password"}
@@ -169,7 +166,7 @@ export function NewPassword() {
         </button>
 
         <p className="pw-foot">
-          ¿Venciste el link? <Link to="/forgot-password">Pedí uno nuevo</Link>
+          ¿Link vencido? <Link to="/forgot-password">Pedir uno nuevo</Link>
         </p>
       </form>
 

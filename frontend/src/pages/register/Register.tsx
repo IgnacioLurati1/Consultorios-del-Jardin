@@ -61,7 +61,7 @@ export function Register() {
       })
       .then(() => setSent(true))
       .catch((error) => {
-        const backendMsg = error.response?.data?.message || error.message || "No pudimos mandarte el mail";
+        const backendMsg = error.response?.data?.message || error.message || "Error al enviar el mail";
         setServerError(backendMsg);
       })
       .finally(() => setSending(false));
@@ -71,13 +71,13 @@ export function Register() {
     {
       id: "cuenta",
       title: "Cuenta",
-      hint: "Con estos datos vas a entrar a la app.",
+      hint: "Datos de acceso a la app.",
       validate: () => validateAccountAsync(form),
       content: (
         <>
           <label className="ui-field">
             <span>Email</span>
-            <input type="email" placeholder="vos@mail.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
+            <input type="email" placeholder="nombre@mail.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
           </label>
 
           <label className="ui-field">
@@ -116,7 +116,7 @@ export function Register() {
     {
       id: "datos",
       title: "Datos",
-      hint: "Así te identifica el profesional cuando te da un turno.",
+      hint: "Identificación ante el profesional.",
       validate: () => validatePersonalData(form),
       content: (
         <div className="ui-field-row">
@@ -134,7 +134,7 @@ export function Register() {
     {
       id: "contacto",
       title: "Contacto",
-      hint: "Lo usamos para avisarte de tus turnos.",
+      hint: "Para los avisos de turnos.",
       validate: () => validateContact(form),
       content: (
         <>
@@ -147,7 +147,7 @@ export function Register() {
             <label className="ui-field">
               <span>Tipo de documento</span>
               <select value={form.docType} onChange={(e) => set("docType", e.target.value)}>
-                <option value="">Elegí uno…</option>
+                <option value="">Seleccionar…</option>
                 {DOC_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
@@ -182,15 +182,15 @@ export function Register() {
               <span className="pw-result-icon">
                 <FaEnvelopeOpenText />
               </span>
-              <h1 className="pw-result-title">Mirá tu correo</h1>
+              <h1 className="pw-result-title">Revisar el correo</h1>
               <p className="pw-result-text">
-                Le escribimos a <strong>{form.email.trim()}</strong>. Adentro hay un link que crea la cuenta y te deja
-                adentro. Vence en 30 minutos.
+                Mail enviado a <strong>{form.email.trim()}</strong> con el link para crear la cuenta. El link vence en 30
+                minutos.
               </p>
-              <p className="pw-result-text">Si no aparece, fijate en el correo no deseado.</p>
+              <p className="pw-result-text">Si no aparece, revisar la carpeta de correo no deseado.</p>
               <div className="pw-result-actions">
                 <Link className="adm-btn adm-btn-primary" to="/Login">
-                  Ir a iniciar sesión
+                  Iniciar sesión
                 </Link>
               </div>
             </div>
@@ -205,14 +205,14 @@ export function Register() {
     <>
       <SteppedForm
         title="Crear cuenta"
-        subtitle="Tres pasos cortos y un mail para confirmar que sos vos"
+        subtitle="Tres pasos y un mail de confirmación"
         logo={logo}
         steps={steps}
-        submitLabel="Mandarme el mail"
+        submitLabel="Enviar mail de confirmación"
         submitting={sending}
         serverError={serverError}
         onSubmit={handleSubmit}
-        footerNote={<>¿Ya tenés cuenta? <Link to="/Login">Iniciá sesión</Link></>}
+        footerNote={<>¿Cuenta existente? <Link to="/Login">Iniciar sesión</Link></>}
       />
       <Toasts />
     </>

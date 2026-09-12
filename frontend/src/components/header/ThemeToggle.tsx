@@ -117,7 +117,7 @@ export function ThemeToggle() {
           <div className="app-user-menu-head">
             <span className="app-user-menu-name">Modo oscuro</span>
             <span className="app-user-menu-mail">
-              {scheduled ? describe(preference.from, preference.to) : "Lo cambiás vos con el botón de al lado."}
+              {scheduled ? describe(preference.from, preference.to) : "Cambio manual con el botón de al lado."}
             </span>
           </div>
 
@@ -135,12 +135,12 @@ export function ThemeToggle() {
                 })
               }
             />
-            <span>Que se prenda y se apague solo</span>
+            <span>Automático por horario</span>
           </label>
 
           <div className="app-theme-times" aria-hidden={!scheduled}>
             <label className="app-theme-time">
-              <span>Se prende</span>
+              <span>Desde</span>
               <input
                 type="time"
                 value={preference.from}
@@ -149,7 +149,7 @@ export function ThemeToggle() {
               />
             </label>
             <label className="app-theme-time">
-              <span>Se apaga</span>
+              <span>Hasta</span>
               <input
                 type="time"
                 value={preference.to}
@@ -161,8 +161,8 @@ export function ThemeToggle() {
 
           <p className="app-theme-note">
             {scheduled
-              ? "Podés poner un rango que cruce la medianoche, como de 20:00 a 07:00."
-              : "Sirve para no acordarte de cambiarlo todas las noches."}
+              ? "El rango puede cruzar la medianoche, por ejemplo de 20:00 a 07:00."
+              : "Evita cambiarlo a mano cada noche."}
           </p>
 
           <div className="app-theme-split" />
@@ -170,7 +170,7 @@ export function ThemeToggle() {
           <div className="app-user-menu-head">
             <span className="app-user-menu-name">Color</span>
             <span className="app-user-menu-mail">
-              {automatic ? `Ahora estamos en ${showing?.label.toLowerCase()}.` : "La elegís vos."}
+              {automatic ? `Ahora es ${showing?.label.toLowerCase()}.` : "Elección manual."}
             </span>
           </div>
 
@@ -182,7 +182,7 @@ export function ThemeToggle() {
               // de seguir al calendario no tiene por qué cambiar nada en pantalla.
               onChange={(event) => setChoice(event.target.checked ? "auto" : season)}
             />
-            <span>Que cambie con la estación</span>
+            <span>Según la estación</span>
           </label>
 
           <div className="app-season-grid" aria-hidden={automatic}>
@@ -208,7 +208,7 @@ export function ThemeToggle() {
           <p className="app-theme-note">
             {automatic
               ? "Cambia sola cuatro veces al año, con el calendario de acá."
-              : "Va a quedar así hasta que la vuelvas a mover."}
+              : "Queda fija hasta un nuevo cambio."}
           </p>
         </div>
       )}

@@ -39,7 +39,7 @@ export function ConfirmAppointmentModal({
         professionalEmail: professional.email,
         officeId: office.idOffice,
       });
-      toast.success("Turno pedido. Te avisamos cuando el profesional lo confirme");
+      toast.success("Turno solicitado. Queda pendiente de confirmación del profesional");
       onClose();
     } catch {
       // El mensaje ya lo muestra quien llama; acá solo se reactiva el botón.
@@ -52,7 +52,7 @@ export function ConfirmAppointmentModal({
       open={isOpen}
       onClose={onClose}
       size="sm"
-      title="Confirmar el turno"
+      title="Confirmar turno"
       subtitle={formatDayLabel(date)}
       footer={
         <>
@@ -63,7 +63,7 @@ export function ConfirmAppointmentModal({
               apretar deja preguntándose qué falta para poder; abajo está dicho. */}
           {!blockedReason && (
             <button type="button" className="adm-btn adm-btn-primary" onClick={handleSubmit} disabled={sending}>
-              {sending ? "Pidiendo…" : "Pedir turno"}
+              {sending ? "Solicitando…" : "Solicitar turno"}
             </button>
           )}
         </>
@@ -109,7 +109,7 @@ export function ConfirmAppointmentModal({
           <p className="ui-alert ui-alert-warn">{blockedReason}</p>
         ) : (
           <p className="ui-alert ui-alert-info">
-            El turno queda pendiente hasta que el profesional lo acepte. Vas a ver el estado en “Mis turnos”.
+            Pendiente hasta la confirmación del profesional. El estado figura en “Mis turnos”.
           </p>
         )}
       </div>

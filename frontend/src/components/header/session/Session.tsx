@@ -83,6 +83,8 @@ export function Session() {
   if (!token || !decoded) {
     return (
       <div className="app-session">
+        {/* Los accesos para profesionales ("Quiero trabajar acá", "Login profesional") van
+            solo en el menú lateral: en la barra competían con los del paciente. */}
         <Link className="app-header-btn ghost" to="/Login">
           Iniciar sesión
         </Link>
@@ -152,7 +154,7 @@ export function Session() {
         }
       >
         <p className="ui-alert ui-alert-info">
-          Vas a volver a la página de inicio. Para entrar de nuevo vas a tener que escribir tu email y tu contraseña.
+          Se vuelve a la página de inicio. Para entrar de nuevo se piden el email y la contraseña.
         </p>
       </Modal>
     </div>

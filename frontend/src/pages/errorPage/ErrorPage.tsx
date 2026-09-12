@@ -2,10 +2,10 @@ import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { FaHouse, FaLeaf, FaRepeat } from "react-icons/fa6";
 import "./ErrorPage.css";
 
-// La aplicación no siempre vive en la raíz del dominio: publicada cuelga del nombre del
-// repositorio. Estos dos links recargan la página entera a propósito —es la forma de salir
-// de un router roto— y por eso no pueden pasar por el router: hay que ponerles el prefijo
-// a mano o terminan en el 404 del hosting, fuera de la aplicación.
+// La aplicación no siempre vive en la raíz del dominio: publicada sin dominio propio
+// cuelga del nombre del repositorio. Estos dos links recargan la página entera a propósito
+// —es la forma de salir de un router roto— y por eso no pueden pasar por el router: hay
+// que ponerles el prefijo a mano o terminan en el 404 del hosting, fuera de la aplicación.
 const HOME = import.meta.env.BASE_URL;
 
 /** El texto crudo del error, para que sirva si alguien nos lo copia y pega. */
@@ -31,14 +31,11 @@ export function ErrorPage() {
           <FaLeaf />
         </span>
 
-        <h1 className="er-title">Se nos trabó algo</h1>
+        <h1 className="er-title">Ocurrió un error</h1>
 
-        <p className="er-text">
-          El problema es nuestro, no tuyo. Tus turnos y tus datos siguen guardados tal como estaban.
-          Nada de lo que hiciste se perdió.
-        </p>
+        <p className="er-text">Los turnos y los datos siguen guardados sin cambios.</p>
 
-        <p className="er-text er-text-quiet">Casi siempre se arregla volviendo a cargar la pantalla.</p>
+        <p className="er-text er-text-quiet">Volver a cargar la pantalla suele resolverlo.</p>
 
         <div className="er-actions">
           {/* Recarga entera, no navegación: si el router quedó en un estado raro, esto lo limpia. */}
@@ -56,7 +53,7 @@ export function ErrorPage() {
           <summary>Ver el detalle técnico</summary>
           <code>{detailOf(error)}</code>
           <p className="er-detail-note">
-            Si vuelve a pasar, copiá esta línea y <a href={`${HOME}contacto`}>contanos</a>.
+            Si se repite, copiar esta línea y enviarla por <a href={`${HOME}contacto`}>contacto</a>.
           </p>
         </details>
       </div>

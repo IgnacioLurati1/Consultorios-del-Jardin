@@ -49,7 +49,7 @@ export function AboutProfessionalModal({ open, onClose, professional, patient }:
         {professional.about ? (
           <p className="booking-about">{professional.about}</p>
         ) : (
-          <p className="ui-detail-empty">Todavía no escribió su presentación.</p>
+          <p className="ui-detail-empty">Sin presentación cargada.</p>
         )}
       </div>
 
@@ -66,7 +66,7 @@ export function AboutProfessionalModal({ open, onClose, professional, patient }:
         </div>
 
         <p className="ui-hint">
-          "Contactar" abre Gmail con un mensaje ya escrito. Podés cambiarlo antes de mandarlo.
+          "Contactar" abre Gmail con un mensaje ya escrito, editable antes de enviarlo.
         </p>
       </div>
     </Modal>

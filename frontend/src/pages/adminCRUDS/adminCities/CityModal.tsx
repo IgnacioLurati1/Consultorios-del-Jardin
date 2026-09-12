@@ -72,7 +72,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
   function submit() {
     const newErrors: typeof errors = {};
     if (!cityData.nameCity.trim()) newErrors.nameCity = "El nombre es obligatorio";
-    if (!cityData.province) newErrors.province = "Elegí una provincia";
+    if (!cityData.province) newErrors.province = "Falta la provincia";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -158,7 +158,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
               en un estado inválido hasta salir del campo. Con un select no hay forma de
               elegir algo que no exista. */}
           <select value={cityData.province} onChange={(e) => setCityData({ ...cityData, province: e.target.value })}>
-            <option value="">Elegí una provincia…</option>
+            <option value="">Seleccionar provincia…</option>
             {provinces.map((province) => (
               <option key={province.idProvince} value={province.idProvince}>
                 {province.nameProvince}

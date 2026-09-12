@@ -56,7 +56,7 @@ export function RegisterProf() {
         subirAlPrincipio();
       })
       .catch((err: Error) => {
-        setServerError(err.message || "No pudimos registrar al profesional");
+        setServerError(err.message || "Error al registrar al profesional");
         setSending(false);
       });
   }
@@ -65,7 +65,7 @@ export function RegisterProf() {
     {
       id: "cuenta",
       title: "Cuenta",
-      hint: "Con estos datos el profesional va a entrar a la app. Después puede cambiar la contraseña desde su perfil.",
+      hint: "Datos de acceso del profesional. La contraseña se puede cambiar después desde el perfil.",
       validate: () => validateAccountAsync(form),
       content: (
         <>
@@ -110,7 +110,7 @@ export function RegisterProf() {
     {
       id: "datos",
       title: "Datos",
-      hint: "Es el nombre que van a ver los pacientes al pedir un turno.",
+      hint: "Nombre visible para los pacientes al solicitar turno.",
       validate: () => validatePersonalData(form),
       content: (
         <div className="ui-field-row">
@@ -137,7 +137,7 @@ export function RegisterProf() {
             {/* Lista fija: es la misma con la que el paciente filtra al buscar turno,
                 así que escribirla a mano solo abre la puerta a que no coincidan. */}
             <select value={form.speciality} onChange={(e) => set("speciality", e.target.value)}>
-              <option value="">Elegí una…</option>
+              <option value="">Seleccionar…</option>
               {SPECIALITIES.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -151,12 +151,12 @@ export function RegisterProf() {
             <textarea
               rows={4}
               maxLength={ABOUT_MAX}
-              placeholder="Con qué trabaja, con qué enfoque, a quiénes atiende…"
+              placeholder="Áreas de trabajo, enfoque, población que se atiende…"
               value={form.about}
               onChange={(e) => set("about", e.target.value)}
             />
             <small>
-              Opcional. Es lo que lee el paciente antes de elegir con quién atenderse. {form.about.length}/{ABOUT_MAX}
+              Opcional. Visible para el paciente al elegir profesional. {form.about.length}/{ABOUT_MAX}
             </small>
           </label>
 
@@ -169,7 +169,7 @@ export function RegisterProf() {
             <label className="ui-field">
               <span>Tipo de documento</span>
               <select value={form.docType} onChange={(e) => set("docType", e.target.value)}>
-                <option value="">Elegí uno…</option>
+                <option value="">Seleccionar…</option>
                 {DOC_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}

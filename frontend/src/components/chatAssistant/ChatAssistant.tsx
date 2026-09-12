@@ -61,8 +61,10 @@ const GREETINGS: Record<string, string[]> = {
         "Probá con “¿qué tengo mañana?” o “¿cómo vengo este mes?”.",
     ],
     admin: [
-        "Puedo darte los números del consultorio, decirte quién está dando sobreturnos y llevarte a cada pantalla del panel.",
-        "Probá con “¿quién hace sobreturnos esta semana?” o “necesito cambiar una provincia”.",
+        // "Turnos especiales" es el nombre de pantalla de los sobreturnos. El prompt del
+        // backend sabe que son lo mismo y contesta con el nombre nuevo.
+        "Puedo darte los números del consultorio, decirte quién está dando turnos especiales y llevarte a cada pantalla del panel.",
+        "Probá con “¿quién da turnos especiales esta semana?” o “necesito cambiar una provincia”.",
     ],
 };
 

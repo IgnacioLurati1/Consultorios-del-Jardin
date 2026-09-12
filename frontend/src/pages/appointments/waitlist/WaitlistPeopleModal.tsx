@@ -54,7 +54,7 @@ export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeople
       setList(next);
       setConfirming(null);
       onChanged?.(next);
-      toast.success(`${person.patient.name} salió de tu lista de espera`);
+      toast.success(`${person.patient.name} fuera de la lista de espera`);
     } catch (err) {
       toast.error(messageOf(err));
     } finally {
@@ -68,9 +68,9 @@ export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeople
     <Modal
       open={open}
       onClose={onClose}
-      title="Tu lista de espera"
+      title="Lista de espera"
       subtitle={
-        list === null ? undefined : count === 0 ? "No hay nadie esperando" : count === 1 ? "Una persona esperando" : `${count} personas esperando`
+        list === null ? undefined : count === 0 ? "Sin personas en espera" : count === 1 ? "Una persona en espera" : `${count} personas en espera`
       }
       footer={
         <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
@@ -79,11 +79,11 @@ export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeople
       }
     >
       {error ? (
-        <p className="ui-alert ui-alert-error">No pudimos traer tu lista de espera. {error}</p>
+        <p className="ui-alert ui-alert-error">Error al cargar la lista de espera. {error}</p>
       ) : list === null ? (
         <SkeletonList rows={3} />
       ) : count === 0 ? (
-        <div className="adm-empty">Nadie está esperando que se libere un horario tuyo.</div>
+        <div className="adm-empty">Sin personas en espera.</div>
       ) : (
         <>
           <ul className="waitlist-people">
@@ -113,12 +113,12 @@ export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeople
                       Volver
                     </button>
                     <button type="button" className="adm-btn adm-btn-danger adm-btn-sm" onClick={() => remove(person)} disabled={removing}>
-                      Sí, sacarlo
+                      Confirmar
                     </button>
                   </div>
                 ) : (
                   <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm" onClick={() => setConfirming(person.id)}>
-                    Sacar de la lista
+                    Quitar de la lista
                   </button>
                 )}
               </li>
@@ -126,8 +126,8 @@ export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeople
           </ul>
 
           <p className="waitlist-fineprint">
-            Cuando se libera un horario que les sirve, les avisamos a todos a la vez y se lo queda el primero que lo reserva.
-            Sacar a alguien de la lista no le manda ningún aviso.
+            Al liberarse un horario de su franja, el aviso llega a todos a la vez y el turno queda para quien lo reserve
+            primero. Quitar a alguien de la lista no le envía aviso.
           </p>
         </>
       )}

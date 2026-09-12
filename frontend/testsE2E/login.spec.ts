@@ -8,8 +8,9 @@ const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'admin1234';
 test('Flujo completo de Login exitoso', async ({ page }) => {
   await page.goto('http://localhost:5173/');
 
-  // En la barra superior, "Iniciar sesión" es un link a /Login.
-  await page.getByRole('link', { name: /Iniciar sesión/i }).click();
+  // "Iniciar sesión" es un link a /Login. En la portada hay más de uno (barra, franja de
+  // accesos y pasos), así que se toca el primero, que es el de la barra.
+  await page.getByRole('link', { name: /Iniciar sesión/i }).first().click();
 
   await page.getByLabel('Email').fill(ADMIN_EMAIL);
   await page.getByLabel('Contraseña').fill(ADMIN_PASSWORD);

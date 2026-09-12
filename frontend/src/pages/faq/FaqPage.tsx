@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaChevronDown, FaEnvelope, FaInstagram, FaLocationDot, FaClock } from "react-icons/fa6";
+import { SPECIALITIES } from "../specialities";
 import "../adminCRUDS/adminPanel.css";
 import "./faq.css";
 
@@ -17,50 +18,33 @@ interface Question {
  * Están en el orden en que aparecen las dudas de alguien que todavía no vino, no
  * agrupadas por tema. Primero dónde queda y qué se atiende, después quién se hace cargo
  * y cuánto sale, y al final cómo funciona la aplicación.
+ *
+ * Las especialidades salen de la misma lista que usa el pedido de turno, sin
+ * descripciones ni cantidad: el consultorio pidió no comprometerse con nada que cambie
+ * cuando se sume o se vaya una.
  */
 const QUESTIONS: Question[] = [
   {
-    q: "¿Dónde están?",
+    q: "¿Dónde queda el consultorio?",
     a: (
       <p>
-        En 9 de Julio 3672. Atendemos de lunes a viernes, de 9 a 20, aunque cada profesional tiene sus propios días y
-        horarios y los vas a ver al pedir el turno.
+        En 9 de Julio 3672, de lunes a viernes de 9 a 20. Cada profesional tiene sus propios días y horarios, visibles al
+        solicitar el turno.
       </p>
     ),
   },
   {
-    q: "¿Qué disciplinas se atienden?",
-    a: (
-      <>
-        <p>Cuatro.</p>
-        <ul className="faq-list">
-          <li>
-            <strong>Psicopedagogía</strong> — aprendizaje, atención y acompañamiento escolar.
-          </li>
-          <li>
-            <strong>Psicología</strong> — terapia individual para adolescentes y adultos.
-          </li>
-          <li>
-            <strong>Nutrición</strong> — planes de alimentación y seguimiento.
-          </li>
-          <li>
-            <strong>Fonoaudiología</strong> — voz, habla y deglución, en chicos y en grandes.
-          </li>
-        </ul>
-      </>
-    ),
+    q: "¿Qué especialidades se atienden?",
+    a: <p>{SPECIALITIES.join(", ")}.</p>,
   },
   {
-    q: "¿Quién se hace cargo de mi tratamiento?",
+    q: "¿Quién es responsable del tratamiento?",
     a: (
       <>
+        <p>Cada profesional es responsable de sus pacientes, de sus turnos y de lo que ocurre en la consulta.</p>
         <p>
-          El profesional que te atiende. Cada uno es responsable de sus pacientes, de sus turnos y de todo lo que pasa en
-          la consulta.
-        </p>
-        <p>
-          Consultorios del Jardín pone el espacio, la agenda y esta aplicación. No dirige los tratamientos ni responde por
-          ellos, así que cualquier cosa sobre tu atención se habla directamente con tu profesional.
+          Consultorios del Jardín provee el espacio, la agenda y esta aplicación, sin intervenir en los tratamientos. Las
+          consultas sobre la atención se hablan con el profesional.
         </p>
       </>
     ),
@@ -69,54 +53,48 @@ const QUESTIONS: Question[] = [
     q: "¿Cuánto cuesta una consulta?",
     a: (
       <p>
-        Lo pactás con el profesional. Cada uno fija sus honorarios y cobra por su cuenta, y el consultorio no interviene en
-        eso. Conviene preguntarlo al sacar el primer turno para no llevarte una sorpresa.
+        Los honorarios los fija cada profesional, que cobra en forma directa. Conviene consultarlos al solicitar el primer
+        turno.
       </p>
     ),
   },
   {
-    q: "¿Cómo saco un turno?",
+    q: "¿Cómo se solicita un turno?",
     a: (
       <p>
-        Creás tu cuenta, entrás a <Link to="/Appointment">Pedir un turno</Link> y elegís profesional y horario entre los que
-        estén libres. El turno queda pendiente hasta que el profesional lo confirma, y te avisamos por mail cuando eso pasa.
+        Con una cuenta creada, desde <Link to="/Appointment">Solicitar turno</Link>, eligiendo especialidad o profesional y
+        un horario libre. El turno queda pendiente hasta la confirmación del profesional, con aviso por mail.
       </p>
     ),
   },
   {
-    q: "¿Y si no puedo ir?",
+    q: "¿Cómo se cancela un turno?",
     a: (
       <p>
-        Cancelalo desde <Link to="/AppointmentsList">Mis turnos</Link> apenas sepas. El horario vuelve a quedar libre para
-        otra persona, y tu profesional se entera sin que tengas que escribirle.
+        Desde <Link to="/AppointmentsList">Mis turnos</Link>, con la mayor anticipación posible. El horario queda libre y el
+        profesional recibe el aviso.
       </p>
     ),
   },
   {
-    q: "¿Puedo elegir con quién atenderme?",
+    q: "¿Se puede elegir profesional?",
+    a: <p>Sí. Al solicitar turno figuran todos los profesionales, con su especialidad, sus horarios y una presentación.</p>,
+  },
+  {
+    q: "¿Dónde se ven las indicaciones del profesional?",
     a: (
       <p>
-        Sí. Al pedir turno ves a todos los profesionales con su especialidad y sus horarios, y cada uno tiene una
-        presentación para que sepas con quién te vas a encontrar.
+        En <Link to="/AppointmentsList">Mis turnos</Link>, abriendo cada turno. Ahí quedan las indicaciones y el plan de
+        trabajo.
       </p>
     ),
   },
   {
-    q: "¿Puedo ver lo que anota mi profesional?",
+    q: "¿Qué uso tienen los datos personales?",
     a: (
       <p>
-        Sí. Lo que escribe después de cada consulta lo vas a encontrar en{" "}
-        <Link to="/AppointmentsList">Mis turnos</Link>, abriendo el turno. Ahí quedan las indicaciones, el plan que te haya
-        armado y lo que tengas que mirar hasta la próxima vez.
-      </p>
-    ),
-  },
-  {
-    q: "¿Qué pasa con mis datos?",
-    a: (
-      <p>
-        Lo que cargás en tu perfil lo usamos para gestionar tus turnos y nada más. Lo que anota tu profesional lo ven él y
-        vos, nadie más.
+        Los datos del perfil se usan solo para gestionar los turnos. Las anotaciones de cada consulta las ven únicamente el
+        profesional y el paciente.
       </p>
     ),
   },
@@ -127,7 +105,7 @@ const QUESTIONS: Question[] = [
  *
  * Se abre y se cierra cada una en vez de mostrarlas todas desplegadas porque el valor de
  * esta pantalla está en poder barrer las preguntas con la vista y encontrar la propia.
- * Nueve respuestas abiertas obligan a leerlas todas para descartarlas.
+ * Todas abiertas obligan a leerlas enteras para descartarlas.
  */
 export function FaqPage() {
   return (
@@ -135,7 +113,7 @@ export function FaqPage() {
       <header className="adm-header">
         <div className="adm-header-titles">
           <h1 className="adm-title">Preguntas frecuentes</h1>
-          <p className="adm-subtitle">Lo que más nos preguntan antes de la primera consulta</p>
+          <p className="adm-subtitle">Antes de la primera consulta</p>
         </div>
         <Link className="adm-back" to="/">
           Volver al inicio
@@ -181,9 +159,9 @@ export function FaqPage() {
           </div>
 
           <div className="faq-help">
-            <p>¿No está lo que buscabas?</p>
+            <p>¿Otra consulta?</p>
             <Link className="adm-btn adm-btn-primary" to="/contacto">
-              Escribinos
+              Contacto
             </Link>
           </div>
         </aside>

@@ -315,7 +315,7 @@ export function PatientDetailModal({
 
       {patient && (
         <div className="ui-section patients-history">
-          <h3 className="patients-history-title">Historial con vos</h3>
+          <h3 className="patients-history-title">Historial de turnos</h3>
 
           {/* Los recortes, cada uno con cuántos turnos tiene detrás. El número es lo que
               convierte la fila en un resumen del paciente antes de tocar nada, y lo que
@@ -350,9 +350,9 @@ export function PatientDetailModal({
           {loadingHistory ? (
             <SkeletonList rows={3} />
           ) : !history || history.length === 0 ? (
-            <p className="adm-empty">Todavía no tuvo ningún turno con vos.</p>
+            <p className="adm-empty">Sin turnos todavía.</p>
           ) : shownHistory.length === 0 ? (
-            <p className="adm-empty">Ningún turno entra en lo que estás filtrando.</p>
+            <p className="adm-empty">Sin turnos para este filtro.</p>
           ) : (
             <ul className="patients-history-list">
               {shownHistory.map((appointment) => {

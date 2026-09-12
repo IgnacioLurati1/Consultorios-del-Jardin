@@ -80,28 +80,28 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
   const alreadyStarted = isToday && worksOn(schedules, form.date);
 
   function validate(): string | null {
-    if (!form.date) return "Elegí una fecha";
+    if (!form.date) return "Falta la fecha";
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const [y, m, d] = form.date.split("-").map(Number);
-    if (new Date(y, m - 1, d) < today) return "No se puede crear un turno en una fecha que ya pasó";
+    if (new Date(y, m - 1, d) < today) return "La fecha ya pasó";
 
     if (form.value && Number(form.value) < 0) return "El valor no puede ser negativo";
 
-    if (form.repeat && !form.repeatForever && !form.repeatUntil) return "Elegí hasta qué día se repite";
+    if (form.repeat && !form.repeatForever && !form.repeatUntil) return "Falta la fecha de fin de la repetición";
     if (form.repeat && !form.repeatForever && form.repeatUntil < form.date)
-      return "La fecha de corte no puede ser anterior al turno";
+      return "La fecha de fin no puede ser anterior al turno";
 
     if (mode === "regular") {
-      if (!selectedSlot) return "Elegí uno de los turnos disponibles";
+      if (!selectedSlot) return "Falta elegir un turno disponible";
       return null;
     }
 
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.initialHour) || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.finalHour))
-      return "Las horas tienen que tener formato HH:MM";
-    if (form.initialHour >= form.finalHour) return "La hora de inicio tiene que ser anterior a la de fin";
-    if (!form.room) return "Elegí un consultorio";
+      return "Formato de hora inválido. Debe ser HH:MM";
+    if (form.initialHour >= form.finalHour) return "La hora de inicio debe ser anterior a la de fin";
+    if (!form.room) return "Falta el consultorio";
 
     return null;
   }
@@ -137,11 +137,11 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
     <Modal
       open={isOpen}
       onClose={onClose}
-      title={mode === "regular" ? "Nuevo turno" : "Nuevo sobreturno"}
+      title={mode === "regular" ? "Nuevo turno" : "Nuevo turno especial"}
       subtitle={
         mode === "regular"
-          ? "Dentro de tus horarios de atención. Queda confirmado directamente"
-          : "Fuera de tus horarios. Elegís día, hora y consultorio a mano"
+          ? "Dentro de los horarios de atención. Queda confirmado"
+          : "Fuera de los horarios de atención, con día, hora y consultorio a elección"
       }
       footer={
         <>
@@ -149,7 +149,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? "Creando…" : mode === "regular" ? "Crear turno" : "Crear sobreturno"}
+            {saving ? "Creando…" : mode === "regular" ? "Crear turno" : "Crear turno especial"}
           </button>
         </>
       }
@@ -167,7 +167,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             aria-pressed={mode === "overbooked"}
           >
             <FaBolt />
-            Sobreturno
+            Turno especial
           </button>
         </div>
 
@@ -181,7 +181,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             <span>Turno disponible</span>
             <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)} disabled={slots.length === 0}>
               <option value="">
-                {slots.length ? "Elegí un horario…" : alreadyStarted ? "Ya no quedan turnos hoy" : "Ese día no atendés"}
+                {slots.length ? "Seleccionar horario…" : alreadyStarted ? "Sin turnos restantes hoy" : "Sin atención ese día"}
               </option>
               {slots.map((slot) => (
                 <option key={slot.key} value={slot.key}>
@@ -190,11 +190,11 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
               ))}
             </select>
             {slots.length > 0 ? (
-              <small>La duración la define cada módulo de tu grilla de horarios.</small>
+              <small>La duración la define cada módulo de la grilla.</small>
             ) : alreadyStarted ? (
-              <small>Los turnos de hoy ya arrancaron. Elegí otro día, o cargalo como sobreturno.</small>
+              <small>Los turnos de hoy ya comenzaron. Queda la opción de otro día o de un turno especial.</small>
             ) : (
-              <small>No tenés horarios de atención ese día. Cargalo como sobreturno o revisá tu grilla.</small>
+              <small>Sin horarios de atención ese día. Queda la opción de un turno especial o de ajustar la grilla.</small>
             )}
           </label>
         ) : (
@@ -213,7 +213,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             <label className="ui-field">
               <span>Consultorio</span>
               <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })}>
-                <option value="">Elegí una sala…</option>
+                <option value="">Seleccionar consultorio…</option>
                 {rooms.map((room) => (
                   <option key={room.idRoom} value={room.idRoom}>
                     {room.description}
@@ -227,7 +227,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
         <Link className="adm-btn adm-btn-ghost appt-schedule-link" to="/scheduleProfessional" target="_blank" rel="noreferrer">
           <FaArrowUpRightFromSquare />
-          Ver mis horarios y duraciones
+          Ver horarios y duraciones
         </Link>
       </div>
 
@@ -242,10 +242,10 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             value={form.value}
             onChange={(e) => setForm({ ...form, value: e.target.value })}
           />
-          <small>Si lo dejás vacío queda en 0 y lo podés completar después.</small>
+          <small>Vacío equivale a 0. Se puede completar después.</small>
         </label>
 
-        <p className="ui-alert ui-alert-info">Este dato es privado entre el paciente y vos.</p>
+        <p className="ui-alert ui-alert-info">Dato visible solo para el profesional y el paciente.</p>
 
         {/* No es un <label> porque adentro hay una lista de botones, y un botón adentro
             de una etiqueta no se comporta igual en todos los navegadores. */}
@@ -255,9 +255,9 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             patients={patients}
             value={form.patientEmail}
             onChange={(patientEmail) => setForm({ ...form, patientEmail })}
-            placeholder="Sin paciente por ahora"
+            placeholder="Sin paciente"
           />
-          <small>Podés dejar la franja reservada y asignar al paciente más adelante.</small>
+          <small>La franja queda reservada y el paciente se asigna después.</small>
         </div>
 
       </div>
@@ -269,7 +269,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             checked={form.repeat}
             onChange={(e) => setForm({ ...form, repeat: e.target.checked })}
           />
-          <span>Que se repita</span>
+          <span>Repetir</span>
         </label>
 
         {form.repeat && (

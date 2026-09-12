@@ -73,7 +73,7 @@ describe("Login", () => {
 
     await user.click(screen.getByRole("button", { name: /^Entrar$/i }));
 
-    expect(await screen.findByText(/Escribí tu email/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Falta el email/i)).toBeInTheDocument();
     expect(LoginServiceModule.LoginService).not.toHaveBeenCalled();
   });
 
@@ -83,7 +83,7 @@ describe("Login", () => {
 
     await signIn(user, "no-es-un-email", "123456");
 
-    expect(await screen.findByText(/no parece válido/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Formato de email inválido/i)).toBeInTheDocument();
     expect(LoginServiceModule.LoginService).not.toHaveBeenCalled();
   });
 
@@ -94,7 +94,7 @@ describe("Login", () => {
     await user.type(screen.getByLabelText(/Email/i), "cliente@test.com");
     await user.click(screen.getByRole("button", { name: /^Entrar$/i }));
 
-    expect(await screen.findByText(/Escribí tu contraseña/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Falta la contraseña/i)).toBeInTheDocument();
     expect(LoginServiceModule.LoginService).not.toHaveBeenCalled();
   });
 

@@ -1,12 +1,19 @@
 import type { CSSProperties } from "react";
 import { addDays, appointmentDate, shortHour, toISODate } from "../appointmentTypes.ts";
 import type { partialAppointment } from "../appointmentTypes.ts";
+import type { Person } from "../../types.ts";
 import { WeekGrid, type WeekGridDay } from "../../../components/weekGrid/WeekGrid.tsx";
 
-interface AvailableWeekGridProps {
-  slots: partialAppointment[];
+/**
+ * Un horario libre. Trae al profesional cuando la grilla junta varios (los horarios de
+ * toda una especialidad); en la agenda de uno solo no hace falta y no viene.
+ */
+export type BookableSlot = partialAppointment & { professional?: Person };
+
+interface AvailableWeekGridProps<T extends BookableSlot> {
+  slots: T[];
   monday: Date;
-  onPick: (slot: partialAppointment) => void;
+  onPick: (slot: T) => void;
 }
 
 function durationInMinutes(initialHour: string, finalHour: string): number {
@@ -16,12 +23,16 @@ function durationInMinutes(initialHour: string, finalHour: string): number {
 }
 
 /**
- * Horarios libres de un profesional, semana por semana.
+ * Horarios libres, semana por semana.
+ *
+ * Con un solo profesional, debajo de la hora va cuánto dura el turno. Con varios, va con
+ * quién es: ahí la duración deja de ser lo que decide y el nombre sí.
+ *
  * Los horarios entran desde abajo, escalonados de izquierda a derecha: al saltar de un
  * profesional a otro se nota enseguida que la grilla se renovó.
  */
-export function AvailableWeekGrid({ slots, monday, onPick }: AvailableWeekGridProps) {
-  const byDate = new Map<string, partialAppointment[]>();
+export function AvailableWeekGrid<T extends BookableSlot>({ slots, monday, onPick }: AvailableWeekGridProps<T>) {
+  const byDate = new Map<string, T[]>();
   for (const slot of slots) {
     const key = toISODate(appointmentDate(slot.date as unknown as string));
     const list = byDate.get(key);
@@ -34,24 +45,34 @@ export function AvailableWeekGrid({ slots, monday, onPick }: AvailableWeekGridPr
 
   const days: WeekGridDay[] = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(monday, index);
-    const daySlots = (byDate.get(toISODate(date)) ?? []).sort((a, b) => a.initialHour.localeCompare(b.initialHour));
+    const daySlots = (byDate.get(toISODate(date)) ?? []).sort(
+      (a, b) =>
+        a.initialHour.localeCompare(b.initialHour) ||
+        (a.professional?.surname ?? "").localeCompare(b.professional?.surname ?? "")
+    );
 
     return {
       date,
       empty: daySlots.length === 0,
-      content: daySlots.map((slot) => (
-        <button
-          type="button"
-          key={`${toISODate(date)}-${slot.initialHour}`}
-          className="week-slot"
-          style={{ "--slot-order": order++ } as CSSProperties}
-          onClick={() => onPick(slot)}
-          title={`${shortHour(slot.initialHour)} · ${durationInMinutes(slot.initialHour, slot.finalHour)} minutos`}
-        >
-          <span className="week-slot-hour">{shortHour(slot.initialHour)}</span>
-          <span className="week-slot-note">{durationInMinutes(slot.initialHour, slot.finalHour)} min</span>
-        </button>
-      )),
+      content: daySlots.map((slot) => {
+        const minutes = durationInMinutes(slot.initialHour, slot.finalHour);
+        const who = slot.professional ? `${slot.professional.surname}, ${slot.professional.name}` : null;
+
+        return (
+          <button
+            type="button"
+            // Con varios profesionales, dos pueden tener libre la misma hora.
+            key={`${toISODate(date)}-${slot.initialHour}-${slot.professional?.email ?? ""}`}
+            className={`week-slot ${who ? "has-who" : ""}`}
+            style={{ "--slot-order": order++ } as CSSProperties}
+            onClick={() => onPick(slot)}
+            title={`${shortHour(slot.initialHour)} · ${who ? `${who} · ` : ""}${minutes} minutos`}
+          >
+            <span className="week-slot-hour">{shortHour(slot.initialHour)}</span>
+            <span className="week-slot-note">{slot.professional ? slot.professional.surname : `${minutes} min`}</span>
+          </button>
+        );
+      }),
     };
   });
 

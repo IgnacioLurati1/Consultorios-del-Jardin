@@ -66,7 +66,7 @@ export function PatientsPage() {
         if (!cancelled) setPatients(data);
       })
       .catch((err) => {
-        if (!cancelled) toast.error(`No pudimos cargar los pacientes: ${err.message}`);
+        if (!cancelled) toast.error(`Error al cargar los pacientes: ${err.message}`);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -156,7 +156,7 @@ export function PatientsPage() {
         title="Pacientes"
         subtitle={
           scope === "mine"
-            ? "Las personas a las que les diste turno alguna vez"
+            ? "Personas con al menos un turno"
             : "Todos los pacientes del consultorio, con cuenta y anónimos"
         }
         backTo="/ProfessionalHome"
@@ -172,9 +172,8 @@ export function PatientsPage() {
 
       {!simple && (
         <p className="people-note">
-          Un paciente <strong>anónimo</strong> no tiene cuenta ni contraseña. Sirve para anotarlo sin que tenga que registrarse. Podés
-          corregirle los datos cuando quieras. Si más adelante se registra con ese mismo email, la cuenta pasa a ser real y conserva
-          todo lo que le hayas cargado.
+          Un paciente <strong>anónimo</strong> no tiene cuenta ni contraseña y se carga sin registro. Sus datos se pueden corregir en
+          cualquier momento. Si después se registra con el mismo email, la cuenta pasa a ser real y conserva lo cargado.
         </p>
       )}
 
@@ -210,7 +209,7 @@ export function PatientsPage() {
             className={`adm-btn adm-btn-ghost patients-debt-filter ${onlyDebtors ? "active" : ""}`}
             aria-pressed={onlyDebtors}
             disabled={debtors === 0 && !onlyDebtors}
-            title={debtors === 0 ? "Nadie te quedó debiendo" : "Solo los que te quedaron debiendo"}
+            title={debtors === 0 ? "Sin deudas" : "Solo pacientes con deuda"}
             onClick={() => setOnlyDebtors(!onlyDebtors)}
           >
             <FaMoneyBillWave />
@@ -228,11 +227,11 @@ export function PatientsPage() {
         ) : patients.length === 0 ? (
           <div className="adm-empty">
             {scope === "mine"
-              ? "Todavía no le diste turno a nadie. Acá van a aparecer los pacientes que atiendas."
-              : "Todavía no hay pacientes cargados."}
+              ? "Sin pacientes todavía. Acá aparecen las personas con turno."
+              : "Sin pacientes cargados."}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="adm-empty">Ningún paciente coincide con la búsqueda.</div>
+          <div className="adm-empty">Sin pacientes para esta búsqueda.</div>
         ) : (
           <PeopleList>
             {filtered.map((patient) => (

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { FaClock, FaEnvelope, FaInstagram, FaLocationDot } from "react-icons/fa6";
 import LogoHojas from "../../../../assets/LogoHojasRecortado.PNG";
+import { SPECIALITIES } from "../../../specialities";
 
 const CONTACT = [
   { icon: FaLocationDot, text: "9 de Julio 3672" },
@@ -17,7 +18,9 @@ export function Footer() {
           <img src={LogoHojas} alt="" className="home-footer-logo" />
           <div>
             <p className="home-footer-name">Consultorios del Jardín</p>
-            <p className="home-footer-claim">Psicopedagogía, Psicología, Nutrición y Fonoaudiología.</p>
+            {/* De la misma lista que usa el pedido de turno: si se suma una especialidad,
+                aparece acá sin tocar el pie. */}
+            <p className="home-footer-claim">{SPECIALITIES.join(" · ")}</p>
           </div>
         </div>
 
@@ -40,10 +43,10 @@ export function Footer() {
         </ul>
 
         <nav className="home-footer-links" aria-label="Accesos">
-          <Link to="/Appointment">Pedir un turno</Link>
+          <Link to="/Appointment">Solicitar turno</Link>
           <Link to="/AppointmentsList">Mis turnos</Link>
           <Link to="/preguntas">Preguntas frecuentes</Link>
-          <Link to="/contacto">Escribinos</Link>
+          <Link to="/contacto">Contacto</Link>
           <Link to="/Login">Iniciar sesión</Link>
           <Link to="/Register">Crear cuenta</Link>
         </nav>

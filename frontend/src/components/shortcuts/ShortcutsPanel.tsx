@@ -29,18 +29,18 @@ const atajos: Atajo[] = [
   {
     teclas: [TECLA_ALT, "T"],
     titulo: "Nuevo turno",
-    descripcion: "Abre la ventana para cargar un turno, estés en la pantalla que estés.",
+    descripcion: "Abre la ventana para cargar un turno desde cualquier pantalla.",
   },
   {
     teclas: [TECLA_ALT, "P"],
     titulo: "Nuevo paciente",
-    descripcion: "Abre la ventana para cargar un paciente, estés en la pantalla que estés.",
+    descripcion: "Abre la ventana para cargar un paciente desde cualquier pantalla.",
   },
   {
     teclas: [TECLA_MOD, "Z"],
     titulo: "Deshacer",
-    descripcion: "Vuelve atrás lo último que hiciste, y te avisa cómo quedó.",
-    nota: "Vale mientras sigas en la misma pantalla. Si te fuiste, el cambio ya es definitivo. Cancelar un turno no se deshace nunca.",
+    descripcion: "Revierte la última acción y muestra cómo quedó.",
+    nota: "Disponible mientras se siga en la misma pantalla. Al salir, el cambio queda definitivo. La cancelación de un turno no se deshace.",
   },
   {
     teclas: ["Click derecho"],

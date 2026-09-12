@@ -32,7 +32,7 @@ const hhmm = (hour: string) => hour?.slice(0, 5) ?? hour;
 const KINDS: { key: AppointmentKind; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "normal", label: "Turnos" },
-  { key: "overbooked", label: "Sobreturnos" },
+  { key: "overbooked", label: "Turnos especiales" },
 ];
 
 function formatDate(value: string): string {
@@ -126,7 +126,7 @@ export function ControlPanel() {
             ? "Todo lo que pasa en el consultorio un día"
             : professional
             ? `${professional.surname}, ${professional.name}${professional.speciality ? ` · ${professional.speciality}` : ""}`
-            : "Elegí un profesional para ver sus turnos"
+            : "Seleccionar un profesional para ver sus turnos"
         }
         actions={
           view === "professional" ? (
@@ -201,7 +201,7 @@ export function ControlPanel() {
       {view === "professional" && professional && (
         <p className="control-order">
           {includePast
-            ? "Todos los turnos, del más reciente al más viejo."
+            ? "Todos los turnos, del más reciente al más antiguo."
             : "Turnos de hoy en adelante, del más cercano al más lejano."}
         </p>
       )}
@@ -210,7 +210,7 @@ export function ControlPanel() {
       <div className="adm-panel control-scroll">
         {!professional ? (
           <div className="adm-empty">
-            Todavía no elegiste un profesional.
+            Sin profesional seleccionado.
             <br />
             <button type="button" className="adm-btn adm-btn-primary" style={{ marginTop: 16 }} onClick={() => setPickerOpen(true)}>
               Buscar profesional
@@ -221,10 +221,10 @@ export function ControlPanel() {
         ) : appointments.length === 0 ? (
           <div className="adm-empty">
             {page > 0
-              ? "No hay más turnos para mostrar."
+              ? "Sin más turnos para mostrar."
               : includePast
-              ? "Este profesional no tiene turnos registrados."
-              : "Este profesional no tiene turnos de hoy en adelante. Probá viendo también los pasados."}
+              ? "Sin turnos registrados."
+              : "Sin turnos de hoy en adelante. Los pasados se ven con “Ver pasados”."}
           </div>
         ) : (
           <table className="control-table">
@@ -256,7 +256,7 @@ export function ControlPanel() {
                       )}
                     </td>
                     <td>{appointment.room?.description ?? "—"}</td>
-                    <td>{appointment.overbooked ? <span className="appt-tag-over">Sobreturno</span> : null}</td>
+                    <td>{appointment.overbooked ? <span className="appt-tag-over">Turno especial</span> : null}</td>
                     <td>
                       <span className={state.className}>{state.label}</span>
                     </td>

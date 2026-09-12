@@ -125,7 +125,7 @@ export function ScheduleProfessional() {
     findAgendaDay(dayDate)
       .then(setDayData)
       .catch((err) => {
-        toast.error(`No pudimos traer ese día: ${err.message}`);
+        toast.error(`Error al cargar ese día: ${err.message}`);
         setDayData(null);
       })
       .finally(() => setLoadingDay(false));
@@ -261,7 +261,7 @@ export function ScheduleProfessional() {
     ? "Horarios de todos los profesionales en este consultorio. Solo lectura."
     : professional
     ? professional.speciality || "Agenda semanal"
-    : "Elegí un profesional o un consultorio para empezar";
+    : "Seleccionar un profesional o un consultorio";
 
   const filter = (
     <GridFilter
@@ -286,8 +286,8 @@ export function ScheduleProfessional() {
           title="Mis horarios"
           subtitle={
             professional
-              ? "Tocá un módulo para ver su detalle y definir la duración de los turnos"
-              : "Cargando tu agenda…"
+              ? "Cada módulo abre su detalle y la duración de los turnos"
+              : "Cargando la agenda…"
           }
           backTo="/ProfessionalHome"
           actions={filter}
@@ -374,8 +374,8 @@ export function ScheduleProfessional() {
 
       {lockedProfessional && !inRoomMode && !inDayMode && (
         <p className="schedule-mode-note schedule-mode-warn">
-          Este profesional está deshabilitado. Los horarios que le quedaron siguen ocupando el consultorio, así que desde
-          acá se pueden borrar. Cargarle horarios nuevos no.
+          Profesional deshabilitado. Sus horarios siguen ocupando el consultorio y se pueden borrar desde acá, sin carga
+          de horarios nuevos.
         </p>
       )}
 
@@ -446,7 +446,7 @@ export function ScheduleProfessional() {
         ) : !professional && !inRoomMode ? (
           <div className="adm-panel">
             <div className="adm-empty">
-              Elegí un profesional para ver su agenda, o un consultorio para ver su ocupación.
+              Un profesional muestra su agenda, y un consultorio, su ocupación.
               <br />
               <button type="button" className="adm-btn adm-btn-primary" style={{ marginTop: 16 }} onClick={() => setPickerOpen(true)}>
                 Elegir profesional o consultorio

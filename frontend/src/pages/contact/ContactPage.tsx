@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { FaArrowRight, FaCircleCheck, FaClock, FaEnvelope, FaInstagram, FaLocationDot, FaRegPaperPlane } from "react-icons/fa6";
 import { SteppedForm, type FormStep } from "../../components/steppedForm/SteppedForm.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
@@ -22,9 +22,9 @@ const INSTAGRAM = "consultorios_jardin";
 
 /** Los datos fijos del consultorio. `href` los vuelve accionables desde el celular. */
 const OFFICE = [
-  { icon: FaLocationDot, label: "Dónde estamos", value: "9 de Julio 3672" },
-  { icon: FaClock, label: "Cuándo atendemos", value: "Lunes a viernes, de 9 a 20" },
-  { icon: FaEnvelope, label: "Nuestro mail", value: MAIL, href: `mailto:${MAIL}`, small: true },
+  { icon: FaLocationDot, label: "Dirección", value: "9 de Julio 3672" },
+  { icon: FaClock, label: "Horario", value: "Lunes a viernes, de 9 a 20" },
+  { icon: FaEnvelope, label: "Mail", value: MAIL, href: `mailto:${MAIL}`, small: true },
   {
     icon: FaInstagram,
     label: "Instagram",
@@ -35,7 +35,7 @@ const OFFICE = [
 ];
 
 const SHORTCUTS = [
-  { label: "Pedir un turno", to: "/Appointment" },
+  { label: "Solicitar turno", to: "/Appointment" },
   { label: "Ver mis turnos", to: "/AppointmentsList" },
 ];
 
@@ -49,7 +49,19 @@ const SHORTCUTS = [
 export function ContactPage() {
   const { token } = useAuth();
 
-  const [form, setForm] = useState<ContactForm>(emptyContactForm);
+  // "Quiero trabajar acá" del menú llega con ?motivo=profesional: el motivo ya viene
+  // elegido y queda un paso menos. Solo se acepta uno de la lista.
+  const [params] = useSearchParams();
+  const askedReason = params.get("motivo");
+  const validReason = REASONS.some((reason) => reason.id === askedReason) ? askedReason : null;
+
+  const [form, setForm] = useState<ContactForm>(() => ({ ...emptyContactForm, reason: validReason ?? "" }));
+
+  // Tocar el link de la barra estando ya en esta pantalla cambia la dirección pero no
+  // vuelve a montar el formulario.
+  useEffect(() => {
+    if (validReason) setForm((prev) => ({ ...prev, reason: validReason }));
+  }, [validReason]);
   const [sending, setSending] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
@@ -93,7 +105,7 @@ export function ContactPage() {
     {
       id: "motivo",
       title: "Motivo",
-      hint: "¿De qué se trata? Con esto sabemos a quién derivarlo.",
+      hint: "Tema de la consulta.",
       validate: () => validateReason(form),
       content: (
         <div className="contact-reasons">
@@ -114,8 +126,8 @@ export function ContactPage() {
     },
     {
       id: "datos",
-      title: "Tus datos",
-      hint: "A dónde te respondemos.",
+      title: "Datos",
+      hint: "Datos para la respuesta.",
       validate: () => validatePerson(form),
       content: (
         <>
@@ -128,12 +140,12 @@ export function ContactPage() {
             <span>Email</span>
             <input
               type="email"
-              placeholder="vos@mail.com"
+              placeholder="nombre@mail.com"
               autoComplete="email"
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
             />
-            <small>La respuesta llega acá.</small>
+            <small>Destino de la respuesta.</small>
           </label>
 
           <label className="ui-field">
@@ -144,7 +156,7 @@ export function ContactPage() {
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
             />
-            <small>Solo si preferís que te llamemos.</small>
+            <small>Para recibir un llamado.</small>
           </label>
         </>
       ),
@@ -152,21 +164,22 @@ export function ContactPage() {
     {
       id: "mensaje",
       title: "Mensaje",
-      hint: "Contanos con tus palabras.",
+      hint: "Detalle de la consulta.",
       validate: () => validateMessage(form),
       content: (
         <>
           <label className="ui-field">
-            <span>Tu mensaje</span>
+            <span>Mensaje</span>
             <textarea
               rows={7}
               maxLength={MAX_MESSAGE}
               value={form.message}
               onChange={(e) => set("message", e.target.value)}
             />
-            <small className={left < 100 ? "contact-count low" : "contact-count"}>
-              {left < 200 ? `Te quedan ${left} caracteres.` : "Cuanto más claro, más rápido te podemos responder."}
-            </small>
+            {/* El contador aparece recién cerca del tope: antes es un número que no dice nada. */}
+            {left < 200 && (
+              <small className={left < 100 ? "contact-count low" : "contact-count"}>Quedan {left} caracteres.</small>
+            )}
           </label>
 
           {/* Campo trampa. Está escondido para las personas (y para los lectores de
@@ -194,8 +207,8 @@ export function ContactPage() {
 
       <header className="adm-header">
         <div className="adm-header-titles">
-          <h1 className="adm-title">Escribinos</h1>
-          <p className="adm-subtitle">Te respondemos por mail, normalmente dentro de las 48 horas hábiles.</p>
+          <h1 className="adm-title">Contacto</h1>
+          <p className="adm-subtitle">Respuesta por mail dentro de las 48 horas hábiles.</p>
         </div>
         <Link className="adm-back" to="/">
           Volver al inicio
@@ -211,7 +224,7 @@ export function ContactPage() {
               </span>
               <h2 className="contact-done-title">Mensaje enviado</h2>
               <p className="contact-done-text">
-                Te copiamos la consulta a <strong>{sent}</strong>. Si no la ves, mirá en correo no deseado.
+                Copia de la consulta enviada a <strong>{sent}</strong>.
               </p>
               <div className="contact-done-actions">
                 <Link className="adm-btn adm-btn-primary" to="/">
@@ -225,13 +238,13 @@ export function ContactPage() {
                     setForm((prev) => ({ ...emptyContactForm, name: prev.name, email: prev.email, phone: prev.phone }));
                   }}
                 >
-                  Escribir otro mensaje
+                  Enviar otro mensaje
                 </button>
               </div>
             </div>
           ) : (
             <SteppedForm
-              title="Contanos en qué te podemos ayudar"
+              title="Consulta"
               steps={steps}
               submitLabel="Enviar mensaje"
               submittingLabel="Enviando…"
@@ -240,7 +253,7 @@ export function ContactPage() {
               onSubmit={handleSubmit}
               footerNote={
                 <>
-                  <FaRegPaperPlane aria-hidden="true" /> El mensaje sale por mail a la casilla del consultorio.
+                  <FaRegPaperPlane aria-hidden="true" /> Envío por mail a la casilla del consultorio.
                 </>
               }
             />
@@ -282,10 +295,8 @@ export function ContactPage() {
           {/* Un turno se resuelve solo desde la app: escribir un mail para eso es el
               camino largo. */}
           <div className="contact-shortcut">
-            <p>¿Es por un turno tuyo?</p>
-            <p className="contact-shortcut-text">
-              Sacarlo, verlo o cancelarlo lo podés hacer vos desde la app, sin esperar respuesta.
-            </p>
+            <p>Gestión de turnos</p>
+            <p className="contact-shortcut-text">Solicitud, consulta y cancelación desde la app, sin esperar respuesta.</p>
             <div className="contact-shortcut-actions">
               {SHORTCUTS.map((shortcut) => (
                 <Link key={shortcut.to} className="contact-shortcut-link" to={shortcut.to}>

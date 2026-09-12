@@ -35,7 +35,7 @@ describe("La ventana de cancelar un turno", () => {
     const onConfirm = vi.fn();
     render(<CancelAppointmentModal appointment={turno} waitlistCount={2} onClose={vi.fn()} onConfirm={onConfirm} />);
 
-    expect(screen.getByText(/Hay 2 personas en tu lista de espera/)).toBeInTheDocument();
+    expect(screen.getByText(/2 personas en la lista de espera/)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Cancelar y avisarles" }));
     expect(onConfirm).toHaveBeenLastCalledWith(turno, true);

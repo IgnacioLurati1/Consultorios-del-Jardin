@@ -68,7 +68,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
                     <span className="an-muted">{money(month.scheduled ?? 0)}</span> por cobrar de lo agendado
                   </>
                 ) : (
-                  "de los turnos que ya cobraste"
+                  "de los turnos ya cobrados"
                 )
               }
             />
@@ -95,7 +95,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
               ninguna grita. Como la facturación, el administrador no la ve. */}
           {month.debt && (
             <Kpi
-              label="Te quedaron debiendo"
+              label="Adeudado"
               value={money(month.debt.amount)}
               tone={month.debt.amount > 0 ? "danger" : undefined}
               /* El número dice cuánto; la pregunta que sigue siempre es quién. Lleva a la
@@ -103,17 +103,17 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
                  al respecto. Sin nadie debiendo no lleva a ninguna parte: sería mandar a
                  alguien a una lista vacía. */
               to={month.debt.amount > 0 ? "/Patients?adeudan=1" : undefined}
-              toHint="Ver quiénes te quedaron debiendo"
+              toHint="Ver pacientes con deuda"
               note={
                 month.debt.appointments === 0
-                  ? "cobraste todo lo que atendiste"
+                  ? "todo lo atendido está cobrado"
                   : `${month.debt.appointments} ${month.debt.appointments === 1 ? "turno" : "turnos"} · ${
                       month.debt.people
                     } ${month.debt.people === 1 ? "persona" : "personas"}`
               }
             />
           )}
-          <Kpi label="Sobreturnos" value={month.overbooked} note="dados fuera de tus módulos" />
+          <Kpi label="Turnos especiales" value={month.overbooked} note="fuera de los módulos de atención" />
           <Kpi label="Pedidos rechazados" value={month.denials.denied} note={splitOf(month.denials)} />
           {month.waitlist && (
             <Kpi
@@ -121,7 +121,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
               value={month.waitlist.enabled ? (waitingNow ?? month.waitlist.current) : "—"}
               note={waitlistNote(month.waitlist, month.inProgress)}
               onClick={showsBilling && month.waitlist.enabled ? () => setWaitlistOpen(true) : undefined}
-              toHint="Ver quiénes están en tu lista de espera"
+              toHint="Ver la lista de espera"
             />
           )}
         </KpiGrid>
@@ -165,13 +165,13 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
               el que mira es un administrador. */}
           {data.debt && (
             <Kpi
-              label="Te quedaron debiendo"
+              label="Adeudado"
               value={data.debt.people}
               to={data.debt.people > 0 ? "/Patients?adeudan=1" : undefined}
-              toHint="Ver quiénes te quedaron debiendo"
+              toHint="Ver pacientes con deuda"
               note={
                 data.debt.people === 0
-                  ? "nadie te debe un turno"
+                  ? "sin turnos adeudados"
                   : `${data.debt.people === 1 ? "persona" : "personas"} · ${data.debt.appointments} ${
                       data.debt.appointments === 1 ? "turno" : "turnos"
                     } por ${money(data.debt.amount)}`
@@ -179,17 +179,17 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             />
           )}
           <Kpi label="Cancelados o ausentes" value={lost} note={`${lostRate}% de los ${given} turnos dados`} />
-          <Kpi label="Sobreturnos" value={total.overbooked} />
+          <Kpi label="Turnos especiales" value={total.overbooked} />
           <Kpi label="Pedidos rechazados" value={total.denials.denied} note={splitOf(total.denials)} />
           <Kpi
             label="Turnos sacados por la app"
             value={total.fromApp}
             note={
               total.imported > 0
-                ? `${total.fromProfessional} los cargaste vos y ${total.imported} vinieron importados`
+                ? `${total.fromProfessional} cargados a mano y ${total.imported} importados`
                 : total.unknownOrigin > 0
                   ? `${total.unknownOrigin} turnos sin dato de origen`
-                  : `${total.fromProfessional} los cargaste vos`
+                  : `${total.fromProfessional} cargados a mano`
             }
           />
           <Kpi
@@ -198,7 +198,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
             note={
               total.busiestDay
                 ? `el ${total.busiestDay} es el más cargado, con ${decimal(total.busiestDayAverage)}`
-                : "sobre los días que atendiste"
+                : "sobre los días con atención"
             }
           />
         </KpiGrid>

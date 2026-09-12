@@ -123,7 +123,7 @@ describe("La tarjeta de un turno propio", () => {
     const tarjeta = dibujar(turnoPropio(), LUIS);
 
     expect(tarjeta.className).toContain("own");
-    expect(screen.getByText("Te atienden a vos")).toBeTruthy();
+    expect(screen.getByText("Turno propio")).toBeTruthy();
     expect(screen.getByText("Ruiz, Ana")).toBeTruthy();
     expect(screen.queryByText("Peralta, Luis")).toBeNull();
   });

@@ -13,6 +13,7 @@ import { bookingBlockedFor } from "../appointmentTypes.ts";
 import type { Office, Person } from "../../types.ts";
 import { AboutProfessionalModal } from "./AboutProfessionalModal.tsx";
 import { ProfessionalSchedule } from "./ProfessionalSchedule.tsx";
+import { SpecialitySchedule } from "./SpecialitySchedule.tsx";
 import "./booking.css";
 
 const normalize = (text: string) =>
@@ -25,6 +26,10 @@ const normalize = (text: string) =>
  * Pedido de turno del paciente, todo en una pantalla: se filtra por especialidad o por
  * nombre, se toca un profesional y sus horarios aparecen abajo. Cambiar de profesional
  * cambia solo esa parte, así comparar agendas no obliga a ir y volver.
+ *
+ * Con una especialidad elegida y sin profesional tocado, abajo van los horarios de todos
+ * los de la lista juntos, cada uno con su nombre (SpecialitySchedule). Tocar un
+ * profesional pasa a su agenda sola, que es la que tiene lista de espera.
  *
  * No se pide la sucursal: hay una sola y se resuelve sola.
  *
@@ -78,7 +83,7 @@ export function BookAppointment() {
         const data = await findProfessionalsOfficeSpecialty(String(only.idOffice));
         if (!cancelled) setProfessionals(data);
       })
-      .catch((err) => toast.error(`No pudimos cargar los profesionales: ${err.message}`))
+      .catch((err) => toast.error(`Error al cargar los profesionales: ${err.message}`))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -158,12 +163,8 @@ export function BookAppointment() {
   return (
     <div className="adm-page">
       <AdminHeader
-        title="Pedir un turno"
-        subtitle={
-          bookingForSelf
-            ? "Elegí con qué colega te querés atender"
-            : "Elegí una especialidad o buscá a tu profesional"
-        }
+        title="Solicitar turno"
+        subtitle={bookingForSelf ? "Turno con un colega del consultorio" : "Por especialidad o por profesional"}
         backTo={bookingForSelf ? "/ProfessionalHome" : "/"}
         backLabel={bookingForSelf ? "Mi panel" : "Inicio"}
       />
@@ -171,10 +172,7 @@ export function BookAppointment() {
       <Toasts />
 
       {bookingForSelf && (
-        <p className="ui-alert ui-alert-info booking-self-note">
-          Este turno es para vos como paciente. No figurás en la lista porque no podés
-          atenderte a vos mismo.
-        </p>
+        <p className="ui-alert ui-alert-info booking-self-note">Turno como paciente. El perfil propio queda fuera de la lista.</p>
       )}
 
       {/* Dicho al entrar y no recién al final: recorrer agendas y elegir un horario para
@@ -214,15 +212,11 @@ export function BookAppointment() {
         {loading ? (
           <SkeletonList rows={4} />
         ) : !office ? (
-          <div className="adm-empty">Todavía no hay una sucursal habilitada para dar turnos.</div>
+          <div className="adm-empty">Sin sucursal habilitada para turnos.</div>
         ) : professionals.length === 0 ? (
-          <div className="adm-empty">Todavía no hay profesionales con horarios de atención cargados.</div>
+          <div className="adm-empty">Sin profesionales con horarios de atención cargados.</div>
         ) : results.length === 0 ? (
-          <div className="adm-empty">
-            Ningún profesional coincide con la búsqueda.
-            <br />
-            Probá con otra especialidad o borrá el texto.
-          </div>
+          <div className="adm-empty">Sin profesionales para esta búsqueda.</div>
         ) : (
           <ul className="booking-professionals">
             {results.map((professional) => {
@@ -276,6 +270,11 @@ export function BookAppointment() {
       <div ref={scheduleRef}>
         {selected && office && (
           <ProfessionalSchedule professional={selected} office={office} blockedReason={blockedReason} />
+        )}
+        {/* Los de la lista y no todos los de la especialidad: si se escribió un nombre, la
+            grilla muestra lo mismo que la lista de arriba. */}
+        {!selected && office && speciality && results.length > 0 && (
+          <SpecialitySchedule speciality={speciality} professionals={results} office={office} blockedReason={blockedReason} />
         )}
       </div>
 

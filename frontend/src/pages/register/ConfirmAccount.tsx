@@ -44,7 +44,7 @@ export function ConfirmAccount() {
         if (response.data.token) login(response.data.token);
       })
       .catch((err) =>
-        setError(err.response?.data?.message || "No pudimos crear la cuenta. Probá de nuevo en un rato")
+        setError(err.response?.data?.message || "Error al crear la cuenta. Reintentar en unos minutos")
       );
   }, [token, login]);
 
@@ -57,13 +57,11 @@ export function ConfirmAccount() {
             <span className="pw-result-icon warn">
               <FaTriangleExclamation />
             </span>
-            <h1 className="pw-result-title">Este link no sirve</h1>
-            <p className="pw-result-text">
-              Le falta la parte que identifica tu pedido. Puede que se haya cortado al copiarlo desde el mail.
-            </p>
+            <h1 className="pw-result-title">Link incompleto</h1>
+            <p className="pw-result-text">Parte del link se perdió, probablemente al copiarlo desde el mail.</p>
             <div className="pw-result-actions">
               <Link className="adm-btn adm-btn-primary" to="/Register">
-                Volver a registrarme
+                Volver al registro
               </Link>
             </div>
           </div>
@@ -81,11 +79,11 @@ export function ConfirmAccount() {
             <span className="pw-result-icon warn">
               <FaTriangleExclamation />
             </span>
-            <h1 className="pw-result-title">No pudimos crear la cuenta</h1>
+            <h1 className="pw-result-title">Error al crear la cuenta</h1>
             <p className="pw-result-text">{error}</p>
             <div className="pw-result-actions">
               <Link className="adm-btn adm-btn-primary" to="/Register">
-                Volver a registrarme
+                Volver al registro
               </Link>
               <Link className="adm-btn adm-btn-ghost" to="/Login">
                 Iniciar sesión
@@ -106,8 +104,8 @@ export function ConfirmAccount() {
             <span className="pw-result-icon">
               <FaCircleCheck />
             </span>
-            <h1 className="pw-result-title">Listo, ya tenés cuenta</h1>
-            <p className="pw-result-text">Tu dirección quedó confirmada y la sesión abierta. Ya podés pedir turno.</p>
+            <h1 className="pw-result-title">Cuenta creada</h1>
+            <p className="pw-result-text">Mail confirmado y sesión iniciada.</p>
             <div className="pw-result-actions">
               <button
                 type="button"
@@ -117,7 +115,7 @@ export function ConfirmAccount() {
                   subirAlPrincipio();
                 }}
               >
-                Empezar
+                Ir al inicio
               </button>
             </div>
           </div>
@@ -132,8 +130,8 @@ export function ConfirmAccount() {
       <div className="pw-card">
         <div className="pw-head">
           <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
-          <h1 className="pw-title">Creando tu cuenta</h1>
-          <p className="pw-subtitle">Un segundo, estamos confirmando tu dirección.</p>
+          <h1 className="pw-title">Creando la cuenta</h1>
+          <p className="pw-subtitle">Confirmando el mail…</p>
         </div>
       </div>
       <Toasts />

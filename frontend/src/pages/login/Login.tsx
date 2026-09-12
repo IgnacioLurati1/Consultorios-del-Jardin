@@ -42,9 +42,9 @@ export function Login() {
   const [sending, setSending] = useState(false);
 
   function validate(): string | null {
-    if (!email.trim()) return "Escribí tu email";
-    if (!EMAIL_REGEX.test(email.trim())) return "Ese email no parece válido. Revisá que tenga @ y un punto";
-    if (!password) return "Escribí tu contraseña";
+    if (!email.trim()) return "Falta el email";
+    if (!EMAIL_REGEX.test(email.trim())) return "Formato de email inválido. Debe incluir @ y un punto";
+    if (!password) return "Falta la contraseña";
     return null;
   }
 
@@ -75,7 +75,7 @@ export function Login() {
       })
       .catch((err: any) => {
         if (err.code === "ACCOUNT_COMPROMISED") setLockout(err.message);
-        else setError(err.message || "No pudimos iniciar tu sesión");
+        else setError(err.message || "Error al iniciar sesión");
 
         setSending(false);
       });
@@ -89,7 +89,7 @@ export function Login() {
         <div className="login-card-head">
           <img src={logo} alt="Consultorios del Jardín" className="login-logo" />
           <h1 className="login-title">Iniciar sesión</h1>
-          <p className="login-subtitle">Entrá con tu email y tu contraseña</p>
+          <p className="login-subtitle">Con email y contraseña</p>
         </div>
 
         <div className="login-body">
@@ -100,7 +100,7 @@ export function Login() {
                 autoFocus
                 type="email"
                 autoComplete="username"
-                placeholder="vos@mail.com"
+                placeholder="nombre@mail.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -116,7 +116,7 @@ export function Login() {
               <input
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder="Tu contraseña"
+                placeholder="Contraseña"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -135,7 +135,7 @@ export function Login() {
           </label>
 
           <Link className="login-forgot" to="/forgot-password">
-            ¿Olvidaste tu contraseña?
+            Recuperar contraseña
           </Link>
 
           {lockout && (
@@ -144,7 +144,8 @@ export function Login() {
               <div>
                 <strong>Cuenta cerrada por seguridad</strong>
                 <p>{lockout}</p>
-                <Link to="/contact">Escribirle al consultorio</Link>
+                {/* La ruta es /contacto: con /contact el link caía en la página de no encontrada. */}
+                <Link to="/contacto">Contactar al consultorio</Link>
               </div>
             </div>
           )}
@@ -157,7 +158,7 @@ export function Login() {
         </button>
 
         <p className="login-register-line">
-          ¿No tenés cuenta? <Link to="/Register">Registrate</Link>
+          ¿Primera vez? <Link to="/Register">Crear cuenta</Link>
         </p>
       </form>
 

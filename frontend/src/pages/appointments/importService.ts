@@ -121,9 +121,9 @@ export const STATE_LABELS: { value: StateChoice; label: string; hint: string }[]
   {
     value: "past-assisted",
     label: "Los que ya pasaron, atendidos. Los que vienen, confirmados",
-    hint: "Es lo más parecido a lo que pasó de verdad.",
+    hint: "La opción más cercana a lo ocurrido.",
   },
-  { value: "all-accepted", label: "Todos confirmados", hint: "Después los vas cerrando vos, uno por uno." },
+  { value: "all-accepted", label: "Todos confirmados", hint: "Se cierran después, uno por uno." },
   { value: "all-assisted", label: "Todos atendidos", hint: "Incluidos los que todavía no se dieron." },
 ];
 
@@ -131,13 +131,13 @@ export const PAYMENT_LABELS: { value: PaymentChoice; label: string; hint: string
   {
     value: "past-paid",
     label: "Los que ya pasaron, cobrados. Los que vienen, sin cobrar",
-    hint: "Lo viejo queda saldado. Lo que viene, por cobrar.",
+    hint: "Lo anterior queda saldado y lo próximo, por cobrar.",
   },
-  { value: "all-paid", label: "Todos cobrados", hint: "Ninguno va a figurar como deuda." },
+  { value: "all-paid", label: "Todos cobrados", hint: "Ninguno figura como deuda." },
   {
     value: "none",
     label: "Ninguno cobrado",
-    hint: "Los pasados aparecen en «Sin cobrar». Si traés años, son muchos.",
+    hint: "Los pasados figuran en «Sin cobrar», que con años de agenda son muchos.",
   },
   {
     value: "unset",

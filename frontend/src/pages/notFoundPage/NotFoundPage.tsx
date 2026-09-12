@@ -10,8 +10,8 @@ interface Suggestion {
 }
 
 const COMMON: Suggestion[] = [
-  { label: "Inicio", description: "La portada del consultorio.", to: "/" },
-  { label: "Escribinos", description: "Si llegaste acá desde un link nuestro, contanos.", to: "/contacto" },
+  { label: "Inicio", description: "Portada del consultorio.", to: "/" },
+  { label: "Contacto", description: "Para avisar de un link roto.", to: "/contacto" },
 ];
 
 /** A dónde le sirve ir a cada uno. Perderse sin sesión no es lo mismo que perderse con una. */
@@ -19,14 +19,14 @@ function suggestionsFor(type: string | undefined): Suggestion[] {
   switch (type) {
     case "client":
       return [
-        { label: "Pedir un turno", description: "Elegí especialidad, profesional y horario.", to: "/Appointment" },
-        { label: "Mis turnos", description: "Los que tenés agendados y los que ya pasaron.", to: "/AppointmentsList" },
+        { label: "Solicitar turno", description: "Especialidad, profesional y horario.", to: "/Appointment" },
+        { label: "Mis turnos", description: "Próximos y anteriores.", to: "/AppointmentsList" },
         ...COMMON,
       ];
     case "professional":
       return [
-        { label: "Mi panel", description: "Los turnos de hoy y tus accesos.", to: "/ProfessionalHome" },
-        { label: "Turnos", description: "Tu agenda en grilla o en lista.", to: "/AppointmentsList" },
+        { label: "Panel del profesional", description: "Turnos del día y accesos.", to: "/ProfessionalHome" },
+        { label: "Turnos", description: "Agenda en grilla o en lista.", to: "/AppointmentsList" },
         ...COMMON,
       ];
     case "admin":
@@ -36,7 +36,7 @@ function suggestionsFor(type: string | undefined): Suggestion[] {
       ];
     default:
       return [
-        { label: "Iniciar sesión", description: "Para ver tus turnos o pedir uno nuevo.", to: "/Login" },
+        { label: "Iniciar sesión", description: "Para ver o solicitar turnos.", to: "/Login" },
         ...COMMON,
       ];
   }
@@ -54,12 +54,10 @@ export function NotFoundPage() {
           404
         </p>
 
-        <h1 className="nf-title">Esta página no existe</h1>
+        <h1 className="nf-title">Página no encontrada</h1>
 
-        <p className="nf-text">
-          Puede que el link esté viejo o que hayamos movido algo de lugar. Nada de lo tuyo se perdió. Seguís
-          teniendo tus turnos y tus datos donde estaban.
-        </p>
+        {/* Lo primero que se teme al ver un error es haber perdido algo: se dice que no. */}
+        <p className="nf-text">El link puede estar desactualizado. Los turnos y los datos de la cuenta siguen intactos.</p>
 
         {/* Decir qué se pidió ayuda a darse cuenta de un error de tipeo en la barra. */}
         <p className="nf-path">

@@ -61,7 +61,7 @@ function unwrap(err: HttpError): never {
 
 /** El texto de un error para mostrar en pantalla, venga de donde venga. */
 export function messageOf(err: unknown): string {
-  return err instanceof Error && err.message ? err.message : "Algo salió mal. Probá de nuevo en un rato";
+  return err instanceof Error && err.message ? err.message : "Ocurrió un error. Reintentar en unos minutos";
 }
 
 export function getWaitlistStatus(professionalEmail: string): Promise<WaitlistStatus> {

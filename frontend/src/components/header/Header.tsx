@@ -10,17 +10,23 @@ import "./Header.css";
 
 const menuItems = [
   { faviconName: "home", title: "Inicio", path: "/", userType: "all" },
-  { faviconName: "user", title: "Iniciar sesión", path: "/Login", userType: "guest" },
+  // Sin sesión, "Iniciar sesión" no va en el menú: ya está siempre a la vista en la barra,
+  // también en el celular, y repetido acá abajo se leía como dos cosas distintas.
+  // Los dos que siguen son para profesionales. "Login profesional" lleva al mismo login
+  // que el de la barra: la cuenta decide qué panel se abre, pero quien viene a trabajar
+  // busca un acceso con su nombre y sin él se pierde en "Iniciar sesión".
+  { faviconName: "professional", title: "Login profesional", path: "/Login", userType: "guest" },
+  { faviconName: "work", title: "Quiero trabajar acá", path: "/contacto?motivo=profesional", userType: "guest" },
   { faviconName: "database", title: "Panel de administración", path: "/AdminHome", userType: "admin" },
   { faviconName: "professional", title: "Panel del profesional", path: "/ProfessionalHome", userType: "professional" },
   { faviconName: "appointments", title: "Mis turnos", path: "/AppointmentsList", userType: "client" },
-  { faviconName: "requestAppointments", title: "Pedir un turno", path: "/Appointment", userType: "client" },
+  { faviconName: "requestAppointments", title: "Solicitar turno", path: "/Appointment", userType: "client" },
   { faviconName: "appointments", title: "Turnos", path: "/AppointmentsList", userType: "professional" },
   // El profesional también se atiende: pide turno como cualquier otro paciente, con la
-  // única diferencia de que no puede elegirse a sí mismo. Dice "para mí" y no "Pedir un
-  // turno" como el del paciente porque del lado del profesional el menú entero habla de
-  // los turnos que da, y ahí "pedir un turno" se lee como dárselo a alguien.
-  { faviconName: "requestAppointments", title: "Sacar un turno para mí", path: "/Appointment", userType: "professional" },
+  // única diferencia de que no puede elegirse a sí mismo. Dice "propio" y no "Solicitar
+  // turno" a secas como el del paciente porque del lado del profesional el menú entero
+  // habla de los turnos que da, y ahí se leería como dárselo a alguien.
+  { faviconName: "requestAppointments", title: "Solicitar turno propio", path: "/Appointment", userType: "professional" },
   { faviconName: "calendar", title: "Horarios", path: "/scheduleProfessional", userType: "professional" },
   // Solo para quien viene a atenderse. Un profesional o un admin no necesitan que les
   // expliquen dónde queda el consultorio.

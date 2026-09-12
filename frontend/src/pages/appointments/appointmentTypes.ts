@@ -27,7 +27,7 @@ export interface confirmAppointmentModalProps {
  */
 export function bookingBlockedFor(type: string | undefined): string | null {
   if (type === "admin") {
-    return "Entraste como administrador y desde esta cuenta no se sacan turnos. Podés mirar las agendas, pero para pedir uno hace falta entrar con una cuenta de paciente.";
+    return "Las cuentas de administración solo consultan agendas. Para solicitar un turno hace falta una cuenta de paciente.";
   }
 
   return null;
@@ -117,9 +117,9 @@ export function formatCancellation(at: Date): string {
 
 /** Lo que se ofrece elegir, en el orden en que se elige. */
 export const PAYMENT_OPTIONS: { value: PaymentState; label: string }[] = [
-  { value: "unpaid", label: "No pagó" },
-  { value: "partial", label: "Pagó una parte" },
-  { value: "paid", label: "Pagó" },
+  { value: "unpaid", label: "Sin cobrar" },
+  { value: "partial", label: "Cobro parcial" },
+  { value: "paid", label: "Cobrado" },
 ];
 
 /**
@@ -137,10 +137,11 @@ export function describePayment(appointment: {
 }): { label: string; className: string } | null {
   switch (appointment.paymentState) {
     case "paid":
-      return { label: "Pagado", className: "adm-badge adm-badge-green" };
+      // "Cobrado" y no "Pagado": la ficha es del lado del consultorio, que cobra.
+      return { label: "Cobrado", className: "adm-badge adm-badge-green" };
     case "partial":
       return {
-        label: `Pagó $${appointment.paidAmount ?? 0} de $${appointment.value ?? 0}`,
+        label: `Cobrado $${appointment.paidAmount ?? 0} de $${appointment.value ?? 0}`,
         className: "adm-badge adm-badge-amber",
       };
     case "unpaid":

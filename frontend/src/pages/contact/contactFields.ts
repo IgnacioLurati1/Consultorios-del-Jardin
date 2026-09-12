@@ -6,10 +6,10 @@ import api from "../../axios";
  * sola en vez de llenarse de "Consulta" a secas.
  */
 export const REASONS = [
-  { id: "turnos", label: "Turnos", hint: "Dudas sobre un turno, una cancelación o cómo sacarlo." },
-  { id: "profesional", label: "Quiero atender acá", hint: "Sos profesional y querés sumarte al consultorio." },
-  { id: "sugerencia", label: "Sugerencia o reclamo", hint: "Algo que podemos mejorar, o algo que salió mal." },
-  { id: "otro", label: "Otra consulta", hint: "Cualquier cosa que no entre en las anteriores." },
+  { id: "turnos", label: "Turnos", hint: "Solicitudes, cambios y cancelaciones." },
+  { id: "profesional", label: "Quiero trabajar acá", hint: "Profesionales interesados en sumarse al consultorio." },
+  { id: "sugerencia", label: "Sugerencia", hint: "Propuestas de mejora." },
+  { id: "otro", label: "Otra consulta", hint: "Otros temas." },
 ];
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,21 +37,21 @@ export const emptyContactForm: ContactForm = {
 };
 
 export function validateReason(form: ContactForm): string | null {
-  if (!form.reason) return "Elegí un motivo para saber a quién derivarlo";
+  if (!form.reason) return "Falta elegir el motivo";
   return null;
 }
 
 export function validatePerson(form: ContactForm): string | null {
-  if (form.name.trim().length < 2) return "Escribí tu nombre";
-  if (!EMAIL_REGEX.test(form.email.trim())) return "Ese email no parece válido. Revisá que tenga @ y un punto";
-  if (form.phone.trim() && !/^[\d\s()+-]{6,30}$/.test(form.phone.trim())) return "Ese teléfono no parece válido";
+  if (form.name.trim().length < 2) return "Falta el nombre";
+  if (!EMAIL_REGEX.test(form.email.trim())) return "Formato de email inválido. Debe incluir @ y un punto";
+  if (form.phone.trim() && !/^[\d\s()+-]{6,30}$/.test(form.phone.trim())) return "Formato de teléfono inválido";
   return null;
 }
 
 export function validateMessage(form: ContactForm): string | null {
   const message = form.message.trim();
-  if (message.length < MIN_MESSAGE) return "El mensaje es muy corto. Contanos un poco más";
-  if (message.length > MAX_MESSAGE) return "El mensaje es demasiado largo. Probá resumirlo";
+  if (message.length < MIN_MESSAGE) return "El mensaje es demasiado corto";
+  if (message.length > MAX_MESSAGE) return "El mensaje supera el máximo de caracteres";
   return null;
 }
 
@@ -68,6 +68,6 @@ export function sendContactMessage(form: ContactForm): Promise<void> {
     })
     .then(() => undefined)
     .catch((err) => {
-      throw new Error(err.response?.data?.message || "No pudimos enviar el mensaje");
+      throw new Error(err.response?.data?.message || "Error al enviar el mensaje");
     });
 }

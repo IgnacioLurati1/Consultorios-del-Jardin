@@ -120,9 +120,9 @@ export function AppointmentWeekGrid({
             key={`turno-${appointment.numAppointment}`}
             className={`week-slot state-${stateClass} ${appointment.overbooked ? "overbooked" : ""} ${own ? "own" : ""}`}
             onClick={() => onOpen(appointment)}
-            title={`${shortHour(appointment.initialHour)} · ${own ? "te atiende " : ""}${counterpart} · ${state.label}${
-              notice?.short ? " · dio de baja sobre la hora" : ""
-            }${appointment.overbooked ? " · sobreturno" : ""}${confirmed ? " · confirmó que viene" : ""}`}
+            title={`${shortHour(appointment.initialHour)} · ${own ? "turno propio con " : ""}${counterpart} · ${state.label}${
+              notice?.short ? " · baja sobre la hora" : ""
+            }${appointment.overbooked ? " · turno especial" : ""}${confirmed ? " · asistencia confirmada" : ""}`}
             {...quickActions?.(appointment)}
           >
             <span className="week-slot-hour">
@@ -130,7 +130,7 @@ export function AppointmentWeekGrid({
               {/* En una celda de dos renglones no entra una frase. El nombre de abajo es
                   el del colega, y esto dice de quién es el nombre. */}
               {own && <span className="appt-slot-own">tuyo</span>}
-              {appointment.overbooked && <span className="appt-slot-over">sobreturno</span>}
+              {appointment.overbooked && <span className="appt-slot-over">turno especial</span>}
               {confirmed && <FaCircleCheck className="appt-slot-confirmed" aria-hidden="true" />}
             </span>
             <span className="week-slot-note">{counterpart}</span>
