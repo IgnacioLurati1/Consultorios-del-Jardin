@@ -132,7 +132,10 @@ export function Hero({ session }: HeroProps) {
                 sizes={`${PHONE} 100vw, 20vw`}
                 alt=""
                 className={index === slide.current ? "is-active" : index === slide.leaving ? "is-leaving" : undefined}
-                decoding="async"
+                // "sync" y no "async": con async Chrome puede mostrar la pantalla sin la foto y
+                // dibujarla después, y en esta capa fija y recortada ese "después" llegaba a
+                // tardar segundos (al volver al inicio, o al salir del modo celular).
+                decoding="sync"
               />
             ))}
           </div>
