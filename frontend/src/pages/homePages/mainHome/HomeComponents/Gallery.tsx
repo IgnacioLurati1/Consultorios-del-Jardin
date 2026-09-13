@@ -4,29 +4,59 @@ import { createPortal } from "react-dom";
 import { FaChevronLeft, FaChevronRight, FaXmark } from "react-icons/fa6";
 import { useFadeIn } from "../useFadeIn";
 import salaVidriada from "../../../../assets/gallery/sala-vidriada.webp";
+import salaVidriada640 from "../../../../assets/gallery/sala-vidriada-640.webp";
+import salaVidriada960 from "../../../../assets/gallery/sala-vidriada-960.webp";
 import recepcionEscalera from "../../../../assets/gallery/recepcion-escalera.webp";
+import recepcionEscalera640 from "../../../../assets/gallery/recepcion-escalera-640.webp";
+import recepcionEscalera960 from "../../../../assets/gallery/recepcion-escalera-960.webp";
 import salaJardin from "../../../../assets/gallery/sala-jardin.webp";
+import salaJardin640 from "../../../../assets/gallery/sala-jardin-640.webp";
+import salaJardin960 from "../../../../assets/gallery/sala-jardin-960.webp";
 import salidaJardin from "../../../../assets/gallery/salida-jardin.webp";
+import salidaJardin640 from "../../../../assets/gallery/salida-jardin-640.webp";
+import salidaJardin960 from "../../../../assets/gallery/salida-jardin-960.webp";
 import salaDesdeArriba from "../../../../assets/gallery/sala-desde-arriba.webp";
+import salaDesdeArriba640 from "../../../../assets/gallery/sala-desde-arriba-640.webp";
+import salaDesdeArriba960 from "../../../../assets/gallery/sala-desde-arriba-960.webp";
 
 interface Photo {
+  /** La de 1600 px, para verla ampliada. */
   src: string;
+  /** Las de 640 y 960 px, para el carrusel. */
+  small: string;
+  medium: string;
   alt: string;
 }
 
 /**
  * Las fotos de "Nuestro espacio", las que eligió el consultorio. Van en horizontal, 4:3
- * como salen de la cámara, en una versión de 1600 px de ancho para que ampliadas se vean
- * bien. Para sumar una alcanza con agregarla acá: el carrusel se arma con las que haya.
- * Una vertical se recorta en el carrusel y se ve entera al ampliarla.
+ * como salen de la cámara. Para sumar una alcanza con agregarla acá: el carrusel se arma
+ * con las que haya. Una vertical se recorta en el carrusel y se ve entera al ampliarla.
+ *
+ * Cada una en tres tamaños. La de 1600 px se baja recién al ampliarla. En el carrusel,
+ * donde se ven mucho más chicas, el navegador elige entre 640 y 960 según la pantalla.
+ * Si fueran todas de 1600, al entrar a la portada se bajarían casi 900 KB de fotos que
+ * todavía no se ven, y le quitarían conexión a las de arriba.
  */
 const PHOTOS: Photo[] = [
-  { src: salaJardin, alt: "Sala de espera con vista al jardín" },
-  { src: salaVidriada, alt: "Sala de espera bajo el techo vidriado" },
-  { src: recepcionEscalera, alt: "Recepción y escalera" },
-  { src: salidaJardin, alt: "Salida al jardín" },
-  { src: salaDesdeArriba, alt: "Sala de espera vista desde el primer piso" },
+  { src: salaJardin, small: salaJardin640, medium: salaJardin960, alt: "Sala de espera con vista al jardín" },
+  { src: salaVidriada, small: salaVidriada640, medium: salaVidriada960, alt: "Sala de espera bajo el techo vidriado" },
+  { src: recepcionEscalera, small: recepcionEscalera640, medium: recepcionEscalera960, alt: "Recepción y escalera" },
+  { src: salidaJardin, small: salidaJardin640, medium: salidaJardin960, alt: "Salida al jardín" },
+  {
+    src: salaDesdeArriba,
+    small: salaDesdeArriba640,
+    medium: salaDesdeArriba960,
+    alt: "Sala de espera vista desde el primer piso",
+  },
 ];
+
+/**
+ * Qué tan ancha se ve una foto del carrusel, para que el navegador elija el tamaño. Tiene
+ * que seguir a `--slide-w` en Home.css: 76vw en el celular y 44vw con tope de 560 px en
+ * la computadora.
+ */
+const SLIDE_SIZES = "(max-width: 620px) 76vw, min(44vw, 560px)";
 
 /** Lleva cualquier número a una foto que existe: después de la última viene la primera. */
 function wrap(index: number) {
@@ -163,7 +193,15 @@ export function Gallery() {
                     if (!swipe.consumeSwipe()) setExpanded(index);
                   }}
                 >
-                  <img src={photo.src} alt={photo.alt} loading="lazy" decoding="async" draggable={false} />
+                  <img
+                    src={photo.medium}
+                    srcSet={`${photo.small} 640w, ${photo.medium} 960w`}
+                    sizes={SLIDE_SIZES}
+                    alt={photo.alt}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
                 </button>
               );
             })}
