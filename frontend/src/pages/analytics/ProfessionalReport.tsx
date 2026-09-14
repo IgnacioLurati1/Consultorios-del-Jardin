@@ -51,6 +51,39 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
 
   return (
     <>
+      {/* Solo cuando mira el administrador: el backend no lo manda en los números propios. */}
+      {data.rent && (
+        <AnalyticsSection title="Alquiler" scope="últimos doce meses">
+          <KpiGrid>
+            <Kpi
+              label={`Pagos después del día ${data.rent.dueDay}`}
+              value={data.rent.late}
+              tone={data.rent.late > 0 ? "danger" : undefined}
+              note={
+                data.rent.months === 0
+                  ? "todavía sin cuotas vencidas"
+                  : `de ${data.rent.months} ${data.rent.months === 1 ? "mes" : "meses"}${
+                      data.rent.lastLate ? ` · el último en ${data.rent.lastLate}` : ""
+                    }`
+              }
+            />
+            <Kpi
+              label="Día de pago promedio"
+              value={data.rent.averagePaidDay === null ? "—" : `día ${data.rent.averagePaidDay}`}
+              note="de las cuotas pagadas dentro del mes"
+            />
+            <Kpi
+              label="Saldo de alquiler"
+              value={money(data.rent.owed)}
+              tone={data.rent.owed > 0 ? "danger" : undefined}
+              note={data.rent.owed > 0 ? "cuotas con saldo" : "sin deuda"}
+              to={data.rent.owed > 0 ? "/AdminHome/Alquileres?estado=pendientes" : undefined}
+              toHint="Ver los pendientes de cobrar"
+            />
+          </KpiGrid>
+        </AnalyticsSection>
+      )}
+
       <AnalyticsSection
         title="Por mes"
         scope={month.inProgress ? "en curso, hasta hoy" : "mes cerrado"}

@@ -4,7 +4,7 @@ import LogoHojas from "../../../../assets/LogoHojasRecortado.PNG";
 import { SPECIALITIES } from "../../../specialities";
 
 const CONTACT = [
-  { icon: FaLocationDot, text: "9 de Julio 3672" },
+  { icon: FaLocationDot, text: "9 de Julio 3672, Rosario" },
   { icon: FaClock, text: "Lunes a viernes, de 9 a 20" },
   { icon: FaEnvelope, text: "consultoriosjardinok@gmail.com", href: "mailto:consultoriosjardinok@gmail.com" },
   { icon: FaInstagram, text: "@consultorios_jardin", href: "https://instagram.com/consultorios_jardin", external: true },
@@ -47,6 +47,7 @@ export function Footer() {
           <Link to="/AppointmentsList">Mis turnos</Link>
           <Link to="/preguntas">Preguntas frecuentes</Link>
           <Link to="/contacto">Contacto</Link>
+          <Link to="/contacto?motivo=profesional">Quiero trabajar acá</Link>
           <Link to="/Login">Iniciar sesión</Link>
           <Link to="/Register">Crear cuenta</Link>
         </nav>

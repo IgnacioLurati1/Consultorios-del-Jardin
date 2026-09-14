@@ -314,6 +314,162 @@ button.an-kpi:focus-visible {
   color: var(--adm-text);
 }
 
+/* ---------- potencial de alquiler ----------
+   Dos tarjetas lado a lado, cada una con su botón: nada se calcula hasta que se pide. */
+
+/* Las dos tarjetas a la misma altura, la de la más alta: una al lado de la otra y
+   desparejas se leían como si fueran de dos bloques distintos. */
+.an-potential-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.an-potential-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+
+.an-potential-text {
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.an-potential-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.an-potential-form .ui-field {
+  max-width: 240px;
+}
+
+.an-potential-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid var(--adm-border);
+}
+
+.an-potential-lead {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.an-potential-lead strong {
+  color: var(--adm-green-dark);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.an-potential-warn {
+  margin: 0;
+  color: var(--adm-warn-dark);
+  font-size: 0.88rem;
+}
+
+.an-free-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.an-free-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.93rem;
+}
+
+.an-free-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.an-free-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.an-free-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.an-free-chip.unpriced {
+  background: var(--adm-warn-soft);
+  color: var(--adm-warn-dark);
+}
+
+.an-sim {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.an-sim div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.an-sim dt {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+}
+
+.an-sim dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.an-sim-up {
+  color: var(--adm-ok);
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .an-potential-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .an-potential-form .ui-field {
+    max-width: none;
+  }
+}
+
+@media print {
+  .an-potential-grid .adm-btn,
+  .an-potential-form {
+    display: none !important;
+  }
+}
+
 /* ============================================================
    Impresión: es el "Exportar a PDF".
    ============================================================ */

@@ -1,0 +1,538 @@
+/* ============================================================
+   Alquileres. La lista del mes y sus ventanas. Usa el sistema del
+   panel (tarjetas, chips, insignias) y la tabla de Control.
+   ============================================================ */
+
+.rent-page .an-kpi-grid {
+  margin-bottom: 18px;
+}
+
+/* ---------- el mes ---------- */
+
+.rent-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.rent-month {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--adm-border);
+  border-radius: 999px;
+  background: var(--adm-surface);
+}
+
+.rent-month-name {
+  min-width: 11ch;
+  padding: 0 8px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-transform: capitalize;
+}
+
+.rent-month-step {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--adm-text);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.rent-month-step:hover:not(:disabled) {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.rent-month-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rent-month-step:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 2px;
+}
+
+.rent-month-tag {
+  color: var(--adm-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Exportar queda contra el borde: es lo último que se hace con el mes. */
+.rent-excel {
+  margin-left: auto;
+}
+
+.rent-alert {
+  margin-bottom: 14px;
+}
+
+.rent-filters {
+  margin-bottom: 14px;
+}
+
+/* ---------- la tabla ---------- */
+
+/* `relative` sostiene al texto escondido del encabezado ("Acciones"): va con posición
+   absoluta, y sin un contenedor posicionado se salía del recuadro y estiraba la página
+   entera hacia el costado en el celular. */
+.rent-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.rent-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.rent-table thead th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--adm-surface-alt);
+  border-bottom: 1px solid var(--adm-border);
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.rent-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--adm-border);
+  color: var(--adm-text);
+  vertical-align: middle;
+}
+
+.rent-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rent-table tbody tr:hover {
+  background: var(--adm-surface-alt);
+}
+
+.rent-row-off td {
+  color: var(--adm-muted);
+}
+
+.rent-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rent-who strong {
+  font-weight: 600;
+}
+
+.rent-sub {
+  display: block;
+  color: var(--adm-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.rent-muted {
+  color: var(--adm-muted);
+}
+
+.rent-warn {
+  display: block;
+  margin: 2px 0 0;
+  color: var(--adm-warn-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.rent-money {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rent-owed {
+  color: var(--adm-danger);
+}
+
+.rent-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rent-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rent-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.rent-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: var(--adm-radius-sm);
+  background: transparent;
+  color: var(--adm-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.rent-icon-btn:hover {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green-line);
+  color: var(--adm-green-dark);
+}
+
+.rent-icon-btn:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 2px;
+}
+
+.rent-chevron {
+  transition: transform 0.2s ease;
+}
+
+.rent-chevron.open {
+  transform: rotate(180deg);
+}
+
+.rent-detail-row td {
+  background: var(--adm-surface-alt);
+}
+
+.rent-table tbody tr.rent-detail-row:hover {
+  background: var(--adm-surface-alt);
+}
+
+.rent-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.rent-loading {
+  display: grid;
+  gap: 12px;
+}
+
+.rent-loading-panel {
+  padding: 22px;
+}
+
+/* ---------- el detalle de una cuota ---------- */
+
+.rent-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.rent-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rent-lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 110px;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 0.88rem;
+}
+
+.rent-lines strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rent-line-calc {
+  color: var(--adm-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- las ventanas ---------- */
+
+.rent-from {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.rent-from-label {
+  color: var(--adm-muted);
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+
+.rent-from .adm-chips button {
+  text-transform: capitalize;
+}
+
+.rent-price-table {
+  min-width: 520px;
+}
+
+.rent-price-table tbody td {
+  vertical-align: top;
+}
+
+.rent-th-sub {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.rent-input {
+  width: 100%;
+  max-width: 180px;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.rent-input:focus {
+  outline: 2px solid var(--adm-green);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.rent-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--adm-green-dark);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.rent-link:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.rent-inline-alert {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.rent-calc-list,
+.rent-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rent-calc-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+  background: var(--adm-surface);
+  transition: opacity 0.15s ease;
+}
+
+.rent-calc-item.off {
+  opacity: 0.55;
+}
+
+.rent-calc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.rent-calc-head input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--adm-green);
+}
+
+.rent-calc-head .rent-who {
+  flex: 1;
+}
+
+.rent-calc-amounts {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rent-check-list li {
+  padding: 10px 12px;
+  border: 1px solid var(--adm-border);
+  border-radius: 10px;
+}
+
+.rent-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-left: 3px solid var(--adm-warn);
+  border-radius: 6px;
+  background: var(--adm-warn-soft);
+}
+
+.rent-extra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--adm-warn-dark);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.rent-extra .rent-input {
+  max-width: 150px;
+}
+
+.rent-foot-total {
+  margin-right: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rent-percent {
+  max-width: 200px;
+}
+
+.rent-suffixed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rent-suffixed input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  font: inherit;
+}
+
+.rent-suffixed span {
+  color: var(--adm-muted);
+  font-weight: 700;
+}
+
+.rent-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rent-switch-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--adm-muted);
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.rent-summary {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--adm-ok-soft);
+  color: var(--adm-ok);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .rent-excel {
+    margin-left: 0;
+  }
+
+  .rent-lines li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .rent-line-calc {
+    grid-column: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rent-chevron {
+    transition: none;
+  }
+}
+
+@media print {
+  .rent-bar,
+  .rent-filters,
+  .rent-actions {
+    display: none !important;
+  }
+}

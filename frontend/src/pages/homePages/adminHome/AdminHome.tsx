@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList } from "react-icons/fa";
+import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList, FaMoneyBillWave } from "react-icons/fa";
 import { FaChartColumn, FaHouse, FaMountainCity } from "react-icons/fa6";
 import { WeekSummary } from "../../agenda/WeekSummary.tsx";
 import { AnnouncementComposer } from "../../announcements/AnnouncementComposer.tsx";
@@ -40,6 +40,12 @@ const mainEntries: MenuEntry[] = [
     title: "Números",
     description: "Facturación y carga del consultorio, y los números de cada profesional.",
     link: "/AdminHome/Analytics",
+  },
+  {
+    icon: FaMoneyBillWave,
+    title: "Alquileres",
+    description: "Cuotas de cada profesional, pagos, aumentos y precios de los consultorios.",
+    link: "/AdminHome/Alquileres",
   },
 ];
 
@@ -99,7 +105,7 @@ export function AdminHome() {
         </div>
       </header>
 
-      <section className="adm-card-grid adm-stagger">
+      <section className="adm-card-grid adm-card-grid-main adm-stagger">
         {mainEntries.map((entry) => (
           <MenuCard key={entry.title} entry={entry} />
         ))}

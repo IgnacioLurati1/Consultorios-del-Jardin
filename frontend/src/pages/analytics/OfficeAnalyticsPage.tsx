@@ -11,6 +11,7 @@ import { AssistantUsageSection } from "./AssistantUsageSection.tsx";
 import { AccessChannelsSection } from "./AccessChannelsSection.tsx";
 import { BehaviourSection } from "./BehaviourSection.tsx";
 import { CompromisedSection } from "./CompromisedSection.tsx";
+import { RentPotentialSection } from "./RentPotentialSection.tsx";
 import {
   decimal,
   findOfficeAnalytics,
@@ -32,6 +33,12 @@ const ORIGIN_BANDS: Band[] = [
   { key: "manual", label: "Cargados por el profesional", color: "#6c788e" },
   { key: "imported", label: "Importados de un calendario", color: "#a58bc4" },
   { key: "unknown", label: "Sin dato de origen", color: "#cbd5e1" },
+];
+
+/** Lo que pagaron los profesionales por los consultorios, y lo que quedaron debiendo de ese mes. */
+const RENT_BANDS: Band[] = [
+  { key: "collected", label: "Cobrado", color: "#3b7658" },
+  { key: "pending", label: "Adeudado", color: "#b7791f" },
 ];
 
 /**
@@ -111,6 +118,16 @@ export function OfficeAnalyticsPage() {
     values: [month.billed, month.scheduled],
   }));
 
+  // El alquiler llega de un servidor que ya lo cuenta. Contra uno de antes no viene, y
+  // la pantalla queda como estaba.
+  const hasRent = months.some((item) => item.rent) || recent.some((item) => item.rent);
+  const rentColumns = months.map((item) => ({
+    label: shortMonth(item.label),
+    values: [item.rent?.collected ?? 0, item.rent?.pending ?? 0],
+  }));
+  const rentCollected = months.reduce((sum, item) => sum + (item.rent?.collected ?? 0), 0);
+  const rentAverage = total.months > 0 ? rentCollected / total.months : 0;
+
   const originColumns = months.map((month) => ({
     label: shortMonth(month.label),
     values: [month.fromApp, month.fromProfessional, month.imported, month.unknownOrigin],
@@ -188,9 +205,20 @@ export function OfficeAnalyticsPage() {
         actions={<MonthTabs months={recent} selected={month.key} onSelect={setMonthKey} />}
       >
         <KpiGrid>
+          {/* El alquiler va primero: es la plata que más le importa al consultorio. */}
+          {month.rent && (
+            <Kpi
+              lead
+              label="Cobrado por alquiler"
+              value={money(month.rent.collected)}
+              note={month.rent.count === 0 ? "sin cuotas cargadas" : `de ${money(month.rent.due)} en cuotas`}
+              to={`/AdminHome/Alquileres?mes=${month.key}`}
+              toHint="Ver las cuotas del mes"
+            />
+          )}
           <Kpi
-            lead
-            label="Cobrado"
+            lead={!month.rent}
+            label={month.rent ? "Cobrado por turnos" : "Cobrado"}
             value={money(month.billed)}
             note={
               month.scheduled > 0 ? (
@@ -202,6 +230,25 @@ export function OfficeAnalyticsPage() {
               )
             }
           />
+          {/* Lleva a la lista del mes con el filtro puesto, que es desde donde se cobra. En
+              rojo solo en un mes cerrado: en el que corre, lo pendiente todavía puede estar
+              en término. */}
+          {month.rent && (
+            <Kpi
+              label="Alquileres pendientes"
+              value={money(month.rent.pending)}
+              tone={month.rent.pending > 0 && !month.inProgress ? "danger" : undefined}
+              note={
+                month.rent.pendingCount === 0
+                  ? month.rent.count === 0
+                    ? "sin cuotas cargadas"
+                    : "todas las cuotas pagas"
+                  : `${month.rent.pendingCount} ${month.rent.pendingCount === 1 ? "cuota" : "cuotas"} con saldo`
+              }
+              to={month.rent.pendingCount > 0 ? `/AdminHome/Alquileres?mes=${month.key}&estado=pendientes` : undefined}
+              toHint="Ver los pendientes de cobrar"
+            />
+          )}
           <Kpi label="Asistencias" value={month.assisted} note={averageCount(month.assisted)} />
           <Kpi label="Cancelados" value={month.cancelled} note={averageCount(month.cancelled)} />
           <Kpi
@@ -211,6 +258,28 @@ export function OfficeAnalyticsPage() {
           />
         </KpiGrid>
       </AnalyticsSection>
+
+      {hasRent && (
+        <AnalyticsSection title="Alquileres" scope={`Últimos ${total.months} meses cerrados`}>
+          <p className="an-note">
+            Lo que pagaron los profesionales por los consultorios, mes a mes, y lo que quedó adeudado de cada mes. La línea
+            punteada es el promedio mensual cobrado.
+          </p>
+          <StackedBars
+            bands={RENT_BANDS}
+            columns={rentColumns}
+            format={(value) => money(value)}
+            reference={
+              rentAverage > 0 ? { value: rentAverage, label: `promedio mensual · ${money(rentAverage)}` } : undefined
+            }
+            empty="Todavía no hay meses cerrados con cuotas de alquiler."
+          />
+          <ChartLegend bands={RENT_BANDS} columns={rentColumns} />
+        </AnalyticsSection>
+      )}
+
+      {/* Recorren la agenda entera, así que se calculan cuando se piden y no al entrar. */}
+      {hasRent && <RentPotentialSection />}
 
       <AnalyticsSection title="Facturación" scope={`Últimos ${total.months} meses cerrados`}>
         <p className="an-note">
@@ -243,7 +312,15 @@ export function OfficeAnalyticsPage() {
 
       <AnalyticsSection title="Acumulado" scope={`Últimos ${total.months} meses cerrados`}>
         <KpiGrid>
-          <Kpi lead label="Cobrado" value={money(total.billed)} note={average(total.billed)} />
+          {hasRent && (
+            <Kpi lead label="Cobrado por alquiler" value={money(rentCollected)} note={average(rentCollected)} />
+          )}
+          <Kpi
+            lead={!hasRent}
+            label={hasRent ? "Cobrado por turnos" : "Cobrado"}
+            value={money(total.billed)}
+            note={average(total.billed)}
+          />
           <Kpi label="Asistencias" value={total.assisted} note={averageCount(total.assisted)} />
           <Kpi label="Turnos cancelados" value={total.cancelled} note={averageCount(total.cancelled)} />
           <Kpi

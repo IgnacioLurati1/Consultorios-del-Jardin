@@ -148,7 +148,7 @@ export function Hero({ session }: HeroProps) {
       <section className="home-intro">
         <div className="home-intro-inner">
           {session.type === "guest" && (
-            <p className="home-intro-lead">Turnos online, con elección de profesional y horario.</p>
+            <p className="home-intro-lead">Consultorios en Rosario, con turnos online y elección de profesional y horario.</p>
           )}
 
           <div className="home-actions adm-btn-row">

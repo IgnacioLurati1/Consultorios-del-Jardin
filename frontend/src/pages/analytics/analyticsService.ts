@@ -99,6 +99,24 @@ export type ProfessionalRecentMonth = ProfessionalMetrics &
     waitlist?: { enabled: boolean; current: number; average: number | null };
   };
 
+/**
+ * Cómo le paga un profesional el alquiler al consultorio, en los últimos doce meses.
+ *
+ * Solo viaja cuando el que mira es el administrador: el profesional no ve nada de esto en
+ * sus números.
+ */
+export interface RentHabit {
+  /** El día del mes en que vence la cuota. */
+  dueDay: number;
+  /** Meses que ya se pueden juzgar: pagados, o con el vencimiento pasado. */
+  months: number;
+  /** De esos, cuántos pagó (o está debiendo) después del vencimiento. */
+  late: number;
+  lastLate: string | null;
+  owed: number;
+  averagePaidDay: number | null;
+}
+
 export interface ProfessionalAnalytics {
   professional: { email: string; name: string; surname: string; speciality: string | null };
   recent: ProfessionalRecentMonth[];
@@ -106,6 +124,18 @@ export interface ProfessionalAnalytics {
   months: ProfessionalMonthPoint[];
   /** Ausente para el administrador que mira los números de un profesional. */
   debt?: Debt;
+  /** Solo para el administrador. Ausente también contra un servidor de antes. */
+  rent?: RentHabit;
+}
+
+/** El alquiler de un mes: lo que se cobra a los profesionales. Ausente contra un servidor de antes. */
+export interface RentSummary {
+  due: number;
+  collected: number;
+  pending: number;
+  /** Cuántas cuotas quedan con saldo. */
+  pendingCount: number;
+  count: number;
 }
 
 export interface OfficeMetrics extends Metrics, DayLoad {
@@ -141,9 +171,9 @@ export interface OfficeAnalytics {
   headcount: number;
   channels: AccessChannels;
   professionals: { email: string; name: string; surname: string; speciality: string | null }[];
-  recent: (RecentMonth & { sharedPatients: number; topOverbooker: OfficeMetrics["topOverbooker"] })[];
+  recent: (RecentMonth & { sharedPatients: number; topOverbooker: OfficeMetrics["topOverbooker"]; rent?: RentSummary })[];
   total: OfficeMetrics & { months: number };
-  months: (MonthPoint & { sharedPatients: number })[];
+  months: (MonthPoint & { sharedPatients: number; rent?: RentSummary })[];
 }
 
 function unwrap(err: any): never {

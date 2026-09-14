@@ -13,3 +13,20 @@ body {
   font-size: 17px;
   color: var(--adm-text, #1f2a33);
 }
+
+/* Las cinco de todos los días van en una sola fila en la compu. Con el mínimo de 290px de
+   la grilla común entraban cuatro y la quinta caía sola abajo, que la hacía parecer de
+   otro grupo. Se achica un poco el aire de adentro para que el texto siga entrando.
+
+   Las dos clases juntas a propósito: la grilla común vive en otra hoja que puede cargarse
+   después de esta, y con una sola clase empataban y ganaba la última. */
+@media (min-width: 1100px) {
+  .adm-card-grid.adm-card-grid-main {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .adm-card-grid-main .adm-card.adm-card {
+    padding: 26px 22px;
+  }
+}

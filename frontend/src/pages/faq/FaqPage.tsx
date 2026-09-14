@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { FaChevronDown, FaEnvelope, FaInstagram, FaLocationDot, FaClock } from "react-icons/fa6";
 import { SPECIALITIES } from "../specialities";
+import { usePageMeta } from "../../lib/pageMeta";
 import "../adminCRUDS/adminPanel.css";
 import "./faq.css";
 
@@ -28,8 +29,8 @@ const QUESTIONS: Question[] = [
     q: "¿Dónde queda el consultorio?",
     a: (
       <p>
-        En 9 de Julio 3672, de lunes a viernes de 9 a 20. Cada profesional tiene sus propios días y horarios, visibles al
-        solicitar el turno.
+        En 9 de Julio 3672, Rosario, de lunes a viernes de 9 a 20. Cada profesional tiene sus propios días y horarios,
+        visibles al solicitar el turno.
       </p>
     ),
   },
@@ -98,6 +99,20 @@ const QUESTIONS: Question[] = [
       </p>
     ),
   },
+  // La única que no es de un paciente: va al final para no meterse entre las suyas.
+  {
+    q: "¿Cómo sumarse al consultorio como profesional?",
+    a: (
+      <p>
+        Desde <Link to="/contacto?motivo=profesional">Contacto</Link>, con el motivo «Quiero trabajar acá» y el CV adjunto, o
+        por mensaje a{" "}
+        <a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer">
+          @{INSTAGRAM}
+        </a>{" "}
+        en Instagram.
+      </p>
+    ),
+  },
 ];
 
 /**
@@ -108,6 +123,8 @@ const QUESTIONS: Question[] = [
  * Todas abiertas obligan a leerlas enteras para descartarlas.
  */
 export function FaqPage() {
+  usePageMeta("/preguntas");
+
   return (
     <div className="adm-page faq-page">
       <header className="adm-header">
@@ -139,7 +156,7 @@ export function FaqPage() {
             <ul className="faq-facts">
               <li>
                 <FaLocationDot aria-hidden="true" />
-                9 de Julio 3672
+                9 de Julio 3672, Rosario
               </li>
               <li>
                 <FaClock aria-hidden="true" />

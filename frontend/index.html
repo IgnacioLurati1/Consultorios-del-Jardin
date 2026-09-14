@@ -1,14 +1,95 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-AR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/LogoHojas64x64.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--
+      Lo que leen los buscadores y lo que muestran WhatsApp o Instagram al pegar el link.
+      Título, descripción y dirección salen de src/seo.json: al compilar,
+      scripts/seo-pages.mjs los vuelve a escribir acá y arma una copia por cada página
+      pública. Cambiar un texto es cambiarlo allá.
+    -->
+    <title>Consultorios del Jardín</title>
+    <meta name="description" content="Consultorios en 9 de Julio 3672, Rosario. Psicopedagogía, psicología, nutrición y fonoaudiología, con turnos online y elección de profesional y horario." />
+    <link rel="canonical" href="https://consultoriosdeljardin.com.ar/" />
+    <meta name="theme-color" content="#2f5e46" />
+
+    <!-- Google pide un ícono cuadrado de lado múltiplo de 48: el de 64 no le servía. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content="Consultorios del Jardín" />
+    <meta property="og:title" content="Consultorios del Jardín" />
+    <meta property="og:description" content="Consultorios en 9 de Julio 3672, Rosario. Psicopedagogía, psicología, nutrición y fonoaudiología, con turnos online y elección de profesional y horario." />
+    <meta property="og:url" content="https://consultoriosdeljardin.com.ar/" />
+    <meta property="og:image" content="https://consultoriosdeljardin.com.ar/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Sala de espera de Consultorios del Jardín, con el jardín al fondo" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Consultorios del Jardín" />
+    <meta name="twitter:description" content="Consultorios en 9 de Julio 3672, Rosario. Psicopedagogía, psicología, nutrición y fonoaudiología, con turnos online y elección de profesional y horario." />
+    <meta name="twitter:image" content="https://consultoriosdeljardin.com.ar/og-image.jpg" />
+
+    <!--
+      El consultorio contado en el formato que entienden los buscadores: nombre, dirección,
+      horario y especialidades. `WebSite` es lo que le dice a Google cómo se llama el sitio,
+      para que muestre el nombre y no el dominio.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://consultoriosdeljardin.com.ar/#sitio",
+            "url": "https://consultoriosdeljardin.com.ar/",
+            "name": "Consultorios del Jardín",
+            "alternateName": "Consultorios del Jardin",
+            "inLanguage": "es-AR"
+          },
+          {
+            "@type": "MedicalBusiness",
+            "@id": "https://consultoriosdeljardin.com.ar/#consultorio",
+            "name": "Consultorios del Jardín",
+            "url": "https://consultoriosdeljardin.com.ar/",
+            "logo": "https://consultoriosdeljardin.com.ar/icon-512.png",
+            "image": "https://consultoriosdeljardin.com.ar/og-image.jpg",
+            "description": "Consultorios de psicopedagogía, psicología, nutrición y fonoaudiología en Rosario, con turnos online.",
+            "email": "consultoriosjardinok@gmail.com",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "9 de Julio 3672",
+              "addressLocality": "Rosario",
+              "addressRegion": "Santa Fe",
+              "postalCode": "S2000",
+              "addressCountry": "AR"
+            },
+            "hasMap": "https://www.google.com/maps/dir/?api=1&destination=9+de+Julio+3672,+Rosario,+Santa+Fe",
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "09:00",
+                "closes": "20:00"
+              }
+            ],
+            "knowsAbout": ["Psicopedagogía", "Psicología", "Nutrición", "Fonoaudiología"],
+            "sameAs": ["https://instagram.com/consultorios_jardin"]
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Ubuntu para toda la aplicacion; Fraunces solo para los titulos de la portada. -->
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,500..700,0..100,0..1&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consultorios del Jardin</title>
     <!--
       El tema se resuelve antes de pintar nada. Si esperara a que arranque React, la
       primera pantalla saldria en claro y pasaria a oscuro medio segundo despues: un
@@ -47,6 +128,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Para lo que lee la página sin ejecutarla: lo mínimo para saber qué y dónde es. -->
+    <noscript>
+      <h1>Consultorios del Jardín</h1>
+      <p>Consultorios en 9 de Julio 3672, Rosario. Psicopedagogía, psicología, nutrición y fonoaudiología. Lunes a viernes, de 9 a 20.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

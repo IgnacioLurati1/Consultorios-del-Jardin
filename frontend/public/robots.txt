@@ -1,0 +1,17 @@
+# Las pantallas con sesión no tienen nada para mostrar a un buscador: sin cuenta, llevan
+# al inicio de sesión. Lo público es la portada, las preguntas y el contacto.
+User-agent: *
+Allow: /
+Disallow: /AdminHome
+Disallow: /ProfessionalHome
+Disallow: /scheduleProfessional
+Disallow: /Analytics
+Disallow: /Patients
+Disallow: /Appointment
+Disallow: /Recurrences
+Disallow: /EditProfile
+Disallow: /asistencia
+Disallow: /confirmar-cuenta
+Disallow: /reset-password
+
+Sitemap: https://consultoriosdeljardin.com.ar/sitemap.xml

@@ -104,6 +104,81 @@
     white-space: nowrap;
 }
 
+/* ---------- CV ----------
+   El input de archivo queda encima de la caja dibujada, transparente: conserva el foco y
+   el teclado, y lo que se ve está en castellano. */
+
+.contact-cv {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.contact-cv .ui-field {
+    flex: 1;
+}
+
+.contact-cv > .adm-btn {
+    margin-bottom: 26px;
+}
+
+.contact-file {
+    position: relative;
+    display: block;
+}
+
+.contact-file-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.contact-file-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 10px 6px 6px;
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-surface-alt);
+}
+
+.contact-file-input:focus-visible + .contact-file-box {
+    border-color: var(--adm-green);
+    box-shadow: 0 0 0 3px var(--adm-green-glow);
+}
+
+.contact-file-btn {
+    flex: none;
+    padding: 6px 12px;
+    border-radius: var(--adm-radius-sm);
+    border: 1px solid var(--adm-border-strong);
+    background: var(--adm-surface);
+    color: var(--adm-text);
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.contact-file-name,
+.contact-file-none {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.contact-file-name {
+    color: var(--adm-text);
+}
+
+.contact-file-none {
+    color: var(--adm-muted-soft);
+}
+
 /* ---------- confirmación ---------- */
 
 .contact-done {

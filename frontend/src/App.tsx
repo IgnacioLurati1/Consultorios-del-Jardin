@@ -31,6 +31,7 @@ import { ContactPage } from "./pages/contact/ContactPage.tsx";
 import { FaqPage } from "./pages/faq/FaqPage.tsx";
 import { ErrorPage } from "./pages/errorPage/ErrorPage.tsx";
 import { AttendancePage } from "./pages/attendance/AttendancePage.tsx";
+import { RentPage } from "./pages/rent/RentPage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -77,6 +78,7 @@ const router = createBrowserRouter([
           { path: "UsersAdmin", element: <UsersAdmin/>},
           { path: "Control", element: <ControlPanel/>},
           { path: "Analytics", element: <OfficeAnalyticsPage/>},
+          { path: "Alquileres", element: <RentPage/>},
           { path: "RegisterProfAdmin", element: <RegisterProf/>},
         ],
       },

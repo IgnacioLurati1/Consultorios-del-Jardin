@@ -1,0 +1,17 @@
+{
+  "site": "https://consultoriosdeljardin.com.ar",
+  "pages": {
+    "/": {
+      "title": "Consultorios del Jardín",
+      "description": "Consultorios en 9 de Julio 3672, Rosario. Psicopedagogía, psicología, nutrición y fonoaudiología, con turnos online y elección de profesional y horario."
+    },
+    "/preguntas": {
+      "title": "Preguntas frecuentes · Consultorios del Jardín",
+      "description": "Dirección, especialidades, turnos, cancelaciones y honorarios de Consultorios del Jardín, en 9 de Julio 3672, Rosario."
+    },
+    "/contacto": {
+      "title": "Contacto · Consultorios del Jardín",
+      "description": "Consultas por mail a Consultorios del Jardín, en 9 de Julio 3672, Rosario. Turnos, sugerencias y profesionales interesados en sumarse al equipo."
+    }
+  }
+}

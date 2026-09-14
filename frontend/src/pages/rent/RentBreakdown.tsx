@@ -1,0 +1,57 @@
+import { money } from "../analytics/analyticsService.ts";
+import { BLOCK_LABEL, DAY_LABEL, formatAdjust, type Breakdown } from "./rentService.ts";
+
+/**
+ * De qué sale una cuota calculada con los bloques: cada bloque, cuántas veces cae en el
+ * mes y a qué precio. Es lo que se mira cuando un número no cierra.
+ */
+export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
+  return (
+    <div className="rent-breakdown">
+      {breakdown.blocks.length > 0 && (
+        <ul className="rent-lines">
+          {breakdown.blocks.map((line) => (
+            <li key={`${line.roomId}-${line.day}-${line.block}`}>
+              <span>
+                {line.room} · {DAY_LABEL[line.day] ?? line.day} · {BLOCK_LABEL[line.block].toLowerCase()}
+              </span>
+              <span className="rent-line-calc">
+                {line.price === null ? "sin precio" : `${line.times} × ${money(line.price)}`}
+              </span>
+              <strong>{money(line.subtotal)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {breakdown.outside.length > 0 && (
+        <ul className="rent-lines">
+          {breakdown.outside.map((line) => (
+            <li key={`${line.day}-${line.initialHour}`}>
+              <span>
+                {line.room} · {DAY_LABEL[line.day] ?? line.day}{" "}
+                {line.parts.map((part) => `de ${part.from} a ${part.to}`).join(" y ")}
+              </span>
+              <span className="rent-line-calc">
+                {line.price === null ? "sin valor" : `${line.times} × ${money(line.price)}`}
+              </span>
+              <strong>{money(line.subtotal)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {breakdown.adjust !== 0 && (
+        <p className="rent-sub">
+          Aumento propio de {formatAdjust(breakdown.adjust)} sobre {money(breakdown.base)}
+        </p>
+      )}
+
+      {breakdown.missing.map((message) => (
+        <p key={message} className="rent-warn">
+          {message}
+        </p>
+      ))}
+    </div>
+  );
+}

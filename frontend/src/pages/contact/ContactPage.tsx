@@ -5,11 +5,15 @@ import { SteppedForm, type FormStep } from "../../components/steppedForm/Stepped
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { useAuth } from "../../context/AuthContext";
 import { findPerson, getDecodedToken } from "../commonServices";
+import { usePageMeta } from "../../lib/pageMeta";
 import {
+  APPLICATION,
+  CV_ACCEPT,
   MAX_MESSAGE,
   REASONS,
   emptyContactForm,
   sendContactMessage,
+  validateCv,
   validateMessage,
   validatePerson,
   validateReason,
@@ -22,7 +26,7 @@ const INSTAGRAM = "consultorios_jardin";
 
 /** Los datos fijos del consultorio. `href` los vuelve accionables desde el celular. */
 const OFFICE = [
-  { icon: FaLocationDot, label: "Dirección", value: "9 de Julio 3672" },
+  { icon: FaLocationDot, label: "Dirección", value: "9 de Julio 3672, Rosario" },
   { icon: FaClock, label: "Horario", value: "Lunes a viernes, de 9 a 20" },
   { icon: FaEnvelope, label: "Mail", value: MAIL, href: `mailto:${MAIL}`, small: true },
   {
@@ -47,6 +51,7 @@ const SHORTCUTS = [
  * mensaje —lo único que importa de verdad— queda para el final, con lugar para escribir.
  */
 export function ContactPage() {
+  usePageMeta("/contacto");
   const { token } = useAuth();
 
   // "Quiero trabajar acá" del menú llega con ?motivo=profesional: el motivo ya viene
@@ -65,6 +70,18 @@ export function ContactPage() {
   const [sending, setSending] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
+
+  // El CV va aparte del resto porque no es texto: viaja como archivo y solo en una
+  // postulación. `cvKey` vuelve a montar el campo al quitarlo, que es la única forma de
+  // vaciar un input de archivo.
+  const [cv, setCv] = useState<File | null>(null);
+  const [cvKey, setCvKey] = useState(0);
+  const applying = form.reason === APPLICATION;
+
+  function clearCv() {
+    setCv(null);
+    setCvKey((key) => key + 1);
+  }
 
   const set = (field: keyof ContactForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -93,7 +110,7 @@ export function ContactPage() {
   function handleSubmit() {
     setSending(true);
 
-    sendContactMessage(form)
+    sendContactMessage(form, applying ? cv : null)
       .then(() => setSent(form.email.trim()))
       .catch((error: Error) => setServerError(error.message))
       .finally(() => setSending(false));
@@ -149,14 +166,14 @@ export function ContactPage() {
           </label>
 
           <label className="ui-field">
-            <span>Teléfono (opcional)</span>
+            <span>{applying ? "Teléfono" : "Teléfono (opcional)"}</span>
             <input
               type="tel"
               autoComplete="tel"
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
             />
-            <small>Para recibir un llamado.</small>
+            <small>{applying ? "Para coordinar una entrevista." : "Para recibir un llamado."}</small>
           </label>
         </>
       ),
@@ -164,14 +181,14 @@ export function ContactPage() {
     {
       id: "mensaje",
       title: "Mensaje",
-      hint: "Detalle de la consulta.",
-      validate: () => validateMessage(form),
+      hint: applying ? "Presentación, experiencia y CV." : "Detalle de la consulta.",
+      validate: () => validateMessage(form) ?? validateCv(applying ? cv : null),
       content: (
         <>
           <label className="ui-field">
-            <span>Mensaje</span>
+            <span>{applying ? "Presentación" : "Mensaje"}</span>
             <textarea
-              rows={7}
+              rows={applying ? 5 : 7}
               maxLength={MAX_MESSAGE}
               value={form.message}
               onChange={(e) => set("message", e.target.value)}
@@ -181,6 +198,39 @@ export function ContactPage() {
               <small className={left < 100 ? "contact-count low" : "contact-count"}>Quedan {left} caracteres.</small>
             )}
           </label>
+
+          {/* El input va escondido pero no apagado: sigue recibiendo el foco, y el control del
+              navegador se tapa porque escribe "Choose file" en inglés. Mismo recurso que la
+              importación de calendarios. */}
+          {applying && (
+            <div className="contact-cv">
+              <label className="ui-field">
+                <span>CV (opcional)</span>
+                <span className="contact-file">
+                  <input
+                    key={cvKey}
+                    type="file"
+                    className="contact-file-input"
+                    accept={CV_ACCEPT}
+                    onChange={(e) => {
+                      setCv(e.target.files?.[0] ?? null);
+                      setServerError(null);
+                    }}
+                  />
+                  <span className="contact-file-box">
+                    <span className="contact-file-btn">Elegir archivo</span>
+                    <span className={cv ? "contact-file-name" : "contact-file-none"}>{cv ? cv.name : "Sin archivo"}</span>
+                  </span>
+                </span>
+                <small>PDF o Word, hasta 5 MB. Llega por mail y no queda guardado.</small>
+              </label>
+              {cv && (
+                <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm" onClick={clearCv}>
+                  Quitar
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Campo trampa. Está escondido para las personas (y para los lectores de
               pantalla): si llega con texto, lo completó un bot y el backend lo descarta. */}
@@ -235,6 +285,7 @@ export function ContactPage() {
                   className="adm-btn adm-btn-ghost"
                   onClick={() => {
                     setSent(null);
+                    clearCv();
                     setForm((prev) => ({ ...emptyContactForm, name: prev.name, email: prev.email, phone: prev.phone }));
                   }}
                 >
