@@ -157,8 +157,34 @@ export function clearSession(): void {
 }
 
 /**
- * Pide un token de acceso nuevo. Devuelve el token, o null si no hay con qué pedirlo o el
- * backend lo rechaza.
+ * Cómo terminó un intento de renovar la sesión.
+ *
+ * `offline` separa dos cosas que antes daban lo mismo: que el servidor diga que la sesión
+ * no va más (vencida, revocada, la cuenta deshabilitada) y que no se haya podido preguntar
+ * (sin señal, un deploy reiniciando el servidor, un error 500). Solo lo primero cierra la
+ * sesión. Cerrarla también en lo segundo era lo que mandaba al login, desde el celular, a
+ * gente con la sesión perfectamente viva.
+ */
+export type Renewal = { token: string; offline: false } | { token: null; offline: boolean };
+
+/**
+ * El servidor contestó y dijo que no. Un 408 o un 429 no son un no: son "ahora no", igual
+ * que no tener respuesta o un 5xx.
+ */
+function isRejection(error: unknown): boolean {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+  return status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
+/**
+ * Una sola renovación a la vez. Si varias pantallas reciben un 401 juntas —pasa cada vez
+ * que vence el token con la página abierta—, comparten esta respuesta en lugar de pedir
+ * un token cada una.
+ */
+let renovando: Promise<Renewal> | null = null;
+
+/**
+ * Pide un token de acceso nuevo.
  *
  * Prueba las dos formas que tiene de identificarse, empezando por la que le corresponda a
  * este navegador. La cookie sola va primera cuando ya se sabe que llega; si no, va el
@@ -168,12 +194,23 @@ export function clearSession(): void {
  * Va por `axios` pelado y no por `api`: el interceptor de `api` reacciona a un 401
  * renovando la sesión, que es justo lo que estamos haciendo acá.
  */
-export async function renewSession(): Promise<string | null> {
+export function renewSession(): Promise<Renewal> {
+  renovando =
+    renovando ??
+    askForRenewal().finally(() => {
+      renovando = null;
+    });
+  return renovando;
+}
+
+async function askForRenewal(): Promise<Renewal> {
   const guardado = refreshGuardado();
 
   const intentos: Record<string, string>[] = [];
   if (!cookieSirveSola() && guardado) intentos.push({ ...CLIENT_HEADER, "X-Refresh-Token": guardado });
   intentos.push({ ...CLIENT_HEADER });
+
+  let sinRespuesta = false;
 
   for (const headers of intentos) {
     try {
@@ -183,18 +220,23 @@ export async function renewSession(): Promise<string | null> {
       localStorage.setItem("token", data.token);
       // Renovó sin mandar el token: la cookie llegó sola y la copia guardada sobra.
       if (!headers["X-Refresh-Token"]) anotarLaCookie(true);
-      return data.token as string;
-    } catch {
+      return { token: data.token as string, offline: false };
+    } catch (error) {
       // Vencido, revocado, la cuenta deshabilitada, o esta forma no era la de este
-      // navegador. Lo dice el intento siguiente, o el final si no queda ninguno.
+      // navegador: lo dice el intento siguiente. Sin respuesta, en cambio, no se sabe
+      // nada, y eso no puede terminar en cerrar la sesión.
+      if (!isRejection(error)) sinRespuesta = true;
     }
   }
 
-  // Ninguna de las dos sirvió. Se deja de dar por buena la cookie para que el próximo
-  // login vuelva a guardar el token y el navegador no quede sin forma de renovar.
+  // No se pudo preguntar. La sesión queda como estaba, para el próximo intento.
+  if (sinRespuesta) return { token: null, offline: true };
+
+  // El servidor dijo que no por las dos vías. Se deja de dar por buena la cookie para que
+  // el próximo login vuelva a guardar el token y el navegador no quede sin forma de renovar.
   anotarLaCookie(false);
   clearSession();
-  return null;
+  return { token: null, offline: false };
 }
 
 /** Dónde se guarda el motivo, para que el login lo pueda contar después de la patada. */
@@ -244,11 +286,16 @@ api.interceptors.response.use(
       // La misma renovación que usa el arranque, con las dos formas de identificarse.
       const renovado = await renewSession();
 
-      if (renovado) {
+      if (renovado.token) {
         // Reintenta **solo una vez**
-        originalRequest.headers.Authorization = `Bearer ${renovado}`; //Actualiza el header del request original
+        originalRequest.headers.Authorization = `Bearer ${renovado.token}`; //Actualiza el header del request original
         return api(originalRequest);
       }
+
+      // No se pudo preguntar: la sesión sigue guardada y la pantalla muestra su error de
+      // siempre. Mandar al login acá cortaba sesiones sanas cada vez que se caía la señal
+      // o se reiniciaba el servidor.
+      if (renovado.offline) return Promise.reject(error);
 
       try {
         await axios.post(`${API_BASE_URL}/people/logout`, {}, { withCredentials: true });

@@ -44,11 +44,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!restoring) return;
 
     let cancelled = false;
-    renewSession().then((renewed) => {
-      if (cancelled) return;
-      if (renewed) setToken(renewed);
-      setRestoring(false);
-    });
+
+    // Sin respuesta (sin señal, el servidor reiniciándose) se vuelve a probar un par de
+    // veces antes de soltar la espera: suele ser cosa de segundos. Aunque al final no se
+    // pueda, la sesión queda guardada y la próxima vez que se abra la página se recupera.
+    (async () => {
+      for (const wait of [0, 1500, 4000]) {
+        if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
+        if (cancelled) return;
+
+        const renewed = await renewSession();
+        if (cancelled) return;
+
+        if (renewed.token) {
+          setToken(renewed.token);
+          break;
+        }
+        if (!renewed.offline) break;
+      }
+
+      if (!cancelled) setRestoring(false);
+    })();
 
     return () => {
       cancelled = true;
