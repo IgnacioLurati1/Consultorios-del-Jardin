@@ -86,11 +86,19 @@ function ownsSchedule(req: RequestWithUser): boolean {
   return req.user?.type === "professional" && req.body.sanitizedInput.person === req.user.email;
 }
 
+// Los horarios de atención los carga y los saca la administración: son los que reservan
+// cada consultorio. El profesional decide solo cuánto dura cada turno (ver update). La
+// página ya lo respetaba escondiendo los botones; va acá para que ninguna pantalla, ni una
+// versión vieja de la app que siga instalada, pueda saltearlo.
+const ONLY_ADMIN = "Los horarios de atención los maneja la administración del consultorio";
+
+function isAdmin(req: RequestWithUser): boolean {
+  return req.user?.type === "admin";
+}
+
 async function add(req: RequestWithUser, res: Response) {
   try {
-    // Para un profesional el horario es siempre suyo, sin importar lo que mande el body.
-    if (req.user?.type === "professional") req.body.sanitizedInput.person = req.user.email;
-    if (!ownsSchedule(req)) return res.status(403).json({ message: "No podés modificar horarios de otro profesional" });
+    if (!isAdmin(req)) return res.status(403).json({ message: ONLY_ADMIN });
 
     const schedule = await scheduleService.createSchedule(req.body.sanitizedInput);
     res.status(201).json({ message: "Horario creado", data: schedule });
@@ -106,7 +114,13 @@ async function update(req: RequestWithUser, res: Response) {
   try {
     delete req.body.sanitizedInput.active; // no se puede cambiar el estado con este endpoint
 
-    if (req.user?.type === "professional") req.body.sanitizedInput.person = req.user.email;
+    if (req.user?.type === "professional") {
+      // De un horario suyo, el profesional cambia solo la duración. La franja y el
+      // consultorio son de la administración, aunque el body los mande.
+      const { day, initialHour, duration } = req.body.sanitizedInput;
+      req.body.sanitizedInput = { day, initialHour, person: req.user.email };
+      if (duration !== undefined) req.body.sanitizedInput.duration = duration;
+    }
     if (!ownsSchedule(req)) return res.status(403).json({ message: "No podés modificar horarios de otro profesional" });
 
     const schedule = await scheduleService.updateSchedule(req.body.sanitizedInput);
@@ -125,8 +139,9 @@ async function remove(req: RequestWithUser, res: Response) {
     const initialHour = req.params.initialHour;
     const person = req.params.person;
 
-    if (req.user?.type === "professional" && person !== req.user.email)
-      return res.status(403).json({ message: "No podés eliminar horarios de otro profesional" });
+    // Antes solo se frenaba a un profesional borrando horarios ajenos: los propios los
+    // podía borrar, y cualquier otra cuenta con sesión, los de cualquiera.
+    if (!isAdmin(req)) return res.status(403).json({ message: ONLY_ADMIN });
     await scheduleService.removeSchedule(day, initialHour, person);
     res.status(200).json({ message: "Horario eliminado" });
   } catch (error: any) {

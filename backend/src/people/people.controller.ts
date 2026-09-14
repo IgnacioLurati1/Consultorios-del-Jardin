@@ -60,6 +60,19 @@ const REFRESH_COOKIE_OPTIONS =
     : ({ httpOnly: true, secure: false, sameSite: "lax" } as const);
 
 /**
+ * Cuánto vive la cookie del refresh: lo mismo que el token que lleva adentro (30 días, ver
+ * generateTokens en people.service).
+ *
+ * Sin esto era una cookie de sesión, y el navegador del celular la tira cuando se cierra o
+ * cuando el sistema lo saca de memoria: la persona volvía a encontrarse el login con la
+ * sesión perfectamente viva del otro lado.
+ *
+ * Va solo al crearla. Para borrarla se usan las opciones de arriba, sin esto: en Express 4
+ * clearCookie con maxAge le pone un vencimiento nuevo y la cookie no se borra.
+ */
+export const REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+
+/**
  * Entrega el refresh token por las dos vías a la vez, y deja que el navegador elija.
  *
  * La cookie httpOnly es la buena: el JS de la página no la puede leer, así que un XSS no
@@ -77,7 +90,9 @@ const REFRESH_COOKIE_OPTIONS =
  * sistema, que es su equivalente del httpOnly.
  */
 function deliverRefreshToken(req: Request, res: Response, refreshToken: string): Record<string, string> {
-  if (clientChannel(req) !== "app") res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+  if (clientChannel(req) !== "app") {
+    res.cookie("refreshToken", refreshToken, { ...REFRESH_COOKIE_OPTIONS, maxAge: REFRESH_COOKIE_MAX_AGE });
+  }
 
   return { refreshToken };
 }
@@ -522,6 +537,7 @@ export {
   remove,
   loginWithEmailAndPassword,
   logOut,
+  deliverRefreshToken,
   toggleState,
   toggleBookable,
   toggleWaitlist,

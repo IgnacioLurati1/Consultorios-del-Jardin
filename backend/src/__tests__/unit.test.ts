@@ -45,8 +45,9 @@ process.env.CHANGE_SECRET = "test-change-secret-key";
 
 // Ahora sí importamos los módulos que queremos testear
 import { verifyToken } from "../config/middlewares.js";
-import { sanitizePersonInput, logOut } from "../people/people.controller.js";
+import { sanitizePersonInput, logOut, deliverRefreshToken, REFRESH_COOKIE_MAX_AGE } from "../people/people.controller.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
+import { add as addSchedule, update as updateSchedule, remove as removeSchedule } from "../schedule/schedule.controller.js";
 import refreshTokenHandler from "../config/refreshToken.js";
 
 beforeEach(() => {
@@ -313,6 +314,104 @@ describe("logOut", () => {
     expect(clearCookie).toHaveBeenCalledWith("refreshToken", expect.objectContaining({ httpOnly: true }));
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith({ message: "Sesión cerrada" });
+    // Con maxAge, Express 4 le pone un vencimiento nuevo en vez de borrarla.
+    expect(clearCookie.mock.calls[0][1]).not.toHaveProperty("maxAge");
+  });
+});
+
+// ============================================================
+// TEST 8b: la cookie del refresh sobrevive a que se cierre el navegador
+// ============================================================
+describe("cookie del refresh token", () => {
+  const request = (client: string) =>
+    ({ headers: { "x-client": client }, header: () => client, get: () => client }) as any;
+
+  it("dura lo mismo que el refresh token", () => {
+    const cookie = vi.fn();
+
+    deliverRefreshToken(request("web"), { cookie } as any, "refresh");
+
+    expect(cookie).toHaveBeenCalledWith(
+      "refreshToken",
+      "refresh",
+      expect.objectContaining({ httpOnly: true, maxAge: REFRESH_COOKIE_MAX_AGE })
+    );
+    expect(REFRESH_COOKIE_MAX_AGE).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  it("a la app no se le manda cookie, pero el token viaja igual", () => {
+    const cookie = vi.fn();
+
+    // La app se presenta como "mobile" (ver clients.ts).
+    const session = deliverRefreshToken(request("mobile"), { cookie } as any, "refresh");
+
+    expect(cookie).not.toHaveBeenCalled();
+    expect(session).toEqual({ refreshToken: "refresh" });
+  });
+});
+
+// ============================================================
+// TEST 8c: los horarios los carga y los saca la administración
+// ============================================================
+describe("horarios de atención", () => {
+  const professional = { type: "professional", email: "pro@mail.com" };
+  const admin = { type: "admin", email: "admin@mail.com" };
+  const key = { day: "lunes", initialHour: "09:00", person: professional.email };
+
+  function response() {
+    const json = vi.fn();
+    const status = vi.fn().mockReturnValue({ json });
+    return { res: { status } as any, status };
+  }
+
+  it("un profesional no puede borrar ni sus propios horarios", async () => {
+    const { res, status } = response();
+
+    await removeSchedule({ params: key, user: professional } as any, res);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
+  });
+
+  it("un paciente tampoco", async () => {
+    const { res, status } = response();
+
+    await removeSchedule({ params: key, user: { type: "client", email: "paciente@mail.com" } } as any, res);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
+  });
+
+  it("el admin sí", async () => {
+    mockEm.nativeDelete.mockResolvedValue(1);
+    const { res, status } = response();
+
+    await removeSchedule({ params: key, user: admin } as any, res);
+
+    expect(mockEm.nativeDelete).toHaveBeenCalled();
+    expect(status).toHaveBeenCalledWith(200);
+  });
+
+  it("un profesional no puede cargarse horarios", async () => {
+    const { res, status } = response();
+    const sanitizedInput = { ...key, finalHour: "12:00", room: 1, duration: 45 };
+
+    await addSchedule({ body: { sanitizedInput }, user: professional } as any, res);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(mockEm.findOne).not.toHaveBeenCalled();
+  });
+
+  it("de un horario suyo, el profesional cambia solo la duración", async () => {
+    const schedule = {};
+    mockEm.findOneOrFail.mockResolvedValue(schedule);
+    const { res, status } = response();
+    const sanitizedInput = { ...key, person: "otro@mail.com", finalHour: "20:00", room: 2, duration: 30 };
+
+    await updateSchedule({ body: { sanitizedInput }, user: professional } as any, res);
+
+    expect(mockEm.assign).toHaveBeenCalledWith(schedule, { ...key, duration: 30 });
+    expect(status).toHaveBeenCalledWith(200);
   });
 });
 
