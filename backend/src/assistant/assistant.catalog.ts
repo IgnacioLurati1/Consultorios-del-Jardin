@@ -17,7 +17,7 @@ export const OFFICE_INFO = {
   hours: "Lunes a viernes, de 9 a 20",
   mail: process.env.MAIL ?? "consultoriosjardinok@gmail.com",
   instagram: "@consultorios_jardin",
-  specialities: ["Psicopedagogía", "Psicología", "Nutrición", "Fonoaudiología"],
+  specialities: ["Psicopedagogía", "Psicología", "Psiquiatría", "Nutrición", "Fonoaudiología"],
 };
 
 export interface Page {

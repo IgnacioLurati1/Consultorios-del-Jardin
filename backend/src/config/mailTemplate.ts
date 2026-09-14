@@ -254,7 +254,7 @@ export function shell(content: string, office: { baseUrl?: string; mail?: string
           <tr>
             <td style="padding:24px 30px;background:${C.green}">
               <p style="margin:0;font-family:${SERIF};font-size:21px;color:${C.cream};letter-spacing:0.01em">Consultorios del Jardín</p>
-              <p style="margin:4px 0 0;font-size:12px;color:#cfe3d6;letter-spacing:0.08em;text-transform:uppercase">Psicopedagogía · Psicología · Nutrición · Fonoaudiología</p>
+              <p style="margin:4px 0 0;font-size:12px;color:#cfe3d6;letter-spacing:0.08em;text-transform:uppercase">Psicopedagogía · Psicología · Psiquiatría · Nutrición · Fonoaudiología</p>
             </td>
           </tr>
 

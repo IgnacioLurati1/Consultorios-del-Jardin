@@ -69,7 +69,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     {
       speciality: {
         type: "string",
-        description: "Especialidad para filtrar: Psicopedagogía, Psicología, Nutrición o Fonoaudiología. Opcional.",
+        description: "Especialidad para filtrar: Psicopedagogía, Psicología, Psiquiatría, Nutrición o Fonoaudiología. Opcional.",
       },
       officeId: { type: "number", description: "ID de la sucursal para filtrar. Opcional." },
     }
