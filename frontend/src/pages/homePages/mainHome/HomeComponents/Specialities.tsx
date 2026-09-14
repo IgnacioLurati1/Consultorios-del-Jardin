@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FaAppleWhole, FaArrowRight, FaBookOpenReader, FaBrain, FaEarListen } from "react-icons/fa6";
+import { FaAppleWhole, FaArrowRight, FaBookOpenReader, FaBrain, FaEarListen, FaStethoscope } from "react-icons/fa6";
 import type { IconType } from "react-icons";
 import type { Session } from "../Home";
 import { useFadeIn } from "../useFadeIn";
@@ -21,6 +21,7 @@ interface SpecialityCard {
 const CARDS: SpecialityCard[] = [
   { name: "Psicopedagogía", icon: FaBookOpenReader, tint: "#5d7f3f" },
   { name: "Psicología", icon: FaBrain, tint: "#2f6f6b" },
+  { name: "Psiquiatría", icon: FaStethoscope, tint: "#9a5561" },
   { name: "Nutrición", icon: FaAppleWhole, tint: "#a8763a" },
   { name: "Fonoaudiología", icon: FaEarListen, tint: "#6b5a8e" },
 ];

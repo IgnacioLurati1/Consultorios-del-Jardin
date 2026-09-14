@@ -314,9 +314,12 @@
 
 /* ---------- especialidades ---------- */
 
+/* En pantalla ancha van todas en una fila: con 200px de mínimo entran cinco en el ancho
+   de la sección. Más angosto, los cortes de abajo reparten para que ninguna quede sola
+   en el último renglón. */
 .home-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 22px;
 }
 
@@ -391,6 +394,61 @@
 
 .home-card:hover .home-card-cta svg {
   transform: translateX(4px);
+}
+
+/* Entre la tableta y el escritorio chico no entran todas de ancho: van de a tres, y si el
+   último renglón queda con dos, esas dos se lo reparten; con cuatro, dos y dos. Nunca
+   queda una sola abajo. Las fotos van a alto fijo para que las de abajo, más anchas, no
+   salgan más altas que las de arriba. */
+@media (min-width: 760px) and (max-width: 1179px) {
+  .home-cards {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .home-card {
+    grid-column: span 2;
+  }
+
+  .home-card:nth-child(3n + 1):nth-last-child(2),
+  .home-card:nth-child(3n + 1):nth-last-child(2) + .home-card,
+  .home-card:first-child:nth-last-child(4),
+  .home-card:first-child:nth-last-child(4) ~ .home-card {
+    grid-column: span 3;
+  }
+
+  .home-card:nth-child(3n + 1):last-child {
+    grid-column: 1 / -1;
+  }
+
+  .home-cards .home-photo {
+    aspect-ratio: auto;
+    height: 150px;
+  }
+}
+
+/* De a dos. Si quedan impares, la última ocupa el renglón y se acuesta, como en el
+   celular: una tarjeta ancha se lee como parte de la grilla, media tarjeta sola, como un
+   hueco. */
+@media (min-width: 621px) and (max-width: 759px) {
+  .home-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .home-card:nth-child(odd):last-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .home-card:nth-child(odd):last-child .home-photo {
+    width: 34%;
+    flex-shrink: 0;
+    aspect-ratio: auto;
+  }
+
+  .home-card:nth-child(odd):last-child .home-card-body {
+    justify-content: center;
+  }
 }
 
 /* ---------- accesos de la persona logueada ---------- */
@@ -984,6 +1042,10 @@
 /* En pantallas angostas la tarjeta se acuesta: los bloques de color apilados hacían una
    página mucho más larga de lo necesario. */
 @media (max-width: 620px) {
+  .home-cards {
+    grid-template-columns: 1fr;
+  }
+
   .home-card {
     flex-direction: row;
     align-items: stretch;
