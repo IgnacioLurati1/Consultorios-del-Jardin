@@ -8,6 +8,12 @@ const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 /** Cómo firma el consultorio sus mails en la bandeja de entrada. */
 const SENDER_NAME = "Consultorios del Jardín";
 
+/** Un archivo que viaja con el mail, con el contenido en base64 como lo pide Brevo. */
+export interface MailAttachment {
+  name: string;
+  content: string;
+}
+
 /** Un mail listo para mandar. Es nuestro, no de la librería del proveedor. */
 export interface MailMessage {
   to: string;
@@ -16,6 +22,7 @@ export interface MailMessage {
   subject: string;
   html: string;
   text: string;
+  attachments?: MailAttachment[];
 }
 
 /**
@@ -59,6 +66,7 @@ export default class MailService {
           subject,
           htmlContent: msg.html,
           textContent: msg.text,
+          ...(msg.attachments?.length ? { attachment: msg.attachments } : {}),
         }),
       });
 
@@ -84,12 +92,15 @@ export default class MailService {
    * `replyTo` se puede pisar: el formulario de contacto manda desde la casilla del
    * consultorio (la única verificada) pero necesita que "Responder" le llegue a la
    * persona que escribió.
+   *
+   * `attachments` lo usa la postulación de un profesional para mandar el CV. El archivo va
+   * en el mail y en ningún otro lado: el consultorio no lo guarda.
    */
   async createMessage(
     to: string,
     subject: string,
     htmlContent: string,
-    options: { replyTo?: string } = {}
+    options: { replyTo?: string; attachments?: MailAttachment[] } = {}
   ): Promise<MailMessage> {
     const html = shell(htmlContent, { baseUrl: process.env.BASE_URL, mail: process.env.MAIL });
 
@@ -100,6 +111,7 @@ export default class MailService {
       subject,
       html,
       text: toPlainText(html),
+      ...(options.attachments?.length ? { attachments: options.attachments } : {}),
     };
   }
 }

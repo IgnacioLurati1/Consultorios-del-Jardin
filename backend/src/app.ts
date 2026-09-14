@@ -10,7 +10,7 @@ import { officeRouter } from "./offices/offices.routes.js";
 import { roomRouter } from "./rooms/rooms.routes.js";
 import { orm, syncSchema } from "./shared/db/orm.js";
 import { RequestContext } from "@mikro-orm/core";
-import { verifyToken } from "./config/middlewares.js";
+import { verifyAdmin, verifyToken } from "./config/middlewares.js";
 import { Request, Response } from "express";
 import { scheduleRouter } from "./schedule/schedule.routes.js";
 import refreshToken from "./config/refreshToken.js";
@@ -35,6 +35,8 @@ import { calendarRouter } from "./calendar/calendar.routes.js";
 import { waitlistRouter } from "./waitlist/waitlist.routes.js";
 import { attendanceRouter } from "./attendance/attendance.routes.js";
 import { startWaitlistJob } from "./jobs/waitlist.job.js";
+import { rentRouter } from "./rent/rent.routes.js";
+import { startRentJob } from "./jobs/rent.job.js";
 import { setupSwagger } from './config/swagger.js';
 import { attendanceLimiter, authLimiter, generalLimiter } from "./config/rateLimiter.js";
 
@@ -131,6 +133,8 @@ app.use("/api/security", verifyToken, securityRouter);
 app.use("/api/assistant", verifyToken, assistantRouter);
 app.use("/api/calendar", verifyToken, calendarRouter);
 app.use("/api/waitlist", verifyToken, waitlistRouter);
+// Lo que pagan los profesionales es asunto de la administración y de nadie más.
+app.use("/api/rent", verifyToken, verifyAdmin, rentRouter);
 // Sin verifyToken a propósito: cualquiera tiene que poder escribirle al consultorio.
 app.use("/api/contact", contactRouter);
 // Tampoco: son los links del mail del día anterior, que se contestan sin iniciar sesión.
@@ -151,6 +155,7 @@ startAttendanceJob();
 startPaymentJob();
 startNotificationCleanupJob();
 startWaitlistJob();
+startRentJob();
 
 // El puerto lo asigna la plataforma y llega por variable; en local no está y sigue
 // siendo 3000, que es lo que espera el proxy de Vite.

@@ -5,6 +5,7 @@ import { Appointment } from "../appointments/appointments.entity.js";
 import { Person } from "../people/people.entity.js";
 import { AssistantUsage } from "../assistant/assistant.entity.js";
 import { toolLabels } from "../assistant/assistant.tools.js";
+import { RentService } from "../rent/rent.service.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { addDays, addMonths, dayName, endOfMonth, monthKey, monthLabel, startOfDay, startOfMonth, toISODate } from "../shared/dates.js";
 
@@ -266,6 +267,7 @@ function closedMonths(): { key: string; label: string; from: Date; to: Date }[] 
 export class AnalyticsService {
   private appointments = new AppointmentService();
   private waitlist = new WaitlistService();
+  private rent = new RentService();
 
   /** Turnos de un rango, con lo justo para calcular las métricas. */
   private async loadRows(from: Date, to: Date, professionalEmail?: string): Promise<Row[]> {
@@ -391,6 +393,9 @@ export class AnalyticsService {
       recent: report.recent.map(({ debt, ...month }) => withoutBilling(month)),
       total: withoutBilling(report.total),
       months: report.months.map(withoutBilling),
+      // Lo que sí ve el admin es cómo le paga el alquiler al consultorio: esa plata es
+      // del consultorio, no del profesional.
+      rent: await this.rent.professionalSummary(professionalEmail),
     };
   }
 
@@ -456,6 +461,11 @@ export class AnalyticsService {
       topOverbooker: topOverbooker(subset),
     });
 
+    // El alquiler sale de las cuotas y no de los turnos: es lo que le pagan los
+    // profesionales al consultorio. Una sola consulta para todos los meses que se muestran.
+    const recent = recentMonths();
+    const rent = await this.rent.officeSummary([...new Set([...months, ...recent].map((month) => month.key))]);
+
     return {
       headcount,
       // Va acá y no en su propio endpoint porque se lee en la misma pantalla: pedir dos
@@ -464,11 +474,12 @@ export class AnalyticsService {
       professionals: professionals
         .map((p) => ({ email: p.email, name: p.name, surname: p.surname, speciality: p.speciality ?? null }))
         .sort((a, b) => a.surname.localeCompare(b.surname)),
-      recent: recentMonths().map((month) => ({
+      recent: recent.map((month) => ({
         key: month.key,
         label: month.label,
         inProgress: month.inProgress,
         ...describe(byMonth.get(month.key) ?? []),
+        rent: rent.get(month.key),
       })),
       total: { months: months.length, ...describe(closed) },
       months: months.map((month) => {
@@ -478,6 +489,7 @@ export class AnalyticsService {
           label: month.label,
           ...summarize(subset),
           sharedPatients: sharedPatients(subset),
+          rent: rent.get(month.key),
         };
       }),
     };
