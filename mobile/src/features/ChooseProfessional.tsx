@@ -1,6 +1,6 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { findActiveOffices } from "../api/catalog";
@@ -26,12 +26,18 @@ import { useTheme } from "../theme/useTheme";
  * profesionales de esa sucursal, no todos: el que no tiene horarios cargados no puede dar
  * turnos y solo ensucia la lista.
  */
-export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
+export function ChooseProfessional({ standalone, initialSpeciality }: { standalone?: boolean; initialSpeciality?: string }) {
   const { email, role } = useUser();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [speciality, setSpeciality] = useState<string>("");
+  const [speciality, setSpeciality] = useState<string>(initialSpeciality ?? "");
+
+  // Se llega con una especialidad tocando su tarjeta en Inicio. La pestaña queda montada
+  // entre visita y visita, así que no alcanza con el valor inicial: cada llegada la cambia.
+  useEffect(() => {
+    if (initialSpeciality) setSpeciality(initialSpeciality);
+  }, [initialSpeciality]);
   const [search, setSearch] = useState("");
   /** El profesional cuya ficha se está mirando. Es independiente de a quién se le pide turno. */
   const [about, setAbout] = useState<Person | null>(null);
@@ -83,15 +89,15 @@ export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
         <RefreshControl refreshing={state.refreshing} onRefresh={state.refresh} tintColor={colors.green} colors={[colors.green]} />
       }
     >
-      {standalone ? <AppText variant="display">Pedir un turno</AppText> : null}
+      {standalone ? <AppText variant="display">Solicitar turno</AppText> : null}
 
       <AppText variant="small" tone="muted" style={styles.lead}>
-        {bookingForSelf ? "Elegí con qué colega te querés atender." : "Elegí una especialidad o buscá por nombre."}
+        {bookingForSelf ? "Colega con quien atenderse." : "Especialidad o nombre del profesional."}
       </AppText>
 
       {bookingForSelf ? (
         <View style={styles.note}>
-          <Note>Este turno es para vos como paciente. No aparecés en la lista porque no podés atenderte a vos mismo.</Note>
+          <Note>Turno como paciente. El propio nombre no aparece en la lista.</Note>
         </View>
       ) : null}
 
@@ -127,10 +133,10 @@ export function ChooseProfessional({ standalone }: { standalone?: boolean }) {
         emptyState={
           <EmptyState
             icon="user-doctor"
-            title={speciality || search ? "No encontramos a nadie así" : "Todavía no hay profesionales"}
+            title={speciality || search ? "Sin resultados" : "Todavía no hay profesionales"}
             description={
               speciality || search
-                ? "Probá con otra especialidad o buscando de otra forma."
+                ? "Probar con otra especialidad o con otro nombre."
                 : "Cuando haya profesionales con horarios cargados, van a aparecer acá."
             }
           />

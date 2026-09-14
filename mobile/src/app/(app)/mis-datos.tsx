@@ -40,12 +40,12 @@ export default function MyDataScreen() {
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
 
-  if (person.loading) return <Loading label="Buscando tus datos" />;
+  if (person.loading) return <Loading label="Buscando los datos" />;
 
   if (person.error || !person.data) {
     return (
       <Screen>
-        <ErrorState message={person.error ?? "No pudimos traer tus datos"} onRetry={person.reload} />
+        <ErrorState message={person.error ?? "No se pudieron traer los datos"} onRetry={person.reload} />
       </Screen>
     );
   }
@@ -96,7 +96,7 @@ export default function MyDataScreen() {
         ...(role === "professional" ? { about: form.about.trim() } : {}),
       });
 
-      feedback.done("Guardamos tus datos");
+      feedback.done("Datos guardados");
       person.reload();
       setName(null);
       setSurname(null);
@@ -112,14 +112,14 @@ export default function MyDataScreen() {
   }
 
   function askForPasswordMail() {
-    Alert.alert("Cambiar la contraseña", `Te mandamos un link a ${email} para elegir una nueva.`, [
+    Alert.alert("Cambiar la contraseña", `Se envía un link a ${email} para elegir una nueva.`, [
       { text: "Ahora no", style: "cancel" },
       {
-        text: "Mandarlo",
+        text: "Enviar",
         onPress: async () => {
           try {
             await requestPasswordMail(email);
-            feedback.done("Salió el mail. Fijate también en el correo no deseado.");
+            feedback.done("Mail enviado. Si no aparece, revisar el correo no deseado.");
           } catch (problem) {
             feedback.problem(errorMessage(problem));
           }
@@ -164,7 +164,7 @@ export default function MyDataScreen() {
               numberOfLines={5}
               maxLength={ABOUT_MAX}
               autoCapitalize="sentences"
-              placeholder="Con qué trabajás, con qué enfoque, a quiénes atendés…"
+              placeholder="Enfoque de trabajo, a quiénes se atiende…"
               hint={`Lo lee el paciente antes de elegir con quién atenderse. ${form.about.length}/${ABOUT_MAX}`}
             />
           ) : null}
@@ -172,18 +172,18 @@ export default function MyDataScreen() {
           <Button label="Guardar" onPress={save} loading={busy} disabled={!changed} block />
         </View>
 
-        <Section title="Tu cuenta">
+        <Section title="Cuenta">
           <Group>
             <Row title="Email" value={email} />
             <Row
               title={role === "professional" ? "Especialidad" : "Tipo de cuenta"}
               value={role === "professional" ? saved.speciality || "Sin cargar" : role === "admin" ? "Administración" : "Paciente"}
             />
-            <Row title="Cambiar la contraseña" subtitle="Te llega un link por mail" icon="key" last onPress={askForPasswordMail} />
+            <Row title="Cambiar la contraseña" subtitle="Link por mail" icon="key" last onPress={askForPasswordMail} />
           </Group>
 
           <AppText variant="caption" tone="muted" style={styles.footnote}>
-            El email no se puede cambiar: es con lo que te identifica todo el sistema. Si necesitás otro, escribinos.
+            El email no se puede cambiar. Para usar otro, escribir al consultorio.
           </AppText>
         </Section>
 
@@ -193,7 +193,7 @@ export default function MyDataScreen() {
             variant="danger"
             block
             onPress={() =>
-              Alert.alert("Cerrar sesión", "Vas a tener que volver a entrar con tu email y contraseña.", [
+              Alert.alert("Cerrar sesión", "Para volver a entrar se piden el email y la contraseña.", [
                 { text: "Quedarme", style: "cancel" },
                 { text: "Cerrar sesión", style: "destructive", onPress: () => signOut() },
               ])

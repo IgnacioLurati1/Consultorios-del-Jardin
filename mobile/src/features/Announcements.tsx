@@ -67,53 +67,77 @@ function useAnnouncements() {
  * visita deja de leerse a los dos días.
  */
 export function AnnouncementBanner() {
-  const { colors } = useTheme();
   const { visible, close } = useAnnouncements();
 
   if (visible.length === 0) return null;
 
-  const skin = (level: AnnouncementLevel) =>
-    ({
-      error: { bg: colors.dangerSoft, accent: colors.danger },
-      warning: { bg: colors.warnSoft, accent: colors.warn },
-      news: { bg: colors.greenSoft, accent: colors.green },
-    })[level];
-
   return (
     <View style={styles.stack}>
-      {visible.map((announcement) => {
-        const tone = skin(announcement.level);
+      {visible.map((announcement) => (
+        <AnnouncementCard
+          key={announcement.id}
+          title={announcement.title}
+          body={announcement.body}
+          level={announcement.level}
+          onClose={() => void close(announcement.id)}
+        />
+      ))}
+    </View>
+  );
+}
 
-        return (
-          <View
-            key={announcement.id}
-            // La barra de color al costado dice de qué tipo es el aviso antes de leerlo,
-            // que es lo único que se le puede pedir a un color.
-            style={[styles.card, { backgroundColor: tone.bg, borderLeftColor: tone.accent }]}
-          >
-            <FontAwesome6 name={ICONS[announcement.level]} size={16} color={tone.accent} style={styles.icon} />
+/**
+ * Un aviso dibujado. Va aparte del que los trae para que el admin vea, antes de publicar,
+ * exactamente lo que va a ver el resto.
+ */
+export function AnnouncementCard({
+  title,
+  body,
+  level,
+  onClose,
+}: {
+  title: string;
+  body: string;
+  level: AnnouncementLevel;
+  /** Sin esto no hay X: en la vista previa no hay nada que cerrar. */
+  onClose?: () => void;
+}) {
+  const { colors } = useTheme();
 
-            <View style={styles.text}>
-              <AppText variant="body" style={styles.title}>
-                {announcement.title}
-              </AppText>
-              <AppText variant="small" style={{ color: colors.text }}>
-                {announcement.body}
-              </AppText>
-            </View>
+  const tone = {
+    error: { bg: colors.dangerSoft, accent: colors.danger },
+    warning: { bg: colors.warnSoft, accent: colors.warn },
+    news: { bg: colors.greenSoft, accent: colors.green },
+  }[level];
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar el aviso"
-              hitSlop={space.md}
-              onPress={() => void close(announcement.id)}
-              style={styles.close}
-            >
-              <FontAwesome6 name="xmark" size={15} color={colors.muted} />
-            </Pressable>
-          </View>
-        );
-      })}
+  return (
+    <View
+      // La barra de color al costado dice de qué tipo es el aviso antes de leerlo,
+      // que es lo único que se le puede pedir a un color.
+      style={[styles.card, { backgroundColor: tone.bg, borderLeftColor: tone.accent }]}
+    >
+      <FontAwesome6 name={ICONS[level]} size={16} color={tone.accent} style={styles.icon} />
+
+      <View style={styles.text}>
+        <AppText variant="body" style={styles.title}>
+          {title}
+        </AppText>
+        <AppText variant="small" style={{ color: colors.text }}>
+          {body}
+        </AppText>
+      </View>
+
+      {onClose ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar el aviso"
+          hitSlop={space.md}
+          onPress={onClose}
+          style={styles.close}
+        >
+          <FontAwesome6 name="xmark" size={15} color={colors.muted} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

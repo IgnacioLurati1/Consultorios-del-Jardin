@@ -96,7 +96,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       </View>
 
       <AppText variant="subtitle" style={styles.centerText}>
-        No pudimos traer esto
+        No se pudo cargar
       </AppText>
 
       <AppText variant="small" tone="muted" style={styles.centerText}>

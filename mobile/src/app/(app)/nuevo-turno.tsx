@@ -102,7 +102,7 @@ export default function NewAppointmentScreen() {
     return list.sort((a, b) => a.initialHour.localeCompare(b.initialHour));
   }, [setup.data, date]);
 
-  if (setup.loading) return <Loading label="Cargando tu agenda" />;
+  if (setup.loading) return <Loading label="Cargando la agenda" />;
 
   const rooms = setup.data?.rooms ?? [];
   const patients = setup.data?.patients ?? [];
@@ -115,17 +115,17 @@ export default function NewAppointmentScreen() {
     const hours = overbooked ? { initialHour, finalHour, roomId: room } : slot;
 
     const found: Record<string, string | null> = {
-      date: date ? null : "Elegí el día",
-      slot: overbooked ? null : slot ? null : "Elegí un horario de tu agenda",
-      initialHour: overbooked && !initialHour ? "Elegí a qué hora empieza" : null,
+      date: date ? null : "Falta el día",
+      slot: overbooked ? null : slot ? null : "Falta el horario",
+      initialHour: overbooked && !initialHour ? "Falta la hora de inicio" : null,
       finalHour: overbooked
         ? !finalHour
-          ? "Elegí a qué hora termina"
+          ? "Falta la hora de fin"
           : initialHour && finalHour <= initialHour
             ? "Tiene que terminar después de empezar"
             : null
         : null,
-      room: overbooked && !room ? "Elegí el consultorio" : null,
+      room: overbooked && !room ? "Falta el consultorio" : null,
       value: value.trim() === "" || Number.isFinite(Number(value)) ? null : "El valor tiene que ser un número",
     };
 
@@ -152,10 +152,10 @@ export default function NewAppointmentScreen() {
           await createRecurrence(created.numAppointment, repeat.frequency, repeat.endDate);
           feedback.done("Turno cargado, y se va a repetir");
         } catch (problem) {
-          feedback.done(`Turno cargado, pero no se pudo repetir: ${errorMessage(problem)}`);
+          feedback.done(`Turno cargado, sin la repetición. ${errorMessage(problem)}`);
         }
       } else {
-        feedback.done(patient ? "Turno cargado. Le avisamos al paciente." : "Turno cargado");
+        feedback.done(patient ? "Turno cargado. El paciente recibe el aviso." : "Turno cargado");
       }
 
       router.back();
@@ -171,10 +171,10 @@ export default function NewAppointmentScreen() {
       <Screen>
         <View style={styles.form}>
           <Choice
-            label="Qué estás cargando"
+            label="Tipo de turno"
             options={[
-              { key: "normal", label: "Un turno", description: "Dentro de tus horarios de atención." },
-              { key: "over", label: "Un sobreturno", description: "Fuera de tus módulos. Elegís hora y consultorio." },
+              { key: "normal", label: "Un turno", description: "Dentro de los horarios de atención." },
+              { key: "over", label: "Un turno especial", description: "Fuera de los módulos, con hora y consultorio a elección." },
             ]}
             value={overbooked ? "over" : "normal"}
             onChange={(key) => {
@@ -202,10 +202,7 @@ export default function NewAppointmentScreen() {
               </AppText>
 
               {slots.length === 0 ? (
-                <Note tone="warn">
-                  Ese día no tenés módulos de atención cargados. Podés cargarlo como sobreturno, o agregar el horario
-                  desde la pantalla de horarios.
-                </Note>
+                <Note tone="warn">Sin horarios de atención ese día. Queda la opción de un turno especial.</Note>
               ) : (
                 <View style={styles.slots}>
                   {slots.map((option) => {
@@ -274,7 +271,7 @@ export default function NewAppointmentScreen() {
             value={chosenPatient ? fullName(chosenPatient) : null}
             placeholder="Sin asignar todavía"
             onPress={() => setPatientSheet(true)}
-            hint="Podés dejarlo vacío y asignarlo después."
+            hint="Se puede asignar después."
           />
 
           <Field
@@ -283,11 +280,11 @@ export default function NewAppointmentScreen() {
             onChangeText={setValue}
             placeholder="0"
             keyboardType="number-pad"
-            hint="Lo que vale la sesión. Se usa para tus números."
+            hint="Lo que vale la sesión. Se usa para los números."
             error={errors.value}
           />
 
-          <Note>Este dato es privado entre el paciente y vos.</Note>
+          <Note>Dato privado entre profesional y paciente.</Note>
 
           <PickerField
             label="Que se repita"
@@ -298,7 +295,7 @@ export default function NewAppointmentScreen() {
             }
             placeholder="No se repite"
             onPress={() => setRepeatSheet(true)}
-            hint={repeat ? "Tocá para cambiarlo." : "Podés hacer que se agende solo cada semana."}
+            hint={repeat ? "Se puede cambiar desde acá." : "El turno puede agendarse solo cada semana."}
           />
 
           <Button label="Cargar el turno" onPress={save} loading={busy} block />
@@ -327,7 +324,7 @@ export default function NewAppointmentScreen() {
         onClose={() => setPatientSheet(false)}
         title="Paciente"
         options={[
-          { key: "", label: "Sin asignar", description: "Se lo cargás después." },
+          { key: "", label: "Sin asignar", description: "Se asigna después." },
           ...patients.map((item) => ({ key: item.email, label: fullName(item), description: item.anonymous ? "Sin cuenta" : item.email })),
         ]}
         selected={patient}

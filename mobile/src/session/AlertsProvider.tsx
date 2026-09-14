@@ -39,9 +39,9 @@ notifications()?.setNotificationHandler({
 
 /** Las tres respuestas posibles, dichas como se leen. */
 export const ALERT_OPTIONS: { key: AlertChoice; label: string; description: string }[] = [
-  { key: "both", label: "Avisame y vibrá", description: "Suena y vibra cinco minutos antes de cada turno." },
-  { key: "quiet", label: "Avisame sin vibrar", description: "Aparece el aviso, pero el teléfono se queda quieto." },
-  { key: "off", label: "No me avises", description: "Podés prenderlo más adelante desde Más." },
+  { key: "both", label: "Aviso con vibración", description: "Suena y vibra cinco minutos antes de cada turno." },
+  { key: "quiet", label: "Aviso sin vibración", description: "Aparece el aviso, pero el teléfono se queda quieto." },
+  { key: "off", label: "Sin aviso", description: "Se puede prender más adelante desde Más." },
 ];
 
 interface AlertsValue {
@@ -231,15 +231,14 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       {/* Cerrar sin elegir no decide nada: la pregunta vuelve la próxima vez que se abra
           la app. Es preferible a dar por sentado que sí (aparecería un cartel del sistema
           que nadie pidió) o que no (se apagarían avisos que quizás quería). */}
-      <Sheet visible={asking} onClose={() => setAsking(false)} title="¿Te avisamos antes de cada turno?">
+      <Sheet visible={asking} onClose={() => setAsking(false)} title="Aviso antes de cada turno">
         <AppText variant="small" tone="muted">
-          Cinco minutos antes de cada turno te decimos con quién es y a qué hora. Lo podés cambiar cuando quieras
-          desde Más.
+          Llega cinco minutos antes, con el paciente y la hora. Se cambia desde Más.
         </AppText>
 
         <View style={{ marginTop: space.lg }}>
           <Choice
-            label="Elegí cómo"
+            label="Tipo de aviso"
             options={ALERT_OPTIONS}
             value={choiceOf(prefs)}
             onChange={(key) => {
@@ -257,7 +256,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
             onPress={() => setAsking(false)}
           />
           <AppText variant="caption" tone="muted" style={{ marginTop: space.sm, textAlign: "center" }}>
-            Te lo volvemos a preguntar la próxima vez.
+            La pregunta vuelve a aparecer la próxima vez.
           </AppText>
         </View>
       </Sheet>

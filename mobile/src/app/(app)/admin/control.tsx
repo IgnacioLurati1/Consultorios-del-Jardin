@@ -19,7 +19,7 @@ import { useTheme } from "../../../theme/useTheme";
 const KINDS: { key: AppointmentKind; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "normal", label: "Turnos" },
-  { key: "overbooked", label: "Sobreturnos" },
+  { key: "overbooked", label: "Turnos especiales" },
 ];
 
 /**
@@ -62,8 +62,8 @@ export default function ControlScreen() {
         {!professional ? (
           <EmptyState
             icon="user-doctor"
-            title="Elegí un profesional"
-            description="Vas a ver los turnos que tiene de hoy en adelante, con cuáles son sobreturnos."
+            title="Elegir un profesional"
+            description="Sus turnos de hoy en adelante."
           />
         ) : (
           <DataState
@@ -78,13 +78,13 @@ export default function ControlScreen() {
                 title="No tiene turnos por delante"
                 description={
                   kind === "overbooked"
-                    ? "No está dando sobreturnos en los próximos días."
+                    ? "Sin turnos especiales en los próximos días."
                     : "No hay turnos cargados de hoy en adelante."
                 }
               />
             }
           >
-            <Section title={`${list.length} ${list.length === 1 ? "turno" : "turnos"}${overbooked > 0 ? ` · ${overbooked} sobreturno${overbooked === 1 ? "" : "s"}` : ""}`}>
+            <Section title={`${list.length} ${list.length === 1 ? "turno" : "turnos"}${overbooked > 0 ? ` · ${overbooked} ${overbooked === 1 ? "turno especial" : "turnos especiales"}` : ""}`}>
               <Group>
                 {list.map((appointment, index) => (
                   <Row
@@ -99,7 +99,7 @@ export default function ControlScreen() {
                     last={index === list.length - 1}
                     right={
                       <View style={styles.badges}>
-                        {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
+                        {appointment.overbooked ? <Tag label="Turno especial" tone="warn" /> : null}
                         <StateBadge state={stateOf(appointment)} />
                       </View>
                     }
@@ -110,8 +110,7 @@ export default function ControlScreen() {
 
             {overbooked > 0 ? (
               <AppText variant="caption" tone="muted" style={styles.footnote}>
-                Un sobreturno es un turno que el profesional dio fuera de sus módulos de atención. No es un error, pero
-                de a muchos habla de una agenda que no alcanza.
+                Turno especial es el que se da fuera de los módulos de atención.
               </AppText>
             ) : null}
           </DataState>

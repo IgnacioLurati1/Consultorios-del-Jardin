@@ -37,7 +37,7 @@ function ProvinceForm({ editing, done }: { editing: Province | null; done: () =>
     if (busy) return;
 
     if (name.trim().length < 2) {
-      setError("Escribí el nombre de la provincia");
+      setError("Falta el nombre de la provincia");
       return;
     }
 
@@ -47,7 +47,7 @@ function ProvinceForm({ editing, done }: { editing: Province | null; done: () =>
       if (editing) await renameProvince(String(editing.idProvince), name.trim());
       else await createProvince(name.trim());
 
-      feedback.done(editing ? "Guardamos el cambio" : "Provincia creada");
+      feedback.done(editing ? "Cambio guardado" : "Provincia creada");
       done();
     } catch (problem) {
       setError(errorMessage(problem));

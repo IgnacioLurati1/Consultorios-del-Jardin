@@ -52,9 +52,9 @@ export function PaymentSheet({
   function problem(): string | null {
     if (state !== "partial") return null;
     if (value <= 0) return "Para registrar un pago parcial el turno tiene que tener un valor cargado.";
-    if (!amount.trim() || !Number.isFinite(paid) || paid <= 0) return "Escribí cuánto pagó.";
+    if (!amount.trim() || !Number.isFinite(paid) || paid <= 0) return "Falta el monto pagado.";
     if (paid > value) return `El turno vale ${money(value)}. No puede haber pagado más que eso.`;
-    if (paid === value) return `Pagó ${money(value)}, o sea todo. Marcalo como "Pagó".`;
+    if (paid === value) return `${money(value)} es el total del turno. Corresponde marcar «Pagó».`;
     return null;
   }
 
@@ -92,10 +92,7 @@ export function PaymentSheet({
         {issue ? <Note tone="danger">{issue}</Note> : null}
 
         {initialState === null ? (
-          <Note>
-            Este turno es anterior al registro de cobros, así que no figura como impago en ningún lado hasta que elijas
-            algo acá.
-          </Note>
+          <Note>Turno anterior al registro de cobros. No figura como impago.</Note>
         ) : null}
 
         <Button

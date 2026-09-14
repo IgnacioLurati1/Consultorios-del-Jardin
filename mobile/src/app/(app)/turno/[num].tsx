@@ -9,6 +9,7 @@ import {
   updateRecord,
 } from "../../../api/appointments";
 import { errorMessage } from "../../../api/client";
+import { waitlistMatches } from "../../../api/waitlist";
 import { createRecurrence, FREQUENCY_LABELS, stopRecurrence } from "../../../api/misc";
 import { PaymentState, RecurrenceFrequency } from "../../../api/types";
 import { Button } from "../../../components/Button";
@@ -53,7 +54,7 @@ export default function AppointmentScreen() {
   if (state.error || !appointment) {
     return (
       <Screen>
-        <ErrorState message={state.error ?? "No encontramos ese turno"} onRetry={state.reload} />
+        <ErrorState message={state.error ?? "No se encontró el turno"} onRetry={state.reload} />
       </Screen>
     );
   }
@@ -83,25 +84,47 @@ export default function AppointmentScreen() {
   const payment = describePayment(appointment);
   const owed = pendingAmount(appointment);
 
-  function confirmCancel() {
+  async function confirmCancel() {
     const asPatient = appointment!.patient?.email === email;
+
+    const cancel = (notifyWaitlist?: boolean) =>
+      run(async () => {
+        await cancelAppointment(number, notifyWaitlist);
+        router.back();
+      }, "Turno cancelado");
+
+    // Cuánta gente de la lista de espera busca este horario. Solo del lado de quien
+    // atiende: cuando baja el paciente el aviso sale solo. Si no se puede preguntar es
+    // cero, y la baja es la de siempre: la lista de espera no puede frenar una cancelación.
+    const waiting = isProfessional ? await waitlistMatches(number).catch(() => 0) : 0;
+
+    // Con gente esperando hay algo que decidir, igual que en la página: si se cancela
+    // porque ese día no se va a estar, avisarles es mandarlos a una puerta cerrada.
+    if (waiting > 0) {
+      Alert.alert(
+        "Cancelar el turno",
+        `${
+          waiting === 1
+            ? "Una persona en la lista de espera busca este horario. ¿Avisarle?"
+            : `${waiting} personas en la lista de espera buscan este horario. ¿Avisarles?`
+        }`,
+        [
+          { text: "Volver", style: "cancel" },
+          { text: "Cancelar sin avisar", style: "destructive", onPress: () => cancel(false) },
+          { text: "Cancelar y avisar", style: "destructive", onPress: () => cancel(true) },
+        ]
+      );
+      return;
+    }
 
     Alert.alert(
       "Cancelar el turno",
       asPatient
-        ? "Se le avisa al profesional por mail. Después vas a tener que pedir otro."
-        : "Se le avisa al paciente por mail que ese horario ya no va.",
+        ? "El profesional recibe el aviso por mail."
+        : "El paciente recibe el aviso por mail.",
       [
         { text: "Dejarlo como está", style: "cancel" },
-        {
-          text: "Cancelar el turno",
-          style: "destructive",
-          onPress: () =>
-            run(async () => {
-              await cancelAppointment(number);
-              router.back();
-            }, "Cancelamos el turno"),
-        },
+        { text: "Cancelar el turno", style: "destructive", onPress: () => cancel() },
       ]
     );
   }
@@ -120,7 +143,7 @@ export default function AppointmentScreen() {
 
           <View style={styles.tags}>
             <StateBadge state={key} />
-            {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
+            {appointment.overbooked ? <Tag label="Turno especial" tone="warn" /> : null}
             {/* La marca es para el profesional, que es quien decide qué hacer con una baja
                 sobre la hora. Al paciente no se le pone un cartel encima de algo que ya
                 hizo: la fecha de su baja la ve igual, unas filas más abajo. */}
@@ -152,7 +175,7 @@ export default function AppointmentScreen() {
           <Section title="La baja">
             <Group>
               <Row
-                title={isProfessional ? "Lo dio de baja el paciente" : "Lo diste de baja"}
+                title={isProfessional ? "Lo dio de baja el paciente" : "Baja registrada"}
                 value={momentOfDay(notice.at)}
                 subtitle={
                   notice.short
@@ -169,11 +192,11 @@ export default function AppointmentScreen() {
         ) : null}
 
         {isProfessional ? (
-          <Section title="Lo que anotaste">
+          <Section title="Registro de la consulta">
             <Group>
               <Row
-                title={appointment.observations ? "Observaciones" : "Todavía no anotaste nada"}
-                subtitle={appointment.observations ?? "Lo que escribas acá lo lee también el paciente."}
+                title={appointment.observations ? "Observaciones" : "Sin observaciones"}
+                subtitle={appointment.observations ?? "Lo que se anota acá lo lee también el paciente."}
                 subtitleIsData={Boolean(appointment.observations)}
                 icon="pen"
                 last
@@ -210,7 +233,7 @@ export default function AppointmentScreen() {
                     ? owed > 0
                       ? `Queda debiendo ${money(owed)} de ${money(appointment.value)}`
                       : "No queda nada por cobrar"
-                    : "Este turno es anterior al registro de cobros. Elegí cómo quedó."
+                    : "Turno anterior al registro de cobros. Falta indicar cómo quedó."
                 }
                 subtitleIsData={Boolean(payment)}
                 icon="money-bill-wave"
@@ -257,7 +280,7 @@ export default function AppointmentScreen() {
           </Section>
         ) : null}
 
-        <Section title="Qué podés hacer">
+        <Section title="Acciones">
           <View style={styles.actions}>
             {isProfessional && key === "pending" ? (
               <Button
@@ -268,7 +291,7 @@ export default function AppointmentScreen() {
                 onPress={() =>
                   run(async () => {
                     await acceptAppointment(number);
-                  }, "Turno confirmado. Le avisamos al paciente.")
+                  }, "Turno confirmado. El paciente recibe el aviso.")
                 }
               />
             ) : null}
@@ -299,7 +322,7 @@ export default function AppointmentScreen() {
           {key === "cancelled" ? (
             <Note tone="danger">Este turno está cancelado. Si hace falta, hay que pedir uno nuevo.</Note>
           ) : key === "pending" && !isProfessional ? (
-            <Note>Todavía lo tiene que confirmar el profesional. Te llega un mail en cuanto lo haga.</Note>
+            <Note>Pendiente de confirmación del profesional. El aviso llega por mail.</Note>
           ) : null}
         </Section>
       </Screen>
@@ -311,7 +334,7 @@ export default function AppointmentScreen() {
         onSave={(text) =>
           run(async () => {
             await updateRecord(number, { observations: text });
-          }, "Guardamos lo que anotaste")
+          }, "Observaciones guardadas")
         }
       />
 
@@ -321,8 +344,8 @@ export default function AppointmentScreen() {
         onSave={(frequency: RecurrenceFrequency, endDate: string | null) =>
           run(async () => {
             const result = await createRecurrence(number, frequency, endDate);
-            feedback.done(`Dejamos ${result.created} turnos creados`);
-          }, "Listo, se va a repetir")
+            feedback.done(`${result.created} turnos creados`);
+          }, "Repetición activada")
         }
       />
 
@@ -335,7 +358,7 @@ export default function AppointmentScreen() {
         onSave={(paymentState: PaymentState, paidAmount: number | null) =>
           run(async () => {
             await updatePayment(number, paymentState, paidAmount);
-          }, paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Anotamos el pago parcial" : "Queda sin cobrar")
+          }, paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Pago parcial registrado" : "Queda sin cobrar")
         }
       />
 
@@ -350,7 +373,7 @@ export default function AppointmentScreen() {
         onSelect={(choice) =>
           run(async () => {
             await updateRecord(number, { state: choice });
-          }, choice === "assisted" ? "Anotamos que asistió" : "Anotamos que no vino")
+          }, choice === "assisted" ? "Asistencia registrada" : "Inasistencia registrada")
         }
       />
     </>

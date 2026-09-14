@@ -52,7 +52,7 @@ export default function MyNumbersScreen() {
   if (state.error || !state.data) {
     return (
       <Screen>
-        <ErrorState message={state.error ?? "No pudimos traer tus números"} onRetry={state.reload} />
+        <ErrorState message={state.error ?? "No se pudieron traer los números"} onRetry={state.reload} />
       </Screen>
     );
   }
@@ -88,7 +88,7 @@ export default function MyNumbersScreen() {
                 <Row title="Asistieron" value={String(current.assisted)} />
                 <Row title="No vinieron" value={String(current.missed)} />
                 <Row title="Cancelados" value={String(current.cancelled)} />
-                <Row title="Sobreturnos" value={String(current.overbooked)} />
+                <Row title="Turnos especiales" value={String(current.overbooked)} />
                 <Row
                   title="Pedidos rechazados"
                   subtitle={splitOf(current.denials)}
@@ -100,10 +100,10 @@ export default function MyNumbersScreen() {
                     cobrar: un cero en rojo asusta sin motivo. */}
                 {current.debt ? (
                   <Row
-                    title="Te quedaron debiendo"
+                    title="Adeudado"
                     subtitle={
                       current.debt.appointments === 0
-                        ? "Cobraste todo lo que atendiste"
+                        ? "Todo lo atendido está cobrado"
                         : `${current.debt.appointments} ${current.debt.appointments === 1 ? "turno" : "turnos"} · ${
                             current.debt.people
                           } ${current.debt.people === 1 ? "persona" : "personas"}`
@@ -147,7 +147,7 @@ export default function MyNumbersScreen() {
         <Section title="Lo que falta cobrar">
           <Group>
             <Row
-              title="Te quedaron debiendo"
+              title="Adeudado"
               value={debt.people === 1 ? "1 persona" : `${debt.people} personas`}
             />
             <Row
@@ -159,16 +159,16 @@ export default function MyNumbersScreen() {
 
           {debt.people > 0 ? (
             <View style={styles.spaced}>
-              <Note>Se registra desde la ficha de cada turno, en Cobro. Los pagos parciales cuentan por lo que falta.</Note>
+              <Note>Se registra desde cada turno, en Cobro.</Note>
             </View>
           ) : null}
         </Section>
       ) : null}
 
-      <Section title="Tu agenda">
+      <Section title="Agenda">
         <Group>
           <Row title="Turnos por día" value={total.averagePerDay.toFixed(1).replace(".", ",")} />
-          <Row title="Tu día más cargado" value={total.busiestDay ?? "Sin datos"} />
+          <Row title="Día más cargado" value={total.busiestDay ?? "Sin datos"} />
           <Row
             title="Ese día, en promedio"
             value={total.busiestDayAverage ? total.busiestDayAverage.toFixed(1).replace(".", ",") : "0"}
@@ -179,21 +179,20 @@ export default function MyNumbersScreen() {
 
       <Section title="De dónde salen los turnos">
         <Group>
-          <Row title="Los pidió el paciente" value={String(total.fromApp)} />
-          <Row title="Los cargaste vos" value={String(total.fromProfessional)} last={total.imported === 0} />
+          <Row title="Sacados por la app" value={String(total.fromApp)} />
+          <Row title="Cargados a mano" value={String(total.fromProfessional)} last={total.imported === 0} />
           {total.imported > 0 ? <Row title="Importados de un calendario" value={String(total.imported)} last /> : null}
         </Group>
 
         <View style={styles.spaced}>
           <Note>
-            Son {total.months} {total.months === 1 ? "mes" : "meses"} de historia. La comparación mes a mes recién sirve
-            con unos cuantos meses cargados.
+            Son {total.months} {total.months === 1 ? "mes" : "meses"} de historia.
           </Note>
         </View>
       </Section>
 
       <AppText variant="caption" tone="muted" style={styles.footnote}>
-        Lo facturado cuenta solo los turnos marcados como asistidos: si no cerrás un turno, no suma.
+        Lo facturado cuenta solo los turnos asistidos.
       </AppText>
     </Screen>
   );

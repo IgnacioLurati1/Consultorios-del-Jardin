@@ -138,8 +138,8 @@ export function Catalog<T>({ what, one, feminine, load, present, onToggle, form 
             emptyState={
               <EmptyState
                 icon="folder-open"
-                title={search ? "No encontramos nada así" : `Todavía no hay ${what}`}
-                description={search ? "Probá buscando de otra forma." : `Creá ${article} ${one} para empezar.`}
+                title={search ? "Sin resultados" : `Todavía no hay ${what}`}
+                description={search ? "Buscar de otra forma." : `Para empezar, cargar ${article} ${one}.`}
                 action={search ? undefined : { label: `Nueva ${one}`, onPress: openNew }}
               />
             }

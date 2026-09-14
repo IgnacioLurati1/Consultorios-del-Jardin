@@ -8,7 +8,7 @@
  * cabito abajo. Nace parada a propósito: así el ángulo lo pone la animación, que es la
  * que sabe si la hoja está por caer o dando una vuelta.
  */
-import { Season, seasonOf } from "./season";
+import { Season } from "./season";
 
 export const LEAF_BOX = { width: 100, height: 124 };
 
@@ -73,7 +73,3 @@ export const SEASON_COLORS: Record<Season, LeafColors> = {
   otono: { blade: "#d07c2e", veins: "#9c5312" },
   invierno: { blade: "#2c9079", veins: "#1a6355" },
 };
-
-export function leafColorsFor(date: Date): LeafColors {
-  return SEASON_COLORS[seasonOf(date)];
-}

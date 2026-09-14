@@ -26,3 +26,28 @@ export interface Announcement {
 export function myAnnouncements(): Promise<Announcement[]> {
   return api.get("/announcements/mine").then((response) => response.data.data);
 }
+
+export interface AnnouncementInput {
+  title: string;
+  body: string;
+  level: AnnouncementLevel;
+  audience: Announcement["audience"];
+  channel: AnnouncementChannel;
+}
+
+/** Todos, publicados y bajados. Solo el admin. */
+export function allAnnouncements(): Promise<Announcement[]> {
+  return api.get("/announcements").then((response) => response.data.data);
+}
+
+export function publishAnnouncement(input: AnnouncementInput): Promise<Announcement> {
+  return api.post("/announcements", input).then((response) => response.data.data);
+}
+
+export function setAnnouncementActive(id: number, active: boolean): Promise<Announcement> {
+  return api.patch(`/announcements/${id}`, { active }).then((response) => response.data.data);
+}
+
+export function deleteAnnouncement(id: number): Promise<void> {
+  return api.delete(`/announcements/${id}`).then(() => undefined);
+}

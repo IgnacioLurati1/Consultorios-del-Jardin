@@ -30,7 +30,7 @@ export default function RecurrencesScreen() {
   const [editing, setEditing] = useState<Recurrence | null>(null);
 
   function confirmStop(recurrence: Recurrence) {
-    Alert.alert("Dejar de repetirlo", "Los turnos que ya se crearon quedan como están. No se genera ninguno más.", [
+    Alert.alert("Dejar de repetirlo", "Los turnos ya creados quedan. No se genera ninguno más.", [
       { text: "Seguir repitiendo", style: "cancel" },
       {
         text: "Frenarlo",
@@ -60,7 +60,7 @@ export default function RecurrencesScreen() {
             <EmptyState
               icon="repeat"
               title="No hay turnos repitiéndose"
-              description="Podés marcar cualquier turno como repetible desde su detalle, y se va a volver a crear solo."
+              description="Se activa desde el detalle de cada turno."
             />
           }
         >
@@ -98,7 +98,7 @@ export default function RecurrencesScreen() {
 
               {recurrence.overbooked ? (
                 <View style={styles.tag}>
-                  <Tag label="Se crea como sobreturno" tone="warn" />
+                  <Tag label="Se crea como turno especial" tone="warn" />
                 </View>
               ) : null}
 
@@ -110,10 +110,7 @@ export default function RecurrencesScreen() {
           ))}
 
           <Section>
-            <Note>
-              Si un horario ya está ocupado cuando toca generarlo, ese turno se saltea y la repetición sigue con el
-              siguiente.
-            </Note>
+            <Note>Si un horario ya está ocupado, ese turno se saltea.</Note>
           </Section>
         </DataState>
       </Screen>
@@ -150,7 +147,7 @@ function EditRecurrence({ recurrence, done }: { recurrence: Recurrence; done: ()
 
     try {
       await updateRecurrence(recurrence.idRecurrence, { frequency, endDate: forever ? null : endDate });
-      feedback.done("Guardamos el cambio");
+      feedback.done("Cambio guardado");
       done();
     } catch (problem) {
       setError(errorMessage(problem));
@@ -187,7 +184,7 @@ function EditRecurrence({ recurrence, done }: { recurrence: Recurrence; done: ()
           value={endDate}
           onChange={setEndDate}
           minimumDate={addDays(new Date(), 1)}
-          error={missingDate ? "Elegí hasta qué día se repite" : null}
+          error={missingDate ? "Falta el último día" : null}
         />
       ) : null}
 

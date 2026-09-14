@@ -189,7 +189,7 @@ export async function syncAlerts(appointments: Appointment[], prefs: AlertPrefs,
        lo atiende. Sin decirlo, el aviso se lee igual que el de un paciente suyo y manda a
        la persona equivocada al consultorio. */
     const body = isOwnBooking(appointment, viewerEmail)
-      ? `Te atiende ${withWhom}, en ${MINUTES_BEFORE} minutos${unconfirmed}`
+      ? `Atiende ${withWhom}, en ${MINUTES_BEFORE} minutos${unconfirmed}`
       : `${withWhom}, en ${MINUTES_BEFORE} minutos${unconfirmed}`;
 
     await Notifications.scheduleNotificationAsync({

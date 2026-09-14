@@ -50,8 +50,8 @@ function CityForm({ editing, done }: { editing: City | null; done: () => void })
     if (busy) return;
 
     const found = {
-      name: name.trim().length >= 2 ? null : "Escribí el nombre de la localidad",
-      province: province ? null : "Elegí a qué provincia pertenece",
+      name: name.trim().length >= 2 ? null : "Falta el nombre de la localidad",
+      province: province ? null : "Falta la provincia",
     };
 
     setErrors(found);
@@ -63,7 +63,7 @@ function CityForm({ editing, done }: { editing: City | null; done: () => void })
       if (editing) await updateCity(String(editing.idCity), name.trim(), province);
       else await createCity(name.trim(), province);
 
-      feedback.done(editing ? "Guardamos el cambio" : "Localidad creada");
+      feedback.done(editing ? "Cambio guardado" : "Localidad creada");
       done();
     } catch (problem) {
       setErrors({ name: errorMessage(problem) });
@@ -102,7 +102,7 @@ function CityForm({ editing, done }: { editing: City | null; done: () => void })
         options={provinces.map((item) => ({ key: String(item.idProvince), label: item.nameProvince }))}
         selected={province}
         onSelect={setProvince}
-        emptyLabel="No hay provincias habilitadas. Creá una primero."
+        emptyLabel="No hay provincias habilitadas. Primero hay que crear una."
       />
     </View>
   );

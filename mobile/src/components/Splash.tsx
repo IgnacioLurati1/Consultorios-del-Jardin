@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LEAF_EMPTY, LEAF_TILT, leafColorsFor } from "../theme/leaf";
+import { LEAF_EMPTY, LEAF_TILT, SEASON_COLORS } from "../theme/leaf";
 import { space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
 import { FillingLeaf } from "./Leaf";
@@ -62,8 +62,9 @@ interface Props {
  * Lo primero que se ve al abrir.
  *
  * Una hoja apagada que se llena de color mientras la app carga, y que cuando termina se
- * suelta. El color es el de la estación en la que estemos, así que la app no se ve igual
- * en marzo que en octubre; el invierno es una perenne y no una hoja seca, porque un
+ * suelta. El color es el de la estación elegida en Apariencia y, si no se eligió ninguna,
+ * el de la estación en la que estemos, igual que el resto de la app; el invierno es una
+ * perenne y no una hoja seca, porque un
  * consultorio abierto todo el año no se cuenta con algo que se murió.
  *
  * Arranca donde la dejó la pantalla nativa: la misma hoja, apagada, del mismo tamaño y
@@ -80,12 +81,15 @@ interface Props {
  * atravesada por una hoja que cae sería un choque, no una animación.
  */
 export function Splash({ ready, onDone, onShown }: Props) {
-  const { colors, dark } = useTheme();
+  const { colors, dark, season } = useTheme();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const [salida] = useState<Salida>(() => (Math.random() < 0.5 ? "caida" : "rulo"));
-  const tinta = useRef(leafColorsFor(new Date())).current;
+  // La estación sale de useTheme, que ya resuelve "la elegida o la del calendario". Se lee
+  // en cada render y no una vez al montar: lo elegido se guarda en el teléfono y llega un
+  // instante después del primer cuadro, todavía con la hoja apagada.
+  const tinta = SEASON_COLORS[season];
 
   /* El llenado mueve una propiedad del SVG y la escala mueve una transformación, y esos
      dos caminos no se pueden mezclar en un mismo valor animado: van separados. */

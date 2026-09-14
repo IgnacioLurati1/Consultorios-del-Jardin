@@ -47,6 +47,49 @@ export interface BehaviourReport {
   };
 }
 
+/** Un toque a un endpoint delicado, tal como quedó registrado. */
+export interface TrailStep {
+  at: string;
+  /** Cómo se llama lo que se hizo, en castellano. */
+  label: string;
+  method: string;
+  path: string;
+  /** Con qué respondió el servidor. Un 403 es un intento que no llegó a ninguna parte. */
+  status: number | null;
+}
+
+/** Una cuenta que el sistema cerró por parecer estar en manos de otro. */
+export interface CompromisedAccount {
+  email: string;
+  name: string;
+  surname: string;
+  type: string;
+  /** Falso salvo el caso del último administrador, que se marca pero no se cierra. */
+  active: boolean;
+  bannedAt: string | null;
+  reason: string | null;
+  /** Lo que tocó en la hora previa, de lo más nuevo a lo más viejo. */
+  trail: TrailStep[];
+}
+
+export interface CompromisedReport {
+  accounts: CompromisedAccount[];
+  rules: {
+    burstSeconds: number;
+    burst: Record<string, number>;
+    burstFallback: number;
+    night: Record<string, number>;
+    nightFallback: number;
+    nightFrom: number;
+    nightTo: number;
+  };
+}
+
+/** Solo para el admin. */
+export function compromisedAccounts(): Promise<CompromisedReport> {
+  return api.get("/security/compromised").then((response) => response.data.data);
+}
+
 /** Solo para el admin. */
 export function behaviourReport(): Promise<BehaviourReport> {
   return api.get("/security/behaviour").then((response) => response.data.data);

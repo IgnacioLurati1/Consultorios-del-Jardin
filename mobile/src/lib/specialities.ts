@@ -27,7 +27,7 @@ export function matches(haystack: string, needle: string): boolean {
 /** Datos del consultorio, los mismos que responde el asistente. */
 export const OFFICE_INFO = {
   name: "Consultorios del Jardín",
-  address: "9 de Julio 3672",
+  address: "9 de Julio 3672, Rosario",
   hours: "Lunes a viernes, de 9 a 20",
   instagram: "consultorios_jardin",
 } as const;

@@ -118,13 +118,26 @@ export interface AccessChannels {
   byRole: { role: string; onlyApp: number; onlyWeb: number; both: number; unknown: number }[];
 }
 
+/**
+ * El alquiler de un mes: lo que se cobra a los profesionales. Opcional porque la app
+ * instalada puede hablarle a un servidor de antes, y ahí la pantalla queda como estaba.
+ */
+export interface RentSummary {
+  due: number;
+  collected: number;
+  pending: number;
+  /** Cuántas cuotas quedan con saldo. */
+  pendingCount: number;
+  count: number;
+}
+
 export interface OfficeAnalytics {
   headcount: number;
   channels: AccessChannels;
   professionals: { email: string; name: string; surname: string; speciality: string | null }[];
-  recent: (RecentMonth & { sharedPatients: number; topOverbooker: OfficeMetrics["topOverbooker"] })[];
+  recent: (RecentMonth & { sharedPatients: number; topOverbooker: OfficeMetrics["topOverbooker"]; rent?: RentSummary })[];
   total: OfficeMetrics & { months: number };
-  months: (MonthPoint & { sharedPatients: number })[];
+  months: (MonthPoint & { sharedPatients: number; rent?: RentSummary })[];
 }
 
 export async function myAnalytics(): Promise<SelfAnalytics> {

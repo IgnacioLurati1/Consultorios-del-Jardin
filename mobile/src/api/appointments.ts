@@ -124,8 +124,13 @@ export async function acceptAppointment(numAppointment: number): Promise<void> {
   await api.patch(`/appointments/${numAppointment}/accept`);
 }
 
-export async function cancelAppointment(numAppointment: number): Promise<void> {
-  await api.patch(`/appointments/${numAppointment}/cancel`);
+/**
+ * Da de baja un turno. `notifyWaitlist` es la decisión del profesional sobre la lista de
+ * espera, igual que en la página: sin nadie esperando no se manda y el servidor hace lo de
+ * siempre.
+ */
+export async function cancelAppointment(numAppointment: number, notifyWaitlist?: boolean): Promise<void> {
+  await api.patch(`/appointments/${numAppointment}/cancel`, notifyWaitlist === undefined ? undefined : { notifyWaitlist });
 }
 
 /** Parte clínica: si asistió y qué se anotó. */

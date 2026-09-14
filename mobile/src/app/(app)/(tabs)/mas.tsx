@@ -23,7 +23,7 @@ export default function MoreScreen() {
 
   function confirmSignOut() {
     // Confirmación destructiva: es el único uso que tiene un cartel del sistema en la app.
-    Alert.alert("Cerrar sesión", "Vas a tener que volver a entrar con tu email y contraseña.", [
+    Alert.alert("Cerrar sesión", "Para volver a entrar se piden el email y la contraseña.", [
       { text: "Quedarme", style: "cancel" },
       { text: "Cerrar sesión", style: "destructive", onPress: () => signOut() },
     ]);
@@ -37,22 +37,22 @@ export default function MoreScreen() {
       </AppText>
 
       {role === "professional" ? (
-        <Section title="Tu trabajo">
+        <Section title="Trabajo">
           <Group>
-            <Row title="Horarios de atención" subtitle="Los módulos en los que atendés" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
+            <Row title="Horarios de atención" subtitle="Módulos de atención" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
             <Row title="Turnos que se repiten" subtitle="Los que se generan solos" icon="repeat" onPress={() => router.push("/(app)/repeticiones")} />
-            <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
-            <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" onPress={() => router.push("/(app)/nuevo-turno")} />
+            <Row title="Números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
+            <Row title="Cargar un turno" subtitle="Normal o especial" icon="plus" onPress={() => router.push("/(app)/nuevo-turno")} />
             <Row title="Avisos de turno" subtitle="El aviso de cinco minutos antes" icon="bell" last onPress={() => router.push("/(app)/avisos")} />
           </Group>
         </Section>
       ) : null}
 
       {role === "professional" ? (
-        <Section title="Atenderte vos">
+        <Section title="Atención propia">
           <Group>
             <Row
-              title="Pedir un turno"
+              title="Solicitar turno"
               subtitle="Con otro profesional del consultorio"
               icon="calendar-plus"
               last
@@ -68,7 +68,9 @@ export default function MoreScreen() {
             <Group>
               <Row title="Control de turnos" subtitle="Qué está dando cada profesional" icon="eye" onPress={() => router.push("/(app)/admin/control")} />
               <Row title="Alta de profesional" subtitle="Crear una cuenta ya habilitada" icon="user-plus" onPress={() => router.push("/(app)/admin/alta-profesional")} />
-              <Row title="Horarios" subtitle="Los módulos de atención de cada uno" icon="calendar-days" last onPress={() => router.push("/(app)/horarios")} />
+              <Row title="Horarios" subtitle="Los módulos de atención de cada uno" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
+              <Row title="Avisos" subtitle="Carteles y notificaciones" icon="bullhorn" onPress={() => router.push("/(app)/admin/avisos")} />
+              <Row title="Alquileres" subtitle="Cuotas, pagos y precios" icon="money-bill-wave" last onPress={() => router.push("/(app)/admin/alquileres")} />
             </Group>
           </Section>
 
@@ -83,17 +85,17 @@ export default function MoreScreen() {
         </>
       ) : null}
 
-      <Section title="Tu cuenta">
+      <Section title="Cuenta">
         <Group>
           <Row title="Mis datos" subtitle="Teléfono, documento y contraseña" icon="user-pen" onPress={() => router.push("/(app)/mis-datos")} />
-          <Row title="Asistente" subtitle="Preguntale lo que necesites" icon="comment-dots" onPress={() => router.push("/(app)/asistente")} />
+          <Row title="Asistente" subtitle="Consultas sobre turnos y el consultorio" icon="comment-dots" onPress={() => router.push("/(app)/asistente")} />
           <Row title="Cerrar sesión" icon="right-from-bracket" destructive last onPress={confirmSignOut} />
         </Group>
       </Section>
 
       <Section title="El consultorio">
         <Group>
-          <Row title="Escribinos" subtitle="Dudas, cambios de turno, reclamos" icon="envelope" onPress={() => router.push("/(app)/contacto")} />
+          <Row title="Contacto" subtitle="Dudas, cambios de turno, reclamos" icon="envelope" onPress={() => router.push("/(app)/contacto")} />
           <Row
             title="Cómo llegar"
             subtitle={OFFICE_INFO.address}

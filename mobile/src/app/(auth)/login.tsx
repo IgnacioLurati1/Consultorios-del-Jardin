@@ -40,7 +40,7 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace("/(app)/(tabs)");
     } catch (problem) {
-      setError(errorMessage(problem, "No pudimos iniciar sesión"));
+      setError(errorMessage(problem, "No se pudo iniciar sesión"));
     } finally {
       setBusy(false);
     }
@@ -65,7 +65,7 @@ export default function LoginScreen() {
           </AppText>
 
           <AppText variant="small" style={styles.heroLine}>
-            Tus turnos, tu agenda y tus datos, en el teléfono.
+            Turnos, agenda y datos, en el teléfono.
           </AppText>
         </View>
 
@@ -85,7 +85,7 @@ export default function LoginScreen() {
                 setEmail(value);
                 setError(null);
               }}
-              placeholder="tunombre@mail.com"
+              placeholder="nombre@mail.com"
               keyboardType="email-address"
               textContentType="username"
               autoComplete="email"
@@ -101,7 +101,7 @@ export default function LoginScreen() {
                 setPassword(value);
                 setError(null);
               }}
-              placeholder="Tu contraseña"
+              placeholder="Contraseña"
               secureTextEntry
               textContentType="password"
               autoComplete="current-password"
@@ -117,7 +117,7 @@ export default function LoginScreen() {
             <Link href="/(auth)/recuperar" asChild>
               <Pressable accessibilityRole="link" hitSlop={8}>
                 <AppText variant="small" tone="green">
-                  Me olvidé la contraseña
+                  Recuperar contraseña
                 </AppText>
               </Pressable>
             </Link>
@@ -126,13 +126,13 @@ export default function LoginScreen() {
 
             <View style={styles.signup}>
               <AppText variant="small" tone="muted">
-                ¿Todavía no tenés cuenta?
+                ¿Sin cuenta todavía?
               </AppText>
 
               <Link href="/(auth)/registro" asChild>
                 <Pressable accessibilityRole="link" hitSlop={8}>
                   <AppText variant="bodyStrong" tone="green">
-                    Crear una cuenta
+                    Crear cuenta
                   </AppText>
                 </Pressable>
               </Link>
@@ -141,7 +141,7 @@ export default function LoginScreen() {
             <Link href="/(auth)/contacto" asChild>
               <Pressable accessibilityRole="link" hitSlop={8}>
                 <AppText variant="small" tone="muted">
-                  Escribirle al consultorio
+                  Contacto
                 </AppText>
               </Pressable>
             </Link>

@@ -37,11 +37,11 @@ export default function NewPatientScreen() {
     if (busy) return;
 
     const found = {
-      name: name.trim().length >= 2 ? null : "Escribí el nombre",
-      surname: surname.trim().length >= 2 ? null : "Escribí el apellido",
+      name: name.trim().length >= 2 ? null : "Falta el nombre",
+      surname: surname.trim().length >= 2 ? null : "Falta el apellido",
       email: EMAIL.test(email.trim()) ? null : "Hace falta un email válido para identificarlo",
       docNumber: !docNumber.trim() || /^\d{6,10}$/.test(docNumber.trim()) ? null : "El documento va sin puntos ni espacios",
-      phoneNumber: !phoneNumber.trim() || /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Ese teléfono no parece válido",
+      phoneNumber: !phoneNumber.trim() || /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Formato de teléfono inválido",
     };
 
     setErrors(found);
@@ -114,9 +114,7 @@ export default function NewPatientScreen() {
             error={errors.phoneNumber}
           />
 
-          <Note tone="warn">
-            No le llegan mails de confirmación ni recordatorios. De los avisos te encargás vos.
-          </Note>
+          <Note tone="warn">No recibe mails ni recordatorios.</Note>
 
           <Button label="Cargar el paciente" onPress={save} loading={busy} block />
         </View>

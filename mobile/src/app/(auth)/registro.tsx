@@ -50,12 +50,12 @@ export default function SignUpScreen() {
 
   async function validate(): Promise<boolean> {
     const found: Record<string, string | null> = {
-      name: name.trim().length >= 2 ? null : "Escribí tu nombre",
-      surname: surname.trim().length >= 2 ? null : "Escribí tu apellido",
-      email: EMAIL.test(email.trim()) ? null : "Ese email no parece válido",
+      name: name.trim().length >= 2 ? null : "Falta el nombre",
+      surname: surname.trim().length >= 2 ? null : "Falta el apellido",
+      email: EMAIL.test(email.trim()) ? null : "Formato de email inválido",
       docNumber: /^\d{6,10}$/.test(docNumber.trim()) ? null : "El documento va sin puntos ni espacios",
-      phoneNumber: /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Ese teléfono no parece válido",
-      speciality: type === "professional" && !speciality ? "Elegí tu especialidad" : null,
+      phoneNumber: /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Formato de teléfono inválido",
+      speciality: type === "professional" && !speciality ? "Falta la especialidad" : null,
       password: password.length >= MIN_PASSWORD ? null : `La contraseña necesita al menos ${MIN_PASSWORD} caracteres`,
       repeat: password === repeat ? null : "Las dos contraseñas tienen que ser iguales",
     };
@@ -65,7 +65,7 @@ export default function SignUpScreen() {
     if (!found.email) {
       try {
         if (!(await isEmailAvailable(email.trim().toLowerCase()))) {
-          found.email = "Ya hay una cuenta con ese email. Probá iniciar sesión.";
+          found.email = "Ya hay una cuenta con ese email. Se puede iniciar sesión con él.";
         }
       } catch {
         // Si no se puede consultar, que decida el backend al crear la cuenta.
@@ -110,10 +110,10 @@ export default function SignUpScreen() {
       }
 
       await signUp(datos);
-      feedback.done("Creamos tu cuenta. Queda esperando que la habiliten.");
+      feedback.done("Cuenta creada. Queda pendiente de habilitación.");
       router.replace("/(app)/(tabs)");
     } catch (problem) {
-      feedback.problem(errorMessage(problem, "No pudimos crear la cuenta"));
+      feedback.problem(errorMessage(problem, "No se pudo crear la cuenta"));
     } finally {
       setBusy(false);
     }
@@ -130,12 +130,12 @@ export default function SignUpScreen() {
     return (
       <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.page}>
         <View style={styles.form}>
-          <AppText variant="title">Mirá tu correo</AppText>
+          <AppText variant="title">Revisar el correo</AppText>
           <AppText tone="muted">
-            Le escribimos a {email.trim()}. Adentro hay un link que crea la cuenta. Vence en 30 minutos.
+            El link para crear la cuenta se envió a {email.trim()}. Vence en 30 minutos.
           </AppText>
-          <Note tone="warn">Si no aparece, fijate en el correo no deseado.</Note>
-          <AppText tone="muted">Cuando lo hayas tocado, volvé acá y entrá con tu contraseña.</AppText>
+          <Note tone="warn">Si no aparece, revisar el correo no deseado.</Note>
+          <AppText tone="muted">Después de abrir el link, se entra con el email y la contraseña elegida.</AppText>
           <Button label="Ir a iniciar sesión" onPress={() => router.replace("/(auth)/login")} block />
         </View>
       </ScrollView>
@@ -151,9 +151,9 @@ export default function SignUpScreen() {
       >
         <View style={styles.form}>
           <Choice
-            label="¿Cómo entrás?"
+            label="Tipo de cuenta"
             options={[
-              { key: "client", label: "Como paciente", description: "Para pedir turnos y ver los tuyos." },
+              { key: "client", label: "Como paciente", description: "Para solicitar turnos y consultarlos." },
               { key: "professional", label: "Como profesional", description: "Para atender en el consultorio." },
             ]}
             value={type}
@@ -161,10 +161,7 @@ export default function SignUpScreen() {
           />
 
           {type === "professional" ? (
-            <Note tone="warn">
-              La cuenta queda creada pero deshabilitada hasta que el consultorio la apruebe. Te avisamos por mail
-              cuando puedas empezar a usarla.
-            </Note>
+            <Note tone="warn">Queda deshabilitada hasta que el consultorio la apruebe. El aviso llega por mail.</Note>
           ) : null}
 
           <Field
@@ -193,7 +190,7 @@ export default function SignUpScreen() {
             label="Email"
             value={email}
             onChangeText={setEmail}
-            placeholder="tunombre@mail.com"
+            placeholder="nombre@mail.com"
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
@@ -267,7 +264,7 @@ export default function SignUpScreen() {
           />
 
           <Button
-            label={type === "client" ? "Mandarme el mail" : "Crear la cuenta"}
+            label={type === "client" ? "Enviar el mail" : "Crear la cuenta"}
             onPress={submit}
             loading={busy}
             block
@@ -275,8 +272,8 @@ export default function SignUpScreen() {
 
           <AppText variant="caption" tone="muted">
             {type === "client"
-              ? "Te mandamos un mail para confirmar la dirección. Es por donde te llegan los avisos de tus turnos."
-              : "Al crear la cuenta vas a recibir por mail los avisos de tus turnos."}
+              ? "Se envía un mail para confirmar la dirección. Es por donde llegan los avisos de los turnos."
+              : "Los avisos de los turnos llegan a ese mail."}
           </AppText>
         </View>
       </ScrollView>
@@ -293,7 +290,7 @@ export default function SignUpScreen() {
       <OptionSheet
         visible={specialitySheet}
         onClose={() => setSpecialitySheet(false)}
-        title="Tu especialidad"
+        title="Especialidad"
         options={SPECIALITIES.map((item) => ({ key: item, label: item }))}
         selected={speciality}
         onSelect={setSpeciality}

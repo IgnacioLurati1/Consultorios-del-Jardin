@@ -7,13 +7,14 @@ import { ChipRow } from "../../../components/Chip";
 import { ErrorState, SkeletonList } from "../../../components/States";
 import { Group, Note, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
+import { CompromisedAccounts } from "../../../features/CompromisedAccounts";
 import { Headline, MonthBars, Pair, Ranking } from "../../../features/Numbers";
 import { compactNumber, money } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { SCREEN_PADDING, space } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
 
-type Metric = "appointments" | "billed" | "patients";
+type Metric = "appointments" | "billed" | "patients" | "rent";
 
 const METRICS: { key: Metric; label: string }[] = [
   { key: "appointments", label: "Turnos" },
@@ -58,7 +59,7 @@ export default function OfficeNumbersScreen() {
   if (office.error || !office.data) {
     return (
       <View style={[styles.page, { backgroundColor: colors.bg, paddingTop: insets.top + space.xxl }]}>
-        <ErrorState message={office.error ?? "No pudimos traer los números"} onRetry={office.reload} />
+        <ErrorState message={office.error ?? "No se pudieron traer los números"} onRetry={office.reload} />
       </View>
     );
   }
@@ -66,6 +67,13 @@ export default function OfficeNumbersScreen() {
   const { recent, total, months, headcount, channels } = office.data;
   const current = recent.find((month) => month.inProgress) ?? recent[0];
   const spend = assistant.data;
+
+  // El alquiler llega de un servidor que ya lo cuenta. Contra uno de antes no viene, y la
+  // pantalla queda como estaba.
+  const hasRent = months.some((month) => month.rent) || recent.some((month) => month.rent);
+  const metrics: { key: Metric; label: string }[] = hasRent ? [...METRICS, { key: "rent", label: "Alquiler" }] : METRICS;
+  /** Lo cobrado de alquiler en cada mes cerrado. Las barras reciben el mes sin él. */
+  const rentByMonth = new Map(months.map((month) => [month.key, month.rent?.collected ?? 0]));
 
   return (
     <ScrollView
@@ -84,6 +92,47 @@ export default function OfficeNumbersScreen() {
       }
     >
       <AppText variant="title">Números del consultorio</AppText>
+
+      {/* El alquiler va primero, como en la página: es la plata que más le importa al
+          consultorio. Lleva a la lista del mes, y con saldo, con el filtro de pendientes
+          puesto, que es desde donde se cobra. En rojo solo en un mes cerrado: en el que
+          corre, lo pendiente todavía puede estar en término. */}
+      {current?.rent ? (
+        <Section title={`Alquileres de ${current.label.toLowerCase()}`}>
+          <Pair
+            items={[
+              { label: "Cobrado por alquiler", value: money(current.rent.collected) },
+              { label: "Alquileres pendientes", value: money(current.rent.pending) },
+            ]}
+          />
+
+          <View style={styles.spaced}>
+            <Group>
+              <Row
+                title="Ver las cuotas del mes"
+                subtitle={current.rent.count === 0 ? "Sin cuotas cargadas" : `De ${money(current.rent.due)} en cuotas`}
+                subtitleIsData
+                icon="money-bill-wave"
+                last={current.rent.pendingCount === 0}
+                onPress={() => router.push({ pathname: "/(app)/admin/alquileres", params: { mes: current.key } })}
+              />
+              {current.rent.pendingCount > 0 ? (
+                <Row
+                  title="Ver los pendientes de cobrar"
+                  subtitle={`${current.rent.pendingCount} ${current.rent.pendingCount === 1 ? "cuota" : "cuotas"} con saldo`}
+                  subtitleIsData
+                  icon="clock"
+                  tone={!current.inProgress ? "danger" : undefined}
+                  last
+                  onPress={() =>
+                    router.push({ pathname: "/(app)/admin/alquileres", params: { mes: current.key, estado: "pendientes" } })
+                  }
+                />
+              ) : null}
+            </Group>
+          </View>
+        </Section>
+      ) : null}
 
       {current ? (
         <>
@@ -109,7 +158,7 @@ export default function OfficeNumbersScreen() {
                 <Row title="Asistieron" value={String(current.assisted)} />
                 <Row title="No vinieron" value={String(current.missed)} />
                 <Row title="Cancelados" value={String(current.cancelled)} />
-                <Row title="Sobreturnos" value={String(current.overbooked)} />
+                <Row title="Turnos especiales" value={String(current.overbooked)} />
                 <Row
                   title="Pacientes compartidos"
                   subtitle="Se atienden con más de un profesional"
@@ -118,7 +167,7 @@ export default function OfficeNumbersScreen() {
                 />
                 {current.topOverbooker ? (
                   <Row
-                    title="Quien más sobreturnos da"
+                    title="Quien más turnos especiales da"
                     subtitle={current.topOverbooker.name}
                     subtitleIsData
                     value={String(current.topOverbooker.count)}
@@ -133,13 +182,13 @@ export default function OfficeNumbersScreen() {
 
       <Section title="Mes a mes">
         <View style={styles.filters}>
-          <ChipRow options={METRICS} value={metric} onChange={setMetric} />
+          <ChipRow options={metrics} value={metric} onChange={setMetric} />
         </View>
 
         <MonthBars
           months={months}
-          pick={(month) => month[metric]}
-          format={(value) => (metric === "billed" ? money(value) : String(value))}
+          pick={(month) => (metric === "rent" ? rentByMonth.get(month.key) ?? 0 : month[metric])}
+          format={(value) => (metric === "billed" || metric === "rent" ? money(value) : String(value))}
         />
       </Section>
 
@@ -204,7 +253,7 @@ export default function OfficeNumbersScreen() {
         {assistant.error ? (
           <Note tone="warn">{assistant.error}</Note>
         ) : !spend || spend.historico.consultas === 0 ? (
-          <Note>Todavía nadie le preguntó nada al asistente. Cuando lo usen, acá va a aparecer cuánto consume.</Note>
+          <Note>Todavía sin consultas al asistente.</Note>
         ) : (
           <>
             <Pair
@@ -253,6 +302,8 @@ export default function OfficeNumbersScreen() {
           </>
         )}
       </Section>
+
+      <CompromisedAccounts />
 
       <AppText variant="caption" tone="muted" style={styles.footnote}>
         Lo facturado cuenta solo los turnos marcados como asistidos.

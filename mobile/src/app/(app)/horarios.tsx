@@ -35,8 +35,10 @@ const DURATIONS = [30, 45, 60];
  * consultorio y cada cuántos minutos entra un turno. De acá salen los horarios que el
  * paciente ve libres.
  *
- * El profesional edita los suyos. El admin elige a quién mirar, porque los horarios son
- * lo que arma la ocupación del consultorio.
+ * Los carga y los saca la administración, igual que en la página: el admin elige a quién
+ * mirar y le agrega o le quita módulos. El profesional ve los suyos y lo único que toca es
+ * cuánto dura cada turno adentro, que a su vez es lo único que al admin no se le ofrece.
+ * El backend sostiene la misma regla, así que esto no es solo no mostrar el botón.
  */
 export default function SchedulesScreen() {
   const { email, role } = useUser();
@@ -53,6 +55,12 @@ export default function SchedulesScreen() {
   const schedules = useAsync(() => (target ? schedulesOf(target) : Promise.resolve([] as Schedule[])), [target]);
 
   const chosen = (people.data ?? []).find((person) => person.email === target);
+
+  // La agenda de alguien que ya no atiende se abre para limpiarla, no para llenarla.
+  const isAdmin = role === "admin";
+  const locked = isAdmin && chosen?.active === false;
+  const canCreate = isAdmin && !!target && !locked;
+
   const byDay = DAYS.map((day) => ({
     day,
     modules: (schedules.data ?? [])
@@ -73,7 +81,7 @@ export default function SchedulesScreen() {
   function confirmRemove(schedule: Schedule) {
     Alert.alert(
       "Sacar este módulo",
-      `Los ${DAY_LABELS[schedule.day].toLowerCase()} de ${hhmm(schedule.initialHour)} a ${hhmm(schedule.finalHour)} dejan de ofrecerse. Los turnos que ya estén dados no se tocan.`,
+      `Los ${DAY_LABELS[schedule.day].toLowerCase()} de ${hhmm(schedule.initialHour)} a ${hhmm(schedule.finalHour)} dejan de ofrecerse. Los turnos ya dados quedan.`,
       [
         { text: "Dejarlo", style: "cancel" },
         {
@@ -96,7 +104,7 @@ export default function SchedulesScreen() {
   return (
     <>
       <Screen onRefresh={schedules.refresh} refreshing={schedules.refreshing}>
-        {role === "admin" ? (
+        {isAdmin ? (
           <View style={styles.top}>
             <PickerField
               label="Profesional"
@@ -104,11 +112,17 @@ export default function SchedulesScreen() {
               placeholder="Elegir un profesional"
               onPress={() => setPickerOpen(true)}
             />
+
+            {locked ? (
+              <View style={styles.warn}>
+                <Note tone="warn">Profesional deshabilitado. Se le pueden sacar horarios, no cargar nuevos.</Note>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
         {!target ? (
-          <EmptyState icon="user-doctor" title="Elegí un profesional" description="Vas a ver sus módulos de atención, día por día." />
+          <EmptyState icon="user-doctor" title="Elegir un profesional" description="Sus módulos de atención, día por día." />
         ) : (
           <DataState
             loading={schedules.loading}
@@ -119,8 +133,8 @@ export default function SchedulesScreen() {
               <EmptyState
                 icon="calendar-days"
                 title="Todavía no hay horarios"
-                description="Sin módulos cargados no se puede pedir ningún turno."
-                action={role !== "admin" ? { label: "Agregar un horario", onPress: () => setFormOpen(true) } : undefined}
+                description={isAdmin ? "Sin módulos no se puede pedir ningún turno." : "Los carga la administración del consultorio."}
+                action={canCreate ? { label: "Agregar un horario", onPress: () => setFormOpen(true) } : undefined}
               />
             }
           >
@@ -135,18 +149,18 @@ export default function SchedulesScreen() {
                       subtitleIsData
                       last={index === modules.length - 1}
                       onPress={
-                        role === "admin"
-                          ? undefined
+                        isAdmin
+                          ? () => confirmRemove(schedule)
                           : () =>
+                              // Solo la duración. Sacar un módulo es cosa de la administración.
                               Alert.alert(
                                 `${DAY_LABELS[day]} de ${hhmm(schedule.initialHour)} a ${hhmm(schedule.finalHour)}`,
-                                "Cambiar la duración no modifica los turnos ya creados, solo los que se saquen de acá en adelante.",
+                                "Aplica a los turnos nuevos.",
                                 [
-                                ...DURATIONS.filter((duration) => duration !== schedule.duration).map((duration) => ({
-                                  text: `Turnos de ${duration} min`,
-                                  onPress: () => changeDuration(schedule, duration),
-                                })),
-                                { text: "Sacar el módulo", style: "destructive" as const, onPress: () => confirmRemove(schedule) },
+                                  ...DURATIONS.filter((duration) => duration !== schedule.duration).map((duration) => ({
+                                    text: `Turnos de ${duration} min`,
+                                    onPress: () => changeDuration(schedule, duration),
+                                  })),
                                   { text: "Cancelar", style: "cancel" as const },
                                 ]
                               )
@@ -157,21 +171,13 @@ export default function SchedulesScreen() {
               </Section>
             ))}
 
-            {role !== "admin" ? (
-              <View style={{ marginTop: space.xl }}>
-                <Note>Cambiar la duración de un módulo no modifica los turnos ya creados, solo los futuros.</Note>
-              </View>
-            ) : null}
-
-            {role !== "admin" ? (
-              <Section>
-                <Note>Tocá un módulo para cambiar cuánto dura cada turno o para sacarlo.</Note>
-              </Section>
-            ) : null}
+            <Section>
+              <Note>{isAdmin ? "Cada módulo se toca para sacarlo." : "Cada módulo se toca para cambiar la duración de sus turnos."}</Note>
+            </Section>
           </DataState>
         )}
 
-        {role !== "admin" ? (
+        {canCreate ? (
           <Section>
             <Button label="Agregar un horario" icon="plus" block onPress={() => setFormOpen(true)} />
           </Section>
@@ -230,13 +236,13 @@ function ScheduleForm({ email, done }: { email: string; done: () => void }) {
     if (busy) return;
 
     const found = {
-      initialHour: initialHour ? null : "Elegí a qué hora arranca",
+      initialHour: initialHour ? null : "Falta la hora de inicio",
       finalHour: !finalHour
-        ? "Elegí a qué hora termina"
+        ? "Falta la hora de fin"
         : initialHour && finalHour <= initialHour
           ? "Tiene que terminar después de arrancar"
           : null,
-      room: room ? null : "Elegí el consultorio",
+      room: room ? null : "Falta el consultorio",
     };
 
     setErrors(found);
@@ -285,7 +291,7 @@ function ScheduleForm({ email, done }: { email: string; done: () => void }) {
       />
 
       <AppText variant="caption" tone="muted">
-        La franja se parte en turnos de esa duración. Lo que sobre al final no se ofrece.
+        Lo que sobre al final de la franja no se ofrece.
       </AppText>
 
       <Button label="Agregar" onPress={save} loading={busy} block />
@@ -318,6 +324,7 @@ function ScheduleForm({ email, done }: { email: string; done: () => void }) {
 
 const styles = StyleSheet.create({
   top: { marginTop: space.lg, marginBottom: space.md },
+  warn: { marginTop: space.md },
   form: { gap: space.lg, paddingBottom: space.md },
   times: { flexDirection: "row", gap: space.md },
   time: { flex: 1 },

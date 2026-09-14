@@ -48,12 +48,12 @@ export default function NewProfessionalScreen() {
     if (busy) return;
 
     const found = {
-      name: name.trim().length >= 2 ? null : "Escribí el nombre",
-      surname: surname.trim().length >= 2 ? null : "Escribí el apellido",
-      email: EMAIL.test(email.trim()) ? null : "Ese email no parece válido",
+      name: name.trim().length >= 2 ? null : "Falta el nombre",
+      surname: surname.trim().length >= 2 ? null : "Falta el apellido",
+      email: EMAIL.test(email.trim()) ? null : "Formato de email inválido",
       docNumber: /^\d{6,10}$/.test(docNumber.trim()) ? null : "El documento va sin puntos ni espacios",
-      phoneNumber: /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Ese teléfono no parece válido",
-      speciality: speciality ? null : "Elegí la especialidad",
+      phoneNumber: /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Formato de teléfono inválido",
+      speciality: speciality ? null : "Falta la especialidad",
       password: password.length >= MIN_PASSWORD ? null : `La contraseña necesita al menos ${MIN_PASSWORD} caracteres`,
     };
 
@@ -88,7 +88,7 @@ export default function NewProfessionalScreen() {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Screen>
         <AppText variant="small" tone="muted" style={styles.lead}>
-          La cuenta queda habilitada de entrada. Después el profesional carga sus horarios de atención.
+          La cuenta queda habilitada de entrada.
         </AppText>
 
         <View style={styles.form}>
@@ -162,9 +162,7 @@ export default function NewProfessionalScreen() {
             required
           />
 
-          <Note>
-            Pasale la contraseña por un canal seguro y decile que la cambie desde "Mis datos" apenas entre.
-          </Note>
+          <Note>Pasar la contraseña por un canal seguro. Se cambia desde «Mis datos» al entrar.</Note>
 
           <Button label="Crear la cuenta" onPress={save} loading={busy} block />
         </View>

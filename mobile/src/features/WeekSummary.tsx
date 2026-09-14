@@ -133,7 +133,7 @@ function DayCard({ day, open, onTogglePeak }: { day: AgendaWeekDay; open: boolea
                 </AppText>
                 <AppText variant="caption" style={{ color: colors.greenDark }}>
                   {day.peak.appointments} {day.peak.appointments === 1 ? "turno" : "turnos"} a la vez ·{" "}
-                  {open ? "tocá para cerrar" : "tocá para ver de quiénes son"}
+                  {open ? "cerrar" : "ver de quiénes son"}
                 </AppText>
               </Pressable>
 
@@ -150,7 +150,7 @@ function DayCard({ day, open, onTogglePeak }: { day: AgendaWeekDay; open: boolea
                         </AppText>
                         <AppText variant="caption" tone="muted">
                           con {item.professional.name} {item.professional.surname} · {item.room}
-                          {item.overbooked ? " · sobreturno" : ""}
+                          {item.overbooked ? " · turno especial" : ""}
                         </AppText>
                       </View>
                     </View>

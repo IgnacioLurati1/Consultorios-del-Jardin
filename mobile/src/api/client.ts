@@ -100,13 +100,13 @@ api.interceptors.response.use(
  * frases pensadas para leer, así que lo primero es respetarlas; lo de abajo es para
  * cuando no llega respuesta.
  */
-export function errorMessage(error: unknown, fallback = "No pudimos completar eso"): string {
+export function errorMessage(error: unknown, fallback = "No se pudo completar la acción"): string {
   if (axios.isAxiosError(error)) {
     const fromServer = (error.response?.data as { message?: string } | undefined)?.message;
     if (fromServer) return fromServer;
 
     if (error.code === "ECONNABORTED") return "El servidor tardó demasiado en contestar";
-    if (!error.response) return "No pudimos conectarnos. Fijate que tengas señal.";
+    if (!error.response) return "Sin conexión con el servidor. Revisar la señal.";
   }
 
   return fallback;

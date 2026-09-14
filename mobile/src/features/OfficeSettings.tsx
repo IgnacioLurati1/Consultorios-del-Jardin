@@ -104,7 +104,7 @@ export function OfficeSettings() {
 
         <Row
           title="Confirmar turnos automáticamente"
-          subtitle="Cuando un paciente pide un horario tuyo, queda confirmado sin que lo apruebes."
+          subtitle="El turno que pide un paciente queda confirmado sin aprobación."
           icon="circle-check"
           right={
             <Switch
@@ -156,10 +156,10 @@ export function OfficeSettings() {
           title="Avisos por mail"
           subtitle={
             muted === 0
-              ? "Ahora te llegan todos"
+              ? "Todos prendidos"
               : muted === 1
-                ? "Apagaste uno"
-                : `Apagaste ${muted}`
+                ? "Uno apagado"
+                : `${muted} apagados`
           }
           subtitleIsData
           icon="envelope"
@@ -183,8 +183,8 @@ export function OfficeSettings() {
           title="Vacaciones"
           subtitle={
             onVacation
-              ? `No aparecés en las búsquedas hasta el ${shortDate(onVacation.toDate)}`
-              : "Los días que no atendés"
+              ? `Fuera de las búsquedas hasta el ${shortDate(onVacation.toDate)}`
+              : "Días sin atención"
           }
           subtitleIsData={Boolean(onVacation)}
           icon="plane-departure"
@@ -193,7 +193,7 @@ export function OfficeSettings() {
 
         <Row
           title="Borrar los turnos de un paciente"
-          subtitle="Definitivo, y solo de los turnos con vos"
+          subtitle="Definitivo, y solo de los turnos propios"
           icon="trash-can"
           destructive
           last
@@ -312,10 +312,10 @@ function ClosingSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title="Cerrar los turnos pasados">
       <View style={{ gap: space.lg, paddingBottom: space.md }}>
-        {off ? <Note tone="warn">Prendé la opción en el panel para poder configurarla.</Note> : null}
+        {off ? <Note tone="warn">La opción se configura después de prenderla en el panel.</Note> : null}
 
         <Choice
-          label="¿Cómo los cierro?"
+          label="Cómo se cierran"
           value={settings.autoMark ?? "assisted"}
           disabled={off}
           onChange={(key) => onChange({ autoMark: key as AutoMark })}
@@ -335,12 +335,12 @@ function ClosingSheet({
             {
               key: "day",
               label: "Al terminar el día",
-              description: "Te da tiempo a cargar a mano el que se estiró o el que llegó tarde.",
+              description: "Deja tiempo para corregir a mano.",
             },
           ]}
         />
 
-        <Note>Vale para los turnos que terminen de ahora en adelante. Lo que quedó abierto de antes no se toca.</Note>
+        <Note>Vale para los turnos que terminen de ahora en adelante.</Note>
       </View>
     </Sheet>
   );
@@ -363,10 +363,10 @@ function PayingSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title="Considerar pagado un turno">
       <View style={{ gap: space.lg, paddingBottom: space.md }}>
-        {off ? <Note tone="warn">Prendé la opción en el panel para poder configurarla.</Note> : null}
+        {off ? <Note tone="warn">La opción se configura después de prenderla en el panel.</Note> : null}
 
         <Choice
-          label="¿Cuándo lo doy por cobrado?"
+          label="Cuándo se da por cobrado"
           value={settings.autoPayWhen}
           disabled={off}
           onChange={(key) => onChange({ autoPayWhen: key as AutoPayWhen })}
@@ -375,15 +375,12 @@ function PayingSheet({
             {
               key: "day",
               label: "Al terminar el día",
-              description: "Te da tiempo a marcar al que quedó debiendo antes de que se dé por cobrado.",
+              description: "Deja tiempo para marcar a quien quedó debiendo.",
             },
           ]}
         />
 
-        <Note>
-          Solo toca los turnos que figuran como atendidos y sin cobrar. Un pago parcial que hayas registrado queda como
-          está, y lo de antes de prender esto no se toca.
-        </Note>
+        <Note>Solo toca los turnos atendidos sin cobrar.</Note>
       </View>
     </Sheet>
   );
@@ -466,7 +463,7 @@ function VacationsSheet({
     setBusy(true);
     addVacation(from, to)
       .then(() => {
-        feedback.done("Listo, esos días no vas a aparecer en las búsquedas");
+        feedback.done("Período cargado. Esos días quedan fuera de las búsquedas");
         setFrom(null);
         setTo(null);
         onChanged();
@@ -479,7 +476,7 @@ function VacationsSheet({
     setBusy(true);
     removeVacation(id)
       .then(() => {
-        feedback.done(current ? "Bienvenido de vuelta. Ya aparecés en las búsquedas" : "Período borrado");
+        feedback.done(current ? "De vuelta en las búsquedas" : "Período borrado");
         onChanged();
       })
       .catch((problem) => feedback.problem(errorMessage(problem)))
@@ -501,7 +498,7 @@ function VacationsSheet({
                 last={index === settings.vacations.length - 1}
                 right={
                   <AppText variant="small" tone="green" onPress={() => !busy && remove(vacation.id, vacation.current)}>
-                    {vacation.current ? "Ya volví" : "Borrar"}
+                    {vacation.current ? "Terminar ahora" : "Borrar"}
                   </AppText>
                 }
               />
@@ -517,10 +514,7 @@ function VacationsSheet({
           minimumDate={from ? new Date(`${from}T12:00:00`) : new Date()}
         />
 
-        <Note>
-          Esos días no aparecés en la búsqueda ni se ofrece ningún horario tuyo. Los turnos que ya tenías dados quedan
-          como están.
-        </Note>
+        <Note>Esos días no se ofrece ningún horario. Los turnos ya dados quedan.</Note>
 
         <Button label="Cargar" block disabled={busy || !from || !to} onPress={add} />
       </View>
@@ -582,14 +576,14 @@ function DeletePatientSheet({ visible, onClose }: { visible: boolean; onClose: (
           <PickerField
             label="Paciente"
             value={name}
-            placeholder="Elegí un paciente"
+            placeholder="Elegir un paciente"
             icon="user"
             onPress={() => setPicking(true)}
-            hint="Solo tus pacientes. Se borran los turnos con vos, no los que tenga con otro profesional."
+            hint="Solo los turnos propios con ese paciente."
           />
 
           <Choice
-            label="¿Qué borro?"
+            label="Qué se borra"
             value={scope}
             onChange={(key) => {
               setScope(key as DeleteScope);
@@ -599,12 +593,12 @@ function DeletePatientSheet({ visible, onClose }: { visible: boolean; onClose: (
               {
                 key: "future",
                 label: "De hoy en adelante",
-                description: "Lo que ya atendiste queda registrado, con sus observaciones.",
+                description: "Lo ya atendido queda registrado, con sus observaciones.",
               },
               {
                 key: "all",
                 label: "Todos, historial incluido",
-                description: "No vas a poder consultar qué pasó en esas sesiones.",
+                description: "Esas sesiones dejan de poder consultarse.",
               },
             ]}
           />
@@ -612,9 +606,8 @@ function DeletePatientSheet({ visible, onClose }: { visible: boolean; onClose: (
           {confirming ? (
             <>
               <Note tone="danger">
-                Vas a borrar {scope === "all" ? "todos los turnos" : "los turnos de hoy en adelante"} de {name}. Se
-                eliminan permanentemente, junto con las observaciones que hayas cargado, y no hay forma de
-                recuperarlos.
+                Se borran para siempre {scope === "all" ? "todos los turnos" : "los turnos de hoy en adelante"} de {name}, con
+                sus observaciones.
               </Note>
               <Button label="Sí, borrarlos para siempre" variant="danger" block disabled={busy} onPress={run} />
               <Button label="Mejor no" variant="secondary" block onPress={() => setConfirming(false)} />
@@ -631,7 +624,7 @@ function DeletePatientSheet({ visible, onClose }: { visible: boolean; onClose: (
         </View>
       </Sheet>
 
-      <Sheet visible={picking} onClose={() => setPicking(false)} title="Tus pacientes">
+      <Sheet visible={picking} onClose={() => setPicking(false)} title="Pacientes">
         <Group>
           {patients.map((patient, index) => (
             <Row

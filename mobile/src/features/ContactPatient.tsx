@@ -74,7 +74,7 @@ export function ContactPatientSheet({ patient, professional, onClose }: Props) {
           </>
         ) : (
           <AppText variant="caption" tone="muted">
-            No tiene teléfono cargado. Podés agregárselo desde su ficha.
+            No tiene teléfono cargado. Se agrega desde su ficha.
           </AppText>
         )}
       </View>

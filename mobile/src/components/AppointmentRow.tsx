@@ -91,7 +91,7 @@ export function AppointmentRow({
           ) : (
             <StateBadge state={state} />
           )}
-          {appointment.overbooked ? <Tag label="Sobreturno" tone="warn" /> : null}
+          {appointment.overbooked ? <Tag label="Turno especial" tone="warn" /> : null}
           {/* `active`, no la existencia: una repetición frenada le sigue colgando al turno. */}
           {appointment.recurrence?.active ? <Tag label="Se repite" tone="green" /> : null}
         </View>

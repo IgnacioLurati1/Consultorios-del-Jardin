@@ -10,7 +10,7 @@ import { useTheme } from "../theme/useTheme";
 
 /** Las tres respuestas al claro y al oscuro, dichas como se leen. */
 const MODES: { key: ModeChoice; label: string; description: string }[] = [
-  { key: "auto", label: "Como el teléfono", description: "Sigue el claro y el oscuro que tengas puesto en el celular." },
+  { key: "auto", label: "Como el teléfono", description: "Sigue el claro y el oscuro del celular." },
   { key: "light", label: "Siempre claro", description: "Aunque el teléfono esté en oscuro." },
   { key: "dark", label: "Siempre oscuro", description: "Aunque el teléfono esté en claro." },
 ];
@@ -46,7 +46,7 @@ export function AppearanceSheet({ visible, onClose }: { visible: boolean; onClos
           <Group>
             <Row
               title="Que cambie con la estación"
-              subtitle={automatic ? `Ahora estamos en ${showing?.label.toLowerCase()}` : "La elegís vos"}
+              subtitle={automatic ? `Ahora es ${showing?.label.toLowerCase()}` : "Elegida a mano"}
               subtitleIsData={automatic}
               icon="leaf"
               tone="green"
@@ -72,7 +72,7 @@ export function AppearanceSheet({ visible, onClose }: { visible: boolean; onClos
           <Note>
             {automatic
               ? "Cambia sola cuatro veces al año, con el calendario de acá."
-              : "Va a quedar así hasta que la vuelvas a mover."}
+              : "Queda así hasta elegir otra."}
           </Note>
         </View>
       </View>

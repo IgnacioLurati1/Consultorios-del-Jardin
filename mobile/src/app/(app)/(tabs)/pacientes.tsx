@@ -103,7 +103,7 @@ export default function PatientsScreen() {
             onPress={() => setOnlyDebtors(!onlyDebtors)}
             accessibilityRole="button"
             accessibilityState={{ selected: onlyDebtors }}
-            accessibilityLabel="Ver solo los que te quedaron debiendo"
+            accessibilityLabel="Ver solo los que quedaron debiendo"
             hitSlop={8}
             style={[
               styles.debtFilter,
@@ -152,17 +152,17 @@ export default function PatientsScreen() {
               icon="user-injured"
               title={
                 search
-                  ? "No encontramos a nadie así"
+                  ? "Sin resultados"
                   : scope === "mine"
-                    ? "Todavía no atendiste a nadie"
+                    ? "Sin pacientes todavía"
                     : "Todavía no hay pacientes"
               }
               description={
                 search
-                  ? "Probá con el apellido o con el email."
+                  ? "Buscar por apellido o email."
                   : scope === "mine"
-                    ? "Acá van a aparecer las personas a las que les des turno. Mientras tanto, podés mirar los del consultorio."
-                    : "Podés cargar a alguien que no tiene cuenta para darle turno igual."
+                    ? "Acá aparecen las personas con turno. Mientras tanto, están los del consultorio."
+                    : "Se puede cargar a alguien sin cuenta para darle turno igual."
               }
               action={
                 search

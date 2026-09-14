@@ -29,7 +29,7 @@ export default function RecoverScreen() {
     if (busy) return;
 
     if (!EMAIL.test(email.trim())) {
-      setError("Ese email no parece válido. Revisá que tenga @ y un punto");
+      setError("Formato de email inválido. Debe incluir @ y un punto");
       return;
     }
 
@@ -40,7 +40,7 @@ export default function RecoverScreen() {
       await requestPasswordMail(email);
       setSent(true);
     } catch (problem) {
-      setError(errorMessage(problem, "No pudimos mandar el mail. Probá de nuevo en un rato"));
+      setError(errorMessage(problem, "No se pudo enviar el mail. Intentar de nuevo en un rato"));
     } finally {
       setBusy(false);
     }
@@ -52,7 +52,7 @@ export default function RecoverScreen() {
         <EmptyState
           icon="envelope-circle-check"
           title="Si esa cuenta existe, ya salió el mail"
-          description="Adentro hay un link para elegir una contraseña nueva. Dura una hora. Fijate también en el correo no deseado."
+          description="El link dura una hora. Si no aparece, revisar el correo no deseado."
           action={{ label: "Volver a entrar", onPress: () => router.replace("/(auth)/login") }}
         />
       </Screen>
@@ -63,7 +63,7 @@ export default function RecoverScreen() {
     <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Screen>
         <AppText variant="small" tone="muted" style={styles.lead}>
-          Poné el email con el que entrás y te mandamos un link para elegir una contraseña nueva.
+          Al email de la cuenta se envía un link para elegir una contraseña nueva.
         </AppText>
 
         <View style={styles.form}>
@@ -74,7 +74,7 @@ export default function RecoverScreen() {
               setEmail(value);
               setError(null);
             }}
-            placeholder="tunombre@mail.com"
+            placeholder="nombre@mail.com"
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
@@ -85,7 +85,7 @@ export default function RecoverScreen() {
             error={error}
           />
 
-          <Button label="Mandarme el link" onPress={submit} loading={busy} block />
+          <Button label="Enviar el link" onPress={submit} loading={busy} block />
         </View>
       </Screen>
     </KeyboardAvoidingView>

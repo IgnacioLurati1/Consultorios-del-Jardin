@@ -37,7 +37,7 @@ export default function PatientScreen() {
   if (person.error || !person.data) {
     return (
       <Screen>
-        <ErrorState message={person.error ?? "No encontramos a esa persona"} onRetry={person.reload} />
+        <ErrorState message={person.error ?? "No se encontró a esa persona"} onRetry={person.reload} />
       </Screen>
     );
   }
@@ -61,9 +61,7 @@ export default function PatientScreen() {
 
       {patient.anonymous ? (
         <View style={styles.note}>
-          <Note tone="warn">
-            No tiene cuenta, así que no recibe los mails de confirmación ni los recordatorios. Los avisos se los das vos.
-          </Note>
+          <Note tone="warn">Sin cuenta, no recibe mails ni recordatorios.</Note>
         </View>
       ) : null}
 

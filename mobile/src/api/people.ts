@@ -114,6 +114,17 @@ export async function toggleUserBookable(email: string): Promise<boolean> {
   return data.data.bookable as boolean;
 }
 
+/**
+ * Prende o apaga la lista de espera de un profesional. Solo admin.
+ *
+ * Apagarla la vacía y les avisa a los que estaban. El mensaje lo arma el servidor, que
+ * sabe a cuántos les avisó.
+ */
+export async function toggleUserWaitlist(email: string): Promise<{ waitlistEnabled: boolean; message: string }> {
+  const { data } = await api.patch(`/people/${encodeURIComponent(email)}/toggleWaitlist`);
+  return { waitlistEnabled: !!data.data?.waitlistEnabled, message: data.message as string };
+}
+
 export interface ProfessionalInput {
   name: string;
   surname: string;

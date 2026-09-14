@@ -33,29 +33,23 @@ export default function AlertsScreen() {
     <Screen>
       <Section>
         <AppText variant="small" tone="muted">
-          Cinco minutos antes de cada turno te decimos con quién es y a qué hora.
+          Cinco minutos antes de cada turno llega un aviso con el paciente y la hora.
         </AppText>
       </Section>
 
       {!canNotify ? (
         <Section>
-          <Note tone="warn">
-            Estás entrando desde Expo Go, que en Android no deja programar avisos. Lo que elijas acá queda
-            guardado, pero no va a sonar nada hasta que uses la app instalada.
-          </Note>
+          <Note tone="warn">En Expo Go de Android no se programan avisos. Empiezan con la app instalada.</Note>
         </Section>
       ) : null}
 
       <Section>
-        <Choice label="Cómo te avisamos" options={ALERT_OPTIONS} value={choiceOf(prefs)} onChange={pick} />
+        <Choice label="Tipo de aviso" options={ALERT_OPTIONS} value={choiceOf(prefs)} onChange={pick} />
       </Section>
 
       {canNotify && !allowed && prefs.notify ? (
         <Section>
-          <Note tone="warn">
-            El teléfono tiene los avisos bloqueados para esta app, así que no va a llegar ninguno. Se prende desde
-            los ajustes del sistema.
-          </Note>
+          <Note tone="warn">El teléfono tiene los avisos bloqueados para esta app.</Note>
           <View style={{ marginTop: space.md }}>
             <AppText variant="small" tone="green" onPress={() => Linking.openSettings()}>
               Abrir los ajustes del teléfono
@@ -70,7 +64,7 @@ export default function AlertsScreen() {
             {saving
               ? "Reprogramando los avisos…"
               : !prefs.notify
-                ? "No vas a recibir avisos."
+                ? "Avisos apagados."
                 : scheduled === 0
                   ? "No hay turnos en los próximos siete días para avisar."
                   : `${scheduled} ${scheduled === 1 ? "aviso programado" : "avisos programados"} para los próximos siete días.`}
@@ -80,7 +74,7 @@ export default function AlertsScreen() {
 
       <Section>
         <AppText variant="caption" tone="muted">
-          Los programa este teléfono, así que llegan aunque no tengas señal.
+          Los programa este teléfono, así que llegan aunque no haya señal.
         </AppText>
       </Section>
     </Screen>

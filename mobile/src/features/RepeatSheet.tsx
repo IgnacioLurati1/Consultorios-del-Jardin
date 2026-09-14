@@ -62,12 +62,12 @@ export function RepeatSheet({
             onChange={setEndDate}
             minimumDate={addDays(new Date(), 1)}
             hint="Después de ese día no se crea ninguno más."
-            error={missingDate ? "Elegí hasta qué día se repite" : null}
+            error={missingDate ? "Falta el último día" : null}
           />
         ) : null}
 
         <AppText variant="caption" tone="muted">
-          Se van a ir creando de a poco, a medida que se acerquen. Podés frenarlo cuando quieras.
+          Se crean a medida que se acercan. Se puede frenar cuando se quiera.
         </AppText>
 
         <Button

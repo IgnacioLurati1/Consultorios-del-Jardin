@@ -57,6 +57,14 @@ export function acceptPending(): Promise<number> {
   return api.post("/settings/pending").then((response) => response.data.data.accepted);
 }
 
+/**
+ * Da por cobrados todos los turnos atendidos que quedaron sin saldar. Devuelve cuántos
+ * tocó y por cuánta plata, que es lo que se muestra después.
+ */
+export function settleUnpaid(): Promise<{ settled: number; amount: number }> {
+  return api.post("/settings/unpaid").then((response) => response.data.data);
+}
+
 export function addVacation(fromDate: string, toDate: string, reason?: string): Promise<void> {
   return api.post("/settings/vacations", { fromDate, toDate, reason }).then(() => undefined);
 }

@@ -1,7 +1,9 @@
 import { FontAwesome6 } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
+import type { PlacePhoto } from "../lib/place";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { AppearanceSheet } from "../features/Appearance";
@@ -186,6 +188,131 @@ function Apariencia() {
   );
 }
 
+/**
+ * Pasa de una foto a la siguiente cada tanto. Con "reducir movimiento" prendido en el
+ * teléfono queda quieta en la primera: es lo único de la pantalla que se movería solo.
+ */
+function useSlideshow(count: number, every = 6000): number {
+  const [index, setIndex] = useState(0);
+  const [still, setStill] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((value) => {
+        if (alive) setStill(value);
+      })
+      .catch(() => undefined);
+
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", setStill);
+    return () => {
+      alive = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (still || count < 2) return;
+    const timer = setInterval(() => setIndex((current) => (current + 1) % count), every);
+    return () => clearInterval(timer);
+  }, [still, count, every]);
+
+  return index;
+}
+
+/**
+ * El encabezado del paciente: el consultorio en fotos, en vez del bloque verde.
+ *
+ * El profesional y el administrador abren la app a trabajar, y para ellos el encabezado es
+ * la fecha y la agenda del día. El paciente viene a atenderse a un lugar, y lo primero que
+ * la página le muestra es ese lugar: la app no puede recibirlo con una lista de turnos a
+ * secas. Es el mismo contenido que la portada de la página vista desde el celular.
+ *
+ * Abajo deja lugar para una tarjeta que se monta encima (el próximo turno): la pone quien
+ * lo usa, porque es contenido de la pantalla y no del encabezado.
+ */
+export function PlaceBand({
+  photos,
+  subtitle,
+  onOpenAssistant,
+}: {
+  photos: PlacePhoto[];
+  subtitle: string;
+  onOpenAssistant?: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const { colors, band } = useTheme();
+  const index = useSlideshow(photos.length);
+  const photo = photos[index];
+
+  return (
+    <View style={[styles.place, { backgroundColor: band.to, paddingTop: insets.top + space.lg, minHeight: insets.top + 340 }]}>
+      <Image
+        source={photo.source}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        transition={{ duration: 900, effect: "cross-dissolve" }}
+        accessible
+        accessibilityLabel={photo.caption}
+      />
+      <Velo />
+
+      <View style={styles.top}>
+        <View style={styles.brand}>
+          <Leaf size={20} colors={{ blade: band.leaf, veins: band.leafVeins }} />
+        </View>
+
+        <View style={styles.acciones}>
+          <Campana />
+          <Apariencia />
+
+          {onOpenAssistant ? (
+            <Pressable
+              onPress={onOpenAssistant}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir el asistente"
+              hitSlop={10}
+              style={({ pressed }) => [styles.assistant, pressed && Platform.OS === "ios" && styles.pressed]}
+            >
+              <FontAwesome6 name="comment-dots" size={16} color={colors.cream} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.placeFill} />
+
+      <AppText variant="display" tone="cream" accessibilityRole="header">
+        Consultorios del Jardín
+      </AppText>
+      <AppText variant="small" style={styles.headline}>
+        {subtitle}
+      </AppText>
+    </View>
+  );
+}
+
+/**
+ * Lo que oscurece la foto para que se lea lo de encima. Más fuerte abajo, donde van el
+ * nombre y la tarjeta, y apenas arriba, donde van los botones.
+ */
+function Velo() {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Svg width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="velo" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#0b1410" stopOpacity="0.45" />
+            <Stop offset="0.45" stopColor="#0b1410" stopOpacity="0.12" />
+            <Stop offset="1" stopColor="#0b1410" stopOpacity="0.82" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#velo)" />
+      </Svg>
+    </View>
+  );
+}
+
 /** El dato grande del encabezado: una frase, no una fila de tarjetas con números. */
 export function BandHeadline({ children }: { children: ReactNode }) {
   return (
@@ -235,4 +362,13 @@ const styles = StyleSheet.create({
   globoTexto: { color: "#ffffff", fontSize: 10, lineHeight: 12, fontWeight: "700" },
   headline: { color: "rgba(254, 250, 224, 0.82)" },
   pressed: { opacity: 0.6 },
+  /* Sin las esquinas redondeadas del bloque verde: la foto va de borde a borde, y abajo
+     deja aire para la tarjeta que se le monta encima. */
+  place: {
+    paddingHorizontal: SCREEN_PADDING,
+    paddingBottom: space.xxxl + 40,
+    gap: space.xs,
+    overflow: "hidden",
+  },
+  placeFill: { flex: 1, minHeight: space.xxxl },
 });

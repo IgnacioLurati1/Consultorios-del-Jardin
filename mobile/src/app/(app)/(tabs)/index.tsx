@@ -1,20 +1,26 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { myPatientAppointments, myProfessionalAppointments, professionalRange, unpaidAppointments } from "../../../api/appointments";
+import { myProfessionalAppointments, professionalRange, unpaidAppointments } from "../../../api/appointments";
 import { officeAnalytics } from "../../../api/analytics";
+import { errorMessage } from "../../../api/client";
+import { settleUnpaid } from "../../../api/settings";
 import { Appointment } from "../../../api/types";
+import { myWaitlist, WaitingPatient } from "../../../api/waitlist";
 import { AppointmentRow } from "../../../components/AppointmentRow";
-import { Tag } from "../../../components/Chip";
 import { Button } from "../../../components/Button";
+import { Tag } from "../../../components/Chip";
+import { useFeedback } from "../../../components/Feedback";
 import { BandHeadline, DayBand } from "../../../components/DayBand";
 import { DataState, EmptyState, SkeletonList } from "../../../components/States";
-import { Group, Note, Row, Section } from "../../../components/Surfaces";
+import { Group, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { AnnouncementBanner } from "../../../features/Announcements";
 import { OfficeSettings } from "../../../features/OfficeSettings";
+import { PatientHome } from "../../../features/PatientHome";
+import { WaitlistPeopleSheet } from "../../../features/WaitlistPeopleSheet";
 import { WeekSummary } from "../../../features/WeekSummary";
 import { delDia, describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
 import { money, numericDate, today } from "../../../lib/dates";
@@ -41,86 +47,6 @@ export default function HomeScreen() {
 }
 
 /* ============================================================
-   Paciente
-   ============================================================ */
-
-function PatientHome() {
-  const { email } = useUser();
-  const state = useAsync(() => myPatientAppointments(0), []);
-
-  const upcoming = (state.data ?? []).filter((appointment) => isUpcoming(appointment));
-  const next = upcoming[0];
-
-  return (
-    <Frame
-      refreshing={state.refreshing}
-      onRefresh={state.refresh}
-      band={
-        <BandHeadline>
-          {state.loading
-            ? "Buscando tus turnos"
-            : next
-              ? `Tu próximo turno es con ${next.professional.name} ${next.professional.surname}.`
-              : "No tenés turnos pedidos."}
-        </BandHeadline>
-      }
-    >
-      <DataState
-        loading={state.loading}
-        error={state.error}
-        empty={upcoming.length === 0}
-        onRetry={state.reload}
-        skeleton={<View style={styles.pad}><SkeletonList rows={3} height={84} /></View>}
-        emptyState={
-          <EmptyState
-            icon="calendar-plus"
-            title="Todavía no tenés turnos"
-            description="Elegí una especialidad y un horario que te sirva. Te confirmamos por mail."
-            action={{ label: "Pedir un turno", onPress: () => router.push("/(app)/(tabs)/pedir-turno") }}
-          />
-        }
-      >
-        <View style={styles.pad}>
-          <Section title={upcoming.length === 1 ? "Tu turno" : "Tus próximos turnos"}>
-            <Group>
-              {upcoming.slice(0, 5).map((appointment, index) => (
-                <AppointmentRow
-                  key={appointment.numAppointment}
-                  appointment={appointment}
-                  viewerEmail={email}
-                  showDay
-                  last={index === Math.min(upcoming.length, 5) - 1}
-                  onPress={() => router.push(`/(app)/turno/${appointment.numAppointment}`)}
-                />
-              ))}
-            </Group>
-
-            {upcoming.some((appointment) => stateOf(appointment) === "pending") ? (
-              <View style={styles.gap}>
-                <Note>
-                  Los turnos que dicen "a confirmar" todavía los tiene que aceptar el profesional. Te avisamos por mail
-                  en cuanto lo haga.
-                </Note>
-              </View>
-            ) : null}
-          </Section>
-
-          <Section>
-            <Button
-              label="Pedir otro turno"
-              icon="calendar-plus"
-              variant="secondary"
-              block
-              onPress={() => router.push("/(app)/(tabs)/pedir-turno")}
-            />
-          </Section>
-        </View>
-      </DataState>
-    </Frame>
-  );
-}
-
-/* ============================================================
    Profesional
    ============================================================ */
 
@@ -131,10 +57,19 @@ function ProfessionalHome() {
   const day = useAsync(() => professionalRange(today(), today(), true), []);
   const all = useAsync(() => myProfessionalAppointments(0), []);
   const unpaid = useAsync(() => unpaidAppointments(), []);
+  // Contra un servidor de antes no hay lista, y eso es lo mismo que una lista vacía: la
+  // caja no se dibuja.
+  const waitlist = useAsync(() => myWaitlist().catch(() => [] as WaitingPatient[]), []);
+  const feedback = useFeedback();
 
   // Arranca cerrada. Es una cuenta pendiente, no algo que haya que hacer hoy: se abre
   // cuando uno viene a reclamar, y mientras tanto alcanza con el número del renglón.
   const [unpaidOpen, setUnpaidOpen] = useState(false);
+  const [settling, setSettling] = useState(false);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  /** Cómo quedó la lista después de sacar a alguien desde el panel, hasta la próxima carga. */
+  const [waiting, setWaiting] = useState<WaitingPatient[] | null>(null);
+  const people = waiting ?? waitlist.data ?? [];
 
   // El total viene aparte de la lista porque no siempre coinciden: la lista tiene tope, y
   // el que trajo dos años de agenda puede tener más turnos sin cobrar de los que entran.
@@ -147,6 +82,43 @@ function ProfessionalHome() {
     (appointment) => stateOf(appointment) === "pending" && isUpcoming(appointment)
   );
 
+  /**
+   * Da por cobrado todo lo que quedó sin saldar, como en el panel de la página.
+   *
+   * Se pregunta antes, a diferencia de confirmar los pedidos: declara plata como cobrada,
+   * y para volver atrás hay que abrir los turnos de a uno. El cartel dice el número y el
+   * monto porque es lo único que deja darse cuenta de que se tocó el botón equivocado.
+   */
+  function confirmSettle() {
+    Alert.alert(
+      unpaidCount === 1 ? "¿Darlo por cobrado?" : "¿Darlos todos por cobrados?",
+      `${unpaidCount === 1 ? "Se marca como cobrado 1 turno" : `Se marcan como cobrados ${unpaidCount} turnos`}${
+        owed > 0 ? `, ${money(owed)}` : ""
+      }. Para revertirlo, cada turno se cambia a mano.`,
+      [
+        { text: "Volver", style: "cancel" },
+        { text: unpaidCount === 1 ? "Sí, darlo por cobrado" : "Sí, darlos por cobrados", onPress: settle },
+      ]
+    );
+  }
+
+  async function settle() {
+    setSettling(true);
+
+    try {
+      const { settled, amount } = await settleUnpaid();
+      const plata = amount > 0 ? `, ${money(amount)}` : "";
+      feedback.done(settled === 1 ? `Turno dado por cobrado${plata}` : `${settled} turnos dados por cobrados${plata}`);
+      unpaid.reload();
+      day.reload();
+      all.reload();
+    } catch (problem) {
+      feedback.problem(errorMessage(problem));
+    } finally {
+      setSettling(false);
+    }
+  }
+
   return (
     <Frame
       refreshing={day.refreshing}
@@ -154,19 +126,47 @@ function ProfessionalHome() {
         day.refresh();
         all.reload();
         unpaid.reload();
+        setWaiting(null);
+        waitlist.reload();
       }}
       band={<BandHeadline>{headlineFor(agenda, day.loading)}</BandHeadline>}
     >
       <View style={styles.pad}>
         {toConfirm.length > 0 ? (
-          <Section title="Te están esperando">
+          <Section title="Pedidos pendientes">
             <Group>
               <Row
                 title={toConfirm.length === 1 ? "Un turno sin confirmar" : `${toConfirm.length} turnos sin confirmar`}
-                subtitle="Aceptalos o rechazalos para que la persona sepa a qué atenerse."
+                subtitle="Aceptar o rechazar"
                 icon="clock"
                 last
                 onPress={() => router.push("/(app)/(tabs)/turnos")}
+              />
+            </Group>
+          </Section>
+        ) : null}
+
+        {/* Es gente que ya pidió algo y todavía no lo tiene, así que va junto a los pedidos
+            y antes de la plata, como en la página. Sin nadie esperando no se dibuja. */}
+        {people.length > 0 ? (
+          <Section title="Lista de espera">
+            <Group>
+              <Row
+                title={
+                  people.length === 1
+                    ? "Una persona espera que se libere un horario"
+                    : `${people.length} personas esperan que se libere un horario`
+                }
+                subtitle={
+                  people
+                    .slice(0, 3)
+                    .map((person) => `${person.patient.name} ${person.patient.surname}`)
+                    .join(", ") + (people.length > 3 ? "…" : "")
+                }
+                subtitleIsData
+                icon="bell"
+                last
+                onPress={() => setWaitlistOpen(true)}
               />
             </Group>
           </Section>
@@ -197,6 +197,19 @@ function ProfessionalHome() {
                 onPress={() => setUnpaidOpen(!unpaidOpen)}
               />
             </Group>
+
+            {/* Afuera de la fila que despliega: son dos acciones distintas que conviene no
+                confundir de un toque. */}
+            <View style={{ marginTop: space.md }}>
+              <Button
+                label={unpaidCount === 1 ? "Considerar cobrado" : "Considerar todos cobrados"}
+                icon="money-bill-wave"
+                variant="secondary"
+                block
+                loading={settling}
+                onPress={confirmSettle}
+              />
+            </View>
 
             {unpaidOpen ? (
               <View style={{ marginTop: space.md }}>
@@ -233,7 +246,7 @@ function ProfessionalHome() {
               <EmptyState
                 compact
                 icon="mug-hot"
-                title="Hoy no atendés a nadie"
+                title="Sin turnos hoy"
                 description="No hay turnos cargados para el día de hoy."
                 action={{ label: "Cargar un turno", onPress: () => router.push("/(app)/nuevo-turno") }}
               />
@@ -253,32 +266,39 @@ function ProfessionalHome() {
           </DataState>
         </Section>
 
-        <Section title="Tu consultorio">
+        <Section title="Consultorio">
           <Group>
-            <Row title="Ver mis turnos" subtitle="Toda tu agenda, no solo la de hoy" icon="calendar-check" onPress={() => router.push("/(app)/(tabs)/turnos")} />
-            <Row title="Horarios de atención" subtitle="Los módulos en los que atendés" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
-            <Row title="Tus números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
-            <Row title="Cargar un turno" subtitle="Con un paciente tuyo, o un sobreturno" icon="plus" last onPress={() => router.push("/(app)/nuevo-turno")} />
+            <Row title="Ver mis turnos" subtitle="La agenda completa" icon="calendar-check" onPress={() => router.push("/(app)/(tabs)/turnos")} />
+            <Row title="Horarios de atención" subtitle="Módulos de atención" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
+            <Row title="Números" subtitle="Facturación, pacientes y carga de la agenda" icon="chart-column" onPress={() => router.push("/(app)/mis-numeros")} />
+            <Row title="Cargar un turno" subtitle="Normal o especial" icon="plus" last onPress={() => router.push("/(app)/nuevo-turno")} />
           </Group>
         </Section>
 
         {/* Cierra el panel: lo que se decide una vez y despues se olvida. */}
         <OfficeSettings />
+
+        <WaitlistPeopleSheet
+          visible={waitlistOpen}
+          onClose={() => setWaitlistOpen(false)}
+          list={people}
+          onChanged={setWaiting}
+        />
       </View>
     </Frame>
   );
 }
 
 function headlineFor(agenda: Appointment[], loading: boolean): string {
-  if (loading) return "Mirando tu agenda";
+  if (loading) return "Mirando la agenda";
 
   // Las bajas sobre la hora están en la lista de abajo, pero acá no cuentan: nadie viene a
   // un turno que se dio de baja, y el encabezado dice a cuánta gente se atiende hoy.
   const vienen = agenda.filter((appointment) => stateOf(appointment) !== "cancelled").length;
 
-  if (vienen === 0) return "Hoy no tenés turnos.";
-  if (vienen === 1) return "Hoy atendés a una persona.";
-  return `Hoy atendés a ${vienen} personas.`;
+  if (vienen === 0) return "Hoy no hay turnos.";
+  if (vienen === 1) return "Hoy hay una persona con turno.";
+  return `Hoy hay ${vienen} personas con turno.`;
 }
 
 /* ============================================================
@@ -299,7 +319,7 @@ function AdminHome() {
             ? "Mirando el consultorio"
             : state.data
               ? `${state.data.headcount} ${state.data.headcount === 1 ? "profesional atendiendo" : "profesionales atendiendo"}.`
-              : "No pudimos traer los números del consultorio."}
+              : "No se pudieron traer los números del consultorio."}
         </BandHeadline>
       }
     >
@@ -309,7 +329,7 @@ function AdminHome() {
             <Group>
               <Row title="Turnos dados" value={String(month.appointments)} last={false} />
               <Row title="Asistieron" value={String(month.assisted)} last={false} />
-              <Row title="Sobreturnos" value={String(month.overbooked)} last={false} />
+              <Row title="Turnos especiales" value={String(month.overbooked)} last={false} />
               <Row title="Facturado" value={money(month.billed)} last />
             </Group>
           </Section>
@@ -320,8 +340,10 @@ function AdminHome() {
             <Row title="Usuarios" subtitle="Altas, bajas y solicitudes de profesionales" icon="users" onPress={() => router.push("/(app)/(tabs)/usuarios")} />
             <Row title="Control de turnos" subtitle="Qué está dando cada profesional" icon="eye" onPress={() => router.push("/(app)/admin/control")} />
             <Row title="Horarios" subtitle="Los módulos de atención de cada uno" icon="calendar-days" onPress={() => router.push("/(app)/horarios")} />
-            <Row title="El día completo" subtitle="Quién atiende y qué turnos hay, consultorio por consultorio" icon="table-columns" onPress={() => router.push("/(app)/(tabs)/dia")} />
-            <Row title="Números del consultorio" subtitle="Facturación, pacientes y uso del asistente" icon="chart-column" last onPress={() => router.push("/(app)/(tabs)/numeros")} />
+            <Row title="El día completo" subtitle="Consultorio por consultorio" icon="table-columns" onPress={() => router.push("/(app)/(tabs)/dia")} />
+            <Row title="Avisos" subtitle="Carteles y notificaciones" icon="bullhorn" onPress={() => router.push("/(app)/admin/avisos")} />
+            <Row title="Números del consultorio" subtitle="Facturación, pacientes y uso del asistente" icon="chart-column" onPress={() => router.push("/(app)/(tabs)/numeros")} />
+            <Row title="Alquileres" subtitle="Cuotas, pagos y precios" icon="money-bill-wave" last onPress={() => router.push("/(app)/admin/alquileres")} />
           </Group>
         </Section>
 

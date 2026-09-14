@@ -49,8 +49,8 @@ function RoomForm({ editing, done }: { editing: Room | null; done: () => void })
     if (busy) return;
 
     const found = {
-      description: description.trim().length >= 1 ? null : "Escribí cómo se llama el consultorio",
-      office: office ? null : "Elegí en qué sucursal está",
+      description: description.trim().length >= 1 ? null : "Falta el nombre del consultorio",
+      office: office ? null : "Falta la sucursal",
     };
 
     setErrors(found);
@@ -62,7 +62,7 @@ function RoomForm({ editing, done }: { editing: Room | null; done: () => void })
       if (editing) await updateRoom(String(editing.idRoom), description.trim(), office);
       else await createRoom(description.trim(), office);
 
-      feedback.done(editing ? "Guardamos el cambio" : "Consultorio creado");
+      feedback.done(editing ? "Cambio guardado" : "Consultorio creado");
       done();
     } catch (problem) {
       setErrors({ description: errorMessage(problem) });
@@ -105,7 +105,7 @@ function RoomForm({ editing, done }: { editing: Room | null; done: () => void })
         }))}
         selected={office}
         onSelect={setOffice}
-        emptyLabel="No hay sucursales habilitadas. Creá una primero."
+        emptyLabel="No hay sucursales habilitadas. Primero hay que crear una."
       />
     </View>
   );

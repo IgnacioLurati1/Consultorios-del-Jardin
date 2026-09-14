@@ -1,17 +1,18 @@
 import { FontAwesome6 } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { errorMessage } from "../../../api/client";
-import { findAllUsers, toggleUserBookable, toggleUserState } from "../../../api/people";
+import { findAllUsers, toggleUserBookable, toggleUserState, toggleUserWaitlist } from "../../../api/people";
 import { Person } from "../../../api/types";
 import { Button } from "../../../components/Button";
 import { behaviourReport, explainSuspicion, type FlaggedPatient } from "../../../api/security";
 import { ChipRow, Tag } from "../../../components/Chip";
 import { useFeedback } from "../../../components/Feedback";
+import { Sheet } from "../../../components/Sheet";
 import { DataState, EmptyState } from "../../../components/States";
-import { Group, Note } from "../../../components/Surfaces";
+import { Group, Note, Row } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { fullName, initials } from "../../../lib/appointments";
 import { matches } from "../../../lib/specialities";
@@ -42,6 +43,9 @@ export default function UsersScreen() {
   const [filter, setFilter] = useState<Filter>("pending");
   const [search, setSearch] = useState("");
   const state = useAsync(findAllUsers, []);
+  /** El profesional cuyas opciones están abiertas en el panel. */
+  const [managing, setManaging] = useState<Person | null>(null);
+  const [switching, setSwitching] = useState(false);
 
   // Los pacientes marcados por su asistencia. Van aparte porque no son un campo de la
   // persona sino una cuenta sobre sus turnos. Si falla, el listado funciona igual.
@@ -101,7 +105,7 @@ export default function UsersScreen() {
     if (enabling) return act();
 
     // Deshabilitar deja a alguien afuera de la app: eso se confirma.
-    Alert.alert("Deshabilitar la cuenta", `${fullName(person)} no va a poder entrar hasta que la habilites de nuevo.`, [
+    Alert.alert("Deshabilitar la cuenta", `${fullName(person)} no va a poder entrar hasta que se habilite de nuevo.`, [
       { text: "No", style: "cancel" },
       { text: "Deshabilitar", style: "destructive", onPress: act },
     ]);
@@ -127,10 +131,45 @@ export default function UsersScreen() {
     }
   }
 
+  /**
+   * Prender o apagar su lista de espera, como en la ficha de la página.
+   *
+   * Apagarla se pregunta: vacía la lista y les avisa a los que estaban, y eso no se
+   * deshace volviéndola a prender. El mensaje de después lo arma el servidor, que sabe a
+   * cuántos les avisó.
+   */
+  function askToggleWaitlist(person: Person) {
+    const act = async () => {
+      setSwitching(true);
+
+      try {
+        const { waitlistEnabled, message } = await toggleUserWaitlist(person.email);
+        setManaging((current) => (current && current.email === person.email ? { ...current, waitlistEnabled } : current));
+        feedback.done(message);
+        state.reload();
+      } catch (problem) {
+        feedback.problem(errorMessage(problem));
+      } finally {
+        setSwitching(false);
+      }
+    };
+
+    if (person.waitlistEnabled === false) return act();
+
+    Alert.alert(
+      "Apagar la lista de espera",
+      "La lista se vacía y las personas anotadas reciben un aviso.",
+      [
+        { text: "Volver", style: "cancel" },
+        { text: "Apagar", style: "destructive", onPress: act },
+      ]
+    );
+  }
+
   const empty = {
-    pending: { title: "No hay nadie esperando", description: "Cuando un profesional se registre, va a aparecer acá para que lo apruebes." },
-    professionals: { title: "Todavía no hay profesionales", description: "Podés darlos de alta vos desde el botón de abajo." },
-    patients: { title: "Todavía no hay pacientes", description: "Las cuentas de los pacientes se crean solas cuando se registran." },
+    pending: { title: "No hay nadie esperando", description: "Acá aparecen los profesionales que se registran." },
+    professionals: { title: "Todavía no hay profesionales", description: "Se dan de alta desde el botón de abajo." },
+    patients: { title: "Todavía no hay pacientes", description: "Aparecen al registrarse." },
   }[filter];
 
   return (
@@ -156,9 +195,7 @@ export default function UsersScreen() {
 
       {filter === "pending" && waiting.length > 0 ? (
         <View style={styles.note}>
-          <Note tone="warn">
-            Estas cuentas están creadas pero no pueden entrar. Habilitalas si efectivamente van a atender acá.
-          </Note>
+          <Note tone="warn">Cuentas sin acceso todavía. Se habilitan al empezar a atender.</Note>
         </View>
       ) : null}
 
@@ -191,8 +228,8 @@ export default function UsersScreen() {
           emptyState={
             <EmptyState
               icon="users"
-              title={search ? "No encontramos a nadie así" : empty.title}
-              description={search ? "Probá con el apellido o el email." : empty.description}
+              title={search ? "Sin resultados" : empty.title}
+              description={search ? "Buscar por apellido o email." : empty.description}
             />
           }
         >
@@ -205,6 +242,7 @@ export default function UsersScreen() {
                 suspicion={flagged.data?.get(person.email)}
                 onToggle={() => toggle(person)}
                 onToggleBookable={() => toggleBookable(person)}
+                onOpen={person.type === "professional" && person.active ? () => setManaging(person) : undefined}
               />
             ))}
           </Group>
@@ -220,6 +258,32 @@ export default function UsersScreen() {
           onPress={() => router.push("/(app)/admin/alta-profesional")}
         />
       </View>
+
+      <Sheet visible={!!managing} onClose={() => setManaging(null)} title={managing ? fullName(managing) : ""}>
+        {managing ? (
+          <View style={styles.sheet}>
+            <Group>
+              <Row
+                title="Lista de espera"
+                subtitle={
+                  managing.waitlistEnabled === false
+                    ? "Apagada. Nadie se puede anotar."
+                    : "Los pacientes se anotan y reciben aviso cuando se libera un horario."
+                }
+                icon="bell"
+                last
+                right={
+                  <Switch
+                    value={managing.waitlistEnabled !== false}
+                    disabled={switching}
+                    onValueChange={() => askToggleWaitlist(managing)}
+                  />
+                }
+              />
+            </Group>
+          </View>
+        ) : null}
+      </Sheet>
     </ScrollView>
   );
 }
@@ -228,6 +292,7 @@ function UserRow({
   person,
   onToggle,
   onToggleBookable,
+  onOpen,
   last,
   suspicion,
 }: {
@@ -235,6 +300,8 @@ function UserRow({
   onToggle: () => void;
   /** Solo se ofrece para un profesional habilitado: es esconderlo, no darlo de baja. */
   onToggleBookable: () => void;
+  /** Abre sus opciones, como la lista de espera. Solo para un profesional habilitado. */
+  onOpen?: () => void;
   last: boolean;
   /** Presente si el paciente viene faltando más de lo que asiste. */
   suspicion?: FlaggedPatient;
@@ -250,7 +317,13 @@ function UserRow({
         </AppText>
       </View>
 
-      <View style={styles.rowText}>
+      <Pressable
+        onPress={onOpen}
+        disabled={!onOpen}
+        accessibilityRole={onOpen ? "button" : undefined}
+        accessibilityLabel={onOpen ? `Opciones de ${fullName(person)}` : undefined}
+        style={({ pressed }) => [styles.rowText, pressed && Platform.OS === "ios" && styles.pressed]}
+      >
         <AppText variant="body" numberOfLines={1} tone={person.active ? "default" : "muted"}>
           {fullName(person)}
         </AppText>
@@ -275,6 +348,10 @@ function UserRow({
           <View style={styles.rowTag}>
             <Tag label="Comportamiento sospechoso" tone="warn" />
           </View>
+        ) : person.type === "professional" && person.waitlistEnabled === false ? (
+          <View style={styles.rowTag}>
+            <Tag label="Sin lista de espera" />
+          </View>
         ) : null}
 
         {person.bannedBy === "system" && person.banReason ? (
@@ -286,7 +363,7 @@ function UserRow({
             {explainSuspicion(suspicion)}
           </AppText>
         ) : null}
-      </View>
+      </Pressable>
 
       {person.type === "professional" && person.active ? (
         <Pressable
@@ -340,6 +417,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 16, paddingVertical: space.md },
   list: { marginTop: space.lg },
   newButton: { marginTop: space.xl },
+  sheet: { paddingBottom: space.md },
   row: {
     flexDirection: "row",
     alignItems: "center",

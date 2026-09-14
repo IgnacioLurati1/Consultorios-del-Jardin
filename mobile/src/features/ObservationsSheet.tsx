@@ -57,7 +57,7 @@ export function ObservationsSheet({
           </AppText>
         </View>
 
-        <Note>Esto lo ven el paciente y vos. Sirve para dejarle el seguimiento, un plan o qué mirar hasta la próxima.</Note>
+        <Note>Lo ven el paciente y el profesional.</Note>
 
         <Button
           label="Guardar"

@@ -66,11 +66,11 @@ function PatientAppointments() {
 
   const empty = {
     upcoming: {
-      title: "No tenés turnos pedidos",
-      description: "Cuando pidas uno, va a aparecer acá con el día, la hora y el consultorio.",
+      title: "Sin turnos pedidos",
+      description: "Los turnos solicitados aparecen acá, con el día, la hora y el consultorio.",
     },
-    past: { title: "Todavía no fuiste a ningún turno", description: "Acá van a quedar los turnos a los que ya asististe." },
-    cancelled: { title: "No cancelaste ningún turno", description: undefined },
+    past: { title: "Sin turnos anteriores", description: "Acá quedan los turnos que ya pasaron." },
+    cancelled: { title: "Sin turnos cancelados", description: undefined },
   }[filter];
 
   return (
@@ -81,7 +81,7 @@ function PatientAppointments() {
         <RefreshControl refreshing={state.refreshing} onRefresh={state.refresh} tintColor={colors.green} colors={[colors.green]} />
       }
     >
-      <AppText variant="display">Tus turnos</AppText>
+      <AppText variant="display">Mis turnos</AppText>
 
       <View style={styles.filters}>
         <ChipRow options={PATIENT_FILTERS} value={filter} onChange={setFilter} />
@@ -100,7 +100,7 @@ function PatientAppointments() {
             description={empty.description}
             action={
               filter === "upcoming"
-                ? { label: "Pedir un turno", onPress: () => router.push("/(app)/(tabs)/pedir-turno") }
+                ? { label: "Solicitar turno", onPress: () => router.push("/(app)/(tabs)/pedir-turno") }
                 : undefined
             }
           />
@@ -123,7 +123,7 @@ function PatientAppointments() {
       {filter === "upcoming" && list.length > 0 ? (
         <Section>
           <Button
-            label="Pedir otro turno"
+            label="Solicitar otro turno"
             icon="calendar-plus"
             variant="secondary"
             block
@@ -179,10 +179,10 @@ function ProfessionalAgenda() {
       .then((accepted) => {
         feedback.done(
           accepted === 0
-            ? "No tenías pedidos esperando"
+            ? "Sin pedidos pendientes"
             : accepted === 1
-              ? "Confirmaste un turno"
-              : `Confirmaste ${accepted} turnos`
+              ? "Un turno confirmado"
+              : `${accepted} turnos confirmados`
         );
         setConfirming(false);
         pending.reload();
@@ -238,11 +238,11 @@ function ProfessionalAgenda() {
         skeleton={<SkeletonList rows={4} height={92} />}
         emptyState={
           onlyPending ? (
-            <EmptyState icon="circle-check" title="No tenés turnos esperando" description="Todos los turnos pedidos ya están aceptados o rechazados." />
+            <EmptyState icon="circle-check" title="Sin turnos pendientes" description="Todos los turnos pedidos ya están aceptados o rechazados." />
           ) : (
             <EmptyState
               icon="mug-hot"
-              title={`No atendés a nadie ${onDay(day)}`}
+              title={`Sin turnos ${onDay(day)}`}
               description="No hay turnos cargados para ese día."
               action={{ label: "Cargar un turno", onPress: () => router.push("/(app)/nuevo-turno") }}
             />
@@ -288,18 +288,15 @@ function ProfessionalAgenda() {
         <View style={{ gap: space.lg, paddingBottom: space.md }}>
           <AppText variant="body">
             {waiting === 1
-              ? "Vas a aceptar el pedido que tenés esperando."
-              : `Vas a aceptar los ${waiting} pedidos que tenés esperando.`}
+              ? "Se acepta el pedido pendiente."
+              : `Se aceptan los ${waiting} pedidos pendientes.`}
           </AppText>
 
           {waiting > toConfirm.length ? (
-            <Note>
-              Son todos los que quedaron sin responder, también los de días que ya pasaron. Acá abajo se ven{" "}
-              {toConfirm.length}.
-            </Note>
+            <Note>Incluye los de días pasados. Acá se ven {toConfirm.length}.</Note>
           ) : null}
 
-          <Note tone="warn">Al confirmar de esta forma no se enviarán mails a los pacientes.</Note>
+          <Note tone="warn">Así no se envían mails a los pacientes.</Note>
 
           <Button
             label="Sí, confirmar todos"
@@ -332,7 +329,7 @@ function DayPicker({ day, onShift, onToday }: { day: string; onShift: (days: num
         onPress={onToday}
         disabled={isToday}
         accessibilityRole="button"
-        accessibilityLabel={isToday ? longDate(day) : `${longDate(day)}. Tocá para volver a hoy`}
+        accessibilityLabel={isToday ? longDate(day) : `${longDate(day)}. Volver a hoy`}
         style={styles.dayLabel}
       >
         <AppText variant="subtitle" numberOfLines={1}>

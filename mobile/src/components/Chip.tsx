@@ -71,7 +71,7 @@ export function StateBadge({ state }: { state: StateKey }) {
   );
 }
 
-/** Etiqueta neutra para un dato suelto: "Sobreturno", "Se repite", una especialidad. */
+/** Etiqueta neutra para un dato suelto: "Turno especial", "Se repite", una especialidad. */
 export function Tag({
   label,
   tone = "neutral",

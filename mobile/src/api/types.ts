@@ -53,6 +53,11 @@ export interface Person {
    * sigue trabajando igual: entra, ve su agenda y carga turnos a mano.
    */
   bookable?: boolean;
+  /**
+   * Si el profesional trabaja con lista de espera. Opcional porque la app instalada puede
+   * hablarle a un servidor de antes: sin el dato se la toma como prendida.
+   */
+  waitlistEnabled?: boolean;
   /** Paciente cargado por un profesional, sin cuenta propia. */
   anonymous?: boolean;
   createdBy?: string | null;

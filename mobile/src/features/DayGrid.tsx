@@ -75,7 +75,7 @@ function pack<T extends Span>(items: T[]): { item: T; lane: number; lanes: numbe
 
 /** Qué clase de turno es, en una palabra. Los normales no dicen nada: son la mayoría. */
 function kindOf(appointment: AgendaAppointment): string {
-  if (appointment.overbooked) return "sobreturno";
+  if (appointment.overbooked) return "turno especial";
   if (appointment.recurring) return "repetido";
   return "";
 }

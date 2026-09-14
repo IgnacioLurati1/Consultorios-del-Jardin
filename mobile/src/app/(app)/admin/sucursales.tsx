@@ -56,10 +56,10 @@ function OfficeForm({ editing, done }: { editing: Office | null; done: () => voi
     if (busy) return;
 
     const found = {
-      description: description.trim().length >= 2 ? null : "Escribí cómo se llama la sucursal",
-      opening: opening ? null : "Elegí a qué hora abre",
-      closing: !closing ? "Elegí a qué hora cierra" : opening && closing <= opening ? "Tiene que cerrar después de abrir" : null,
-      city: city ? null : "Elegí en qué localidad está",
+      description: description.trim().length >= 2 ? null : "Falta el nombre de la sucursal",
+      opening: opening ? null : "Falta la hora de apertura",
+      closing: !closing ? "Falta la hora de cierre" : opening && closing <= opening ? "Tiene que cerrar después de abrir" : null,
+      city: city ? null : "Falta la localidad",
     };
 
     setErrors(found);
@@ -73,7 +73,7 @@ function OfficeForm({ editing, done }: { editing: Office | null; done: () => voi
       if (editing) await updateOffice(String(editing.idOffice), input);
       else await createOffice(input);
 
-      feedback.done(editing ? "Guardamos el cambio" : "Sucursal creada");
+      feedback.done(editing ? "Cambio guardado" : "Sucursal creada");
       done();
     } catch (problem) {
       setErrors({ description: errorMessage(problem) });
@@ -125,7 +125,7 @@ function OfficeForm({ editing, done }: { editing: Office | null; done: () => voi
         }))}
         selected={city}
         onSelect={setCity}
-        emptyLabel="No hay localidades habilitadas. Creá una primero."
+        emptyLabel="No hay localidades habilitadas. Primero hay que crear una."
       />
     </View>
   );

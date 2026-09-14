@@ -52,7 +52,7 @@ export function AboutProfessional({
         />
 
         <AppText variant="caption" tone="muted">
-          Abre Gmail con un mensaje ya escrito. Podés cambiarlo antes de mandarlo.
+          Abre Gmail con un mensaje ya escrito.
         </AppText>
       </View>
     </Sheet>

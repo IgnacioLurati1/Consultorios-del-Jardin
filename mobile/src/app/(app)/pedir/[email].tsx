@@ -13,6 +13,7 @@ import { DataState, EmptyState, SkeletonList } from "../../../components/States"
 import { Group, Note, Row } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { errorMessage } from "../../../api/client";
+import { WaitlistSheet } from "../../../features/WaitlistSheet";
 import { addDays, hhmm, hourRange, longDate, relativeDay, sentenceCase, toISODate } from "../../../lib/dates";
 import { useAsync } from "../../../lib/useAsync";
 import { radius, space, TOUCH } from "../../../theme/tokens";
@@ -36,6 +37,7 @@ export default function SlotsScreen() {
   const [chosen, setChosen] = useState<Slot | null>(null);
   const [booking, setBooking] = useState(false);
   const [taken, setTaken] = useState<string[]>([]);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   const state = useAsync(async () => {
     const [professional, offices] = await Promise.all([findPerson(professionalEmail), findActiveOffices()]);
@@ -87,10 +89,10 @@ export default function SlotsScreen() {
       setTaken((current) => [...current, `${String(chosen.date).slice(0, 10)} ${chosen.initialHour}`]);
       setChosen(null);
 
-      feedback.done("Pedimos tu turno. Te avisamos por mail cuando lo confirmen.");
+      feedback.done("Turno solicitado. La confirmación llega por mail.");
       router.replace("/(app)/(tabs)/turnos");
     } catch (problem) {
-      feedback.problem(errorMessage(problem, "No pudimos pedir el turno"));
+      feedback.problem(errorMessage(problem, "No se pudo solicitar el turno"));
     } finally {
       setBooking(false);
     }
@@ -116,7 +118,7 @@ export default function SlotsScreen() {
             <EmptyState
               icon="calendar-xmark"
               title="No hay horarios libres"
-              description="Este profesional no tiene lugar en los próximos días. Probá con otro o escribinos."
+              description="Sin horarios libres en los próximos días. Hay otros profesionales disponibles."
               action={{ label: "Ver otros profesionales", onPress: () => router.back() }}
             />
           }
@@ -151,15 +153,29 @@ export default function SlotsScreen() {
               </View>
             ))}
 
-            <Note>
-              El turno queda pedido y el profesional lo confirma. Te llega un mail cuando lo acepta, y otro el día
-              anterior para recordártelo.
-            </Note>
+            <Note>Queda pendiente hasta que el profesional lo confirme. El aviso llega por mail.</Note>
           </View>
         </DataState>
+
+        {/* La salida para quien miró la agenda y no encontró nada que le sirva, igual que en
+            la página. Va también cuando no queda ningún horario, que es justo cuando más se
+            la necesita. No va si no se pudo traer la agenda: ahí hay que volver a probar. Con
+            la lista apagada tampoco, porque el panel solo diría que no la hay. */}
+        {professional && !state.loading && !state.error && professional.waitlistEnabled !== false ? (
+          <View style={styles.waitlist}>
+            <AppText variant="small" tone="muted">
+              Lista de espera, con aviso por mail cuando se libera un horario.
+            </AppText>
+            <Button label="Anotarse en la lista de espera" icon="bell" variant="secondary" block onPress={() => setWaitlistOpen(true)} />
+          </View>
+        ) : null}
       </Screen>
 
-      <Sheet visible={!!chosen} onClose={() => setChosen(null)} title="¿Pedimos este turno?">
+      {professional ? (
+        <WaitlistSheet visible={waitlistOpen} onClose={() => setWaitlistOpen(false)} professional={professional} />
+      ) : null}
+
+      <Sheet visible={!!chosen} onClose={() => setChosen(null)} title="Confirmar el turno">
         {chosen ? (
           <View style={styles.confirm}>
             <Group>
@@ -169,7 +185,7 @@ export default function SlotsScreen() {
               <Row title="Dónde" value={state.data?.office?.description ?? ""} last />
             </Group>
 
-            <Button label="Pedir el turno" onPress={confirm} loading={booking} block />
+            <Button label="Solicitar turno" onPress={confirm} loading={booking} block />
           </View>
         ) : null}
       </Sheet>
@@ -194,5 +210,6 @@ const styles = StyleSheet.create({
   },
   slotText: { fontVariant: ["tabular-nums"] },
   confirm: { gap: space.xl, paddingBottom: space.md },
+  waitlist: { marginTop: space.xxl, gap: space.md },
   pressed: { opacity: 0.6 },
 });

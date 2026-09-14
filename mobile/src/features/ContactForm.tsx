@@ -21,10 +21,10 @@ import { useTheme } from "../theme/useTheme";
  * llenarse de "Consulta" a secas.
  */
 const REASONS = [
-  { key: "turnos", label: "Turnos", description: "Dudas sobre un turno, una cancelación o cómo sacarlo." },
-  { key: "profesional", label: "Quiero atender acá", description: "Sos profesional y querés sumarte." },
-  { key: "sugerencia", label: "Sugerencia o reclamo", description: "Algo que podemos mejorar, o algo que salió mal." },
-  { key: "otro", label: "Otra consulta", description: "Cualquier cosa que no entre en las anteriores." },
+  { key: "turnos", label: "Turnos", description: "Solicitudes, cambios y cancelaciones." },
+  { key: "profesional", label: "Quiero trabajar acá", description: "Profesionales interesados en sumarse al consultorio." },
+  { key: "sugerencia", label: "Sugerencia o reclamo", description: "Propuestas de mejora o reclamos." },
+  { key: "otro", label: "Otra consulta", description: "Otros temas." },
 ];
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,18 +45,25 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const applying = reason === "profesional";
 
   function validate(): boolean {
     const found: Record<string, string | null> = {
-      reason: reason ? null : "Elegí un motivo para saber a quién derivarlo",
-      name: name.trim().length >= 2 ? null : "Escribí tu nombre",
-      email: EMAIL.test(email.trim()) ? null : "Ese email no parece válido. Revisá que tenga @ y un punto",
-      phone: !phone.trim() || /^[\d\s()+-]{6,30}$/.test(phone.trim()) ? null : "Ese teléfono no parece válido",
+      reason: reason ? null : "Falta elegir el motivo",
+      name: name.trim().length >= 2 ? null : "Falta el nombre",
+      email: EMAIL.test(email.trim()) ? null : "Formato de email inválido. Debe incluir @ y un punto",
+      // A un profesional se lo llama para la entrevista: igual que en la página y en el backend.
+      phone:
+        applying && !phone.trim()
+          ? "Falta el teléfono"
+          : !phone.trim() || /^[\d\s()+-]{6,30}$/.test(phone.trim())
+            ? null
+            : "Formato de teléfono inválido",
       message:
         message.trim().length < MIN_MESSAGE
-          ? "El mensaje es muy corto. Contanos un poco más"
+          ? "El mensaje es demasiado corto"
           : message.trim().length > MAX_MESSAGE
-            ? "El mensaje es demasiado largo. Probá resumirlo"
+            ? "El mensaje supera el máximo de caracteres"
             : null,
     };
 
@@ -73,7 +80,7 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
       await sendContactMessage({ reason, name, email, phone, message });
       setSent(true);
     } catch (problem) {
-      feedback.problem(errorMessage(problem, "No pudimos enviar el mensaje"));
+      feedback.problem(errorMessage(problem, "No se pudo enviar el mensaje"));
     } finally {
       setSending(false);
     }
@@ -84,8 +91,8 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
       <View style={[styles.done, { backgroundColor: colors.bg, paddingTop: standalone ? insets.top : 0 }]}>
         <EmptyState
           icon="envelope-circle-check"
-          title="Nos llegó tu mensaje"
-          description={`Te contestamos al mail que dejaste. Si es urgente, el consultorio atiende ${OFFICE_INFO.hours.toLowerCase()}.`}
+          title="Mensaje enviado"
+          description={`La respuesta llega por mail. El consultorio atiende ${OFFICE_INFO.hours.toLowerCase()}.`}
           action={{ label: "Escribir otra consulta", onPress: () => { setSent(false); setMessage(""); setReason(""); } }}
         />
       </View>
@@ -102,15 +109,14 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {standalone ? <AppText variant="display">Escribinos</AppText> : null}
+        {standalone ? <AppText variant="display">Contacto</AppText> : null}
 
         <AppText variant="small" tone="muted" style={styles.lead}>
-          Contanos qué necesitás y te contestamos por mail. No es el lugar para cancelar un turno urgente: para eso,
-          llamá al consultorio.
+          Respuesta por mail dentro de las 48 horas hábiles.
         </AppText>
 
         <View style={styles.form}>
-          <Choice label="¿De qué se trata?" options={REASONS} value={reason} onChange={setReason} />
+          <Choice label="Motivo" options={REASONS} value={reason} onChange={setReason} />
           {errors.reason ? (
             <AppText variant="caption" tone="danger">
               {errors.reason}
@@ -118,10 +124,9 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
           ) : null}
 
           <Field
-            label="Tu nombre"
+            label="Nombre y apellido"
             value={name}
             onChangeText={setName}
-            placeholder="Nombre y apellido"
             autoComplete="name"
             textContentType="name"
             autoCapitalize="words"
@@ -130,10 +135,10 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
           />
 
           <Field
-            label="Tu email"
+            label="Email"
             value={email}
             onChangeText={setEmail}
-            placeholder="tunombre@mail.com"
+            placeholder="nombre@mail.com"
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
@@ -144,31 +149,32 @@ export function ContactForm({ standalone, defaultEmail }: { standalone?: boolean
           />
 
           <Field
-            label="Tu teléfono"
+            label="Teléfono"
             value={phone}
             onChangeText={setPhone}
             placeholder="341 555 5555"
             keyboardType="phone-pad"
             autoComplete="tel"
             textContentType="telephoneNumber"
-            hint="Si querés que te llamemos en vez de escribirte."
+            hint={applying ? "Para coordinar una entrevista." : "Opcional, para recibir un llamado."}
             error={errors.phone}
+            required={applying}
           />
 
           <View style={styles.messageBlock}>
             <AppText variant="caption" tone="muted" chrome>
-              Tu mensaje *
+              Mensaje *
             </AppText>
 
             <TextInput
               value={message}
               onChangeText={(value) => setMessage(value.slice(0, MAX_MESSAGE))}
-              placeholder="Contanos con tus palabras qué necesitás."
+              placeholder={applying ? "Presentación y experiencia" : "Detalle de la consulta"}
               placeholderTextColor={colors.muted}
               selectionColor={colors.green}
               multiline
               textAlignVertical="top"
-              accessibilityLabel="Tu mensaje"
+              accessibilityLabel="Mensaje"
               style={[
                 styles.message,
                 {

@@ -26,7 +26,7 @@ const MAX_MESSAGE = 600;
 const GREETINGS: Record<string, string> = {
   client: "Hola. Puedo contarte qué turnos tenés, buscarte uno nuevo o darte los datos del consultorio. ¿Qué necesitás?",
   professional: "Hola. Puedo mostrarte tu agenda, contarte cómo venís de números o llevarte a la pantalla que busques.",
-  admin: "Hola. Puedo contarte cómo viene el consultorio, quién está haciendo sobreturnos o llevarte a cualquier pantalla del panel.",
+  admin: "Hola. Puedo contarte cómo viene el consultorio, quién está dando turnos especiales o llevarte a cualquier pantalla del panel.",
 };
 
 /** Un turno en pantalla: lo que se dijo, más los botones que el asistente ofreció. */
@@ -74,7 +74,7 @@ export default function AssistantScreen() {
     } catch (problem) {
       setBubbles((current) => [
         ...current,
-        { role: "assistant", content: errorMessage(problem, "No pude contestarte ahora. Probá de nuevo en un rato.") },
+        { role: "assistant", content: errorMessage(problem, "Sin respuesta en este momento. Intentar de nuevo en un rato.") },
       ]);
     } finally {
       setThinking(false);
@@ -110,11 +110,11 @@ export default function AssistantScreen() {
         <TextInput
           value={draft}
           onChangeText={(value) => setDraft(value.slice(0, MAX_MESSAGE))}
-          placeholder="Escribí lo que necesites"
+          placeholder="Consulta"
           placeholderTextColor={colors.muted}
           selectionColor={colors.green}
           multiline
-          accessibilityLabel="Tu mensaje para el asistente"
+          accessibilityLabel="Mensaje para el asistente"
           style={[styles.input, { backgroundColor: colors.sunken, borderColor: colors.border, color: colors.text }]}
         />
 
