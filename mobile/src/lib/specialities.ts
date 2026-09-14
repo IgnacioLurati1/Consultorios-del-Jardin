@@ -1,9 +1,9 @@
 /**
- * Las especialidades que se atienden. Es una lista fija: son cuatro y no cambian lo
- * suficiente como para justificar un ABM. El texto tiene que ser igual al que guarda la
- * web, porque es el mismo campo de la misma base.
+ * Las especialidades que se atienden. Es una lista fija: no cambian lo suficiente como
+ * para justificar un ABM. El texto tiene que ser igual al que guarda la web
+ * (frontend/src/pages/specialities.ts), porque es el mismo campo de la misma base.
  */
-export const SPECIALITIES = ["Psicopedagogía", "Psicología", "Nutrición", "Fonoaudiología"] as const;
+export const SPECIALITIES = ["Psicopedagogía", "Psicología", "Psiquiatría", "Nutrición", "Fonoaudiología"] as const;
 
 export function normalizeSpeciality(value: string | null | undefined): string {
   return (

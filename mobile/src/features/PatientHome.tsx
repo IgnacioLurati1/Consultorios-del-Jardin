@@ -371,43 +371,54 @@ function TodayCard({
 /* ---------------- el resto ---------------- */
 
 /**
- * Las cuatro especialidades. Tocar una lleva a pedir turno con esa especialidad elegida.
- * Sin `onPick` (el admin) quedan como muestra: sin "Ver horarios" y sin tocarse.
+ * Las especialidades. Tocar una lleva a pedir turno con esa especialidad elegida. Sin
+ * `onPick` (el admin) quedan como muestra: sin "Ver horarios" y sin tocarse.
+ *
+ * Van de a dos. Si quedan impares, la última ocupa el renglón entero y se acuesta (ícono al
+ * costado): media ficha sola abajo se lee como un hueco, no como una especialidad más.
  */
 function Specialities({ onPick }: { onPick?: (name: string) => void }) {
   const { colors, dark } = useTheme();
+  const odd = SPECIALITY_TILES.length % 2 === 1;
 
   return (
     <View style={styles.tiles}>
-      {SPECIALITY_TILES.map((tile) => (
-        <Pressable
-          key={tile.name}
-          onPress={onPick ? () => onPick(tile.name) : undefined}
-          disabled={!onPick}
-          accessibilityRole={onPick ? "button" : undefined}
-          accessibilityLabel={onPick ? `${tile.name}, ver horarios` : tile.name}
-          android_ripple={{ color: colors.border }}
-          style={({ pressed }) => [
-            styles.tile,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            pressed && Platform.OS === "ios" && styles.pressed,
-          ]}
-        >
-          {/* En oscuro el tinte va de fondo y el ícono en crema: el tinte solo, sobre gris
-              oscuro, no se distingue. */}
-          <View style={[styles.tileIcon, { backgroundColor: dark ? tile.tint : `${tile.tint}1f` }]}>
-            <FontAwesome6 name={tile.icon} size={18} color={dark ? colors.cream : tile.tint} />
-          </View>
-          <AppText variant="bodyStrong" numberOfLines={1}>
-            {tile.name}
-          </AppText>
-          {onPick ? (
-            <AppText variant="caption" tone="green">
-              Ver horarios
-            </AppText>
-          ) : null}
-        </Pressable>
-      ))}
+      {SPECIALITY_TILES.map((tile, index) => {
+        const wide = odd && index === SPECIALITY_TILES.length - 1;
+
+        return (
+          <Pressable
+            key={tile.name}
+            onPress={onPick ? () => onPick(tile.name) : undefined}
+            disabled={!onPick}
+            accessibilityRole={onPick ? "button" : undefined}
+            accessibilityLabel={onPick ? `${tile.name}, ver horarios` : tile.name}
+            android_ripple={{ color: colors.border }}
+            style={({ pressed }) => [
+              styles.tile,
+              wide && styles.tileWide,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && Platform.OS === "ios" && styles.pressed,
+            ]}
+          >
+            {/* En oscuro el tinte va de fondo y el ícono en crema: el tinte solo, sobre gris
+                oscuro, no se distingue. */}
+            <View style={[styles.tileIcon, wide && styles.tileIconWide, { backgroundColor: dark ? tile.tint : `${tile.tint}1f` }]}>
+              <FontAwesome6 name={tile.icon} size={18} color={dark ? colors.cream : tile.tint} />
+            </View>
+            <View style={styles.tileText}>
+              <AppText variant="bodyStrong" numberOfLines={1}>
+                {tile.name}
+              </AppText>
+              {onPick ? (
+                <AppText variant="caption" tone="green">
+                  Ver horarios
+                </AppText>
+              ) : null}
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -467,6 +478,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: "hidden",
   },
+  tileWide: { flexBasis: "100%", flexDirection: "row", alignItems: "center", gap: space.md },
   tileIcon: {
     width: 40,
     height: 40,
@@ -475,6 +487,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: space.sm,
   },
+  tileIconWide: { marginBottom: 0 },
+  tileText: { gap: space.xs, flexShrink: 1 },
   /* La galería va de borde a borde: se sale del margen de la pantalla para que se note que
      hay más fotos hacia el costado. */
   galleryScroll: { marginHorizontal: -SCREEN_PADDING },
