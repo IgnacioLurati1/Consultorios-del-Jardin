@@ -9,6 +9,7 @@ import { Appointment } from "./appointments.entity.js";
 import { badRequest, conflict } from "../shared/errors.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { toISODate } from "../shared/dates.js";
+import { assertCanSeePatient } from "../people/patientVisibility.js";
 const DAY_NAMES = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
 
 /** Nombre del día, en local, tal como se guardan los horarios de atención. */
@@ -69,6 +70,11 @@ export class AppointmentEngine {
     if (await this.appointmentService.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, this.em))
       throw conflict("Ya tenés otro turno que se superpone con ese horario");
 
+    // Antes que el cruce de horarios: si el paciente es uno sin cuenta de otro profesional,
+    // decir que "ya tiene otro turno" contaría algo de alguien que acá no existe.
+    const patient = patientEmail ? await this.peopleService.findPersonByEmail(patientEmail, this.em) : null;
+    if (patient) await assertCanSeePatient(patient, professionalEmail, this.em);
+
     // El sobreturno se saltea los módulos, no la agenda del paciente: nadie está en dos
     // turnos a la vez. Sin esto se le podía cargar uno encima de otro que ya tenía, con
     // este profesional o con otro.
@@ -84,7 +90,7 @@ export class AppointmentEngine {
       initialHour,
       finalHour,
       professional: await this.peopleService.findPersonByEmail(professionalEmail, this.em),
-      patient: patientEmail ? await this.peopleService.findPersonByEmail(patientEmail, this.em) : null,
+      patient,
       room,
       value,
       state: "accepted",

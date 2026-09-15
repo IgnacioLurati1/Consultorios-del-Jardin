@@ -6,6 +6,7 @@ import { WaitlistService } from "../waitlist/waitlist.service.js";
 import { sendError } from "../shared/errors.js";
 import { clientChannel } from "../config/clients.js";
 import { describeLockout } from "../config/middlewares.js";
+import { canSeePatient } from "./patientVisibility.js";
 
 dotenv.config();
 
@@ -117,9 +118,15 @@ async function findAllPerType(req: Request, res: Response) {
   }
 }
 
-async function findAllPerTypeActive(req: Request, res: Response) {
+async function findAllPerTypeActive(req: RequestWithUser, res: Response) {
   try {
-    const people = await peopleService.findAllPerTypeActive(req.params.peopleType);
+    // La lista de pacientes es del consultorio. Antes cualquier sesión la pedía, y un
+    // paciente se llevaba el documento y el teléfono de todos los demás. Los profesionales
+    // los necesitan para dar turnos; los pacientes no, en ninguna pantalla.
+    if (req.params.peopleType === "client" && req.user?.type === "client")
+      return res.status(403).json({ message: "No podés ver la lista de pacientes" });
+
+    const people = await peopleService.findAllPerTypeActive(req.params.peopleType, req.user);
     const safeData = people.map((person) => ({ ...person, password: undefined }));
     res.status(200).json({ message: `Personas activas encontradas del tipo ${req.params.peopleType}`, data: safeData });
   } catch (error: any) {
@@ -170,6 +177,11 @@ async function findOne(req: RequestWithUser, res: Response) {
     const person = await peopleService.findPersonByEmail(req.params.email);
 
     const asking = req.user;
+
+    // Un paciente sin cuenta cargado por otro profesional no existe para quien pregunta:
+    // la misma respuesta que un email que no está. Ver canSeePatient.
+    if (asking && !(await canSeePatient(person, asking))) return res.status(404).json({ message: "No encontramos a esa persona" });
+
     const itsMe = asking?.email === person.email;
     const fromTheOffice = asking?.type === "admin" || asking?.type === "professional";
 
@@ -284,7 +296,7 @@ async function addAnonymousPatient(req: RequestWithUser, res: Response) {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
     const { email, name, surname, docType, docNumber, phoneNumber } = req.body.sanitizedInput;
-    const person = await peopleService.createAnonymousPatient({
+    const { person, alreadyLoaded } = await peopleService.createAnonymousPatient({
       email,
       name,
       surname,
@@ -294,8 +306,11 @@ async function addAnonymousPatient(req: RequestWithUser, res: Response) {
       createdBy: req.user.email,
     });
 
+    // `alreadyLoaded`: ya lo había cargado otro profesional y ahora este también lo ve. Para
+    // quien carga es lo mismo que un alta, y así se contesta. La pantalla lo usa solo para no
+    // ofrecer deshacer un alta que no hizo.
     const safeData = { ...person, password: undefined };
-    res.status(201).json({ message: "Paciente creado con éxito!", data: safeData });
+    res.status(alreadyLoaded ? 200 : 201).json({ message: "Paciente creado con éxito!", data: safeData, alreadyLoaded });
   } catch (error: any) {
     sendError(res, error, { duplicate: "Ya existe una persona con ese email" });
   }

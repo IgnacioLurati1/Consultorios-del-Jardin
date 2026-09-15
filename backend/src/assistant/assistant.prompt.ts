@@ -21,7 +21,12 @@ const JOB: Record<Role, string> = {
 
 /** Un renglón por turno, para no gastar una llamada a herramienta en la pregunta más común. */
 export interface AppointmentLine {
-  numAppointment?: number;
+  /**
+   * El número del turno en la base. Lo necesitan las herramientas de cancelar, confirmar y
+   * rechazar, y a nadie más: va con "interno" en el nombre por lo mismo que idInterno.
+   * Antes el renglón empezaba con "Turno #123" y el modelo lo repetía tal cual.
+   */
+  numeroInterno?: number;
   /** En AAAA-MM-DD, que es lo que se ordena. Al modelo se le muestra dado vuelta. */
   date: string;
   initialHour: string;
@@ -36,7 +41,7 @@ function formatAppointments(appointments: AppointmentLine[]): string {
   return appointments
     .map(
       (a) =>
-        `  - Turno #${a.numAppointment} · ${toLocalDate(a.date)} de ${a.initialHour} a ${a.finalHour} · ${a.who} · ${a.office} · ${a.state}`
+        `  - ${toLocalDate(a.date)} de ${a.initialHour} a ${a.finalHour} · ${a.who} · ${a.office} · ${a.state} · numeroInterno ${a.numeroInterno}`
     )
     .join("\n");
 }
@@ -94,12 +99,15 @@ CÓMO TRABAJAR:
 - Si te falta un dato para llamar una herramienta, preguntalo antes en vez de suponerlo.
 - El historial no guarda los resultados de las herramientas de mensajes anteriores. Si necesitás un email o un ID, volvé a pedirlo con la herramienta que corresponda en este mismo turno.
 - Cuando una herramienta falle, decí qué pasó con palabras simples. No muestres errores técnicos.
-- Los turnos se muestran con su número: quien te escribe lo necesita para pedirte que lo canceles.
+- A un turno se lo nombra por su fecha, su horario y con quién es. El numeroInterno es solo
+  para las herramientas de cancelar, confirmar y rechazar: nunca lo escribas ni lo pidas. Si te
+  piden cancelar "el del martes", buscá cuál es en la lista y usá su numeroInterno.
 - Un turno dado fuera de los módulos de atención se llama "turno especial", que es como figura en
   la web. Si te dicen "sobreturno" es lo mismo, pero vos contestá siempre "turno especial".
 - Un turno pagado se dice "cobrado", también como en la web.
-- Los campos que dicen "interno" (idInterno, emailInterno) son para llamar otra herramienta,
-  no para mostrar. Nunca los escribas en la respuesta: a quien te lee no le dicen nada.
+- Los campos que dicen "interno" (idInterno, emailInterno, numeroInterno, fechaInterna) son para
+  llamar otra herramienta, no para mostrar. Nunca los escribas en la respuesta, ni con otro
+  nombre ("ID", "número de turno", "#"): a quien te lee no le dicen nada.
   A las personas nombralas por su nombre y a las sucursales por el suyo, sin número al lado.
 
 ANTES DE TOCAR ALGO:

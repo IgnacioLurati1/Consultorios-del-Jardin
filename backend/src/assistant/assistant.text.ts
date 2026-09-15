@@ -35,6 +35,15 @@ export function cleanReply(text: string): string {
     // igual están porque también la escribe como `open_page: {page: "usuarios"}`.
     .replace(/^\s*(get|open|book|cancel|accept|reject|confirm)_[a-z_]*\s*[:=]?\s*[({][^\n]*$/gim, "")
     .replace(/^\s*\[[^\]\n]{1,40}\]\s*$/gm, "")
+    // Los números internos, que no le dicen nada a quien lee: "Turno #45", "(ID 3)",
+    // "numeroInterno 12". El prompt ya pide no escribirlos; esto es por si igual se escapan.
+    .replace(/\s*\((?:id|nro\.?|n[°º]|número|numero|#)\s*[:#]?\s*\d+\)/gi, "")
+    .replace(/\s*\(\s*(?:numeroInterno|idInterno|emailInterno|fechaInterna)\b[^)\n]*\)/gi, "")
+    // El valor puede ser un email, así que lleva puntos; lo que no lleva es el punto final
+    // de la oración, que se queda.
+    .replace(/[ \t]*,?[ \t]*\b(?:numeroInterno|idInterno|emailInterno|fechaInterna)\b\s*[:=]?\s*(?:[^\s,;)]*[^\s,;).])?/gi, "")
+    .replace(/[ \t]*#\d+\b/g, "")
+    .replace(/[ \t]*\bID\s*[:#]?\s*\d+\b/g, "")
     // La ventana del chat muestra texto pelado: el markdown se vería crudo.
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/^#{1,6}\s+/gm, "")

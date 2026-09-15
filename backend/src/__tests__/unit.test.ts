@@ -483,6 +483,22 @@ describe("El asistente escribió la llamada en vez de pedirla", () => {
     expect(cleanReply('Mirá tus turnos.\nget_my_appointments: {includePast: true}')).toBe("Mirá tus turnos.");
   });
 
+  // El número de turno y los ids son para las herramientas. Si igual se le escapan al
+  // modelo, no llegan a la pantalla.
+  it("saca los números internos que se le escapan", () => {
+    expect(cleanReply("Tenés el Turno #45 el 25/09/2026 de 10:00 a 10:45.")).toBe(
+      "Tenés el Turno el 25/09/2026 de 10:00 a 10:45."
+    );
+    expect(cleanReply("Atiende en la sucursal Central (ID 3).")).toBe("Atiende en la sucursal Central.");
+    expect(cleanReply("Cancelado el del martes, numeroInterno 12.")).toBe("Cancelado el del martes.");
+    expect(cleanReply("Con Ana Gómez (emailInterno: ana@mail.com) el lunes.")).toBe("Con Ana Gómez el lunes.");
+  });
+
+  it("deja en paz los números que sí se leen", () => {
+    const texto = "Estamos en 9 de Julio 3672, de 9 a 20. El turno es el 25/09 a las 10:00.";
+    expect(cleanReply(texto)).toBe(texto);
+  });
+
   it("no repite abajo el nombre del botón que ya está dibujado", () => {
     const links = [{ label: "Escribirnos", path: "/contacto" }];
     expect(dropLinkEcho("Escribinos y te contestamos.\nEscribirnos", links)).toBe("Escribinos y te contestamos.");

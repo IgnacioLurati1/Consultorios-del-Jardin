@@ -39,6 +39,10 @@ const tool = (
 
 const ALL: Role[] = ["client", "professional", "admin"];
 
+/** El número de turno sale de la lista, nunca de la persona: ver numeroInterno en el prompt. */
+const NUMERO_INTERNO =
+  "El numeroInterno del turno, tal como figura en la lista de turnos. No se lo pidas a la persona: el turno se identifica por fecha, hora y con quién es.";
+
 export const ASSISTANT_TOOLS: AssistantTool[] = [
   // ---------- para cualquiera ----------
 
@@ -123,7 +127,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     "cancel_appointment",
     "Cancelar un turno",
     "Prepara la cancelación de un turno propio. NO lo cancela: devuelve cuál es el turno para que se lo muestres y le preguntes si confirma.",
-    { numAppointment: { type: "number", description: "Número del turno a cancelar." } },
+    { numAppointment: { type: "number", description: NUMERO_INTERNO } },
     ["numAppointment"],
     true
   ),
@@ -135,7 +139,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     "accept_appointment",
     "Confirmar un turno",
     "Prepara la confirmación de un turno que un paciente pidió y está pendiente. NO lo confirma todavía: devuelve el turno para que se lo muestres y le preguntes si está de acuerdo.",
-    { numAppointment: { type: "number", description: "Número del turno pendiente." } },
+    { numAppointment: { type: "number", description: NUMERO_INTERNO } },
     ["numAppointment"],
     true
   ),
@@ -145,7 +149,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     "reject_appointment",
     "Rechazar un turno",
     "Prepara el rechazo de un turno pendiente. NO lo rechaza todavía: devuelve el turno para que se lo muestres y le preguntes si confirma. Al rechazarlo, el paciente recibe un mail avisándole.",
-    { numAppointment: { type: "number", description: "Número del turno pendiente." } },
+    { numAppointment: { type: "number", description: NUMERO_INTERNO } },
     ["numAppointment"],
     true
   ),

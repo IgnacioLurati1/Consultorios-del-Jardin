@@ -81,6 +81,7 @@ import { NotificationService } from "../notifications/notifications.service.js";
 import { AnnouncementService } from "../announcements/announcements.service.js";
 import { findOne as findOnePerson } from "../people/people.controller.js";
 import refreshTokenHandler from "../config/refreshToken.js";
+import { PatientAccess } from "../people/patientAccess.entity.js";
 
 // ============================================================
 // DATOS MOCK - Cadena completa: Province → City → Office → Room
@@ -1553,5 +1554,64 @@ describe("Integracion: mover un turno lo deja en el dia que se pidio", () => {
     await expect(appointments.updateAppointment(91, mockProfessional.email, { date: "no es una fecha" } as any)).rejects.toThrow(
       "La fecha del turno no es válida"
     );
+  });
+});
+
+// ============================================================
+// Un paciente sin cuenta que ya cargó otro profesional.
+// No se duplica (el email es la clave): se le deja ver al segundo.
+// ============================================================
+
+describe("Integracion: cargar un paciente sin cuenta que ya existe", () => {
+  const peopleService = new PeopleService();
+
+  const cargado = {
+    email: "compartido@demo.local",
+    name: "Marta",
+    surname: "Gomez",
+    type: "client",
+    active: true,
+    anonymous: true,
+    createdBy: "otro.profesional@demo.local",
+  };
+
+  const alta = { email: cargado.email, name: "Otra", surname: "Persona", createdBy: mockProfessional.email };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("si lo cargó otro, no lo crea de nuevo: se lo deja ver a este", async () => {
+    // El paciente que ya está, y después ningún permiso previo para este profesional.
+    mockEm.findOne.mockResolvedValueOnce(cargado).mockResolvedValueOnce(null);
+    mockEm.findOneOrFail.mockResolvedValueOnce(mockProfessional);
+
+    const resultado = await peopleService.createAnonymousPatient(alta);
+
+    expect(resultado).toEqual({ person: cargado, alreadyLoaded: true });
+    expect(mockEm.create).toHaveBeenCalledWith(PatientAccess, { patient: cargado, professional: mockProfessional });
+    expect(mockEm.flush).toHaveBeenCalled();
+  });
+
+  it("si ya lo veía, lo devuelve igual y no agrega otro permiso", async () => {
+    mockEm.findOne.mockResolvedValueOnce(cargado).mockResolvedValueOnce({ id: 1 });
+    mockEm.findOneOrFail.mockResolvedValueOnce(mockProfessional);
+
+    await expect(peopleService.createAnonymousPatient(alta)).resolves.toEqual({ person: cargado, alreadyLoaded: true });
+    expect(mockEm.create).not.toHaveBeenCalled();
+  });
+
+  it("si lo cargó el mismo, avisa que ya lo tiene", async () => {
+    mockEm.findOne.mockResolvedValueOnce({ ...cargado, createdBy: mockProfessional.email });
+
+    await expect(peopleService.createAnonymousPatient(alta)).rejects.toThrow(/Ya cargaste/);
+    expect(mockEm.create).not.toHaveBeenCalled();
+  });
+
+  it("una cuenta registrada no se comparte: se busca en la lista", async () => {
+    mockEm.findOne.mockResolvedValueOnce({ ...cargado, anonymous: false });
+
+    await expect(peopleService.createAnonymousPatient(alta)).rejects.toThrow(/cuenta registrada/);
+    expect(mockEm.create).not.toHaveBeenCalled();
   });
 });

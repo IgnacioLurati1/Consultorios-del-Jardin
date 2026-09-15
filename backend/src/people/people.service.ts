@@ -12,6 +12,8 @@ import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import type { ClientChannel } from "../config/clients.js";
 import { startOfDay } from "../shared/dates.js";
 import { SettingsService } from "../settings/settings.service.js";
+import { visiblePatientsFilter } from "./patientVisibility.js";
+import { PatientAccess } from "./patientAccess.entity.js";
 
 dotenv.config();
 
@@ -51,8 +53,13 @@ export class PeopleService {
     return await em.find(Person, { type: peopleType });
   }
 
-  async findAllPerTypeActive(peopleType: string): Promise<Person[]> {
-    return await em.find(Person, { type: peopleType, active: true });
+  /**
+   * `viewer` es quién pregunta. Pidiendo pacientes, a un profesional no le llegan los sin
+   * cuenta que cargó otro: ver canSeePatient.
+   */
+  async findAllPerTypeActive(peopleType: string, viewer?: { email: string; type: string }): Promise<Person[]> {
+    const visible = peopleType === "client" && viewer ? await visiblePatientsFilter(viewer) : {};
+    return await em.find(Person, { type: peopleType, active: true, ...visible });
   }
 
   async findAllNoAdmin(): Promise<Person[]> {
@@ -220,12 +227,22 @@ export class PeopleService {
       throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15, por ejemplo 3411234567");
 
     const existing = await em.findOne(Person, { email: data.email });
-    if (existing)
-      throw conflict(
-        existing.anonymous
-          ? "Ya cargaste un paciente con ese email"
-          : "Ese email ya pertenece a una cuenta registrada. Buscá a la persona en la lista en vez de cargarla de nuevo"
-      );
+    if (existing) {
+      if (!existing.anonymous)
+        throw conflict("Ese email ya pertenece a una cuenta registrada. Buscá a la persona en la lista en vez de cargarla de nuevo");
+      if (existing.createdBy === data.createdBy) throw conflict("Ya cargaste un paciente con ese email");
+
+      // Lo cargó otro profesional. No se puede cargar de nuevo, porque el email es la clave,
+      // y frenarlo con un error dejaba al segundo sin forma de darle turno. Sin decir nada,
+      // desde ahí lo ve también, con los datos que cargó el primero: ver PatientAccess. Si
+      // ya lo veía, no hay nada que agregar.
+      const professional = await em.findOneOrFail(Person, { email: data.createdBy });
+      if (!(await em.findOne(PatientAccess, { patient: existing, professional }))) {
+        em.create(PatientAccess, { patient: existing, professional });
+        await em.flush();
+      }
+      return { person: existing, alreadyLoaded: true };
+    }
 
     const person = em.create(Person, {
       email: data.email,
@@ -250,7 +267,7 @@ export class PeopleService {
     });
 
     await em.flush();
-    return person;
+    return { person, alreadyLoaded: false };
   }
 
   /**
@@ -276,7 +293,7 @@ export class PeopleService {
           featureCards([
             { title: "Turnos", text: "Tu agenda en grilla o en lista, con el estado y el paciente de cada turno." },
             { title: "Horarios", text: "Los módulos que atendés, en qué consultorio y cuánto dura cada turno." },
-            { title: "Pacientes", text: "Con cuenta y anónimos, con su historial y tus observaciones." },
+            { title: "Pacientes", text: "Con cuenta y sin cuenta, con su historial y tus observaciones." },
             { title: "Números", text: "Facturación, pacientes y carga de la agenda." },
             { title: "Los pedidos", text: "Confirmás o rechazás lo que piden. O dejás que se confirmen solos." },
             { title: "Pedir un turno", text: "También te podés atender vos, como cualquier paciente." },

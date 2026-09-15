@@ -102,13 +102,18 @@ function sign(body: string): string {
   return crypto.createHmac("sha256", ACTION_SECRET).update(body).digest("base64url");
 }
 
-function packAction(action: { tool: string; args: any; email: string }): string {
+/**
+ * `summary` viaja junto con la acción para contarle al modelo, en el mensaje siguiente, qué
+ * quedó esperando el sí. Antes se le mostraban los argumentos crudos de la herramienta
+ * —el número de turno, el email del profesional, el id de la sucursal— y los repetía.
+ */
+function packAction(action: { tool: string; args: any; email: string; summary: Record<string, unknown> }): string {
   const body = Buffer.from(JSON.stringify({ ...action, expires: Date.now() + ACTION_TTL_MS })).toString("base64url");
   return `${body}.${sign(body)}`;
 }
 
 /** Devuelve la acción si el token es nuestro, no venció y es de quien está conversando. */
-function unpackAction(token: string, email: string): { tool: string; args: any } {
+function unpackAction(token: string, email: string): { tool: string; args: any; summary?: Record<string, unknown> } {
   const [body, mac] = String(token ?? "").split(".");
   if (!body || !mac) throw new Error("No hay ninguna acción esperando confirmación");
 
@@ -121,7 +126,13 @@ function unpackAction(token: string, email: string): { tool: string; args: any }
   if (action.email !== email) throw new Error("No hay ninguna acción esperando confirmación");
   if (Date.now() > action.expires) throw new Error("Pasó mucho tiempo desde que lo preguntamos. Pedímelo de nuevo");
 
-  return { tool: action.tool, args: action.args };
+  return { tool: action.tool, args: action.args, summary: action.summary };
+}
+
+/** El renglón de un turno sin su número, para los resúmenes que lee el modelo. */
+function sinNumero(line: AppointmentLine): Omit<AppointmentLine, "numeroInterno"> {
+  const { numeroInterno, ...rest } = line;
+  return rest;
 }
 
 /** Cuánto se espera antes de volver a preguntarle al modelo, por intento. */
@@ -175,7 +186,7 @@ export class AssistantService {
   /** Los turnos propios, en la forma corta que entiende el prompt. */
   private toLines(appointments: Appointment[], role: Role): AppointmentLine[] {
     return appointments.map((appointment) => ({
-      numAppointment: appointment.numAppointment,
+      numeroInterno: appointment.numAppointment,
       date: toISODate(startOfDay(appointment.date)),
       initialHour: hhmm(appointment.initialHour),
       finalHour: hhmm(appointment.finalHour),
@@ -270,7 +281,7 @@ export class AssistantService {
      * pasa de verdad no hay lugar para que se le mueva un dato.
      */
     const prepare = (summary: Record<string, unknown>) => {
-      prepared.action = { token: packAction({ tool: name, args, email: user.email }), summary };
+      prepared.action = { token: packAction({ tool: name, args, email: user.email, summary }), summary };
       return { preparado: true, esperandoConfirmacion: summary };
     };
 
@@ -359,33 +370,36 @@ export class AssistantService {
           String(args.professionalEmail),
           Number(args.officeId)
         );
+        // Sin el número de turno: el modelo lo repetía en la respuesta, y a quien lo sacó no
+        // le dice nada. Si después quiere cancelarlo, el turno está en su lista.
         return {
           ok: true,
-          numeroDeTurno: created.numAppointment,
-          estado: "pendiente de que el profesional lo confirme",
+          estado: created.state === "accepted" ? "confirmado" : "pendiente de que el profesional lo confirme",
           ...resumen,
         };
       }
 
+      // El resumen va sin el número: es lo que el modelo le muestra a la persona para que
+      // confirme, y el número ya lo tiene firmado la acción.
       case "cancel_appointment": {
-        const resumen = await this.describeOwnAppointment(Number(args.numAppointment), user);
-        if (!confirmed) return prepare(resumen as any);
+        const resumen = sinNumero(await this.describeOwnAppointment(Number(args.numAppointment), user));
+        if (!confirmed) return prepare(resumen);
 
         await this.appointments.cancelAppointment(Number(args.numAppointment), user.email);
         return { ok: true, cancelado: resumen };
       }
 
       case "accept_appointment": {
-        const resumen = await this.describeOwnAppointment(Number(args.numAppointment), user);
-        if (!confirmed) return prepare(resumen as any);
+        const resumen = sinNumero(await this.describeOwnAppointment(Number(args.numAppointment), user));
+        if (!confirmed) return prepare(resumen);
 
         await this.appointments.acceptAppointment(Number(args.numAppointment), user.email);
         return { ok: true, confirmado: resumen };
       }
 
       case "reject_appointment": {
-        const resumen = await this.describeOwnAppointment(Number(args.numAppointment), user);
-        if (!confirmed) return prepare(resumen as any);
+        const resumen = sinNumero(await this.describeOwnAppointment(Number(args.numAppointment), user));
+        if (!confirmed) return prepare(resumen);
 
         await this.appointments.deleteAppointment(Number(args.numAppointment), user.email);
         return { ok: true, rechazado: resumen };
@@ -413,8 +427,30 @@ export class AssistantService {
         };
       }
 
-      case "get_overbooking_this_week":
-        return await this.analytics.overbookingByWeek(Number(args?.weeksAgo) || 0);
+      // Lo mismo que ve la pantalla, pero sin el número de cada turno ni el estado en crudo
+      // ("accepted"): el modelo repite lo que recibe.
+      case "get_overbooking_this_week": {
+        const week = await this.analytics.overbookingByWeek(Number(args?.weeksAgo) || 0);
+        return {
+          desde: toLocalDate(week.from),
+          hasta: toLocalDate(week.to),
+          total: week.total,
+          cancelados: week.cancelled,
+          profesionales: week.professionals.map((professional) => ({
+            emailInterno: professional.email,
+            nombre: professional.name,
+            especialidad: professional.speciality,
+            cantidad: professional.count,
+            turnos: professional.appointments.map((appointment) => ({
+              fecha: toLocalDate(appointment.date),
+              dia: appointment.day,
+              desde: appointment.initialHour,
+              hasta: appointment.finalHour,
+              estado: stateLabel(appointment.state),
+            })),
+          })),
+        };
+      }
 
       default:
         throw new Error(`No existe la herramienta ${name}`);
@@ -494,7 +530,7 @@ export class AssistantService {
     // Se abre acá para contarle al modelo de qué se trata el "dale" que puede venir en
     // este mensaje. Si el token está vencido o no es de esta persona, es como si no
     // hubiera nada pendiente.
-    let waiting: { tool: string; args: any } | null = null;
+    let waiting: ReturnType<typeof unpackAction> | null = null;
     if (pendingToken) {
       try {
         waiting = unpackAction(pendingToken, user.email);
@@ -514,7 +550,9 @@ export class AssistantService {
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [
       {
         role: "system",
-        content: buildAssistantPrompt(role, fullName(person) || person.name, mine, today, waiting?.args ?? null),
+        // El resumen y no los argumentos: ver packAction. Un token de antes de ese cambio
+        // no lo trae, y ahí se cae a los argumentos como antes.
+        content: buildAssistantPrompt(role, fullName(person) || person.name, mine, today, waiting?.summary ?? waiting?.args ?? null),
       },
       ...history,
       { role: "user", content: userMessage },
