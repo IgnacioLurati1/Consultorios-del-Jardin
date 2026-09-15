@@ -8,12 +8,16 @@ import { useTheme } from "../theme/useTheme";
 import { FillingLeaf } from "./Leaf";
 
 /**
- * La marca tiene las letras negras, que sobre el verde oscuro no se leen. Al lado vive la
- * misma imagen con las letras claras; las hojas son las mismas en las dos.
+ * La marca, en dos capas: las letras y, encima, las hojas.
+ *
+ * Las letras son negras y sobre el verde oscuro no se leen, así que hay otra imagen con las
+ * letras claras. Las hojas van aparte para teñirlas del color de la estación, como el
+ * nombre de la portada de la página. Las tres salen de wordmark.png con scripts/marca.mjs.
  */
 const wordmark = {
-  light: require("../../assets/images/wordmark.png"),
-  dark: require("../../assets/images/wordmark-dark.png"),
+  light: require("../../assets/images/wordmark-letters.png"),
+  dark: require("../../assets/images/wordmark-letters-dark.png"),
+  leaves: require("../../assets/images/wordmark-leaves.png"),
 };
 
 /** Lo bastante grande para sostener sola la pantalla, sin llenarla. */
@@ -228,6 +232,15 @@ export function Splash({ ready, onDone, onShown }: Props) {
           contentFit="contain"
           accessibilityIgnoresInvertColors
         />
+        {/* Las hojas del color de la hoja grande, que es el de la estación: la de la marca
+            y la que cae son la misma hoja. */}
+        <Image
+          source={wordmark.leaves}
+          tintColor={tinta.blade}
+          style={[styles.marcaImagen, styles.marcaHojas]}
+          contentFit="contain"
+          accessibilityIgnoresInvertColors
+        />
       </Animated.View>
 
       {/* La traslación va acá afuera y el giro adentro: si el giro fuera acá, la franja
@@ -262,4 +275,5 @@ const styles = StyleSheet.create({
   pantalla: { alignItems: "center", justifyContent: "center", pointerEvents: "none" },
   marca: { position: "absolute", alignItems: "center" },
   marcaImagen: { width: 128, height: 72 },
+  marcaHojas: { position: "absolute", top: 0, left: 0 },
 });

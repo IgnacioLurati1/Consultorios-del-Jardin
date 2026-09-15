@@ -9,23 +9,23 @@ import { useTheme } from "../../../theme/useTheme";
  * funciones de las que entran, así que en vez de inventar una barra distinta por rol, los
  * tres tienen la misma forma y cambia lo que hay adentro.
  *
- * El profesional y el admin tienen además "Consultorio", el inicio del paciente con las
- * fotos del lugar. Son cinco lugares en vez de cuatro, y por eso con ellos la etiqueta y
- * el ícono van un punto más chicos: así "Consultorio" y "Pacientes" entran enteros en un
- * teléfono angosto.
+ * Inicio es el consultorio en fotos para los tres. El profesional y el admin tienen además
+ * "Panel", lo de todos los días, al lado de Inicio porque es lo que más usan. Son cinco
+ * lugares en vez de cuatro, y por eso con ellos la etiqueta y el ícono van un punto más
+ * chicos: así "Pacientes" y "Usuarios" entran enteros en un teléfono angosto.
  *
  * Las pestañas que no le tocan a un rol no se ocultan del router (siguen siendo rutas a
- * las que se llega desde Más o desde Inicio), solo salen de la barra.
+ * las que se llega desde Más o desde Panel), solo salen de la barra.
  */
 
-type Slot = "index" | "pedir-turno" | "turnos" | "pacientes" | "usuarios" | "dia" | "numeros" | "consultorio" | "mas";
+type Slot = "index" | "panel" | "pedir-turno" | "turnos" | "pacientes" | "usuarios" | "dia" | "numeros" | "mas";
 
 const VISIBLE: Record<string, Slot[]> = {
   client: ["index", "pedir-turno", "turnos", "mas"],
-  professional: ["index", "turnos", "pacientes", "consultorio", "mas"],
+  professional: ["index", "panel", "turnos", "pacientes", "mas"],
   // El día del consultorio y no los números: la agenda se mira todos los días, la
-  // facturación una vez por mes. Los números siguen a un toque, desde Inicio.
-  admin: ["index", "usuarios", "dia", "consultorio", "mas"],
+  // facturación una vez por mes. Los números siguen a un toque, desde Panel.
+  admin: ["index", "panel", "usuarios", "dia", "mas"],
 };
 
 export default function TabsLayout() {
@@ -54,6 +54,15 @@ export default function TabsLayout() {
         options={{
           title: "Inicio",
           tabBarIcon: ({ color, size }) => <FontAwesome6 name="house" size={iconSize(size)} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="panel"
+        options={{
+          href: shows("panel"),
+          title: "Panel",
+          tabBarIcon: ({ color, size }) => <FontAwesome6 name="clipboard-list" size={iconSize(size)} color={color} />,
         }}
       />
 
@@ -109,15 +118,6 @@ export default function TabsLayout() {
           href: shows("numeros"),
           title: "Números",
           tabBarIcon: ({ color, size }) => <FontAwesome6 name="chart-column" size={iconSize(size)} color={color} />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="consultorio"
-        options={{
-          href: shows("consultorio"),
-          title: "Consultorio",
-          tabBarIcon: ({ color, size }) => <FontAwesome6 name="leaf" size={iconSize(size)} color={color} />,
         }}
       />
 

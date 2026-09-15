@@ -221,12 +221,14 @@ function useSlideshow(count: number, every = 6000): number {
 }
 
 /**
- * El encabezado del paciente: el consultorio en fotos, en vez del bloque verde.
+ * El encabezado de Inicio: el consultorio en fotos, en vez del bloque verde.
  *
- * El profesional y el administrador abren la app a trabajar, y para ellos el encabezado es
- * la fecha y la agenda del día. El paciente viene a atenderse a un lugar, y lo primero que
- * la página le muestra es ese lugar: la app no puede recibirlo con una lista de turnos a
- * secas. Es el mismo contenido que la portada de la página vista desde el celular.
+ * Es el mismo contenido que la portada de la página vista desde el celular: se abre la app
+ * y lo primero es el lugar. El bloque verde con la fecha quedó para Panel, que es donde el
+ * profesional y el admin trabajan.
+ *
+ * Sin la hoja de la marca arriba a la izquierda: el nombre ya está escrito grande abajo, y
+ * los botones quedan solos a la derecha.
  *
  * Abajo deja lugar para una tarjeta que se monta encima (el próximo turno): la pone quien
  * lo usa, porque es contenido de la pantalla y no del encabezado.
@@ -257,11 +259,7 @@ export function PlaceBand({
       />
       <Velo />
 
-      <View style={styles.top}>
-        <View style={styles.brand}>
-          <Leaf size={20} colors={{ blade: band.leaf, veins: band.leafVeins }} />
-        </View>
-
+      <View style={[styles.top, styles.topEnd]}>
         <View style={styles.acciones}>
           <Campana />
           <Apariencia />
@@ -333,6 +331,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md },
+  topEnd: { justifyContent: "flex-end" },
   brand: { flexDirection: "row", alignItems: "center", gap: space.sm },
   brandName: { color: "rgba(254, 250, 224, 0.72)", letterSpacing: 0.3 },
   assistant: {

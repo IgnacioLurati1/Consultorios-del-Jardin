@@ -32,18 +32,18 @@ function byMoment(a: Appointment, b: Appointment): number {
 }
 
 /**
- * El inicio del paciente: el lugar arriba y una tarjeta encima.
+ * Inicio, el mismo para los tres roles: el lugar arriba y una tarjeta encima.
  *
  * Es lo mismo que la portada de la página vista desde el celular —el consultorio en
  * fotos, las especialidades, dónde queda— con lo único que la página no sabe: qué tiene
  * por delante quien entró. Eso va en la tarjeta montada sobre las fotos, que es lo primero
  * que se lee, y el resto queda abajo para quien quiera recorrerlo.
  *
- * El profesional y el admin la tienen en su propia pestaña, Consultorio, y la tarjeta
- * cambia según quién mira: el paciente ve su próximo turno; el profesional, el próximo que
- * atiende; el admin, el resumen de hoy en el consultorio. Pedir turno desde las
- * especialidades vale para el paciente y el profesional (que también se atiende acá), no
- * para el admin. El contacto es para quien consulta desde afuera: solo el paciente.
+ * La tarjeta cambia según quién mira: el paciente ve su próximo turno; el profesional, el
+ * próximo que atiende; el admin, el resumen de hoy en el consultorio. Lo de todos los días
+ * de esos dos está en Panel. Pedir turno desde las especialidades vale para el paciente y
+ * el profesional (que también se atiende acá), no para el admin. El contacto es para quien
+ * consulta desde afuera: solo el paciente.
  */
 export function PatientHome() {
   const { email, role } = useUser();
@@ -62,7 +62,7 @@ export function PatientHome() {
 
   const upcoming = (appointments.data ?? []).filter((appointment) => isUpcoming(appointment)).sort(byMoment);
   const next = upcoming[0];
-  // La lista de abajo es del paciente. El profesional ya tiene su agenda en Inicio.
+  // La lista de abajo es del paciente. El profesional ya tiene su agenda en Panel.
   const others = role === "client" ? upcoming.slice(1, 5) : [];
   const waiting = role === "client" && upcoming.some((appointment) => stateOf(appointment) === "pending");
 

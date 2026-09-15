@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { RefreshControl } from "react-native";
@@ -19,7 +19,6 @@ import { Group, Row, Section } from "../../../components/Surfaces";
 import { AppText } from "../../../components/Text";
 import { AnnouncementBanner } from "../../../features/Announcements";
 import { OfficeSettings } from "../../../features/OfficeSettings";
-import { PatientHome } from "../../../features/PatientHome";
 import { WaitlistPeopleSheet } from "../../../features/WaitlistPeopleSheet";
 import { WeekSummary } from "../../../features/WeekSummary";
 import { delDia, describePayment, fullName, isUpcoming, pendingAmount, stateOf } from "../../../lib/appointments";
@@ -30,20 +29,21 @@ import { SCREEN_PADDING, space } from "../../../theme/tokens";
 import { useTheme } from "../../../theme/useTheme";
 
 /**
- * Inicio. Es la misma pantalla para los tres roles porque la pregunta es la misma
- * ("¿qué tengo hoy?"), pero la respuesta cambia bastante, así que cada rol tiene su
- * cuerpo.
+ * Panel: lo de todos los días del profesional y del admin. Es la misma pantalla para los
+ * dos porque la pregunta es la misma ("¿qué tengo hoy?"), pero la respuesta cambia
+ * bastante, así que cada rol tiene su cuerpo. El paciente no la tiene: su Inicio ya es
+ * todo lo que necesita.
  */
-export default function HomeScreen() {
-  const { role, email } = useUser();
+export default function PanelScreen() {
+  const { role } = useUser();
 
   // De mantener los avisos al día se ocupa el layout de la sesión, que está arriba de
-  // todas las pantallas: acá miraba solo al abrir Inicio, y entonces el número no se movía
-  // mientras uno estaba en cualquier otra pantalla.
+  // todas las pantallas: acá miraba solo al abrir la pantalla, y entonces el número no se
+  // movía mientras uno estaba en cualquier otra.
 
   if (role === "professional") return <ProfessionalHome />;
   if (role === "admin") return <AdminHome />;
-  return <PatientHome />;
+  return <Redirect href="/(app)/(tabs)" />;
 }
 
 /* ============================================================
