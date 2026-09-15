@@ -59,11 +59,15 @@ export function YourSpace({ session }: YourSpaceProps) {
   const reveal = useFadeIn<HTMLElement>();
   const accesses = ACCESSES[session.type];
 
+  // data-nosnippet: Google armaba la descripción del resultado con los pasos y, como número,
+  // título y texto son spans pegados, salía "1Crear una cuentaCon mail...". Así usa la
+  // descripción de seo.json.
   return (
     <section
       ref={reveal.ref}
       className={`home-section home-space ${reveal.isVisible ? "is-visible" : ""}`}
       aria-labelledby="home-space-title"
+      data-nosnippet=""
     >
       <div className="home-section-head">
         <h2 className="home-section-title" id="home-space-title">
