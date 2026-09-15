@@ -18,8 +18,12 @@ import salidaJardin960 from "../../../../assets/gallery/salida-jardin-960.webp";
 import salaDesdeArriba from "../../../../assets/gallery/sala-desde-arriba.webp";
 import salaDesdeArriba640 from "../../../../assets/gallery/sala-desde-arriba-640.webp";
 import salaDesdeArriba960 from "../../../../assets/gallery/sala-desde-arriba-960.webp";
+import { PHOTO_PREVIEWS } from "../photoPreviews";
+import { HomePhoto } from "./HomePhoto";
 
 interface Photo {
+  /** La clave de su vista previa en photoPreviews.ts. */
+  name: string;
   /** La de 1600 px, para verla ampliada. */
   src: string;
   /** Las de 640 y 960 px, para el carrusel. */
@@ -39,11 +43,24 @@ interface Photo {
  * todavía no se ven, y le quitarían conexión a las de arriba.
  */
 const PHOTOS: Photo[] = [
-  { src: salaJardin, small: salaJardin640, medium: salaJardin960, alt: "Sala de espera con vista al jardín" },
-  { src: salaVidriada, small: salaVidriada640, medium: salaVidriada960, alt: "Sala de espera bajo el techo vidriado" },
-  { src: recepcionEscalera, small: recepcionEscalera640, medium: recepcionEscalera960, alt: "Recepción y escalera" },
-  { src: salidaJardin, small: salidaJardin640, medium: salidaJardin960, alt: "Salida al jardín" },
+  { name: "sala-jardin", src: salaJardin, small: salaJardin640, medium: salaJardin960, alt: "Sala de espera con vista al jardín" },
   {
+    name: "sala-vidriada",
+    src: salaVidriada,
+    small: salaVidriada640,
+    medium: salaVidriada960,
+    alt: "Sala de espera bajo el techo vidriado",
+  },
+  {
+    name: "recepcion-escalera",
+    src: recepcionEscalera,
+    small: recepcionEscalera640,
+    medium: recepcionEscalera960,
+    alt: "Recepción y escalera",
+  },
+  { name: "salida-jardin", src: salidaJardin, small: salidaJardin640, medium: salidaJardin960, alt: "Salida al jardín" },
+  {
+    name: "sala-desde-arriba",
     src: salaDesdeArriba,
     small: salaDesdeArriba640,
     medium: salaDesdeArriba960,
@@ -193,7 +210,8 @@ export function Gallery() {
                     if (!swipe.consumeSwipe()) setExpanded(index);
                   }}
                 >
-                  <img
+                  <HomePhoto
+                    preview={PHOTO_PREVIEWS[photo.name]}
                     src={photo.medium}
                     srcSet={`${photo.small} 640w, ${photo.medium} 960w`}
                     sizes={SLIDE_SIZES}

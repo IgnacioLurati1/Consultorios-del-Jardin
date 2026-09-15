@@ -7,8 +7,12 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaMoneyBillWave,
+  FaRegCircleQuestion,
   FaRegClock,
 } from "react-icons/fa6";
+import { ProfessionalGuide } from "./ProfessionalGuide.tsx";
+import { useProfessionalGuide } from "./useProfessionalGuide.ts";
+import { Hint } from "../../../components/hint/Hint.tsx";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -72,7 +76,7 @@ const entries: MenuEntry[] = [
   {
     icon: FaUserInjured,
     title: "Pacientes",
-    description: "Pacientes con cuenta y pacientes anónimos.",
+    description: "Pacientes con cuenta y sin cuenta.",
     link: "/Patients",
   },
   {
@@ -103,6 +107,7 @@ export function ProfessionalHome() {
   /** Quiénes esperan que se libere un horario suyo. */
   const [waitlist, setWaitlist] = useState<WaitingPatient[] | null>(null);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const guide = useProfessionalGuide();
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -273,6 +278,13 @@ export function ProfessionalHome() {
             </>
           )}
         </div>
+
+        {/* La guía del panel. Se abre sola la primera vez; después, desde acá. */}
+        <Hint text="Cómo funciona el panel">
+          <button type="button" className="prof-help" onClick={guide.openGuide} aria-label="Cómo funciona el panel">
+            <FaRegCircleQuestion aria-hidden="true" />
+          </button>
+        </Hint>
       </header>
 
       {/* Las cuatro se quedan siempre, también en la vista simplificada: son las puertas
@@ -602,6 +614,8 @@ export function ProfessionalHome() {
       <CancelAppointmentModal {...cancelProps} />
 
       <WaitlistPeopleModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} onChanged={setWaitlist} />
+
+      <ProfessionalGuide open={guide.open} onClose={guide.closeGuide} />
 
       {/*
         Preguntar antes de saldar todo.

@@ -1,0 +1,169 @@
+/* ============================================================
+   La guía del panel del profesional y el botón que la abre.
+   ============================================================ */
+
+/* El botón de ayuda, redondo y chico, a la derecha del saludo. Con borde y sin relleno
+   para que se vea que se puede tocar sin competir con los accesos del panel. */
+.prof-help {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--adm-border-strong);
+  border-radius: 50%;
+  background: var(--adm-surface);
+  color: var(--adm-green-dark);
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.prof-help:hover {
+  background: var(--adm-green-soft);
+  border-color: var(--adm-green-line);
+}
+
+.prof-help:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 2px;
+}
+
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* La barra de avance en tramos. El botón es más alto que la raya que se ve para que se
+   pueda tocar con el dedo: la raya es el ::before. */
+.guide-progress {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-progress li {
+  flex: 1;
+}
+
+.guide-progress button {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.guide-progress button::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--adm-border);
+  transition: background 0.2s ease;
+}
+
+.guide-progress button.done::before {
+  background: var(--adm-green-line);
+}
+
+.guide-progress button.active::before {
+  background: var(--adm-green);
+}
+
+.guide-progress button:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Alto mínimo para que la botonera no salte de lugar entre un paso corto y uno largo. */
+.guide-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 220px;
+  animation: guide-in 0.28s ease both;
+}
+
+.guide-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+  border-radius: 14px;
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+  font-size: 1.4rem;
+}
+
+.guide-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.guide-text {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--adm-text);
+}
+
+/* El camino hasta la pantalla, con los nombres de los botones. Es lo que se busca
+   después, con la guía cerrada, así que va aparte y fácil de encontrar. */
+.guide-where {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--adm-surface-sunken);
+  color: var(--adm-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.guide-where-label {
+  color: var(--adm-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@keyframes guide-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-step {
+    animation: none;
+  }
+
+  .guide-progress button::before,
+  .prof-help {
+    transition: none;
+  }
+}

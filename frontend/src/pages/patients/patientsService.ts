@@ -1,7 +1,7 @@
 import api from "../../axios";
 import type { Person } from "../types";
 
-/** Datos mínimos para dar de alta un paciente anónimo (sin cuenta ni contraseña). */
+/** Datos mínimos para dar de alta un paciente sin cuenta (ni contraseña). */
 export interface AnonymousPatientInput {
   email: string;
   name: string;
@@ -37,10 +37,19 @@ export function findAllPatients(): Promise<Person[]> {
     .catch(backendError);
 }
 
-export function createAnonymousPatient(data: AnonymousPatientInput): Promise<Person> {
+/**
+ * `alreadyLoaded` dice que ese email ya lo había cargado otro profesional: no se creó nada,
+ * y desde ahora este también lo ve, con los datos que cargó el otro.
+ */
+export interface CreatedPatient {
+  patient: Person;
+  alreadyLoaded: boolean;
+}
+
+export function createAnonymousPatient(data: AnonymousPatientInput): Promise<CreatedPatient> {
   return api
     .post("/people/anonymous", data)
-    .then((response) => response.data.data)
+    .then((response) => ({ patient: response.data.data, alreadyLoaded: response.data.alreadyLoaded === true }))
     .catch(backendError);
 }
 
@@ -58,7 +67,7 @@ export function deleteAnonymousPatient(email: string): Promise<void> {
 }
 
 /**
- * Corrige los datos de un paciente anónimo. El backend solo lo permite sobre pacientes
+ * Corrige los datos de un paciente sin cuenta. El backend solo lo permite sobre pacientes
  * sin cuenta cargados por este mismo profesional: en cuanto la persona se registra, sus
  * datos pasan a ser suyos.
  */

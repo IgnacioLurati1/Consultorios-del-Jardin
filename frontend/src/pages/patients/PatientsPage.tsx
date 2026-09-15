@@ -157,13 +157,13 @@ export function PatientsPage() {
         subtitle={
           scope === "mine"
             ? "Personas con al menos un turno"
-            : "Todos los pacientes del consultorio, con cuenta y anónimos"
+            : "Todos los pacientes con cuenta y los sin cuenta propios"
         }
         backTo="/ProfessionalHome"
         actions={
           <button type="button" className="adm-btn adm-btn-primary" onClick={openNew}>
             <FaPlus />
-            Nuevo paciente anónimo
+            Nuevo paciente sin cuenta
           </button>
         }
       />
@@ -172,8 +172,9 @@ export function PatientsPage() {
 
       {!simple && (
         <p className="people-note">
-          Un paciente <strong>anónimo</strong> no tiene cuenta ni contraseña y se carga sin registro. Sus datos se pueden corregir en
-          cualquier momento. Si después se registra con el mismo email, la cuenta pasa a ser real y conserva lo cargado.
+          Un paciente <strong>sin cuenta</strong> se carga sin registro ni contraseña, y lo ven solo quien lo cargó y la
+          administración. Sus datos se pueden corregir en cualquier momento. Si después se registra con el mismo email, pasa a tener
+          cuenta propia y conserva lo cargado.
         </p>
       )}
 
@@ -243,7 +244,15 @@ export function PatientsPage() {
                 tone={patient.anonymous ? "amber" : "green"}
                 badges={[
                   patient.anonymous
-                    ? { label: "Anónimo", tone: "amber" as const }
+                    ? {
+                        label: "Sin cuenta",
+                        tone: "amber" as const,
+                        // Uno compartido: se ve acá, pero los datos los corrige quien lo cargó.
+                        hint:
+                          patient.createdBy && me && patient.createdBy !== me.email
+                            ? "Lo cargó otro profesional. Los datos los corrige quien lo cargó."
+                            : undefined,
+                      }
                     : { label: "Con cuenta", tone: "green" as const },
                   // Un pago a medias también es una deuda: lo que se mira es si quedó algo
                   // sin cobrar, no si no pagó nada.
@@ -296,7 +305,7 @@ export function PatientsPage() {
         historyToken={historyToken}
         onOpenAppointment={turno.open}
         onFailed={() => remember(null)}
-        onSaved={(saved, previous) => {
+        onSaved={(saved, previous, alreadyLoaded) => {
           if (previous) {
             setPatients((prev) => prev.map((p) => (p.email === previous.email ? { ...p, ...saved } : p)));
             // Los datos de antes, tal como estaban en la fila. Solo se puede sobre un
@@ -314,6 +323,13 @@ export function PatientsPage() {
                 setPatients((prev) => prev.map((p) => (p.email === previous.email ? { ...p, ...vuelto } : p)));
               },
             });
+            return;
+          }
+
+          // Ya lo había cargado otro profesional: no hay alta que deshacer, y borrarlo sería
+          // borrarle el paciente al otro (el servidor igual no lo deja).
+          if (alreadyLoaded) {
+            setPatients((prev) => (prev.some((p) => p.email === saved.email) ? prev : [saved, ...prev]));
             return;
           }
 

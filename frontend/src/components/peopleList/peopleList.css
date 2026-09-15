@@ -107,7 +107,7 @@ button.people-row:focus-visible {
 }
 
 /* Administración. Es el gris azulado que ya usan los gráficos: no compite con el verde
-   del profesional ni con el ámbar del anónimo, y no se confunde con el gris del
+   del profesional ni con el ámbar del paciente sin cuenta, y no se confunde con el gris del
    paciente, que es el neutro apagado. */
 .people-avatar.slate {
   background: var(--adm-slate);

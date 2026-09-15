@@ -35,7 +35,7 @@ export interface Person{
     name: string;
     surname: string;
     phoneNumber: string;
-    /** Los pacientes anónimos no tienen contraseña. */
+    /** Los pacientes sin cuenta no tienen contraseña. */
     password?: string | null;
     speciality: string;
     /** Cómo se presenta el profesional. Lo lee el paciente antes de elegir con quién atenderse. */
@@ -54,7 +54,7 @@ export interface Person{
     waitlistEnabled?: boolean;
     /** Paciente cargado por un profesional, sin cuenta propia. */
     anonymous?: boolean;
-    /** Email del profesional que lo cargó, si es (o fue) un paciente anónimo. */
+    /** Email del profesional que lo cargó, si es (o fue) un paciente sin cuenta. */
     createdBy?: string | null;
     /**
      * Quién apagó la cuenta. "admin" es una decisión de una persona; "system" la tomó

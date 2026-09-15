@@ -6,6 +6,7 @@ import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts
 import { isCancelled, pendingAmount } from "../appointments/appointmentTypes.ts";
 import type { Appointment, Person } from "../types.ts";
 import { createAnonymousPatient, updatePatient, type AnonymousPatientInput } from "./patientsService.ts";
+import { getDecodedToken } from "../commonServices.ts";
 
 const emptyForm: AnonymousPatientInput = {
   email: "",
@@ -70,13 +71,14 @@ function historyDate(value: string): string {
 interface PatientDetailModalProps {
   open: boolean;
   onClose: () => void;
-  /** A quién se está mirando. En null la ventana es el alta de un paciente anónimo. */
+  /** A quién se está mirando. En null la ventana es el alta de un paciente sin cuenta. */
   patient: Person | null;
   /**
    * El paciente que quedó guardado, para que la lista de atrás se entere. `previous` son
-   * sus datos de antes, y en null significa que se acaba de crear.
+   * sus datos de antes, y en null significa que se acaba de crear. `alreadyLoaded` dice
+   * que no se creó: ya lo había cargado otro profesional y ahora también se ve acá.
    */
-  onSaved?: (saved: Person, previous: Person | null) => void;
+  onSaved?: (saved: Person, previous: Person | null, alreadyLoaded?: boolean) => void;
   /** Qué hacer si algo salió mal después de haber anunciado que se guardaba. */
   onFailed?: () => void;
   /**
@@ -124,8 +126,12 @@ export function PatientDetailModal({
    */
   const [historyFilters, setHistoryFilters] = useState<HistoryFilter[]>([]);
 
-  // Los pacientes con cuenta propia se muestran, pero no se tocan desde acá.
-  const readOnly = !!patient && !patient.anonymous;
+  // Los pacientes con cuenta propia se muestran, pero no se tocan desde acá. Tampoco los
+  // sin cuenta que cargó otro profesional y se comparten: los datos los corrige quien los
+  // cargó, y el servidor no deja a nadie más.
+  const me = getDecodedToken()?.email;
+  const loadedByOther = !!patient?.anonymous && !!patient.createdBy && patient.createdBy !== me;
+  const readOnly = !!patient && (!patient.anonymous || loadedByOther);
 
   /**
    * El número del último historial que se pidió. Solo ese puede escribir en la pantalla.
@@ -220,14 +226,19 @@ export function PatientDetailModal({
 
     setSaving(true);
     try {
-      const saved = patient
-        ? await updatePatient(patient.email, data)
-        : await createAnonymousPatient({ ...data, email: form.email.trim() });
-
       // El aviso lo da la ventana y no la pantalla de atrás: esta ficha también se abre
       // desde la de un turno, y ahí guardar no tenía ninguna respuesta.
-      toast.success(patient ? "Paciente actualizado" : "Paciente creado");
-      onSaved?.(saved, patient);
+      if (patient) {
+        const saved = await updatePatient(patient.email, data);
+        toast.success("Paciente actualizado");
+        onSaved?.(saved, patient);
+      } else {
+        // Si ya lo había cargado otro profesional el aviso es el mismo: para quien carga, el
+        // paciente queda en su lista igual. La diferencia solo cambia qué se puede deshacer.
+        const created = await createAnonymousPatient({ ...data, email: form.email.trim() });
+        toast.success("Paciente creado");
+        onSaved?.(created.patient, null, created.alreadyLoaded);
+      }
       setFormError(null);
       onClose();
     } catch (err: any) {
@@ -243,8 +254,8 @@ export function PatientDetailModal({
       open={open}
       onClose={onClose}
       size="sm"
-      title={patient ? (readOnly ? "Datos del paciente" : "Editar paciente") : "Nuevo paciente anónimo"}
-      subtitle={patient ? patient.email : "Sin cuenta ni contraseña"}
+      title={patient ? (readOnly ? "Datos del paciente" : "Editar paciente") : "Nuevo paciente sin cuenta"}
+      subtitle={patient ? patient.email : "Los campos con * son obligatorios"}
       footer={
         <>
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
@@ -261,26 +272,52 @@ export function PatientDetailModal({
       <div className="ui-section">
         {readOnly && (
           <p className="ui-alert ui-alert-info">
-            Esta persona ya tiene su propia cuenta, así que sus datos los edita ella desde su perfil.
+            {loadedByOther
+              ? "Lo cargó otro profesional, así que sus datos los corrige quien lo cargó."
+              : "Esta persona ya tiene su propia cuenta, así que sus datos los edita ella desde su perfil."}
           </p>
         )}
 
+        {/* Email, nombre y apellido son lo único obligatorio, igual que en el servidor. El
+            documento y el teléfono se pueden dejar para después. El asterisco no se lee en
+            voz alta: lo que avisa a un lector de pantalla es aria-required. */}
         {!patient && (
           <label className="ui-field">
-            <span>Email</span>
-            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="paciente@mail.com" />
+            <span>
+              Email<span className="ui-required" aria-hidden="true">*</span>
+            </span>
+            <input
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="paciente@mail.com"
+              aria-required="true"
+            />
             <small>Si esta persona se registra con este email, hereda todo lo que le cargues.</small>
           </label>
         )}
 
         <div className="ui-field-row">
           <label className="ui-field">
-            <span>Nombre</span>
-            <input value={form.name} disabled={readOnly} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <span>
+              Nombre{!readOnly && <span className="ui-required" aria-hidden="true">*</span>}
+            </span>
+            <input
+              value={form.name}
+              disabled={readOnly}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              aria-required={!readOnly}
+            />
           </label>
           <label className="ui-field">
-            <span>Apellido</span>
-            <input value={form.surname} disabled={readOnly} onChange={(e) => setForm({ ...form, surname: e.target.value })} />
+            <span>
+              Apellido{!readOnly && <span className="ui-required" aria-hidden="true">*</span>}
+            </span>
+            <input
+              value={form.surname}
+              disabled={readOnly}
+              onChange={(e) => setForm({ ...form, surname: e.target.value })}
+              aria-required={!readOnly}
+            />
           </label>
         </div>
 

@@ -189,6 +189,13 @@
   color: var(--adm-muted, #64748b);
 }
 
+/* El asterisco de un dato obligatorio. Del color de los errores, que es lo que pasa si
+   se deja vacío, pero sin negrita extra: acompaña al nombre del campo, no le compite. */
+.ui-required {
+  margin-left: 2px;
+  color: var(--adm-danger, #c0392b);
+}
+
 .ui-field small {
   font-weight: 400;
   font-size: 0.82rem;

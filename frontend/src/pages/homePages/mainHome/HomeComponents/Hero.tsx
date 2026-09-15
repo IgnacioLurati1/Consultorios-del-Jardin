@@ -13,6 +13,8 @@ import patioVidriado from "../../../../assets/collage/patio-vidriado.webp";
 import patioVidriadoLarge from "../../../../assets/collage/patio-vidriado-960.webp";
 import jardinNoche from "../../../../assets/collage/jardin-noche.webp";
 import jardinNocheLarge from "../../../../assets/collage/jardin-noche-960.webp";
+import { PHOTO_PREVIEWS } from "../photoPreviews";
+import { HomePhoto } from "./HomePhoto";
 
 /**
  * Las fotos del consultorio, en el orden en que se lo recorre: la entrada, la recepción,
@@ -21,17 +23,50 @@ import jardinNocheLarge from "../../../../assets/collage/jardin-noche-960.webp";
  * Cada una en dos tamaños. En la computadora son tiras de un quinto de pantalla y alcanza
  * la de 640; en el celular van de a una y a todo el ancho, y ahí la de 640 se ve blanda.
  * El navegador elige con `srcSet` y `sizes`, así la computadora no baja las grandes.
+ *
+ * `name` es la clave de su vista previa en photoPreviews.ts.
  */
 const PHOTOS = [
-  { src: pasilloMural, large: pasilloMuralLarge },
-  { src: recepcion, large: recepcionLarge },
-  { src: consultorio, large: consultorioLarge },
-  { src: patioVidriado, large: patioVidriadoLarge },
-  { src: jardinNoche, large: jardinNocheLarge },
+  { name: "pasillo-mural", src: pasilloMural, large: pasilloMuralLarge },
+  { name: "recepcion", src: recepcion, large: recepcionLarge },
+  { name: "consultorio", src: consultorio, large: consultorioLarge },
+  { name: "patio-vidriado", src: patioVidriado, large: patioVidriadoLarge },
+  { name: "jardin-noche", src: jardinNoche, large: jardinNocheLarge },
 ];
 
 /** Hasta este ancho las fotos van de a una, con fundido. Tiene que coincidir con Home.css. */
 const PHONE = "(max-width: 700px)";
+/** Cuánto se espera a que bajen todas antes de mostrar las que ya están. */
+const HOLD_MAX_MS = 5000;
+
+/**
+ * Que las fotos de la computadora aparezcan todas juntas.
+ *
+ * Ahí se ven las cinco a la vez. Cuando cada una aparecía al terminar de bajar, la franja
+ * cambiaba cinco veces en uno o dos segundos, de a una tira: un parpadeo de brillo que a
+ * alguien con epilepsia fotosensible le puede hacer mal. Ahora esperan detrás de su vista
+ * previa hasta que están todas, y hacen un solo fundido lento. Si alguna tarda más de la
+ * cuenta, pasado `HOLD_MAX_MS` aparecen las que ya bajaron.
+ *
+ * En el celular no hace falta, y demoraría la primera: ahí se ve una sola foto por vez.
+ */
+function useHoldUntilAllReady(count: number) {
+  const [ready, setReady] = useState<ReadonlySet<number>>(() => new Set());
+  const [waitedEnough, setWaitedEnough] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setWaitedEnough(true), HOLD_MAX_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const phone = typeof window.matchMedia === "function" && window.matchMedia(PHONE).matches;
+
+  return {
+    active: !phone && !waitedEnough && ready.size < count,
+    // Devuelve el mismo conjunto si ya estaba: HomePhoto puede avisar más de una vez.
+    markReady: (index: number) => setReady((prev) => (prev.has(index) ? prev : new Set(prev).add(index))),
+  };
+}
 /** Cuánto queda cada foto antes de pasar a la siguiente. */
 const SLIDE_MS = 5000;
 
@@ -117,6 +152,7 @@ interface HeroProps {
 export function Hero({ session }: HeroProps) {
   const [primary, secondary] = ACTIONS[session.type];
   const slide = useSlideshow(PHOTOS.length);
+  const hold = useHoldUntilAllReady(PHOTOS.length);
 
   return (
     <>
@@ -125,13 +161,18 @@ export function Hero({ session }: HeroProps) {
           {/* Decorativas: el nombre del consultorio está en el título de abajo. */}
           <div className="home-collage" aria-hidden="true">
             {PHOTOS.map((photo, index) => (
-              <img
+              <HomePhoto
                 key={photo.src}
+                preview={PHOTO_PREVIEWS[photo.name]}
+                hold={hold.active}
+                onReady={() => hold.markReady(index)}
+                frameClassName={index === slide.current ? "is-active" : index === slide.leaving ? "is-leaving" : undefined}
                 src={photo.src}
                 srcSet={`${photo.src} 640w, ${photo.large} 960w`}
                 sizes={`${PHONE} 100vw, 20vw`}
                 alt=""
-                className={index === slide.current ? "is-active" : index === slide.leaving ? "is-leaving" : undefined}
+                // Son lo primero que se ve: que el navegador las pida antes que el resto.
+                fetchPriority="high"
                 // "sync" y no "async": con async Chrome puede mostrar la pantalla sin la foto y
                 // dibujarla después, y en esta capa fija y recortada ese "después" llegaba a
                 // tardar segundos (al volver al inicio, o al salir del modo celular).

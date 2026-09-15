@@ -210,7 +210,7 @@ export function PatientPicker({ patients, value, onChange, placeholder }: Patien
                     <span className="patient-picker-text">
                       <span className="patient-picker-name">
                         {fullName(patient)}
-                        {patient.anonymous && <span className="adm-badge adm-badge-amber patient-picker-badge">Anónimo</span>}
+                        {patient.anonymous && <span className="adm-badge adm-badge-amber patient-picker-badge">Sin cuenta</span>}
                       </span>
                       <span className="patient-picker-meta">{patient.email}</span>
                     </span>

@@ -44,7 +44,7 @@ export function UserModal({
   const [confirmingWaitlistOff, setConfirmingWaitlistOff] = useState(false);
 
   // El admin solo edita profesionales. Los pacientes quedan en modo lectura: los suyos
-  // los mantiene cada persona, y los anónimos, el profesional que los cargó.
+  // los mantiene cada persona, y los sin cuenta, el profesional que los cargó.
   const isProfessional = user?.type === "professional";
   const isAdmin = user?.type === "admin";
 
@@ -315,7 +315,7 @@ export function UserModal({
               <span>Cuenta</span>
               <strong>
                 {user.anonymous ? (
-                  <span className="adm-badge adm-badge-amber">Anónimo, sin cuenta</span>
+                  <span className="adm-badge adm-badge-amber">Sin cuenta</span>
                 ) : (
                   "Registrada"
                 )}

@@ -116,11 +116,53 @@
   background: var(--home-paper);
 }
 
-.home-collage img {
+.home-collage .home-pic-frame {
+  height: 100%;
+}
+
+/* Una foto de la portada con su vista previa detrás: ver HomePhoto. La vista previa es de
+   24 px, así que estirada ya se ve difuminada; el blur la termina de suavizar, y la escala
+   esconde el borde transparente que el blur deja alrededor.
+
+   Todo va suave a propósito. Con un blur fuerte y un fundido corto, el paso de la vista
+   previa a la foto era un golpe de brillo y de detalle en toda la franja, de los que a una
+   persona con epilepsia fotosensible le pueden hacer mal. El blur es el mínimo que alcanza
+   para que no se vean los cuadraditos, así la vista previa se parece a la foto, y el
+   fundido dura más de un segundo, sin arranque ni frenada bruscos. */
+.home-pic-frame {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+
+.home-pic-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  filter: blur(6px);
+  transform: scale(1.06);
+}
+
+.home-pic-frame img {
+  position: relative;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s ease-in-out;
+}
+
+.home-pic-frame.is-loaded img {
+  opacity: 1;
+}
+
+/* La que llegó enseguida aparece directo, sin pasar por la vista previa. */
+.home-pic-frame.is-instant img {
+  transition: none;
 }
 
 /* Viñeta del color de la estación: suave en los bordes y más densa abajo, donde tiene
@@ -641,6 +683,11 @@
   pointer-events: none;
 }
 
+.home-gallery-slide .home-pic-frame {
+  width: 100%;
+  height: 100%;
+}
+
 .home-gallery-slide[data-place="center"] {
   z-index: 2;
   box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
@@ -1020,20 +1067,22 @@
     background: var(--home-ink);
   }
 
-  .home-collage img {
+  /* El fundido de la presentación va en el marco, que lleva la vista previa: así la que
+     entra aparece con su vista previa aunque la foto todavía no haya bajado. */
+  .home-collage .home-pic-frame {
     position: absolute;
     inset: 0;
     opacity: 0;
     transition: opacity 1.4s ease;
   }
 
-  .home-collage img.is-leaving {
+  .home-collage .home-pic-frame.is-leaving {
     z-index: 1;
     opacity: 1;
     transition: none;
   }
 
-  .home-collage img.is-active {
+  .home-collage .home-pic-frame.is-active {
     z-index: 2;
     opacity: 1;
   }

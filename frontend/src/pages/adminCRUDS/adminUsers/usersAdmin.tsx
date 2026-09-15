@@ -19,12 +19,12 @@ type UserFilter = "all" | "client" | "anonymous" | "professional" | "admin";
 const FILTERS: { key: UserFilter; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "client", label: "Pacientes" },
-  { key: "anonymous", label: "Anónimos" },
+  { key: "anonymous", label: "Sin cuenta" },
   { key: "professional", label: "Profesionales" },
   { key: "admin", label: "Administración" },
 ];
 
-/** Un paciente anónimo es un paciente, pero se cuenta y se filtra aparte. */
+/** Un paciente sin cuenta es un paciente, pero se cuenta y se filtra aparte. */
 function matchesFilter(user: Person, filter: UserFilter): boolean {
   switch (filter) {
     case "client":
@@ -110,7 +110,7 @@ export function UsersAdmin() {
     return result;
   }, [users]);
 
-  // Los pacientes anónimos guardan el email del profesional que los cargó. Como el
+  // Los pacientes sin cuenta guardan el email del profesional que los cargó. Como el
   // listado ya trae a todos los no-admin, el nombre se resuelve acá sin pedir nada más.
   const nameByEmail = useMemo(() => {
     const map = new Map<string, string>();
