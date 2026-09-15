@@ -32,6 +32,7 @@ import { FaqPage } from "./pages/faq/FaqPage.tsx";
 import { ErrorPage } from "./pages/errorPage/ErrorPage.tsx";
 import { AttendancePage } from "./pages/attendance/AttendancePage.tsx";
 import { RentPage } from "./pages/rent/RentPage.tsx";
+import { SpacePage } from "./pages/space/SpacePage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -53,6 +54,8 @@ const router = createBrowserRouter([
       { path: "/Login", element: <Login /> },
       { path: "/contacto", element: <ContactPage /> },
       { path: "/preguntas", element: <FaqPage /> },
+      // El hall del consultorio en 3D, desde el pie del inicio. Solo en la computadora.
+      { path: "/espacio", element: <SpacePage /> },
       { path: "/EditProfile", element: (<PrivateRoutes allowedTypes={["admin","professional","client"]}>
             <AuthWatcher>
               <EditProfile />

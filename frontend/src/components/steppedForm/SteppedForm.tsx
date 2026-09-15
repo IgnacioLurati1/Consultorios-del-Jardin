@@ -28,6 +28,11 @@ interface SteppedFormProps {
   serverError?: string | null;
   onSubmit: () => void;
   footerNote?: ReactNode;
+  /**
+   * Lo que va detrás de la tarjeta, ocupando toda la página (el hall del consultorio, en el registro). Sin
+   * esto la página queda lisa, que es lo que quieren los formularios de adentro del panel.
+   */
+  backdrop?: ReactNode;
 }
 
 /**
@@ -47,6 +52,7 @@ export function SteppedForm({
   serverError,
   onSubmit,
   footerNote,
+  backdrop,
 }: SteppedFormProps) {
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +135,9 @@ export function SteppedForm({
   }
 
   return (
-    <div className="sf-page">
+    <div className={backdrop ? "sf-page entrance-host" : "sf-page"}>
+      {backdrop}
+
       {/* noValidate: los mensajes los damos nosotros, no el globito del navegador. */}
       <form className="sf-card" onSubmit={handleSubmit} noValidate>
         <div className="sf-head">

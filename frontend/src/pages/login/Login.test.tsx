@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import * as jwtDecodeModule from "jwt-decode";
 import * as AuthContextModule from "../../context/AuthContext";
 import { ThemeProvider } from "../../context/ThemeContext";
+import { SeasonProvider } from "../../context/SeasonContext";
 import * as LoginServiceModule from "./loginServices";
 
 // --- MOCKS ---
@@ -41,13 +42,16 @@ describe("Login", () => {
     localStorage.clear();
   });
 
-  // El logo del formulario cambia con el tema, así que la pantalla necesita el proveedor
-  // del tema además del router. Sin él no se dibuja nada y fallan las siete pruebas.
+  // El logo del formulario cambia con el tema y el consultorio de fondo sigue al tema y a la
+  // estación, así que la pantalla necesita los dos proveedores además del router. Sin
+  // ellos no se dibuja nada y fallan todas las pruebas.
   const renderComponent = () => {
     render(
       <BrowserRouter>
         <ThemeProvider>
-          <Login />
+          <SeasonProvider>
+            <Login />
+          </SeasonProvider>
         </ThemeProvider>
       </BrowserRouter>
     );

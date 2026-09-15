@@ -9,6 +9,7 @@ import type { TokenPayload } from "../types.ts";
 import { LoginService } from "./loginServices.ts";
 import { LOCKOUT_KEY } from "../../axios";
 import { useLogo } from "../../lib/useLogo";
+import { EntranceBackdrop } from "../../components/entrance/EntranceBackdrop";
 import "./Login.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -82,7 +83,9 @@ export function Login() {
   }
 
   return (
-    <div className="login-page">
+    <div className="login-page entrance-host">
+      <EntranceBackdrop />
+
       {/* noValidate: la validación nativa del navegador bloquearía el submit antes de
           llegar acá y mostraría su propio globito. Los mensajes los damos nosotros. */}
       <form className="login-card" onSubmit={submit} noValidate>

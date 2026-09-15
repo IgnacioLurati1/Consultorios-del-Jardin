@@ -1,0 +1,56 @@
+/* El hall a pantalla completa: ocupa todo lo que queda debajo de la barra de arriba. */
+.space-page {
+  height: calc(100vh - 66px);
+  min-height: 480px;
+}
+
+/* El velo oscurece los bordes para llevar la mirada a la tarjeta. Acá no hay tarjeta. */
+.space-page .entrance-veil {
+  display: none;
+}
+
+.space-page .entrance-toggle {
+  text-decoration: none;
+}
+
+/* El título es para lectores de pantalla: a la vista, el hall habla solo. */
+.space-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Aparece cuando termina el paso hacia adentro, para no tapar la entrada. No recibe el
+   puntero: lo de atrás se sigue pudiendo tocar. */
+.space-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  margin: 0;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-surface) 82%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(10, 16, 14, 0.16);
+  color: var(--adm-text);
+  font-size: 0.85rem;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: space-hint-in 0.6s ease 3.8s both;
+}
+
+@keyframes space-hint-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-hint {
+    animation: none;
+  }
+}

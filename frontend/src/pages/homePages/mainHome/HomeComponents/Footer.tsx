@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { FaClock, FaEnvelope, FaInstagram, FaLocationDot } from "react-icons/fa6";
+import { FaClock, FaDoorOpen, FaEnvelope, FaInstagram, FaLocationDot } from "react-icons/fa6";
 import LogoHojas from "../../../../assets/LogoHojasRecortado.PNG";
+import { useDesktop } from "../../../../components/entrance/useDesktop";
 import { SPECIALITIES } from "../../../specialities";
 
 const CONTACT = [
@@ -11,6 +12,8 @@ const CONTACT = [
 ];
 
 export function Footer() {
+  const desktop = useDesktop();
+
   return (
     <footer className="home-footer">
       <div className="home-footer-inner">
@@ -40,6 +43,14 @@ export function Footer() {
               </li>
             );
           })}
+          {/* El hall en 3D, el mismo del fondo del ingreso pero sin la tarjeta. Solo en la
+              computadora: en el celular no está. */}
+          {desktop ? (
+            <li>
+              <FaDoorOpen aria-hidden="true" />
+              <Link to="/espacio">Visualizar espacio</Link>
+            </li>
+          ) : null}
         </ul>
 
         <nav className="home-footer-links" aria-label="Accesos">
