@@ -26,6 +26,24 @@ const emptyUser = { email: "", name: "", surname: "", docType: "", docNumber: ""
 /** El mismo tope que valida el backend. */
 const ABOUT_MAX = 600;
 
+/**
+ * La última vez que entró, y por dónde. Se cuenta un acceso por día y por canal, así que
+ * alcanza con el día.
+ */
+function lastAccess(user: Person): string | null {
+  const channels = [
+    { at: user.lastWebAccess, by: "la página" },
+    { at: user.lastAppAccess, by: "la app" },
+  ].filter((channel) => channel.at) as { at: string; by: string }[];
+  if (channels.length === 0) return null;
+
+  const latest = channels.reduce((a, b) => (new Date(b.at) > new Date(a.at) ? b : a));
+  const date = new Date(latest.at);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  const day = date.toLocaleDateString("es-AR", { day: "numeric", month: "long", ...(sameYear ? {} : { year: "numeric" }) });
+  return `${day}, por ${latest.by}`;
+}
+
 export function UserModal({
   visible,
   user,
@@ -351,6 +369,12 @@ export function UserModal({
               <div className="ui-detail-row">
                 <span>Especialidad</span>
                 <strong>{userData.speciality || <span className="ui-detail-empty">sin cargar</span>}</strong>
+              </div>
+            )}
+            {isProfessional && (
+              <div className="ui-detail-row">
+                <span>Último acceso</span>
+                <strong>{lastAccess(user) ?? <span className="ui-detail-empty">nunca entró</span>}</strong>
               </div>
             )}
             {isProfessional && (

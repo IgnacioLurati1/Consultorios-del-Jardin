@@ -40,6 +40,9 @@ export interface Person{
     speciality: string;
     /** Cómo se presenta el profesional. Lo lee el paciente antes de elegir con quién atenderse. */
     about?: string | null;
+    /** La última vez que entró por la página y por la app. Solo viene en el listado del admin. */
+    lastWebAccess?: string | null;
+    lastAppAccess?: string | null;
     type: string;
     active: boolean;
     /**

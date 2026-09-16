@@ -238,7 +238,7 @@ export function UsersAdmin() {
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setLinksOpen(true)}>
               <FaEnvelope />
-              Link de contraseña
+              Cambio de contraseña
             </button>
             <button type="button" className="adm-btn adm-btn-primary" onClick={() => navigate("/AdminHome/RegisterProfAdmin")}>
               <FaPlus />

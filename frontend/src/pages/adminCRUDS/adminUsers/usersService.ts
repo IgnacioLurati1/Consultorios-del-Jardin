@@ -126,18 +126,18 @@ export function updatePerson(email: string, data: Partial<Person>): Promise<Pers
     });
 }
 
-/** Un profesional que todavía no eligió su contraseña. */
-export interface PendingPassword {
+/** Un profesional habilitado, con su último cambio de contraseña. */
+export interface ProfessionalPassword {
     email: string;
     name: string;
     surname: string;
     speciality: string | null;
-    /** La última vez que entró, por la página o la app. Null si nunca entró. */
-    lastAccess: string | null;
+    /** El último cambio de contraseña. Null si no hay registro: sigue con la provisoria o la cambió antes de que se anotara. */
+    passwordChangedAt: string | null;
 }
 
-export function findPendingPasswords(): Promise<PendingPassword[]>{
-    return api.get('/people/welcome/pending')
+export function findProfessionalPasswords(): Promise<ProfessionalPassword[]>{
+    return api.get('/people/passwords/professionals')
     .then(res => res.data.data)
     .catch(err => {
         const backendMsg = err.response?.data?.message || err.message;
@@ -145,9 +145,9 @@ export function findPendingPasswords(): Promise<PendingPassword[]>{
     });
 }
 
-/** Les vuelve a mandar el link para elegir la contraseña. */
-export function resendPasswordLinks(emails: string[]): Promise<{ sent: string[]; failed: string[]; skipped: number }>{
-    return api.post('/people/welcome/resend', { emails })
+/** Les manda el mail para cambiar la contraseña, como enviado por la administración. */
+export function sendPasswordMails(emails: string[]): Promise<{ sent: string[]; failed: string[]; skipped: number }>{
+    return api.post('/people/passwords/mail', { emails })
     .then(res => res.data.data)
     .catch(err => {
         const backendMsg = err.response?.data?.message || err.message;
