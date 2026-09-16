@@ -1741,26 +1741,71 @@ describe("Integracion: primer ingreso del profesional", () => {
 
     await expect(peopleService.checkWelcomeLink(token)).resolves.toEqual({ name: "Ana" });
   });
-  it("reenviar el link sale solo a quien sigue sin contraseña propia", async () => {
-    // La base ya filtra a los que la eligieron: de los tres pedidos vuelve uno.
+  it("un link firmado por siete días sigue sirviendo pasada esa semana", async () => {
+    // Los primeros links salieron con siete días adentro. Firmado hace un mes, ya vencido
+    // según lo que lleva, tiene que abrir igual.
+    const haceUnMes = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
+    const viejo = jwt.sign(
+      { email: "nueva.profesional@demo.local", purpose: "welcome", iat: haceUnMes, exp: haceUnMes + 7 * 24 * 60 * 60 },
+      process.env.CHANGE_SECRET as string
+    );
+    mockEm.findOne.mockResolvedValue(nuevaProfesional());
+
+    await expect(peopleService.checkWelcomeLink(viejo)).resolves.toEqual({ name: "Ana" });
+  });
+
+  it("pasados los seis meses el link ya no sirve", async () => {
+    const hace200Dias = Math.floor(Date.now() / 1000) - 200 * 24 * 60 * 60;
+    const vencido = jwt.sign(
+      { email: "nueva.profesional@demo.local", purpose: "welcome", iat: hace200Dias },
+      process.env.CHANGE_SECRET as string
+    );
+    mockEm.findOne.mockResolvedValue(nuevaProfesional());
+
+    await expect(peopleService.checkWelcomeLink(vencido)).rejects.toThrow(/Token expirado/);
+  });
+
+  it("el mail de la administración dice quién lo manda y el link dura meses", async () => {
     mockEm.find.mockResolvedValue([nuevaProfesional()]);
 
-    const resultado = await peopleService.resendFirstPassword([
+    const resultado = await peopleService.sendAdminPasswordMails([
       "nueva.profesional@demo.local",
-      "ya.eligio@demo.local",
+      "no.es.profesional@demo.local",
       "NUEVA.profesional@demo.local",
     ]);
 
     const filtro = mockEm.find.mock.calls.at(-1)?.[1] as any;
-    expect(filtro.passwordSetAt).toBeNull();
-    expect(filtro.type).toBe("professional");
-    expect(filtro.email.$in).toEqual(["nueva.profesional@demo.local", "ya.eligio@demo.local"]);
+    expect(filtro).toMatchObject({ type: "professional", active: true, anonymous: false });
+    expect(filtro.passwordSetAt).toBeUndefined(); // van todos, la hayan cambiado o no
+    expect(filtro.email.$in).toEqual(["nueva.profesional@demo.local", "no.es.profesional@demo.local"]);
     expect(resultado).toEqual({ sent: ["nueva.profesional@demo.local"], failed: [], skipped: 1 });
-    expect(sobres.at(-1)?.subject).toMatch(/Creá tu contraseña/);
+
+    const cuerpo = String(mailsMandados.at(-1) ?? "");
+    expect(sobres.at(-1)?.subject).toBe("Cambiá tu contraseña");
+    expect(cuerpo).toContain("La administración");
+    expect(cuerpo).toContain("seis meses");
+
+    const token = cuerpo.match(/reset-password\?token=([\w.-]+)/)![1];
+    const datos = jwt.decode(token) as any;
+    expect(datos.purpose).toBeUndefined(); // es el mismo circuito que recuperar contraseña
+    expect((datos.exp - datos.iat) / 86400).toBe(180);
   });
 
-  it("reenviar sin elegir a nadie no manda nada", async () => {
-    await expect(peopleService.resendFirstPassword([])).rejects.toThrow(/Falta elegir/);
+  it("mandar sin elegir a nadie no manda nada", async () => {
+    await expect(peopleService.sendAdminPasswordMails([])).rejects.toThrow(/Falta elegir/);
     expect(enviados).toEqual([]);
+  });
+
+  it("el link de cambiar la contraseña sirve una sola vez y anota cada cambio", async () => {
+    const persona = nuevaProfesional({ passwordSetAt: new Date("2026-01-01T00:00:00Z") });
+    await peopleService.sendPasswordMail(persona.email, { byAdmin: true });
+    const token = String(mailsMandados.at(-1)).match(/reset-password\?token=([\w.-]+)/)![1];
+    mockEm.findOneOrFail.mockResolvedValue(persona);
+
+    await peopleService.changePassword(token, "claveNueva1");
+    // El cambio anterior quedó pisado por este: es el último, no el primero.
+    expect(persona.passwordSetAt.getTime()).toBeGreaterThan(new Date("2026-01-01T00:00:00Z").getTime());
+
+    await expect(peopleService.changePassword(token, "claveNueva2")).rejects.toThrow(/Token expirado/);
   });
 });

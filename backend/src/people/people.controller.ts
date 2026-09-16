@@ -327,20 +327,20 @@ function sendWelcomeProblem(res: Response, error: any) {
   return res.status(500).json({ message: "Ups! Algo salió mal. Intentá más tarde" });
 }
 
-// Los profesionales que todavía no eligieron su contraseña. Solo admin.
-async function pendingFirstPassword(req: Request, res: Response) {
+// Los profesionales habilitados con su último cambio de contraseña. Solo admin.
+async function professionalPasswords(req: Request, res: Response) {
   try {
-    const data = await peopleService.pendingFirstPassword();
-    return res.status(200).json({ message: "Profesionales sin contraseña propia", data });
+    const data = await peopleService.professionalPasswords();
+    return res.status(200).json({ message: "Contraseñas de los profesionales", data });
   } catch (error: any) {
     return sendError(res, error);
   }
 }
 
-// Vuelve a mandar el link para elegir la contraseña. Solo admin.
-async function resendFirstPassword(req: Request, res: Response) {
+// Manda el mail para cambiar la contraseña, como enviado por la administración. Solo admin.
+async function sendAdminPasswordMails(req: Request, res: Response) {
   try {
-    const data = await peopleService.resendFirstPassword(req.body?.emails);
+    const data = await peopleService.sendAdminPasswordMails(req.body?.emails);
     return res.status(200).json({ message: "Mails enviados", data });
   } catch (error: any) {
     return sendError(res, error);
@@ -657,8 +657,8 @@ export {
   changePassword,
   checkWelcomeLink,
   setFirstPassword,
-  pendingFirstPassword,
-  resendFirstPassword,
+  professionalPasswords,
+  sendAdminPasswordMails,
   sendPasswordMail,
   requestSignup,
   confirmSignup,

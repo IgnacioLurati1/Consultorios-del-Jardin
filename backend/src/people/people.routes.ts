@@ -16,8 +16,8 @@ import {
   toggleWaitlist,
   changePassword,
   checkWelcomeLink,
-  pendingFirstPassword,
-  resendFirstPassword,
+  professionalPasswords,
+  sendAdminPasswordMails,
   setFirstPassword,
   sendPasswordMail,
   requestSignup,
@@ -563,12 +563,12 @@ personRouter.post("/welcome", authLimiter, setFirstPassword);
 
 /**
  * @swagger
- * /api/people/welcome/pending:
+ * /api/people/passwords/professionals:
  *   get:
- *     summary: Profesionales que todavía no eligieron su contraseña
+ *     summary: Profesionales habilitados con su último cambio de contraseña
  *     description: >
- *       Los habilitados sin contraseña propia, con la última vez que entraron. Elegirla por
- *       el link de bienvenida o por "¿Olvidaste tu contraseña?" los saca de la lista.
+ *       Para saber quién sigue con la contraseña provisoria. Trae el último cambio de
+ *       contraseña, null si no hay registro.
  *     tags: [People]
  *     security:
  *       - bearerAuth: []
@@ -578,16 +578,18 @@ personRouter.post("/welcome", authLimiter, setFirstPassword);
  *       403:
  *         description: Solo para administradores
  */
-personRouter.get("/welcome/pending", verifyToken, verifyAdmin, pendingFirstPassword);
+// Dos tramos a propósito: con uno solo lo agarraría antes GET /:email, que está más arriba.
+personRouter.get("/passwords/professionals", verifyToken, verifyAdmin, professionalPasswords);
 
 /**
  * @swagger
- * /api/people/welcome/resend:
+ * /api/people/passwords/mail:
  *   post:
- *     summary: Vuelve a mandar el link para elegir la contraseña
+ *     summary: Manda el mail para cambiar la contraseña, enviado por la administración
  *     description: >
- *       Solo sale a los elegidos que siguen sin contraseña propia. Devuelve a quiénes salió,
- *       a quiénes no se pudo mandar y cuántos se saltearon porque ya la eligieron.
+ *       El mismo mail de recuperar contraseña, aclarando que lo envió la administración.
+ *       El link vale seis meses y sirve una sola vez. Devuelve a quiénes salió, a quiénes
+ *       no se pudo mandar y cuántos se saltearon por no ser profesionales habilitados.
  *     tags: [People]
  *     security:
  *       - bearerAuth: []
@@ -610,7 +612,12 @@ personRouter.get("/welcome/pending", verifyToken, verifyAdmin, pendingFirstPassw
  *       403:
  *         description: Solo para administradores
  */
-personRouter.post("/welcome/resend", verifyToken, verifyAdmin, resendFirstPassword);
+personRouter.post("/passwords/mail", verifyToken, verifyAdmin, sendAdminPasswordMails);
+
+// Los nombres con los que salió la primera versión de la pantalla. Quedan mientras la
+// página y el servidor se publican por separado, para que la ventana vieja no se rompa.
+personRouter.get("/welcome/pending", verifyToken, verifyAdmin, professionalPasswords);
+personRouter.post("/welcome/resend", verifyToken, verifyAdmin, sendAdminPasswordMails);
 
 /**
  * @swagger

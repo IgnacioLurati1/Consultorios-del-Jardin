@@ -25,8 +25,23 @@ const ABOUT_MAX = 600;
 /** Mínimo de una contraseña nueva. El mismo que pide el registro en la pantalla. */
 const MIN_PASSWORD = 6;
 
-/** Cuánto vale el link de bienvenida del profesional. */
-const WELCOME_LINK_DAYS = 7;
+/**
+ * Cuánto vale el link de bienvenida del profesional.
+ *
+ * Seis meses y no días: a los profesionales se les manda el link cuando se los da de alta,
+ * pero muchos empiezan a usar el sistema semanas o meses después. Sirve una sola vez igual
+ * (ver setFirstPassword), así que un link viejo no abre una cuenta que ya está en uso.
+ */
+const WELCOME_LINK_DAYS = 180;
+
+/**
+ * Cuánto vale el link de cambiar la contraseña que manda la administración.
+ *
+ * El que pide la persona desde "¿Olvidaste tu contraseña?" dura media hora, porque lo va a
+ * abrir en el momento. El que manda la administración llega sin que nadie lo espere y se
+ * abre cuando el profesional se hace un rato, así que dura lo mismo que la bienvenida.
+ */
+const ADMIN_RESET_DAYS = WELCOME_LINK_DAYS;
 
 export class PeopleService {
   private mailService: MailService;
@@ -426,6 +441,7 @@ export class PeopleService {
 
   async changePassword(token: any, newPassword: string) {
     let email: string;
+    let issuedAt: number;
 
     try {
       const decodedToken = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
@@ -434,6 +450,7 @@ export class PeopleService {
       // una cuenta que todavía no existe— serviría para cambiarle la contraseña a alguien.
       if (decodedToken.purpose) throw new Error("Token expirado");
       email = decodedToken.email;
+      issuedAt = Number(decodedToken.iat) * 1000;
     } catch (error: any) {
       throw new Error("Token expirado");
     }
@@ -442,11 +459,16 @@ export class PeopleService {
     if (!person.active) throw new Error("USER_DISABLED"); // un usuario deshabilitado no puede cambiar su contraseña
     if (person.anonymous) throw new Error("ANONYMOUS_ACCOUNT"); // un paciente anónimo no tiene cuenta
 
+    // Un link sirve una sola vez, como dice el mail: si la contraseña cambió después de
+    // firmarlo, ya se usó. Importa sobre todo con el que manda la administración, que
+    // vale meses y quedaría abierto todo ese tiempo en la casilla de alguien.
+    if (person.passwordSetAt && person.passwordSetAt.getTime() >= issuedAt) throw new Error("Token expirado");
+
     person.password = await bcrypt.hash(newPassword, 10);
-    // También apaga el link de bienvenida. Quien nunca llegó a usarlo y entró por
-    // "¿Olvidaste tu contraseña?" ya tiene la suya: ese link no tiene por qué seguir
-    // sirviendo los días que le quedaban para pisarla.
-    person.passwordSetAt ??= new Date();
+    // Es el último cambio de contraseña, el que mira la administración para saber quién
+    // sigue con la provisoria. También apaga el link de bienvenida: quien entró por acá ya
+    // tiene la suya.
+    person.passwordSetAt = new Date();
     await em.flush();
   }
 
@@ -601,26 +623,44 @@ export class PeopleService {
     );
   }
 
-  async sendPasswordMail(email: string) {
-    const changeToken = jwt.sign({ email }, process.env.CHANGE_SECRET as jwt.Secret, { expiresIn: "30m" });
+  /**
+   * El mail para elegir una contraseña nueva.
+   *
+   * Es el mismo en los dos casos, cambia quién lo pide. El de "¿Olvidaste tu contraseña?"
+   * lo pidió la persona y dura media hora. El que manda la administración llega sin que
+   * nadie lo haya pedido, así que lo dice, y dura meses (ver ADMIN_RESET_DAYS).
+   *
+   * Devuelve si el mail salió.
+   */
+  async sendPasswordMail(email: string, options: { byAdmin?: boolean } = {}): Promise<boolean> {
+    const byAdmin = !!options.byAdmin;
+    const changeToken = jwt.sign({ email }, process.env.CHANGE_SECRET as jwt.Secret, {
+      expiresIn: byAdmin ? `${ADMIN_RESET_DAYS}d` : "30m",
+    });
     const url = `${process.env.BASE_URL}/reset-password?token=${changeToken}`;
 
     // Un botón y, abajo, el link en texto: hay clientes de correo que no muestran el
     // botón, y pegar la dirección a mano tiene que seguir siendo posible.
     const htmlContent = [
       title("Cambiá tu contraseña"),
-      paragraph("Pediste una contraseña nueva para tu cuenta. Tocá el botón y elegí una."),
+      paragraph(
+        byAdmin
+          ? "La administración de Consultorios del Jardín te pide que cambies tu contraseña. Tocá el botón y elegí una nueva."
+          : "Pediste una contraseña nueva para tu cuenta. Tocá el botón y elegí una."
+      ),
       button("Elegir contraseña nueva", url),
       note(
         `¿No funciona el botón? Copiá esta dirección en el navegador.<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
       ),
       note(
-        "El link vence en 30 minutos y sirve una sola vez. Si no pediste cambiarla, ignorá este mensaje. Tu contraseña sigue siendo la de siempre."
+        byAdmin
+          ? "Este mail lo envió la administración. El link vale por seis meses y sirve una sola vez. Si tenés dudas, escribile a la administración."
+          : "El link vence en 30 minutos y sirve una sola vez. Si no pediste cambiarla, ignorá este mensaje. Tu contraseña sigue siendo la de siempre."
       ),
     ].join("");
 
     const msg = await this.mailService.createMessage(email, "Cambiá tu contraseña", htmlContent);
-    await this.mailService.sendMail(msg);
+    return this.mailService.sendMail(msg);
   }
 
   /* ============================================================
@@ -659,7 +699,7 @@ export class PeopleService {
         `¿No funciona el botón? Copiá esta dirección en el navegador.<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
       ),
       note(
-        `El link vence en ${WELCOME_LINK_DAYS} días y sirve una sola vez. Cuando elijas tu contraseña deja de funcionar. ` +
+        `El link vale por seis meses y sirve una sola vez. Cuando elijas tu contraseña deja de funcionar. ` +
           `Si se te pasa, entrá a <a href="${base}/forgot-password" style="color:#2f5e46">¿Olvidaste tu contraseña?</a> ` +
           "y pedí una nueva con este mismo email."
       ),
@@ -674,42 +714,36 @@ export class PeopleService {
   }
 
   /**
-   * Los profesionales que todavía no eligieron su contraseña.
+   * Los profesionales habilitados, con su último cambio de contraseña.
    *
-   * Elegirla, por el link de bienvenida o por "¿Olvidaste tu contraseña?", deja la fecha
-   * en `passwordSetAt`. Sin esa fecha, la cuenta sigue con lo que le puso el sistema o el
-   * administrador. Los que se dieron de alta antes del link nunca lo recibieron.
-   *
-   * Va también cuándo entró por última vez: quien ya entra con la contraseña que le
-   * dieron puede no necesitar el mail, y eso lo decide el administrador.
+   * Es lo que mira la administración para saber quién sigue con la contraseña provisoria.
+   * El cambio queda anotado desde que existe `passwordSetAt`: uno hecho antes no dejó
+   * rastro y figura como sin cambio.
    */
-  async pendingFirstPassword() {
+  async professionalPasswords() {
     const people = await em.find(
       Person,
-      { type: "professional", anonymous: false, active: true, passwordSetAt: null },
+      { type: "professional", anonymous: false, active: true },
       { orderBy: { surname: "ASC", name: "ASC" } }
     );
 
-    return people.map((person) => {
-      const accesses = [person.lastWebAccess, person.lastAppAccess].filter(Boolean) as Date[];
-      return {
-        email: person.email,
-        name: person.name,
-        surname: person.surname,
-        speciality: person.speciality ?? null,
-        lastAccess: accesses.length > 0 ? new Date(Math.max(...accesses.map((date) => date.getTime()))) : null,
-      };
-    });
+    return people.map((person) => ({
+      email: person.email,
+      name: person.name,
+      surname: person.surname,
+      speciality: person.speciality ?? null,
+      passwordChangedAt: person.passwordSetAt ?? null,
+    }));
   }
 
   /**
-   * Le vuelve a mandar el link para elegir la contraseña a los profesionales elegidos.
+   * Les manda a los profesionales elegidos el mail para cambiar la contraseña, dicho como
+   * enviado por la administración.
    *
-   * Solo a los que siguen sin elegirla: si entre que se abrió la pantalla y se apretó el
-   * botón alguien ya la eligió, a ese no le sale. Los mails van de a uno, para no pedirle
-   * al proveedor de golpe más de lo que acepta.
+   * Solo a habilitados. Los mails van de a uno, para no pedirle al proveedor de golpe más
+   * de lo que acepta.
    */
-  async resendFirstPassword(emails: unknown) {
+  async sendAdminPasswordMails(emails: unknown) {
     const wanted = Array.isArray(emails) ? [...new Set(emails.map((email) => String(email).toLowerCase()))] : [];
     if (wanted.length === 0) throw badRequest("Falta elegir a quién mandarle el mail");
 
@@ -718,15 +752,14 @@ export class PeopleService {
       type: "professional",
       anonymous: false,
       active: true,
-      passwordSetAt: null,
     });
 
     const sent: string[] = [];
     const failed: string[] = [];
 
     for (const person of people) {
-      const ok = await this.sendFirstPasswordMail(person).catch((error) => {
-        console.error("No se pudo mandar el link de contraseña a", person.email, error);
+      const ok = await this.sendPasswordMail(person.email, { byAdmin: true }).catch((error) => {
+        console.error("No se pudo mandar el mail de contraseña a", person.email, error);
         return false;
       });
       (ok ? sent : failed).push(person.email);
@@ -744,8 +777,15 @@ export class PeopleService {
    */
   private readWelcomeToken(token: string): string {
     try {
-      const data = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
+      // El vencimiento se mide acá, desde que se firmó, y no con el que lleva adentro: los
+      // primeros links salieron firmados por siete días, y así esos también duran lo mismo
+      // que los nuevos.
+      const data = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret, { ignoreExpiration: true }) as any;
       if (data?.purpose !== "welcome") throw new Error("Token expirado");
+
+      const age = Date.now() - Number(data.iat) * 1000;
+      if (!Number.isFinite(age) || age > WELCOME_LINK_DAYS * 24 * 60 * 60 * 1000) throw new Error("Token expirado");
+
       return String(data.email);
     } catch {
       throw new Error("Token expirado");
