@@ -192,4 +192,16 @@ export class Person {
 
   @Property({ nullable: true, type: "datetime", hidden: true })
   lastAppAccess?: Date | null;
+
+  // Cuándo la persona eligió su propia contraseña desde el link de bienvenida.
+  //
+  // Al profesional lo da de alta el administrador, que ya no le elige contraseña: el
+  // sistema le pone el documento y le manda un mail para que ponga la suya. Ese link vale
+  // una sola vez, y esta fecha es lo que lo apaga. Sin un rastro en la base el link
+  // seguiría sirviendo hasta que venciera, porque lo que lleva adentro no cambia.
+  //
+  // En null están las cuentas que eligieron su contraseña al registrarse (los pacientes)
+  // y las que vienen de antes de esto.
+  @Property({ nullable: true, type: "datetime", hidden: true })
+  passwordSetAt?: Date | null;
 }

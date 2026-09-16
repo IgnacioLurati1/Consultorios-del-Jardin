@@ -1615,3 +1615,130 @@ describe("Integracion: cargar un paciente sin cuenta que ya existe", () => {
     expect(mockEm.create).not.toHaveBeenCalled();
   });
 });
+
+// ============================================================
+// Primer ingreso del profesional.
+// El administrador ya no le elige contraseña: la cuenta queda con el documento y el
+// profesional pone la suya desde el link del mail, que sirve una sola vez.
+// ============================================================
+
+describe("Integracion: primer ingreso del profesional", () => {
+  const peopleService = new PeopleService();
+
+  function nuevaProfesional(extra: Record<string, unknown> = {}) {
+    return {
+      email: "nueva.profesional@demo.local",
+      name: "Ana",
+      surname: "Rios",
+      type: "professional",
+      active: true,
+      anonymous: false,
+      // Lo que deja el alta: el documento hasheado, que nadie eligió.
+      password: "$2b$10$documentoHasheadoDePrueba",
+      passwordSetAt: null,
+      ...extra,
+    } as any;
+  }
+
+  /** El link que quedó en el último mail. */
+  async function linkDeBienvenida(persona: any = nuevaProfesional()) {
+    await peopleService.sendFirstPasswordMail(persona);
+    const cuerpo = String(mailsMandados.at(-1) ?? "");
+    const encontrado = cuerpo.match(/bienvenida\?token=([\w.-]+)/);
+    if (!encontrado) throw new Error("El mail que se mandó no lleva ningún link de bienvenida");
+    return encontrado[1];
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mailsMandados.length = 0;
+    sobres.length = 0;
+    enviados.length = 0;
+  });
+
+  it("el mail que le llega lleva el link y ninguna contraseña", async () => {
+    const persona = nuevaProfesional();
+    await linkDeBienvenida(persona);
+
+    const cuerpo = String(mailsMandados.at(-1) ?? "");
+    expect(sobres.at(-1)?.to).toBe(persona.email);
+    expect(cuerpo).toContain("Crear mi contraseña");
+    expect(cuerpo).not.toContain(persona.password);
+    expect(cuerpo).not.toContain("documento");
+  });
+
+  it("elegir la contraseña la guarda, apaga el link y manda la bienvenida", async () => {
+    const persona = nuevaProfesional();
+    const puesta = persona.password; // la del alta, para ver que no quedó
+    const token = await linkDeBienvenida(persona);
+
+    mockEm.findOne.mockResolvedValue(persona);
+    const guardada = await peopleService.setFirstPassword(token, "unaClaveLarga");
+
+    expect(guardada.password?.startsWith("$2")).toBe(true);
+    expect(guardada.password).not.toBe(puesta);
+    expect(guardada.passwordSetAt).toBeInstanceOf(Date);
+    expect(mockEm.flush).toHaveBeenCalled();
+    // La bienvenida con lo que puede hacer sale recién ahora, cuando ya puede entrar.
+    expect(sobres.at(-1)?.subject).toMatch(/Bienvenido/);
+  });
+
+  it("el mismo link no sirve dos veces", async () => {
+    const token = await linkDeBienvenida();
+
+    mockEm.findOne.mockResolvedValue(nuevaProfesional({ passwordSetAt: new Date() }));
+
+    await expect(peopleService.setFirstPassword(token, "otraClaveLarga")).rejects.toThrow("LINK_USED");
+    await expect(peopleService.checkWelcomeLink(token)).rejects.toThrow("LINK_USED");
+  });
+
+  it("una contraseña corta no se guarda", async () => {
+    const token = await linkDeBienvenida();
+    mockEm.findOne.mockResolvedValue(nuevaProfesional());
+
+    await expect(peopleService.setFirstPassword(token, "corta")).rejects.toThrow(/6 caracteres/);
+    expect(mockEm.flush).not.toHaveBeenCalled();
+  });
+
+  it("una cuenta deshabilitada no puede abrirse con el link", async () => {
+    const token = await linkDeBienvenida();
+    mockEm.findOne.mockResolvedValue(nuevaProfesional({ active: false }));
+
+    await expect(peopleService.setFirstPassword(token, "unaClaveLarga")).rejects.toThrow("USER_DISABLED");
+  });
+
+  it("los tres circuitos no se mezclan, aunque firmen con la misma clave", async () => {
+    const bienvenida = await linkDeBienvenida();
+    // El de recuperar contraseña: mismo secreto, sin purpose.
+    const recuperar = jwt.sign({ email: "nueva.profesional@demo.local" }, process.env.CHANGE_SECRET as string);
+
+    mockEm.findOne.mockResolvedValue(nuevaProfesional());
+    mockEm.findOneOrFail.mockResolvedValue(nuevaProfesional());
+
+    await expect(peopleService.changePassword(bienvenida, "unaClaveLarga")).rejects.toThrow(/Token expirado/);
+    await expect(peopleService.setFirstPassword(recuperar, "unaClaveLarga")).rejects.toThrow(/Token expirado/);
+    await expect(peopleService.setFirstPassword("cualquier cosa", "unaClaveLarga")).rejects.toThrow(/Token expirado/);
+  });
+
+  it("si entra por \"olvidé mi contraseña\", el link de bienvenida deja de servir", async () => {
+    const token = await linkDeBienvenida();
+    const persona = nuevaProfesional();
+
+    // El otro circuito: el link de recuperar contraseña, que no lleva purpose.
+    const recuperar = jwt.sign({ email: persona.email }, process.env.CHANGE_SECRET as string);
+    mockEm.findOneOrFail.mockResolvedValue(persona);
+    await peopleService.changePassword(recuperar, "claveRecuperada");
+
+    expect(persona.passwordSetAt).toBeInstanceOf(Date);
+
+    mockEm.findOne.mockResolvedValue(persona);
+    await expect(peopleService.setFirstPassword(token, "otraClaveLarga")).rejects.toThrow("LINK_USED");
+  });
+
+  it("antes de escribir nada, la pantalla puede saludar por el nombre", async () => {
+    const token = await linkDeBienvenida();
+    mockEm.findOne.mockResolvedValue(nuevaProfesional());
+
+    await expect(peopleService.checkWelcomeLink(token)).resolves.toEqual({ name: "Ana" });
+  });
+});

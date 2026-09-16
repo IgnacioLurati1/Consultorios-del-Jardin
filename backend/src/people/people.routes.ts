@@ -15,6 +15,8 @@ import {
   toggleBookable,
   toggleWaitlist,
   changePassword,
+  checkWelcomeLink,
+  setFirstPassword,
   sendPasswordMail,
   requestSignup,
   confirmSignup,
@@ -502,6 +504,60 @@ personRouter.post("/professional", verifyToken, verifyAdmin, sanitizePersonInput
  *         description: Error del servidor
  */
 personRouter.patch("/changePassword",authLimiter, sanitizePersonInput, changePassword);
+
+/**
+ * @swagger
+ * /api/people/welcome/check:
+ *   post:
+ *     summary: Ver si el link de bienvenida del profesional sirve
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token]
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: El link sirve
+ *       401:
+ *         description: El link venció
+ *       409:
+ *         description: El link ya se usó
+ */
+personRouter.post("/welcome/check", authLimiter, checkWelcomeLink);
+
+/**
+ * @swagger
+ * /api/people/welcome:
+ *   post:
+ *     summary: Crear la contraseña del primer ingreso. Deja la sesión abierta
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Contraseña creada
+ *       401:
+ *         description: El link venció
+ *       409:
+ *         description: El link ya se usó
+ */
+personRouter.post("/welcome", authLimiter, setFirstPassword);
 
 /**
  * @swagger

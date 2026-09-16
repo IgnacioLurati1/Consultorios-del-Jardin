@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
+import { randomBytes } from "node:crypto";
 import dotenv from "dotenv";
 import { PeopleService } from "./people.service.js";
 import { WaitlistService } from "../waitlist/waitlist.service.js";
@@ -279,13 +280,90 @@ async function update(req: RequestWithUser, res: Response) {
 
 // Alta de un profesional hecha por el admin. A diferencia del registro público, no
 // emite tokens ni toca la cookie de sesión: el que está logueado sigue siendo el admin.
+//
+// La contraseña no la elige el administrador. La cuenta queda con el documento y el
+// profesional pone la suya desde el link que le llega por mail (ver setFirstPassword).
+// Si viene una contraseña en el pedido se ignora: es una versión vieja de la pantalla.
 async function addProfessional(req: RequestWithUser, res: Response) {
   try {
-    const person = await peopleService.createPerson({ ...req.body.sanitizedInput, type: "professional" });
+    const input = { ...req.body.sanitizedInput, type: "professional" };
+    // Sin documento, algo al azar que no sabe nadie: la columna no admite nulos y el
+    // camino de entrada es el mail igual.
+    const docNumber = String(input.docNumber ?? "").trim();
+    input.password = docNumber || randomBytes(12).toString("base64url");
+
+    const person = await peopleService.createPerson(input, false, { invite: true });
     const safeData = { ...person, password: undefined };
-    res.status(201).json({ message: "Profesional registrado con éxito!", data: safeData });
+    res.status(201).json({ message: "Profesional registrado. Le mandamos un mail para que cree su contraseña", data: safeData });
   } catch (error: any) {
     sendError(res, error, { duplicate: "Ya hay una cuenta registrada con ese email" });
+  }
+}
+
+/**
+ * Los dos finales malos del link de bienvenida, dichos con todas las letras.
+ *
+ * Vencido y ya usado son distintos para quien está del otro lado: uno se arregla pidiendo
+ * otro link, el otro significa que la contraseña ya existe y hay que entrar con ella.
+ */
+function sendWelcomeProblem(res: Response, error: any) {
+  if (error?.message === "USER_DISABLED")
+    return res.status(403).json({ message: "Esa cuenta está deshabilitada. Escribile a la administración", code: "USER_DISABLED" });
+  if (error?.message === "ANONYMOUS_ACCOUNT")
+    return res.status(403).json({ message: "Esa persona no tiene cuenta", code: "ANONYMOUS_ACCOUNT" });
+  if (error?.message === "LINK_USED")
+    return res.status(409).json({
+      message: 'Ese link ya se usó. Entrá con la contraseña que elegiste, o pedí otra desde "¿Olvidaste tu contraseña?"',
+      code: "WELCOME_LINK_USED",
+    });
+  if (error?.message === "Token expirado")
+    return res.status(401).json({
+      message: 'El link venció. Pedí una contraseña nueva desde "¿Olvidaste tu contraseña?" con este mismo email',
+      code: "WELCOME_LINK_INVALID",
+    });
+  if (error?.status === 400) return sendError(res, error);
+
+  console.error("Error en el primer ingreso:", error);
+  return res.status(500).json({ message: "Ups! Algo salió mal. Intentá más tarde" });
+}
+
+// ¿El link de bienvenida sirve? Lo pregunta la pantalla antes de mostrar el formulario,
+// para saludar por el nombre y para no hacer elegir una contraseña que no se va a guardar.
+async function checkWelcomeLink(req: Request, res: Response) {
+  try {
+    const token = String(req.body?.token ?? "");
+    if (!token) return res.status(400).json({ message: "Al link le falta la parte que identifica tu cuenta" });
+
+    const data = await peopleService.checkWelcomeLink(token);
+    return res.status(200).json({ message: "El link sirve", data });
+  } catch (error: any) {
+    return sendWelcomeProblem(res, error);
+  }
+}
+
+/**
+ * La contraseña que elige el profesional la primera vez.
+ *
+ * Deja la sesión abierta, igual que el alta de paciente con mail validado: quien acaba de
+ * elegir la contraseña no tiene por qué escribirla de nuevo en el login.
+ */
+async function setFirstPassword(req: Request, res: Response) {
+  try {
+    const token = String(req.body?.token ?? "");
+    if (!token) return res.status(400).json({ message: "Al link le falta la parte que identifica tu cuenta" });
+
+    const person = await peopleService.setFirstPassword(token, req.body?.password);
+    const { token: access, refreshToken } = await peopleService.createPersonTokens(person.email, person.type);
+
+    const channel = clientChannel(req);
+    if (channel) void peopleService.recordAccess(person.email, channel);
+
+    const session = deliverRefreshToken(req, res, refreshToken);
+    const safeData = { ...person, password: undefined };
+
+    return res.status(200).json({ message: "Contraseña creada", data: safeData, token: access, ...session });
+  } catch (error: any) {
+    return sendWelcomeProblem(res, error);
   }
 }
 
@@ -557,6 +635,8 @@ export {
   toggleBookable,
   toggleWaitlist,
   changePassword,
+  checkWelcomeLink,
+  setFirstPassword,
   sendPasswordMail,
   requestSignup,
   confirmSignup,

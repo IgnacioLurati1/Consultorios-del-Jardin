@@ -22,6 +22,12 @@ const em = orm.em;
 /** Tope de la presentación del profesional. Es de la pantalla que la muestra, no de la columna. */
 const ABOUT_MAX = 600;
 
+/** Mínimo de una contraseña nueva. El mismo que pide el registro en la pantalla. */
+const MIN_PASSWORD = 6;
+
+/** Cuánto vale el link de bienvenida del profesional. */
+const WELCOME_LINK_DAYS = 7;
+
 export class PeopleService {
   private mailService: MailService;
 
@@ -172,8 +178,12 @@ export class PeopleService {
    * `hashed` dice que la contraseña que viene ya está hasheada, que es el caso del alta
    * de paciente: ahí la contraseña se hashea al pedir el mail de validación y viaja así
    * adentro del token, para que el link nunca lleve la contraseña en claro.
+   *
+   * `invite` cambia el mail que sale: en lugar de la bienvenida, el link para elegir la
+   * contraseña. Es el alta del profesional, que no eligió nada todavía porque la cuenta
+   * se la creó el administrador. La bienvenida le llega después, cuando la elige.
    */
-  async createPerson(data: RequiredEntityData<Person>, hashed = false) {
+  async createPerson(data: RequiredEntityData<Person>, hashed = false, options: { invite?: boolean } = {}) {
     if (data.phoneNumber)
       data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
 
@@ -196,13 +206,13 @@ export class PeopleService {
         active: true,
       });
       await em.flush();
-      await this.sendWelcomeEmail(existing);
+      await (options.invite ? this.sendFirstPasswordMail(existing) : this.sendWelcomeEmail(existing));
       return existing;
     }
 
     const person = em.create(Person, { ...data, password: hashedPassword, anonymous: false });
     await em.flush();
-    await this.sendWelcomeEmail(person);
+    await (options.invite ? this.sendFirstPasswordMail(person) : this.sendWelcomeEmail(person));
     return person;
   }
 
@@ -433,6 +443,10 @@ export class PeopleService {
     if (person.anonymous) throw new Error("ANONYMOUS_ACCOUNT"); // un paciente anónimo no tiene cuenta
 
     person.password = await bcrypt.hash(newPassword, 10);
+    // También apaga el link de bienvenida. Quien nunca llegó a usarlo y entró por
+    // "¿Olvidaste tu contraseña?" ya tiene la suya: ese link no tiene por qué seguir
+    // sirviendo los días que le quedaban para pisarla.
+    person.passwordSetAt ??= new Date();
     await em.flush();
   }
 
@@ -607,6 +621,116 @@ export class PeopleService {
 
     const msg = await this.mailService.createMessage(email, "Cambiá tu contraseña", htmlContent);
     await this.mailService.sendMail(msg);
+  }
+
+  /* ============================================================
+     Primer ingreso del profesional
+     ============================================================ */
+
+  /**
+   * El mail que le abre la cuenta al profesional.
+   *
+   * La cuenta se la crea el administrador, así que la contraseña no la eligió nadie: el
+   * alta deja puesto el documento y este mail lleva el link para que ponga la suya. Antes
+   * el administrador inventaba una, se la pasaba por fuera del sistema y el profesional
+   * tenía que acordarse de ir a cambiarla.
+   *
+   * El link vale una sola vez y se apaga en cuanto se usa: ver setFirstPassword.
+   */
+  async sendFirstPasswordMail(person: Person) {
+    const base = process.env.BASE_URL ?? "";
+    const changeToken = jwt.sign({ email: person.email, purpose: "welcome" }, process.env.CHANGE_SECRET as jwt.Secret, {
+      expiresIn: `${WELCOME_LINK_DAYS}d`,
+    });
+    const url = `${base}/bienvenida?token=${changeToken}`;
+    const name = person.name ? `, ${escapeHtml(person.name)}` : "";
+
+    // Un botón y, abajo, el link en texto: hay clientes de correo que no muestran el
+    // botón, y pegar la dirección a mano tiene que seguir siendo posible.
+    const htmlContent = [
+      title(`Bienvenido/a${name}`),
+      paragraph(
+        "Ya tenés tu cuenta de profesional en Consultorios del Jardín. Para empezar a usarla, elegí tu contraseña."
+      ),
+      button("Crear mi contraseña", url),
+      note(
+        `¿No funciona el botón? Copiá esta dirección en el navegador.<br><a href="${url}" style="color:#2f5e46;word-break:break-all">${url}</a>`
+      ),
+      note(
+        `El link vence en ${WELCOME_LINK_DAYS} días y sirve una sola vez. Cuando elijas tu contraseña deja de funcionar. ` +
+          `Si se te pasa, entrá a <a href="${base}/forgot-password" style="color:#2f5e46">¿Olvidaste tu contraseña?</a> ` +
+          "y pedí una nueva con este mismo email."
+      ),
+    ].join("");
+
+    const message = await this.mailService.createMessage(
+      person.email,
+      "Creá tu contraseña de Consultorios del Jardín",
+      htmlContent
+    );
+    await this.mailService.sendMail(message);
+  }
+
+  /**
+   * Lee el link de bienvenida. Lo que no es un link de bienvenida vivo es "Token expirado".
+   *
+   * El corte por `purpose` va en los dos sentidos. Los tres circuitos firman con la misma
+   * clave, así que sin mirar para qué se firmó, el link de recuperar contraseña serviría
+   * para el primer ingreso y al revés.
+   */
+  private readWelcomeToken(token: string): string {
+    try {
+      const data = jwt.verify(token, process.env.CHANGE_SECRET as jwt.Secret) as any;
+      if (data?.purpose !== "welcome") throw new Error("Token expirado");
+      return String(data.email);
+    } catch {
+      throw new Error("Token expirado");
+    }
+  }
+
+  /**
+   * ¿El link sirve? Se pregunta antes de mostrar el formulario, para saludar por el nombre
+   * y para no hacer elegir una contraseña que después no se va a poder guardar.
+   */
+  async checkWelcomeLink(token: string) {
+    const email = this.readWelcomeToken(token);
+    const person = await em.findOne(Person, { email });
+
+    if (!person) throw new Error("Token expirado");
+    if (!person.active) throw new Error("USER_DISABLED");
+    if (person.anonymous) throw new Error("ANONYMOUS_ACCOUNT");
+    if (person.passwordSetAt) throw new Error("LINK_USED");
+
+    return { name: person.name };
+  }
+
+  /**
+   * La contraseña que elige el profesional la primera vez.
+   *
+   * Guardarla apaga el link: `passwordSetAt` es lo único que lo distingue de un link
+   * recién mandado, porque lo que viaja firmado no cambia. Por eso también es lo que hace
+   * que este circuito no se pueda repetir para entrar a una cuenta ya en uso.
+   */
+  async setFirstPassword(token: string, password: string) {
+    if (!password || String(password).length < MIN_PASSWORD)
+      throw badRequest(`La contraseña tiene que tener al menos ${MIN_PASSWORD} caracteres`);
+
+    const email = this.readWelcomeToken(token);
+    const person = await em.findOne(Person, { email });
+
+    if (!person) throw new Error("Token expirado");
+    if (!person.active) throw new Error("USER_DISABLED");
+    if (person.anonymous) throw new Error("ANONYMOUS_ACCOUNT");
+    if (person.passwordSetAt) throw new Error("LINK_USED");
+
+    person.password = await bcrypt.hash(String(password), 10);
+    person.passwordSetAt = new Date();
+    await em.flush();
+
+    // La bienvenida con lo que puede hacer va recién ahora. Antes salía al crear la cuenta,
+    // cuando todavía no podía entrar a ver nada de lo que le prometía.
+    await this.sendWelcomeEmail(person);
+    return person;
   }
 
   /**
