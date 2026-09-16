@@ -169,7 +169,7 @@ export interface IncreaseSimulation {
   value: number;
   /** Las cuotas del mes, hoy. */
   monthly: number;
-  /** Cuántas veces se usa un bloque en el mes. */
+  /** Cuántos bloques se usan en el mes. */
   times: number;
   added: number;
   projected: number;

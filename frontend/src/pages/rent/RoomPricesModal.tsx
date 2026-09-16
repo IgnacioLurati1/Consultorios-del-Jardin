@@ -126,7 +126,7 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
       onClose={onClose}
       size="lg"
       title="Precios de los consultorios"
-      subtitle="Por bloque, por cada vez que se usa"
+      subtitle="Por bloque, por mes"
       footer={
         <>
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose} disabled={busy}>
@@ -157,9 +157,9 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
         </div>
 
         <p className="adm-confirm-note">
-          Quien usa cualquier parte de un bloque paga el bloque entero, por cada vez que ese día cae en el mes. El día se
-          cobra solo a quien usa el consultorio de 9 a 20 de corrido, y reemplaza a la mañana y la tarde. Un campo vacío
-          deja el bloque sin precio.
+          Los precios son por mes. La mañana de los lunes cuesta lo mismo en un mes con cuatro lunes que en uno con cinco.
+          Quien usa cualquier parte de un bloque paga el bloque entero. El día se cobra solo a quien usa el consultorio de 9
+          a 20 de corrido, y reemplaza a la mañana y la tarde. Un campo vacío deja el bloque sin precio.
         </p>
       </div>
 

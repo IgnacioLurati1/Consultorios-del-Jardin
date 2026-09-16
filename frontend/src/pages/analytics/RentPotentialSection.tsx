@@ -25,7 +25,7 @@ const SHORT_DAY: Record<string, string> = {
  * Cuánto más podría dejar el alquiler. Dos cuentas, cada una con su botón:
  *
  * - Los bloques libres de cada consultorio, a su precio.
- * - Un aumento, en porcentaje sobre las cuotas o en pesos por cada vez que se usa un bloque.
+ * - Un aumento, en porcentaje sobre las cuotas o en pesos por cada bloque alquilado.
  *
  * Nada de esto corre al abrir la pantalla. Las dos recorren la agenda de todos los
  * consultorios, y los números se abren muchas veces para mirar otra cosa: se calcula
@@ -199,7 +199,7 @@ function FreeBlocks({ report }: { report: FreeBlocksReport }) {
                   <span
                     key={`${block.day}-${block.block}`}
                     className={`an-free-chip ${block.price === null ? "unpriced" : ""}`}
-                    title={`${block.times} veces en el mes${block.price === null ? ", sin precio" : ` a ${money(block.price)}`}`}
+                    title={block.price === null ? "Sin precio" : `${money(block.price)} por mes`}
                   >
                     {SHORT_DAY[block.day] ?? block.day} {BLOCK_LABEL[block.block].toLowerCase()}
                   </span>
@@ -243,7 +243,7 @@ function Simulation({ sim }: { sim: IncreaseSimulation }) {
       <p className="an-potential-text">
         {sim.mode === "percent"
           ? `Sobre todas las cuotas del mes, fijas o por bloques.`
-          : `${sim.times} usos de bloque en el mes, cada uno ${money(sim.value)} más.`}
+          : `${sim.times} bloques alquilados en el mes, cada uno ${money(sim.value)} más.`}
       </p>
     </div>
   );

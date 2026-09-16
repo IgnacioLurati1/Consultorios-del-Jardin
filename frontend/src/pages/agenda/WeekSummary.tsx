@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { findAgendaWeek, type AgendaEdge, type AgendaWeekDay, type AgendaWeek } from "./agendaService.ts";
+import { WeekDayModal } from "./WeekDayModal.tsx";
 import "./weekSummary.css";
 
 /** "2026-09-01" → "1 de septiembre". Las dos fechas del encabezado son del mismo año. */
@@ -33,7 +34,7 @@ export function WeekSummary() {
   const [data, setData] = useState<AgendaWeek | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [openPeak, setOpenPeak] = useState<string | null>(null);
+  const [openDay, setOpenDay] = useState<AgendaWeekDay | null>(null);
 
   // La semana anterior se sigue viendo, apagada, hasta que llega la nueva. Vaciar y
   // volver a llenar hacía saltar media pantalla en cada toque de la flecha.
@@ -97,24 +98,38 @@ export function WeekSummary() {
           {data.days
             .filter((day) => day.day !== "domingo" || day.appointments > 0 || day.earliest)
             .map((day) => (
-              <WeekDayCard
-                key={day.date}
-                day={day}
-                open={openPeak === day.date}
-                onTogglePeak={() => setOpenPeak(openPeak === day.date ? null : day.date)}
-              />
+              <WeekDayCard key={day.date} day={day} onOpen={() => setOpenDay(day)} />
             ))}
         </div>
       )}
+
+      <WeekDayModal day={openDay} onClose={() => setOpenDay(null)} />
     </section>
   );
 }
 
-function WeekDayCard({ day, open, onTogglePeak }: { day: AgendaWeekDay; open: boolean; onTogglePeak: () => void }) {
+/**
+ * La tarjeta entera abre el día completo. Un día sin nadie no abre nada: no hay qué mostrar.
+ */
+function WeekDayCard({ day, onOpen }: { day: AgendaWeekDay; onOpen: () => void }) {
   const quiet = !day.earliest && day.appointments === 0;
 
+  // Un article y no un button: adentro hay un título y una lista, que un botón no admite.
+  const opener = quiet
+    ? {}
+    : {
+        role: "button",
+        tabIndex: 0,
+        onClick: onOpen,
+        onKeyDown: (event: React.KeyboardEvent) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          onOpen();
+        },
+      };
+
   return (
-    <article className={`wk-day ${day.isToday ? "wk-day-today" : ""} ${quiet ? "wk-day-quiet" : ""}`}>
+    <article {...opener} className={`wk-day ${day.isToday ? "wk-day-today" : ""} ${quiet ? "wk-day-quiet" : "wk-day-open"}`}>
       <h3 className="wk-day-title">
         {day.day} {dayNumber(day.date)}
         {day.isToday && <span className="wk-today">hoy</span>}
@@ -144,33 +159,14 @@ function WeekDayCard({ day, open, onTogglePeak }: { day: AgendaWeekDay; open: bo
           )}
 
           {day.peak ? (
-            <>
-              <button type="button" className="wk-peak" onClick={onTogglePeak} aria-expanded={open}>
-                <span className="wk-peak-band">
-                  {day.peak.from} a {day.peak.to}
-                </span>
-                <span className="wk-peak-note">
-                  {day.peak.appointments} {day.peak.appointments === 1 ? "turno" : "turnos"} a la vez
-                </span>
-              </button>
-
-              {open && (
-                <ul className="wk-peak-list">
-                  {day.peak.items.map((item) => (
-                    <li key={item.numAppointment}>
-                      <span className="wk-peak-hour">{item.initialHour}</span>
-                      <span className="wk-peak-people">
-                        <strong>{item.patient ? `${item.patient.name} ${item.patient.surname}` : "Sin paciente"}</strong>
-                        <span className="wk-who">
-                          con {item.professional.name} {item.professional.surname} · {item.room}
-                          {item.overbooked ? " · turno especial" : ""}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
+            <span className="wk-peak">
+              <span className="wk-peak-band">
+                {day.peak.from} a {day.peak.to}
+              </span>
+              <span className="wk-peak-note">
+                {day.peak.appointments} {day.peak.appointments === 1 ? "turno" : "turnos"} a la vez
+              </span>
+            </span>
           ) : (
             <p className="wk-quiet">Sin turnos cargados.</p>
           )}

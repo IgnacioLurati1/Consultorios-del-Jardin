@@ -37,8 +37,8 @@ export const GALLERY_PHOTOS: PlacePhoto[] = [
  * nombre tiene que coincidir con SPECIALITIES, que es lo que usa el pedido de turno.
  */
 export const SPECIALITY_TILES = [
-  { name: "Psicopedagogía", icon: "book-open-reader", tint: "#5d7f3f" },
   { name: "Psicología", icon: "brain", tint: "#2f6f6b" },
+  { name: "Psicopedagogía", icon: "book-open-reader", tint: "#5d7f3f" },
   { name: "Psiquiatría", icon: "stethoscope", tint: "#9a5561" },
   { name: "Nutrición", icon: "apple-whole", tint: "#a8763a" },
   { name: "Fonoaudiología", icon: "ear-listen", tint: "#6b5a8e" },

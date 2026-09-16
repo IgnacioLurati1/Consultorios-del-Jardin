@@ -31,6 +31,8 @@ export interface AgendaAppointment {
   state: string;
   /** Fuera de los módulos del profesional: lo metió a mano. */
   overbooked: boolean;
+  /** Vino de un calendario externo: puede no encajar en la grilla ni tener paciente. */
+  imported?: boolean;
   /** Salió de un turno que se repite solo. */
   recurring: boolean;
   professional: AgendaPerson;

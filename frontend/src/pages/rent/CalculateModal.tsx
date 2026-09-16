@@ -174,8 +174,9 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
         </div>
 
         <p className="adm-confirm-note">
-          Cada profesional paga entero cada bloque que usa, por cada vez que ese día cae en el mes. Quien usa el consultorio de
-          9 a 20 de corrido paga el día, si tiene precio. Lo que queda fuera de los bloques lleva un valor a mano, por vez.
+          Cada profesional paga entero cada bloque que usa, con el precio del mes, tenga el mes cuatro o cinco semanas. Quien
+          usa el consultorio de 9 a 20 de corrido paga el día, si tiene precio. Lo que queda fuera de los bloques lleva un valor
+          a mano, también por mes.
         </p>
 
         {unpriced && (
@@ -233,8 +234,7 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
                           <label key={key} className="rent-extra">
                             <span>
                               {capitalize(DAY_LABEL[line.day] ?? line.day)}{" "}
-                              {line.parts.map((part) => `de ${part.from} a ${part.to}`).join(" y ")} · {line.room} ·{" "}
-                              {line.times === 1 ? "1 vez" : `${line.times} veces`}
+                              {line.parts.map((part) => `de ${part.from} a ${part.to}`).join(" y ")} · {line.room}
                             </span>
                             <input
                               className="rent-input"
@@ -242,7 +242,7 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
                               inputMode="numeric"
                               min={0}
                               step={1}
-                              placeholder="Valor por vez"
+                              placeholder="Valor por mes"
                               value={extras[key] ?? ""}
                               onChange={(event) => setExtras((prev) => ({ ...prev, [key]: event.target.value }))}
                             />

@@ -65,8 +65,16 @@ function FromChips({ value, onChange, label }: { value: string; onChange: (month
    ============================================================ */
 
 /**
- * De qué sale una cuota calculada con los bloques: cada bloque, cuántas veces cae en el
- * mes y a qué precio. Es lo que se mira cuando un número no cierra.
+ * Los precios son por mes y cada línea se cobra una vez. Las cuotas guardadas antes de ese
+ * cambio multiplicaban por las semanas del mes, y esas siguen mostrando la cuenta.
+ */
+function calcOf(times: number, price: number) {
+  return times === 1 ? "por mes" : `${times} × ${money(price)}`;
+}
+
+/**
+ * De qué sale una cuota calculada con los bloques: cada bloque y a qué precio. Es lo que
+ * se mira cuando un número no cierra.
  */
 export function RentBreakdownView({ breakdown }: { breakdown: Breakdown }) {
   const { colors } = useTheme();
@@ -91,7 +99,7 @@ export function RentBreakdownView({ breakdown }: { breakdown: Breakdown }) {
         line(
           `${item.roomId}-${item.day}-${item.block}`,
           `${item.room} · ${DAY_LABEL[item.day] ?? item.day} · ${BLOCK_LABEL[item.block].toLowerCase()}`,
-          item.price === null ? "sin precio" : `${item.times} × ${money(item.price)}`,
+          item.price === null ? "sin precio" : calcOf(item.times, item.price),
           item.subtotal
         )
       )}
@@ -100,7 +108,7 @@ export function RentBreakdownView({ breakdown }: { breakdown: Breakdown }) {
         line(
           `${item.roomId}-${item.day}-day`,
           `${item.room} · ${DAY_LABEL[item.day] ?? item.day} · día entero de 9 a 20`,
-          `${item.times} × ${money(item.price)}`,
+          calcOf(item.times, item.price),
           item.subtotal
         )
       )}
@@ -109,7 +117,7 @@ export function RentBreakdownView({ breakdown }: { breakdown: Breakdown }) {
         line(
           `${item.day}-${item.initialHour}`,
           `${item.room} · ${DAY_LABEL[item.day] ?? item.day} ${item.parts.map((part) => `de ${part.from} a ${part.to}`).join(" y ")}`,
-          item.price === null ? "sin valor" : `${item.times} × ${money(item.price)}`,
+          item.price === null ? "sin valor" : calcOf(item.times, item.price),
           item.subtotal
         )
       )}
@@ -512,7 +520,7 @@ export function RoomPricesSheet({ visible, onClose, onSaved }: { visible: boolea
     <Sheet visible={visible} onClose={onClose} title="Precios de los consultorios">
       <View style={styles.body}>
         <AppText variant="small" tone="muted">
-          Por bloque entero, cada vez que se usa. El día es para quien usa el consultorio de 9 a 20 de corrido. Vacío es
+          Por bloque entero, por mes. El día es para quien usa el consultorio de 9 a 20 de corrido. Vacío es
           sin precio.
         </AppText>
 
@@ -707,7 +715,7 @@ export function CalculateSheet({
     <Sheet visible={visible} onClose={onClose} title="Calcular con los bloques">
       <View style={styles.body}>
         <AppText variant="small" tone="muted">
-          Cada bloque usado se paga entero, por cada vez en el mes. De 9 a 20 de corrido se paga el día.
+          Cada bloque usado se paga entero, con el precio del mes. De 9 a 20 de corrido se paga el día.
         </AppText>
 
         <FromChips label="Desde" value={from} onChange={setFrom} />
@@ -760,11 +768,11 @@ export function CalculateSheet({
                       key={key}
                       label={`${capitalize(DAY_LABEL[line.day] ?? line.day)} ${line.parts
                         .map((part) => `de ${part.from} a ${part.to}`)
-                        .join(" y ")} · ${line.room} · ${line.times === 1 ? "1 vez" : `${line.times} veces`}`}
+                        .join(" y ")} · ${line.room}`}
                       value={extras[key] ?? ""}
                       onChangeText={(text) => setExtras((prev) => ({ ...prev, [key]: text }))}
                       keyboardType="number-pad"
-                      placeholder="Valor por vez"
+                      placeholder="Valor por mes"
                     />
                   );
                 })}

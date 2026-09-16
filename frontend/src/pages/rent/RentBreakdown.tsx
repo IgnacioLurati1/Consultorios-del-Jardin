@@ -2,8 +2,16 @@ import { money } from "../analytics/analyticsService.ts";
 import { BLOCK_LABEL, DAY_LABEL, formatAdjust, type Breakdown } from "./rentService.ts";
 
 /**
- * De qué sale una cuota calculada con los bloques: cada bloque, cuántas veces cae en el
- * mes y a qué precio. Es lo que se mira cuando un número no cierra.
+ * Los precios son por mes y cada línea se cobra una vez. Las cuotas guardadas antes de ese
+ * cambio multiplicaban por las semanas del mes, y esas siguen mostrando la cuenta.
+ */
+function calc(times: number, price: number) {
+  return times === 1 ? "por mes" : `${times} × ${money(price)}`;
+}
+
+/**
+ * De qué sale una cuota calculada con los bloques: cada bloque y a qué precio. Es lo que
+ * se mira cuando un número no cierra.
  */
 export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
   return (
@@ -16,7 +24,7 @@ export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
                 {line.room} · {DAY_LABEL[line.day] ?? line.day} · {BLOCK_LABEL[line.block].toLowerCase()}
               </span>
               <span className="rent-line-calc">
-                {line.price === null ? "sin precio" : `${line.times} × ${money(line.price)}`}
+                {line.price === null ? "sin precio" : calc(line.times, line.price)}
               </span>
               <strong>{money(line.subtotal)}</strong>
             </li>
@@ -31,7 +39,7 @@ export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
               <span>
                 {line.room} · {DAY_LABEL[line.day] ?? line.day} · día entero de 9 a 20
               </span>
-              <span className="rent-line-calc">{`${line.times} × ${money(line.price)}`}</span>
+              <span className="rent-line-calc">{calc(line.times, line.price)}</span>
               <strong>{money(line.subtotal)}</strong>
             </li>
           ))}
@@ -47,7 +55,7 @@ export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
                 {line.parts.map((part) => `de ${part.from} a ${part.to}`).join(" y ")}
               </span>
               <span className="rent-line-calc">
-                {line.price === null ? "sin valor" : `${line.times} × ${money(line.price)}`}
+                {line.price === null ? "sin valor" : calc(line.times, line.price)}
               </span>
               <strong>{money(line.subtotal)}</strong>
             </li>

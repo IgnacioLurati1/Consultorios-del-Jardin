@@ -9,6 +9,7 @@ import { sentenceCase } from "../lib/dates";
 import { useAsync } from "../lib/useAsync";
 import { radius, space } from "../theme/tokens";
 import { useTheme } from "../theme/useTheme";
+import { WeekDaySheet } from "./WeekDaySheet";
 
 /** Los nombres de los que empatan en esa punta del día. Si son tres, van los tres. */
 function names(edge: AgendaEdge): string {
@@ -27,7 +28,7 @@ function names(edge: AgendaEdge): string {
  */
 export function WeekSummary() {
   const [weeksAhead, setWeeksAhead] = useState(0);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<AgendaWeekDay | null>(null);
 
   const state = useAsync(() => agendaWeek(weeksAhead), [weeksAhead]);
 
@@ -57,122 +58,98 @@ export function WeekSummary() {
           {state.data.days
             .filter((day) => day.day !== "domingo" || day.appointments > 0 || day.earliest)
             .map((day) => (
-              <DayCard
-                key={day.date}
-                day={day}
-                open={open === day.date}
-                onTogglePeak={() => setOpen(open === day.date ? null : day.date)}
-              />
+              <DayCard key={day.date} day={day} onOpen={() => setOpen(day)} />
             ))}
         </View>
       )}
+
+      <WeekDaySheet day={open} onClose={() => setOpen(null)} />
     </Section>
   );
 }
 
-function DayCard({ day, open, onTogglePeak }: { day: AgendaWeekDay; open: boolean; onTogglePeak: () => void }) {
+/** La tarjeta entera abre el día completo. Un día sin nadie no abre nada: no hay qué mostrar. */
+function DayCard({ day, onOpen }: { day: AgendaWeekDay; onOpen: () => void }) {
   const { colors } = useTheme();
   const quiet = !day.earliest && day.appointments === 0;
 
   return (
-    <Card style={day.isToday ? { borderColor: colors.green } : undefined}>
-      <View style={styles.head}>
-        <AppText variant="subtitle">
-          {sentenceCase(day.day)} {Number(day.date.slice(8))}
-        </AppText>
-        {day.isToday ? (
-          <View style={[styles.today, { backgroundColor: colors.greenSoft }]}>
-            <AppText variant="caption" chrome style={{ color: colors.greenDark }}>
-              HOY
-            </AppText>
-          </View>
-        ) : null}
-      </View>
-
-      {quiet ? (
-        <AppText variant="small" tone="muted" style={styles.gap}>
-          Nadie atiende y no hay turnos.
-        </AppText>
-      ) : (
-        <>
-          {day.earliest && day.latest ? (
-            <View style={[styles.edges, styles.gap]}>
-              <View style={styles.edge}>
-                <AppText variant="caption" tone="muted">
-                  ABRE
-                </AppText>
-                <AppText variant="bodyStrong">{day.earliest.hour}</AppText>
-                <AppText variant="caption" tone="muted" numberOfLines={2}>
-                  {names(day.earliest)}
-                </AppText>
-              </View>
-
-              <View style={styles.edge}>
-                <AppText variant="caption" tone="muted">
-                  CIERRA
-                </AppText>
-                <AppText variant="bodyStrong">{day.latest.hour}</AppText>
-                <AppText variant="caption" tone="muted" numberOfLines={2}>
-                  {names(day.latest)}
-                </AppText>
-              </View>
+    <Pressable
+      disabled={quiet}
+      onPress={onOpen}
+      accessibilityRole={quiet ? undefined : "button"}
+      accessibilityHint={quiet ? undefined : "Muestra el día completo"}
+      style={({ pressed }) => (pressed ? styles.pressed : undefined)}
+    >
+      <Card style={day.isToday ? { borderColor: colors.green } : undefined}>
+        <View style={styles.head}>
+          <AppText variant="subtitle">
+            {sentenceCase(day.day)} {Number(day.date.slice(8))}
+          </AppText>
+          {day.isToday ? (
+            <View style={[styles.today, { backgroundColor: colors.greenSoft }]}>
+              <AppText variant="caption" chrome style={{ color: colors.greenDark }}>
+                HOY
+              </AppText>
             </View>
           ) : null}
+        </View>
 
-          {day.peak ? (
-            <>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ expanded: open }}
-                accessibilityLabel={`De ${day.peak.from} a ${day.peak.to}, ${day.peak.appointments} turnos a la vez`}
-                onPress={onTogglePeak}
-                style={[styles.peak, styles.gap, { backgroundColor: colors.greenSoft }]}
-              >
+        {quiet ? (
+          <AppText variant="small" tone="muted" style={styles.gap}>
+            Nadie atiende y no hay turnos.
+          </AppText>
+        ) : (
+          <>
+            {day.earliest && day.latest ? (
+              <View style={[styles.edges, styles.gap]}>
+                <View style={styles.edge}>
+                  <AppText variant="caption" tone="muted">
+                    ABRE
+                  </AppText>
+                  <AppText variant="bodyStrong">{day.earliest.hour}</AppText>
+                  <AppText variant="caption" tone="muted" numberOfLines={2}>
+                    {names(day.earliest)}
+                  </AppText>
+                </View>
+
+                <View style={styles.edge}>
+                  <AppText variant="caption" tone="muted">
+                    CIERRA
+                  </AppText>
+                  <AppText variant="bodyStrong">{day.latest.hour}</AppText>
+                  <AppText variant="caption" tone="muted" numberOfLines={2}>
+                    {names(day.latest)}
+                  </AppText>
+                </View>
+              </View>
+            ) : null}
+
+            {day.peak ? (
+              <View style={[styles.peak, styles.gap, { backgroundColor: colors.greenSoft }]}>
                 <AppText variant="bodyStrong" style={{ color: colors.greenDark }}>
                   {day.peak.from} a {day.peak.to}
                 </AppText>
                 <AppText variant="caption" style={{ color: colors.greenDark }}>
-                  {day.peak.appointments} {day.peak.appointments === 1 ? "turno" : "turnos"} a la vez ·{" "}
-                  {open ? "cerrar" : "ver de quiénes son"}
+                  {day.peak.appointments} {day.peak.appointments === 1 ? "turno" : "turnos"} a la vez
                 </AppText>
-              </Pressable>
+              </View>
+            ) : (
+              <AppText variant="small" tone="muted" style={styles.gap}>
+                Sin turnos cargados.
+              </AppText>
+            )}
 
-              {open ? (
-                <View style={[styles.list, styles.gap]}>
-                  {day.peak.items.map((item) => (
-                    <View key={item.numAppointment} style={styles.item}>
-                      <AppText variant="caption" tone="muted" style={styles.itemHour}>
-                        {item.initialHour}
-                      </AppText>
-                      <View style={styles.itemText}>
-                        <AppText variant="small">
-                          {item.patient ? `${item.patient.name} ${item.patient.surname}` : "Sin paciente"}
-                        </AppText>
-                        <AppText variant="caption" tone="muted">
-                          con {item.professional.name} {item.professional.surname} · {item.room}
-                          {item.overbooked ? " · turno especial" : ""}
-                        </AppText>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <AppText variant="small" tone="muted" style={styles.gap}>
-              Sin turnos cargados.
-            </AppText>
-          )}
-
-          <View style={[styles.counts, styles.gap, { borderTopColor: colors.hairline }]}>
-            <AppText variant="caption" tone="muted">
-              {day.patients} {day.patients === 1 ? "paciente" : "pacientes"} · {day.professionals}{" "}
-              {day.professionals === 1 ? "profesional" : "profesionales"}
-            </AppText>
-          </View>
-        </>
-      )}
-    </Card>
+            <View style={[styles.counts, styles.gap, { borderTopColor: colors.hairline }]}>
+              <AppText variant="caption" tone="muted">
+                {day.patients} {day.patients === 1 ? "paciente" : "pacientes"} · {day.professionals}{" "}
+                {day.professionals === 1 ? "profesional" : "profesionales"}
+              </AppText>
+            </View>
+          </>
+        )}
+      </Card>
+    </Pressable>
   );
 }
 
@@ -185,9 +162,6 @@ const styles = StyleSheet.create({
   edges: { flexDirection: "row", gap: space.lg },
   edge: { flex: 1, gap: 1 },
   peak: { gap: 1, paddingHorizontal: space.md, paddingVertical: space.md, borderRadius: radius.md },
-  list: { gap: space.md },
-  item: { flexDirection: "row", gap: space.md },
-  itemHour: { width: 44, fontVariant: ["tabular-nums"] },
-  itemText: { flex: 1, gap: 1 },
+  pressed: { opacity: 0.85 },
   counts: { paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth },
 });

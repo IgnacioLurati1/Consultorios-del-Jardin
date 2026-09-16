@@ -66,6 +66,30 @@
   box-shadow: 0 0 0 1px var(--adm-green) inset, var(--adm-shadow);
 }
 
+/* Toda la tarjeta abre el día completo. */
+.wk-day-open {
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.wk-day-open:hover {
+  border-color: var(--adm-green);
+  transform: translateY(-1px);
+}
+
+.wk-day-open:focus-visible {
+  outline: 2px solid var(--adm-green);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wk-day-open,
+  .wk-day-open:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
 .wk-day-quiet {
   background: var(--adm-bg);
   box-shadow: none;
@@ -148,12 +172,6 @@
   background: var(--adm-green-soft);
   border: none;
   border-radius: var(--adm-radius-sm);
-  cursor: pointer;
-}
-
-.wk-peak:hover,
-.wk-peak:focus-visible {
-  filter: brightness(0.97);
 }
 
 .wk-peak-band {
@@ -165,36 +183,6 @@
 .wk-peak-note {
   font-size: 0.78rem;
   opacity: 0.85;
-}
-
-.wk-peak-list {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin: 0;
-  padding: 0 0 2px;
-  list-style: none;
-}
-
-.wk-peak-list li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 9px;
-  align-items: baseline;
-  font-size: 0.82rem;
-}
-
-.wk-peak-hour {
-  color: var(--adm-muted);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.wk-peak-people {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  line-height: 1.3;
 }
 
 .wk-quiet {
@@ -209,4 +197,127 @@
   color: var(--adm-muted);
   font-size: 0.8rem;
   border-top: 1px solid var(--adm-border);
+}
+
+/* ============================================================
+   El día completo, en la ventana que abre cada tarjeta.
+   ============================================================ */
+
+.wkm-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.wkm-summary dt {
+  color: var(--adm-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wkm-summary dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 3px 0 0;
+  color: var(--adm-muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.wkm-summary strong {
+  color: var(--adm-text);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wkm-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wkm-list > li {
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--adm-border);
+}
+
+.wkm-list > li:last-child {
+  border-bottom: none;
+}
+
+.wkm-muted {
+  color: var(--adm-muted);
+  font-size: 0.84rem;
+}
+
+.wkm-person {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  align-items: start;
+}
+
+.wkm-person > div:first-child,
+.wkm-people {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.wkm-modules {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.wkm-appointment {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.wkm-hour {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.wkm-hour .wkm-muted {
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 560px) {
+  .wkm-person {
+    grid-template-columns: 1fr;
+  }
+
+  .wkm-modules {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .wkm-appointment {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .wkm-appointment > .adm-badge {
+    grid-column: 2;
+    justify-self: start;
+  }
 }
