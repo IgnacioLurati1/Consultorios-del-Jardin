@@ -9,11 +9,13 @@ import api from "../../axios";
  */
 
 export type BlockKey = "morning" | "afternoon";
+/** Lo que tiene precio: los dos bloques y el día entero, de 9 a 20 de corrido. */
+export type PriceKey = BlockKey | "day";
 export type PaymentStatus = "paid" | "partial" | "unpaid" | "none";
 export type RentKind = "fixed" | "blocks";
 
 export interface Block {
-  key: BlockKey;
+  key: PriceKey;
   label: string;
   from: string;
   to: string;
@@ -31,6 +33,18 @@ export interface BlockLine {
   sharedWith?: string[];
 }
 
+/** Un día entero de 9 a 20 de corrido, cobrado con el precio del día. */
+export interface DayLine {
+  roomId: number;
+  room: string;
+  day: string;
+  times: number;
+  price: number;
+  subtotal: number;
+  /** Solo en la previa de "Calcular": quién más usa el consultorio ese día. */
+  sharedWith?: string[];
+}
+
 export interface OutsideLine {
   roomId: number;
   room: string;
@@ -45,6 +59,8 @@ export interface OutsideLine {
 
 export interface Breakdown {
   blocks: BlockLine[];
+  /** Opcional: las cuotas guardadas antes del precio por día no lo tienen. */
+  days?: DayLine[];
   outside: OutsideLine[];
   base: number;
   /** Aumento propio, en centésimos de punto: 1000 es un 10%. */
@@ -99,9 +115,9 @@ export interface RoomPrice {
   idRoom: number;
   room: string;
   office: string;
-  prices: Record<BlockKey, number | null>;
+  prices: Partial<Record<PriceKey, number | null>>;
   /** Lo que ya quedó programado para el mes siguiente. */
-  next: Record<BlockKey, number | null>;
+  next: Partial<Record<PriceKey, number | null>>;
 }
 
 export interface RoomPrices {
@@ -210,7 +226,7 @@ export function findRoomPrices(month?: string): Promise<RoomPrices> {
     .catch(unwrap);
 }
 
-export function saveRoomPrices(fromMonth: string, prices: { idRoom: number; block: BlockKey; price: number | null }[]): Promise<RoomPrices> {
+export function saveRoomPrices(fromMonth: string, prices: { idRoom: number; block: PriceKey; price: number | null }[]): Promise<RoomPrices> {
   return api.put<Envelope<RoomPrices>>("/rent/prices", { fromMonth, prices }).then(data).catch(unwrap);
 }
 
@@ -298,7 +314,7 @@ export const DAY_LABEL: Record<string, string> = {
   domingo: "domingo",
 };
 
-export const BLOCK_LABEL: Record<BlockKey, string> = { morning: "Mañana", afternoon: "Tarde" };
+export const BLOCK_LABEL: Record<PriceKey, string> = { morning: "Mañana", afternoon: "Tarde", day: "Día" };
 
 export const STATUS_LABEL: Record<PaymentStatus, string> = {
   paid: "Pagó",

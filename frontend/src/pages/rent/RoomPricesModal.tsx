@@ -12,7 +12,7 @@ import {
   saveRoomPrices,
   shiftMonth,
   type Block,
-  type BlockKey,
+  type PriceKey,
   type RoomPrices,
 } from "./rentService.ts";
 
@@ -22,7 +22,7 @@ interface RoomPricesModalProps {
   onSaved: () => void;
 }
 
-const keyOf = (idRoom: number, block: BlockKey) => `${idRoom}|${block}`;
+const keyOf = (idRoom: number, block: PriceKey) => `${idRoom}|${block}`;
 
 /** "09:00" a "13:00" → "9 a 13". */
 function hours(block: Block): string {
@@ -63,7 +63,10 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
         setValues(
           Object.fromEntries(
             result.rooms.flatMap((room) =>
-              result.blocks.map((block) => [keyOf(room.idRoom, block.key), room.prices[block.key] === null ? "" : String(room.prices[block.key])])
+              result.blocks.map((block) => {
+                const price = room.prices[block.key] ?? null;
+                return [keyOf(room.idRoom, block.key), price === null ? "" : String(price)];
+              })
             )
           )
         );
@@ -87,7 +90,7 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
             block: block.key,
             price,
             invalid: raw.trim() !== "" && price === null,
-            changed: price !== room.prices[block.key],
+            changed: price !== (room.prices[block.key] ?? null),
           };
         })
       )
@@ -154,8 +157,9 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
         </div>
 
         <p className="adm-confirm-note">
-          Quien usa cualquier parte de un bloque paga el bloque entero, por cada vez que ese día cae en el mes. Un campo
-          vacío deja el bloque sin precio.
+          Quien usa cualquier parte de un bloque paga el bloque entero, por cada vez que ese día cae en el mes. El día se
+          cobra solo a quien usa el consultorio de 9 a 20 de corrido, y reemplaza a la mañana y la tarde. Un campo vacío
+          deja el bloque sin precio.
         </p>
       </div>
 
@@ -193,7 +197,7 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
                     </td>
                     {data.blocks.map((block) => {
                       const key = keyOf(room.idRoom, block.key);
-                      const scheduled = from === current && room.next[block.key] !== room.prices[block.key];
+                      const scheduled = from === current && (room.next[block.key] ?? null) !== (room.prices[block.key] ?? null);
 
                       return (
                         <td key={block.key}>
@@ -210,7 +214,7 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
                           />
                           {scheduled && (
                             <span className="rent-sub">
-                              Desde {monthName(next)} {room.next[block.key] === null ? "sin precio" : money(room.next[block.key]!)}
+                              Desde {monthName(next)} {(room.next[block.key] ?? null) === null ? "sin precio" : money(room.next[block.key]!)}
                             </span>
                           )}
                         </td>

@@ -19,8 +19,8 @@ interface SpecialityCard {
  * portada no se comprometa con nada que cambie cuando se sume o se vaya una.
  */
 const CARDS: SpecialityCard[] = [
-  { name: "Psicopedagogía", icon: FaBookOpenReader, tint: "#5d7f3f" },
   { name: "Psicología", icon: FaBrain, tint: "#2f6f6b" },
+  { name: "Psicopedagogía", icon: FaBookOpenReader, tint: "#5d7f3f" },
   { name: "Psiquiatría", icon: FaStethoscope, tint: "#9a5561" },
   { name: "Nutrición", icon: FaAppleWhole, tint: "#a8763a" },
   { name: "Fonoaudiología", icon: FaEarListen, tint: "#6b5a8e" },

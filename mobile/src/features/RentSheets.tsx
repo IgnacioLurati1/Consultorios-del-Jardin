@@ -96,6 +96,15 @@ export function RentBreakdownView({ breakdown }: { breakdown: Breakdown }) {
         )
       )}
 
+      {(breakdown.days ?? []).map((item) =>
+        line(
+          `${item.roomId}-${item.day}-day`,
+          `${item.room} · ${DAY_LABEL[item.day] ?? item.day} · día entero de 9 a 20`,
+          `${item.times} × ${money(item.price)}`,
+          item.subtotal
+        )
+      )}
+
       {breakdown.outside.map((item) =>
         line(
           `${item.day}-${item.initialHour}`,
@@ -443,7 +452,7 @@ export function RoomPricesSheet({ visible, onClose, onSaved }: { visible: boolea
             result.rooms.flatMap((room) =>
               result.blocks.map((block) => [
                 priceKey(room.idRoom, block.key),
-                room.prices[block.key] === null ? "" : String(room.prices[block.key]),
+                (room.prices[block.key] ?? null) === null ? "" : String(room.prices[block.key]),
               ])
             )
           )
@@ -468,7 +477,7 @@ export function RoomPricesSheet({ visible, onClose, onSaved }: { visible: boolea
             block: block.key,
             price,
             invalid: raw.trim() !== "" && price === null,
-            changed: price !== room.prices[block.key],
+            changed: price !== (room.prices[block.key] ?? null),
           };
         })
       )
@@ -503,7 +512,8 @@ export function RoomPricesSheet({ visible, onClose, onSaved }: { visible: boolea
     <Sheet visible={visible} onClose={onClose} title="Precios de los consultorios">
       <View style={styles.body}>
         <AppText variant="small" tone="muted">
-          Por bloque entero, cada vez que se usa. Vacío es sin precio.
+          Por bloque entero, cada vez que se usa. El día es para quien usa el consultorio de 9 a 20 de corrido. Vacío es
+          sin precio.
         </AppText>
 
         <FromChips label="Rige desde" value={from} onChange={setFrom} />
@@ -522,29 +532,33 @@ export function RoomPricesSheet({ visible, onClose, onSaved }: { visible: boolea
                 {room.office}
               </AppText>
 
-              <View style={styles.pair}>
-                {data.blocks.map((block) => {
-                  const key = priceKey(room.idRoom, block.key);
-                  const scheduled = from === current && room.next[block.key] !== room.prices[block.key];
+              {/* Mañana y tarde de a dos; el día abajo, entero: de a tres no entran las etiquetas. */}
+              {[data.blocks.filter((block) => block.key !== "day"), data.blocks.filter((block) => block.key === "day")].map(
+                (group, index) =>
+                  group.length > 0 && (
+                    <View key={index} style={styles.pair}>
+                      {group.map((block) => {
+                        const key = priceKey(room.idRoom, block.key);
+                        const now = room.prices[block.key] ?? null;
+                        const later = room.next[block.key] ?? null;
+                        const scheduled = from === current && later !== now;
 
-                  return (
-                    <View key={block.key} style={styles.half}>
-                      <Field
-                        label={`${block.label} de ${hours(block)}`}
-                        value={values[key] ?? ""}
-                        onChangeText={(text) => setValues((prev) => ({ ...prev, [key]: text }))}
-                        keyboardType="number-pad"
-                        placeholder="Sin precio"
-                        hint={
-                          scheduled
-                            ? `Desde ${monthName(next)} ${room.next[block.key] === null ? "sin precio" : money(room.next[block.key]!)}`
-                            : undefined
-                        }
-                      />
+                        return (
+                          <View key={block.key} style={styles.half}>
+                            <Field
+                              label={`${block.label} de ${hours(block)}`}
+                              value={values[key] ?? ""}
+                              onChangeText={(text) => setValues((prev) => ({ ...prev, [key]: text }))}
+                              keyboardType="number-pad"
+                              placeholder="Sin precio"
+                              hint={scheduled ? `Desde ${monthName(next)} ${later === null ? "sin precio" : money(later)}` : undefined}
+                            />
+                          </View>
+                        );
+                      })}
                     </View>
-                  );
-                })}
-              </View>
+                  )
+              )}
             </View>
           ))
         )}
@@ -632,7 +646,9 @@ export function CalculateSheet({
 
   /** La cuota con los valores a mano que se están escribiendo, antes de guardarlos. */
   function amountOf(row: PreviewRow): number {
-    const blocks = row.breakdown.blocks.reduce((sum, line) => sum + line.subtotal, 0);
+    const blocks =
+      row.breakdown.blocks.reduce((sum, line) => sum + line.subtotal, 0) +
+      (row.breakdown.days ?? []).reduce((sum, line) => sum + line.subtotal, 0);
     const outside = row.breakdown.outside.reduce(
       (sum, line) => sum + line.times * (parseMoney(extras[extraKey(row.email, line)] ?? "") ?? 0),
       0
@@ -691,7 +707,7 @@ export function CalculateSheet({
     <Sheet visible={visible} onClose={onClose} title="Calcular con los bloques">
       <View style={styles.body}>
         <AppText variant="small" tone="muted">
-          Cada bloque usado se paga entero, por cada vez en el mes.
+          Cada bloque usado se paga entero, por cada vez en el mes. De 9 a 20 de corrido se paga el día.
         </AppText>
 
         <FromChips label="Desde" value={from} onChange={setFrom} />
@@ -716,6 +732,7 @@ export function CalculateSheet({
             const amount = amountOf(row);
             const on = selected.has(row.email);
             const shared = row.breakdown.blocks.filter((line) => (line.sharedWith?.length ?? 0) > 0);
+            const sharedDays = (row.breakdown.days ?? []).filter((line) => (line.sharedWith?.length ?? 0) > 0);
 
             return (
               <View key={row.email} style={[styles.card, { backgroundColor: colors.sunken }, !on && styles.off]}>
@@ -756,6 +773,13 @@ export function CalculateSheet({
                   <AppText key={`${line.roomId}-${line.day}-${line.block}`} variant="caption" tone="muted">
                     Comparte la {BLOCK_LABEL[line.block].toLowerCase()} del {DAY_LABEL[line.day] ?? line.day} en {line.room} con{" "}
                     {line.sharedWith!.join(" y ")}. Cada uno paga el bloque entero.
+                  </AppText>
+                ))}
+
+                {sharedDays.map((line) => (
+                  <AppText key={`${line.roomId}-${line.day}-day`} variant="caption" tone="muted">
+                    Comparte {line.room} el {DAY_LABEL[line.day] ?? line.day} con {line.sharedWith!.join(" y ")}. Cada uno paga lo
+                    suyo entero.
                   </AppText>
                 ))}
 

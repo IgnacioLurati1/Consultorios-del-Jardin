@@ -24,6 +24,20 @@ export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
         </ul>
       )}
 
+      {(breakdown.days?.length ?? 0) > 0 && (
+        <ul className="rent-lines">
+          {breakdown.days!.map((line) => (
+            <li key={`${line.roomId}-${line.day}-day`}>
+              <span>
+                {line.room} · {DAY_LABEL[line.day] ?? line.day} · día entero de 9 a 20
+              </span>
+              <span className="rent-line-calc">{`${line.times} × ${money(line.price)}`}</span>
+              <strong>{money(line.subtotal)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {breakdown.outside.length > 0 && (
         <ul className="rent-lines">
           {breakdown.outside.map((line) => (

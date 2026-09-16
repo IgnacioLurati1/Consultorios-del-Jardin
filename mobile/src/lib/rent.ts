@@ -1,4 +1,4 @@
-import type { BlockKey, PaymentStatus } from "../api/rent";
+import type { PaymentStatus, PriceKey } from "../api/rent";
 
 /**
  * Cómo se escribe lo de alquileres en pantalla. Es lo mismo que usa la página, para que
@@ -18,7 +18,7 @@ export const DAY_LABEL: Record<string, string> = {
   domingo: "domingo",
 };
 
-export const BLOCK_LABEL: Record<BlockKey, string> = { morning: "Mañana", afternoon: "Tarde" };
+export const BLOCK_LABEL: Record<PriceKey, string> = { morning: "Mañana", afternoon: "Tarde", day: "Día" };
 
 export const STATUS_LABEL: Record<PaymentStatus, string> = {
   paid: "Pagó",

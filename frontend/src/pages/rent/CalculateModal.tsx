@@ -81,7 +81,9 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
 
   /** La cuota con los valores a mano que se están escribiendo, antes de guardarlos. */
   function amountOf(row: PreviewRow): number {
-    const blocks = row.breakdown.blocks.reduce((sum, line) => sum + line.subtotal, 0);
+    const blocks =
+      row.breakdown.blocks.reduce((sum, line) => sum + line.subtotal, 0) +
+      (row.breakdown.days ?? []).reduce((sum, line) => sum + line.subtotal, 0);
     const outside = row.breakdown.outside.reduce(
       (sum, line) => sum + line.times * (parseMoney(extras[extraKey(row.email, line)] ?? "") ?? 0),
       0
@@ -172,8 +174,8 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
         </div>
 
         <p className="adm-confirm-note">
-          Cada profesional paga entero cada bloque que usa, por cada vez que ese día cae en el mes. Lo que queda fuera de los
-          bloques lleva un valor a mano, por vez.
+          Cada profesional paga entero cada bloque que usa, por cada vez que ese día cae en el mes. Quien usa el consultorio de
+          9 a 20 de corrido paga el día, si tiene precio. Lo que queda fuera de los bloques lleva un valor a mano, por vez.
         </p>
 
         {unpriced && (
@@ -202,6 +204,7 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
             {rows.map((row) => {
               const amount = amountOf(row);
               const shared = row.breakdown.blocks.filter((line) => (line.sharedWith?.length ?? 0) > 0);
+              const sharedDays = (row.breakdown.days ?? []).filter((line) => (line.sharedWith?.length ?? 0) > 0);
 
               return (
                 <li key={row.email} className={`rent-calc-item ${selected.has(row.email) ? "" : "off"}`}>
@@ -253,6 +256,13 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
                     <p key={`${line.roomId}-${line.day}-${line.block}`} className="rent-sub">
                       Comparte la {BLOCK_LABEL[line.block].toLowerCase()} del {DAY_LABEL[line.day] ?? line.day} en {line.room} con{" "}
                       {line.sharedWith!.join(" y ")}. Cada uno paga el bloque entero.
+                    </p>
+                  ))}
+
+                  {sharedDays.map((line) => (
+                    <p key={`${line.roomId}-${line.day}-day`} className="rent-sub">
+                      Comparte {line.room} el {DAY_LABEL[line.day] ?? line.day} con {line.sharedWith!.join(" y ")}. Cada uno paga
+                      lo suyo entero.
                     </p>
                   ))}
 
