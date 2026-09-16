@@ -636,8 +636,10 @@ export class PeopleService {
    * tenía que acordarse de ir a cambiarla.
    *
    * El link vale una sola vez y se apaga en cuanto se usa: ver setFirstPassword.
+   *
+   * Devuelve si el mail salió.
    */
-  async sendFirstPasswordMail(person: Person) {
+  async sendFirstPasswordMail(person: Person): Promise<boolean> {
     const base = process.env.BASE_URL ?? "";
     const changeToken = jwt.sign({ email: person.email, purpose: "welcome" }, process.env.CHANGE_SECRET as jwt.Secret, {
       expiresIn: `${WELCOME_LINK_DAYS}d`,
@@ -668,7 +670,69 @@ export class PeopleService {
       "Creá tu contraseña de Consultorios del Jardín",
       htmlContent
     );
-    await this.mailService.sendMail(message);
+    return this.mailService.sendMail(message);
+  }
+
+  /**
+   * Los profesionales que todavía no eligieron su contraseña.
+   *
+   * Elegirla, por el link de bienvenida o por "¿Olvidaste tu contraseña?", deja la fecha
+   * en `passwordSetAt`. Sin esa fecha, la cuenta sigue con lo que le puso el sistema o el
+   * administrador. Los que se dieron de alta antes del link nunca lo recibieron.
+   *
+   * Va también cuándo entró por última vez: quien ya entra con la contraseña que le
+   * dieron puede no necesitar el mail, y eso lo decide el administrador.
+   */
+  async pendingFirstPassword() {
+    const people = await em.find(
+      Person,
+      { type: "professional", anonymous: false, active: true, passwordSetAt: null },
+      { orderBy: { surname: "ASC", name: "ASC" } }
+    );
+
+    return people.map((person) => {
+      const accesses = [person.lastWebAccess, person.lastAppAccess].filter(Boolean) as Date[];
+      return {
+        email: person.email,
+        name: person.name,
+        surname: person.surname,
+        speciality: person.speciality ?? null,
+        lastAccess: accesses.length > 0 ? new Date(Math.max(...accesses.map((date) => date.getTime()))) : null,
+      };
+    });
+  }
+
+  /**
+   * Le vuelve a mandar el link para elegir la contraseña a los profesionales elegidos.
+   *
+   * Solo a los que siguen sin elegirla: si entre que se abrió la pantalla y se apretó el
+   * botón alguien ya la eligió, a ese no le sale. Los mails van de a uno, para no pedirle
+   * al proveedor de golpe más de lo que acepta.
+   */
+  async resendFirstPassword(emails: unknown) {
+    const wanted = Array.isArray(emails) ? [...new Set(emails.map((email) => String(email).toLowerCase()))] : [];
+    if (wanted.length === 0) throw badRequest("Falta elegir a quién mandarle el mail");
+
+    const people = await em.find(Person, {
+      email: { $in: wanted },
+      type: "professional",
+      anonymous: false,
+      active: true,
+      passwordSetAt: null,
+    });
+
+    const sent: string[] = [];
+    const failed: string[] = [];
+
+    for (const person of people) {
+      const ok = await this.sendFirstPasswordMail(person).catch((error) => {
+        console.error("No se pudo mandar el link de contraseña a", person.email, error);
+        return false;
+      });
+      (ok ? sent : failed).push(person.email);
+    }
+
+    return { sent, failed, skipped: wanted.length - people.length };
   }
 
   /**

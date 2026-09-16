@@ -327,6 +327,26 @@ function sendWelcomeProblem(res: Response, error: any) {
   return res.status(500).json({ message: "Ups! Algo salió mal. Intentá más tarde" });
 }
 
+// Los profesionales que todavía no eligieron su contraseña. Solo admin.
+async function pendingFirstPassword(req: Request, res: Response) {
+  try {
+    const data = await peopleService.pendingFirstPassword();
+    return res.status(200).json({ message: "Profesionales sin contraseña propia", data });
+  } catch (error: any) {
+    return sendError(res, error);
+  }
+}
+
+// Vuelve a mandar el link para elegir la contraseña. Solo admin.
+async function resendFirstPassword(req: Request, res: Response) {
+  try {
+    const data = await peopleService.resendFirstPassword(req.body?.emails);
+    return res.status(200).json({ message: "Mails enviados", data });
+  } catch (error: any) {
+    return sendError(res, error);
+  }
+}
+
 // ¿El link de bienvenida sirve? Lo pregunta la pantalla antes de mostrar el formulario,
 // para saludar por el nombre y para no hacer elegir una contraseña que no se va a guardar.
 async function checkWelcomeLink(req: Request, res: Response) {
@@ -637,6 +657,8 @@ export {
   changePassword,
   checkWelcomeLink,
   setFirstPassword,
+  pendingFirstPassword,
+  resendFirstPassword,
   sendPasswordMail,
   requestSignup,
   confirmSignup,

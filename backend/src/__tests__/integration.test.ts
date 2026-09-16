@@ -1741,4 +1741,26 @@ describe("Integracion: primer ingreso del profesional", () => {
 
     await expect(peopleService.checkWelcomeLink(token)).resolves.toEqual({ name: "Ana" });
   });
+  it("reenviar el link sale solo a quien sigue sin contraseña propia", async () => {
+    // La base ya filtra a los que la eligieron: de los tres pedidos vuelve uno.
+    mockEm.find.mockResolvedValue([nuevaProfesional()]);
+
+    const resultado = await peopleService.resendFirstPassword([
+      "nueva.profesional@demo.local",
+      "ya.eligio@demo.local",
+      "NUEVA.profesional@demo.local",
+    ]);
+
+    const filtro = mockEm.find.mock.calls.at(-1)?.[1] as any;
+    expect(filtro.passwordSetAt).toBeNull();
+    expect(filtro.type).toBe("professional");
+    expect(filtro.email.$in).toEqual(["nueva.profesional@demo.local", "ya.eligio@demo.local"]);
+    expect(resultado).toEqual({ sent: ["nueva.profesional@demo.local"], failed: [], skipped: 1 });
+    expect(sobres.at(-1)?.subject).toMatch(/Creá tu contraseña/);
+  });
+
+  it("reenviar sin elegir a nadie no manda nada", async () => {
+    await expect(peopleService.resendFirstPassword([])).rejects.toThrow(/Falta elegir/);
+    expect(enviados).toEqual([]);
+  });
 });

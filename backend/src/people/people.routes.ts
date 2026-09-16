@@ -16,6 +16,8 @@ import {
   toggleWaitlist,
   changePassword,
   checkWelcomeLink,
+  pendingFirstPassword,
+  resendFirstPassword,
   setFirstPassword,
   sendPasswordMail,
   requestSignup,
@@ -558,6 +560,57 @@ personRouter.post("/welcome/check", authLimiter, checkWelcomeLink);
  *         description: El link ya se usó
  */
 personRouter.post("/welcome", authLimiter, setFirstPassword);
+
+/**
+ * @swagger
+ * /api/people/welcome/pending:
+ *   get:
+ *     summary: Profesionales que todavía no eligieron su contraseña
+ *     description: >
+ *       Los habilitados sin contraseña propia, con la última vez que entraron. Elegirla por
+ *       el link de bienvenida o por "¿Olvidaste tu contraseña?" los saca de la lista.
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: La lista
+ *       403:
+ *         description: Solo para administradores
+ */
+personRouter.get("/welcome/pending", verifyToken, verifyAdmin, pendingFirstPassword);
+
+/**
+ * @swagger
+ * /api/people/welcome/resend:
+ *   post:
+ *     summary: Vuelve a mandar el link para elegir la contraseña
+ *     description: >
+ *       Solo sale a los elegidos que siguen sin contraseña propia. Devuelve a quiénes salió,
+ *       a quiénes no se pudo mandar y cuántos se saltearon porque ya la eligieron.
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [emails]
+ *             properties:
+ *               emails:
+ *                 type: array
+ *                 items: { type: string }
+ *     responses:
+ *       200:
+ *         description: Resultado del envío
+ *       400:
+ *         description: No se eligió a nadie
+ *       403:
+ *         description: Solo para administradores
+ */
+personRouter.post("/welcome/resend", verifyToken, verifyAdmin, resendFirstPassword);
 
 /**
  * @swagger
