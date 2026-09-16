@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { FaPlus } from "react-icons/fa6";
+import { FaEnvelope, FaPlus } from "react-icons/fa6";
 import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
@@ -11,6 +11,7 @@ import { getDecodedToken } from "../../commonServices.ts";
 import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
 import { explainCompromise } from "../../analytics/compromisedService.ts";
 import { UserModal } from "./userModal";
+import { PasswordLinksModal } from "./PasswordLinksModal";
 import type { Person } from "../../types";
 
 /** Los tipos de fila que puede haber en el listado. */
@@ -69,6 +70,7 @@ export function UsersAdmin() {
   const [flagged, setFlagged] = useState<Map<string, FlaggedPatient>>(new Map());
   const [modalData, setModalData] = useState<Person>();
   const [modalVisible, setModalVisible] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const navigate = useNavigate();
 
   // Quién está mirando. Ahora que los administradores salen en el listado, uno se ve a sí
@@ -233,10 +235,16 @@ export function UsersAdmin() {
         title="Usuarios"
         subtitle="Pacientes y profesionales registrados"
         actions={
-          <button type="button" className="adm-btn adm-btn-primary" onClick={() => navigate("/AdminHome/RegisterProfAdmin")}>
-            <FaPlus />
-            Registrar profesional
-          </button>
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setLinksOpen(true)}>
+              <FaEnvelope />
+              Link de contraseña
+            </button>
+            <button type="button" className="adm-btn adm-btn-primary" onClick={() => navigate("/AdminHome/RegisterProfAdmin")}>
+              <FaPlus />
+              Registrar profesional
+            </button>
+          </>
         }
       />
 
@@ -307,6 +315,8 @@ export function UsersAdmin() {
         onToggleWaitlist={toggleWaitlistUser}
         onEdit={editUser}
       />
+
+      <PasswordLinksModal open={linksOpen} onClose={() => setLinksOpen(false)} />
     </div>
   );
 }

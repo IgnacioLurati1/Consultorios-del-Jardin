@@ -126,6 +126,35 @@ export function updatePerson(email: string, data: Partial<Person>): Promise<Pers
     });
 }
 
+/** Un profesional que todavía no eligió su contraseña. */
+export interface PendingPassword {
+    email: string;
+    name: string;
+    surname: string;
+    speciality: string | null;
+    /** La última vez que entró, por la página o la app. Null si nunca entró. */
+    lastAccess: string | null;
+}
+
+export function findPendingPasswords(): Promise<PendingPassword[]>{
+    return api.get('/people/welcome/pending')
+    .then(res => res.data.data)
+    .catch(err => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
+}
+
+/** Les vuelve a mandar el link para elegir la contraseña. */
+export function resendPasswordLinks(emails: string[]): Promise<{ sent: string[]; failed: string[]; skipped: number }>{
+    return api.post('/people/welcome/resend', { emails })
+    .then(res => res.data.data)
+    .catch(err => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
+}
+
 export interface ProfessionalInput {
     name: string;
     surname: string;
