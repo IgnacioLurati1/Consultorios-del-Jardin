@@ -120,7 +120,7 @@ rentRouter.put("/charges/:month/:email/payment", putPayment);
  *                   type: object
  *                   properties:
  *                     idRoom: { type: integer }
- *                     block: { type: string, enum: [morning, afternoon] }
+ *                     block: { type: string, enum: [morning, afternoon, day] }
  *                     price: { type: integer, nullable: true }
  */
 rentRouter.get("/prices", getPrices);

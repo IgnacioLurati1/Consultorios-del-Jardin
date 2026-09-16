@@ -18,9 +18,16 @@
  * - Lo que queda fuera de los dos bloques (de 13 a 14, antes de las 9, después de las 20)
  *   no tiene precio: el administrador le pone un valor a mano, y hasta entonces la cuota
  *   sale sin esa parte y con el aviso de que falta.
+ * - También se alquila el día entero, de 9 a 20 de corrido, con su propio precio. Solo
+ *   cuenta si el consultorio se usa sin cortes de 9 a 20 (la hora de 13 a 14 incluida):
+ *   con un hueco en el medio son bloques. El día reemplaza a la mañana, a la tarde y al
+ *   valor a mano de 13 a 14. Un consultorio sin precio del día se cobra por bloques.
  */
 
 export type BlockKey = "morning" | "afternoon";
+
+/** Lo que tiene precio en un consultorio: los dos bloques y el día entero. */
+export type PriceKey = BlockKey | "day";
 
 export interface Block {
   key: BlockKey;
@@ -35,6 +42,22 @@ export const BLOCKS: Block[] = [
 ];
 
 export const BLOCK_KEYS: BlockKey[] = BLOCKS.map((block) => block.key);
+
+/**
+ * El día entero. No es un bloque más de la grilla: se superpone con los dos, así que
+ * no entra en BLOCKS, que es lo que se usa para ver qué ocupa un horario.
+ */
+export const DAY: { key: "day"; label: string; from: string; to: string } = {
+  key: "day",
+  label: "Día",
+  from: "09:00",
+  to: "20:00",
+};
+
+/** Lo que se muestra y se carga en los precios: mañana, tarde y día. */
+export const PRICED = [...BLOCKS, DAY];
+
+export const PRICE_KEYS: PriceKey[] = PRICED.map((item) => item.key);
 
 /** Los días en que abre el consultorio. Son los que se revisan buscando bloques libres. */
 export const OPEN_DAYS = ["lunes", "martes", "miercoles", "jueves", "viernes"];
@@ -161,8 +184,8 @@ export interface ScheduleSlot {
   room: string;
 }
 
-/** El precio de cada bloque de cada consultorio. Un bloque que falta no tiene precio. */
-export type RoomPrices = Map<number, Partial<Record<BlockKey, number | null>>>;
+/** El precio de cada bloque (y del día) de cada consultorio. Uno que falta no tiene precio. */
+export type RoomPrices = Map<number, Partial<Record<PriceKey, number | null>>>;
 
 /** El valor a mano de la parte fuera de bloque de un horario, por día y hora de inicio. */
 export type ExtraPrices = Map<string, number>;
@@ -182,6 +205,16 @@ export interface BlockLine {
   subtotal: number;
 }
 
+/** Un día entero de 9 a 20 en un consultorio, cobrado con el precio del día. */
+export interface DayLine {
+  roomId: number;
+  room: string;
+  day: string;
+  times: number;
+  price: number;
+  subtotal: number;
+}
+
 export interface OutsideLine {
   roomId: number;
   room: string;
@@ -197,6 +230,12 @@ export interface OutsideLine {
 
 export interface ChargeBreakdown {
   blocks: BlockLine[];
+  /**
+   * Va aparte de `blocks` y no como un bloque más: las cuotas guardadas y las versiones
+   * de la app que ya están instaladas no conocen el día, y una línea que no saben
+   * nombrar les rompería el detalle. Así la ignoran y el total sigue siendo el correcto.
+   */
+  days: DayLine[];
   outside: OutsideLine[];
   /** La suma antes del ajuste. */
   base: number;
@@ -208,10 +247,30 @@ export interface ChargeBreakdown {
 }
 
 /**
+ * Si los horarios de un mismo consultorio y un mismo día cubren de 9 a 20 sin cortes.
+ * Horarios pegados (de 9 a 13 y de 13 a 20) también son de corrido.
+ */
+export function coversWholeDay(slots: { initialHour: string; finalHour: string }[]): boolean {
+  const sorted = [...slots].sort((a, b) => toMinutes(a.initialHour) - toMinutes(b.initialHour));
+  let cursor = toMinutes(DAY.from);
+
+  for (const slot of sorted) {
+    if (toMinutes(slot.initialHour) > cursor) break;
+    cursor = Math.max(cursor, toMinutes(slot.finalHour));
+  }
+
+  return cursor >= toMinutes(DAY.to);
+}
+
+/**
  * La cuota de un mes a partir de la agenda.
  *
  * Un mismo bloque se cobra una sola vez por día aunque el profesional tenga dos horarios
  * adentro (de 9 a 10 y de 11 a 12 en el mismo consultorio siguen siendo una mañana).
+ *
+ * Si ese día ocupa el consultorio de 9 a 20 de corrido y el consultorio tiene precio del
+ * día, se cobra el día en lugar de los bloques. Lo que quede antes de las 9 o después de
+ * las 20 sigue siendo fuera de bloque.
  */
 export function computeCharge(
   slots: ScheduleSlot[],
@@ -221,13 +280,34 @@ export function computeCharge(
   adjust = 0
 ): ChargeBreakdown {
   const blocks = new Map<string, BlockLine>();
+  const days: DayLine[] = [];
   const outside: OutsideLine[] = [];
   const missing: string[] = [];
 
+  // Qué días de qué consultorio van enteros.
+  const grouped = new Map<string, ScheduleSlot[]>();
+  for (const slot of slots) {
+    const id = `${slot.roomId}|${slot.day}`;
+    if (!grouped.has(id)) grouped.set(id, []);
+    grouped.get(id)!.push(slot);
+  }
+
+  const wholeDays = new Set<string>();
+  for (const [id, group] of grouped) {
+    const first = group[0];
+    const price = prices.get(first.roomId)?.day ?? null;
+    if (price === null || !coversWholeDay(group)) continue;
+
+    wholeDays.add(id);
+    const times = weekdayCount(month, first.day);
+    days.push({ roomId: first.roomId, room: first.room, day: first.day, times, price, subtotal: price * times });
+  }
+
   for (const slot of slots) {
     const times = weekdayCount(month, slot.day);
+    const whole = wholeDays.has(`${slot.roomId}|${slot.day}`);
 
-    for (const key of blocksOf(slot.initialHour, slot.finalHour)) {
+    for (const key of whole ? [] : blocksOf(slot.initialHour, slot.finalHour)) {
       const id = `${slot.roomId}|${slot.day}|${key}`;
       if (blocks.has(id)) continue;
 
@@ -243,7 +323,10 @@ export function computeCharge(
       });
     }
 
-    const parts = outsideParts(slot.initialHour, slot.finalHour);
+    // Con el día entero, de 13 a 14 ya está pago: queda solo lo de antes o después.
+    const parts = outsideParts(slot.initialHour, slot.finalHour).filter(
+      (part) => !whole || part.to <= DAY.from || part.from >= DAY.to
+    );
     if (parts.length > 0) {
       const price = extras.get(extraKey(slot.day, slot.initialHour)) ?? null;
       outside.push({
@@ -276,10 +359,14 @@ export function computeCharge(
     unpriced.add(`Falta el precio de la ${label} de ${line.room}`);
   }
 
-  const base = lines.reduce((sum, line) => sum + line.subtotal, 0) + outside.reduce((sum, line) => sum + line.subtotal, 0);
+  const base =
+    lines.reduce((sum, line) => sum + line.subtotal, 0) +
+    days.reduce((sum, line) => sum + line.subtotal, 0) +
+    outside.reduce((sum, line) => sum + line.subtotal, 0);
 
   return {
     blocks: lines,
+    days: days.sort(byRoomDayBlock),
     outside: outside.sort(byRoomDayBlock),
     base,
     adjust,
@@ -295,6 +382,17 @@ function byRoomDayBlock(a: { room: string; day: string; block?: string }, b: { r
     a.room.localeCompare(b.room, "es", { numeric: true }) ||
     DAY_ORDER(a.day) - DAY_ORDER(b.day) ||
     String(a.block ?? "").localeCompare(String(b.block ?? ""))
+  );
+}
+
+/**
+ * Los bloques que se usan en el mes. Un día entero cuenta como sus dos bloques: es lo que
+ * ocupa, y así "bloques en el mes" y el aumento en pesos por bloque siguen diciendo lo mismo.
+ */
+export function usesOf(breakdown: Pick<ChargeBreakdown, "blocks" | "days">): number {
+  return (
+    breakdown.blocks.reduce((sum, line) => sum + line.times, 0) +
+    (breakdown.days ?? []).reduce((sum, line) => sum + line.times * BLOCKS.length, 0)
   );
 }
 

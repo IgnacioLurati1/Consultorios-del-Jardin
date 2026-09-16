@@ -12,7 +12,6 @@ import { monthLabel, parseISODate, toISODate, toLocalDate } from "../shared/date
 import { buildXlsx } from "../shared/xlsx.js";
 import {
   BLOCKS,
-  BLOCK_KEYS,
   clampDueDay,
   compoundAdjust,
   computeCharge,
@@ -23,9 +22,12 @@ import {
   isMonthKey,
   monthKeyOf,
   paymentStatus,
+  PRICE_KEYS,
+  PRICED,
   raise,
   shiftMonth,
-  type BlockKey,
+  usesOf,
+  type PriceKey,
   type ChargeBreakdown,
   type ExtraPrices,
   type PaymentStatus,
@@ -136,7 +138,9 @@ function effective<T extends { fromMonth: string }>(rows: T[] | undefined, month
 function parseBreakdown(value: string | null | undefined): ChargeBreakdown | null {
   if (!value) return null;
   try {
-    return JSON.parse(value) as ChargeBreakdown;
+    // Las cuotas guardadas antes del precio por día no tienen la lista.
+    const parsed = JSON.parse(value) as ChargeBreakdown;
+    return { ...parsed, days: parsed.days ?? [] };
   } catch {
     return null;
   }
@@ -231,7 +235,7 @@ export class RentService {
         if (row.fromMonth > month) break;
         const roomId = row.room.idRoom!;
         if (!prices.has(roomId)) prices.set(roomId, {});
-        prices.get(roomId)![row.block as BlockKey] = row.price ?? null;
+        prices.get(roomId)![row.block as PriceKey] = row.price ?? null;
       }
 
       cache.set(month, prices);
@@ -259,7 +263,7 @@ export class RentService {
     return {
       amount: breakdown.amount,
       kind: "blocks",
-      blocks: breakdown.blocks.reduce((sum, line) => sum + line.times, 0),
+      blocks: usesOf(breakdown),
       breakdown,
     };
   }
@@ -569,13 +573,18 @@ export class RentService {
     }));
 
     // Quién más usa cada bloque. Cada uno paga el bloque entero, así que un bloque
-    // compartido se cobra dos veces: está bien que se vea antes de aplicar.
+    // compartido se cobra dos veces: está bien que se vea antes de aplicar. Un día entero
+    // ocupa la mañana y la tarde.
     const owners = new Map<string, string[]>();
+    const own = (key: string, name: string) => {
+      if (!owners.has(key)) owners.set(key, []);
+      if (!owners.get(key)!.includes(name)) owners.get(key)!.push(name);
+    };
     for (const { person, breakdown } of rows) {
-      for (const line of breakdown.blocks) {
-        const key = `${line.roomId}|${line.day}|${line.block}`;
-        if (!owners.has(key)) owners.set(key, []);
-        owners.get(key)!.push(`${person.name} ${person.surname}`);
+      const name = `${person.name} ${person.surname}`;
+      for (const line of breakdown.blocks) own(`${line.roomId}|${line.day}|${line.block}`, name);
+      for (const line of breakdown.days) {
+        for (const block of BLOCKS) own(`${line.roomId}|${line.day}|${block.key}`, name);
       }
     }
 
@@ -592,12 +601,18 @@ export class RentService {
           speciality: person.speciality ?? null,
           before: saved.get(person.email) ?? this.compute(ctx, person.email, fromMonth)?.amount ?? null,
           amount: breakdown.amount,
-          blocks: breakdown.blocks.reduce((sum, line) => sum + line.times, 0),
+          blocks: usesOf(breakdown),
           breakdown: {
             ...breakdown,
             blocks: breakdown.blocks.map((line) => ({
               ...line,
               sharedWith: (owners.get(`${line.roomId}|${line.day}|${line.block}`) ?? []).filter((name) => name !== me),
+            })),
+            days: breakdown.days.map((line) => ({
+              ...line,
+              sharedWith: [
+                ...new Set(BLOCKS.flatMap((block) => owners.get(`${line.roomId}|${line.day}|${block.key}`) ?? [])),
+              ].filter((name) => name !== me),
             })),
           },
         };
@@ -721,7 +736,7 @@ export class RentService {
       for (const [roomId, blocks] of now) {
         const room = roomById.get(roomId);
         if (!room) continue;
-        for (const key of BLOCK_KEYS) {
+        for (const key of PRICE_KEYS) {
           const price = blocks[key];
           if (price === null || price === undefined) continue;
           await this.upsertPrice(room, key, fromMonth, raise(price, percent));
@@ -760,19 +775,20 @@ export class RentService {
     return {
       month: target,
       label: labelOf(target),
-      blocks: BLOCKS,
+      // Acá va también el día: es lo que arma las columnas de precios.
+      blocks: PRICED,
       rooms: rooms.map((room) => ({
         idRoom: room.idRoom!,
         room: room.description,
         office: room.office.description,
-        prices: Object.fromEntries(BLOCK_KEYS.map((key) => [key, now.get(room.idRoom!)?.[key] ?? null])),
+        prices: Object.fromEntries(PRICE_KEYS.map((key) => [key, now.get(room.idRoom!)?.[key] ?? null])),
         // Lo que ya quedó programado para el mes siguiente, si cambia.
-        next: Object.fromEntries(BLOCK_KEYS.map((key) => [key, next.get(room.idRoom!)?.[key] ?? null])),
+        next: Object.fromEntries(PRICE_KEYS.map((key) => [key, next.get(room.idRoom!)?.[key] ?? null])),
       })),
     };
   }
 
-  private async upsertPrice(room: Room, block: BlockKey, fromMonth: string, price: number | null) {
+  private async upsertPrice(room: Room, block: PriceKey, fromMonth: string, price: number | null) {
     const row = await em.findOne(RoomBlockPrice, { room: { idRoom: room.idRoom }, block, fromMonth });
     if (row) row.price = price;
     else em.create(RoomBlockPrice, { room, block, fromMonth, price, createdAt: new Date() });
@@ -792,7 +808,7 @@ export class RentService {
     for (const change of changes) {
       const room = rooms.get(Number(change?.idRoom));
       if (!room) throw notFound("Uno de los consultorios ya no existe");
-      if (!BLOCK_KEYS.includes(change?.block)) throw badRequest("Ese bloque no existe");
+      if (!PRICE_KEYS.includes(change?.block)) throw badRequest("Ese bloque no existe");
 
       const price = change.price === null || change.price === "" ? null : money(change.price, "El precio");
       await this.upsertPrice(room, change.block, fromMonth, price);
@@ -1019,7 +1035,7 @@ export class RentService {
 
     const times = professionals.reduce((sum, person) => {
       const breakdown = computeCharge(ctx.slots.get(person.email) ?? [], prices, new Map(), target);
-      return sum + breakdown.blocks.reduce((acc, line) => acc + line.times, 0);
+      return sum + usesOf(breakdown);
     }, 0);
 
     const added = mode === "percent" ? Math.round((monthly * value) / 100) : Math.round(times * value);

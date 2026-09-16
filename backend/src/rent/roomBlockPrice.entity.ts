@@ -17,7 +17,7 @@ export class RoomBlockPrice {
   @ManyToOne(() => Room, { nullable: false })
   room!: Rel<Room>;
 
-  /** "morning" o "afternoon". Ver BLOCKS en rent.rules.ts. */
+  /** "morning", "afternoon" o "day" (de 9 a 20 de corrido). Ver PRICED en rent.rules.ts. */
   @Property({ type: "string", length: 12 })
   block!: string;
 

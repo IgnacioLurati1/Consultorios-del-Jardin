@@ -12,6 +12,7 @@ import {
   paymentStatus,
   shiftMonth,
   weekdayCount,
+  usesOf,
   type RoomPrices,
   type ScheduleSlot,
 } from "../rent/rent.rules.js";
@@ -106,6 +107,75 @@ describe("alquiler - la cuota por bloques", () => {
 
   it("dos aumentos del diez son un veintiuno", () => {
     expect(compoundAdjust(1000, 10)).toBe(2100);
+  });
+});
+
+describe("alquiler - el día entero", () => {
+  const prices: RoomPrices = new Map([[1, { morning: 1000, afternoon: 1200, day: 2000 }]]);
+
+  it("de 9 a 20 de corrido se cobra el día, con la hora de 13 a 14 incluida", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "20:00")], prices, new Map(), SEPT);
+
+    expect(charge.blocks).toEqual([]);
+    expect(charge.outside).toEqual([]);
+    expect(charge.days).toHaveLength(1);
+    expect(charge.amount).toBe(8000); // cuatro lunes a $2000
+    expect(charge.missing).toEqual([]);
+  });
+
+  it("horarios pegados también son de corrido", () => {
+    const charge = computeCharge(
+      [slot("lunes", "14:00", "20:00"), slot("lunes", "09:00", "12:00"), slot("lunes", "12:00", "14:00")],
+      prices,
+      new Map(),
+      SEPT
+    );
+
+    expect(charge.days).toHaveLength(1);
+    expect(charge.amount).toBe(8000);
+  });
+
+  it("con un corte en el medio son bloques", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "13:00"), slot("lunes", "14:00", "20:00")], prices, new Map(), SEPT);
+
+    expect(charge.days).toEqual([]);
+    expect(charge.amount).toBe(4 * 1000 + 4 * 1200);
+  });
+
+  it("si no llega a las 20 son bloques", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "19:00")], prices, new Map(), SEPT);
+
+    expect(charge.days).toEqual([]);
+    expect(charge.missing).toEqual(["Falta el valor del lunes de 13:00 a 14:00"]);
+  });
+
+  it("sin precio del día se cobra por bloques como siempre", () => {
+    const sinDia: RoomPrices = new Map([[1, { morning: 1000, afternoon: 1200 }]]);
+    const charge = computeCharge([slot("lunes", "09:00", "20:00")], sinDia, new Map(), SEPT);
+
+    expect(charge.days).toEqual([]);
+    expect(charge.blocks).toHaveLength(2);
+  });
+
+  it("lo que pasa de las 20 sigue siendo fuera de bloque", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "21:00")], prices, new Map(), SEPT);
+
+    expect(charge.days).toHaveLength(1);
+    expect(charge.outside[0].parts).toEqual([{ from: "20:00", to: "21:00" }]);
+    expect(charge.missing).toEqual(["Falta el valor del lunes de 20:00 a 21:00"]);
+  });
+
+  it("cada día va por su lado y por consultorio", () => {
+    const charge = computeCharge(
+      [slot("lunes", "09:00", "20:00"), slot("martes", "09:00", "13:00"), slot("lunes", "09:00", "10:00", 2)],
+      new Map([...prices, [2, { morning: 1500, day: 3000 }]]),
+      new Map(),
+      SEPT
+    );
+
+    expect(charge.days.map((line) => `${line.roomId}|${line.day}`)).toEqual(["1|lunes"]);
+    expect(charge.amount).toBe(4 * 2000 + 5 * 1000 + 4 * 1500);
+    expect(usesOf(charge)).toBe(4 * 2 + 5 + 4); // el día cuenta como sus dos bloques
   });
 });
 
