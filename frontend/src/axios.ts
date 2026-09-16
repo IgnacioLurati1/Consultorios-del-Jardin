@@ -72,7 +72,23 @@ const REFRESH_KEY = "refreshToken";
  */
 const COOKIE_KEY = "refresh-por-cookie";
 
+/**
+ * Brave acepta la cookie de terceros pero la guarda aparte y la tira cuando se cierran las
+ * pestañas del sitio. La prueba de abajo sale bien, la web borraba la copia, y al volver un
+ * rato después la sesión ya no estaba. Ahí no hay prueba que sirva: la cookie anda justo
+ * hasta que deja de andar.
+ *
+ * En Chrome y Edge la cookie dura lo que dice y se usa sola, que es lo seguro. En Safari y
+ * Firefox la prueba ya da que no. Brave es el caso que la prueba no ve, y se lo reconoce
+ * por `navigator.brave`, que publica el propio navegador.
+ */
+function cookieEsDeFiar(): boolean {
+  return !("brave" in navigator);
+}
+
 function cookieSirveSola(): boolean {
+  if (!cookieEsDeFiar()) return false;
+
   try {
     return localStorage.getItem(COOKIE_KEY) === "1";
   } catch {
@@ -89,6 +105,8 @@ function cookieSirveSola(): boolean {
  * bloquea las cookies— la marca se cae y el próximo login vuelve a guardar el token.
  */
 function anotarLaCookie(sirve: boolean): void {
+  if (sirve && !cookieEsDeFiar()) return;
+
   try {
     localStorage.setItem(COOKIE_KEY, sirve ? "1" : "0");
     if (sirve) localStorage.removeItem(REFRESH_KEY);
@@ -116,7 +134,7 @@ function refreshGuardado(): string | null {
 let probando: Promise<void> | null = null;
 
 function probarLaCookie(): void {
-  if (cookieSirveSola() || probando) return;
+  if (cookieSirveSola() || probando || !cookieEsDeFiar()) return;
 
   probando = axios
     .get(`${API_BASE_URL}/refreshToken`, { withCredentials: true, headers: { ...CLIENT_HEADER } })

@@ -69,6 +69,44 @@ describe("renewSession", () => {
     expect(localStorage.getItem("token")).toBe("acceso-nuevo");
   });
 
+  describe("en Brave", () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, "brave", { value: {}, configurable: true });
+    });
+
+    afterEach(() => {
+      delete (navigator as { brave?: unknown }).brave;
+    });
+
+    it("no borra la copia aunque la cookie alcance sola", async () => {
+      // Brave tira la cookie al cerrar la pestaña: la copia es lo que sostiene la sesión.
+      vi.spyOn(axios, "get").mockRejectedValueOnce(answered(401)).mockResolvedValueOnce({ data: { token: "acceso-nuevo" } });
+
+      await renewSession();
+
+      expect(localStorage.getItem("refreshToken")).toBe("refresh-guardado");
+      expect(localStorage.getItem("refresh-por-cookie")).not.toBe("1");
+    });
+
+    it("renueva con la copia aunque haya quedado la marca de la cookie", async () => {
+      localStorage.setItem("refresh-por-cookie", "1");
+      const get = vi.spyOn(axios, "get").mockResolvedValue({ data: { token: "acceso-nuevo" } });
+
+      await renewSession();
+
+      expect(get.mock.calls[0][1]?.headers).toMatchObject({ "X-Refresh-Token": "refresh-guardado" });
+    });
+  });
+
+  it("fuera de Brave, si la cookie alcanza sola, borra la copia", async () => {
+    vi.spyOn(axios, "get").mockRejectedValueOnce(answered(401)).mockResolvedValueOnce({ data: { token: "acceso-nuevo" } });
+
+    await renewSession();
+
+    expect(localStorage.getItem("refreshToken")).toBeNull();
+    expect(localStorage.getItem("refresh-por-cookie")).toBe("1");
+  });
+
   it("varias renovaciones juntas comparten un solo pedido", async () => {
     const get = vi.spyOn(axios, "get").mockResolvedValue({ data: { token: "acceso-nuevo" } });
 
