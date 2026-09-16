@@ -44,6 +44,22 @@ api.interceptors.request.use((config) => {
  */
 let renewal: Promise<string> | null = null;
 
+/**
+ * El servidor contestó y dijo que no a renovar: vencido, revocado, la cuenta
+ * deshabilitada. Solo eso cierra la sesión.
+ *
+ * Todo lo demás es "ahora no": sin señal, el servidor reiniciándose en un deploy, un 5xx,
+ * un 408 o un 429. Antes cualquiera de esos también mandaba al login, y le cortaba la
+ * sesión a gente que la tenía perfectamente viva. Es lo mismo que ya hace la web (ver
+ * isRejection en su axios.ts).
+ */
+function isRejection(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return true;
+
+  const status = error.response?.status;
+  return status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
 async function renewAccessToken(): Promise<string> {
   const refresh = getRefreshToken();
   if (!refresh) throw new Error("Sin sesión");
@@ -84,8 +100,13 @@ api.interceptors.response.use(
 
         original.headers = { ...original.headers, Authorization: `Bearer ${token}` };
         return api(original);
-      } catch {
+      } catch (renewalError) {
         renewal = null;
+
+        // No se pudo preguntar: la sesión queda guardada y la pantalla muestra su error de
+        // conexión. El próximo pedido vuelve a intentar renovar.
+        if (!isRejection(renewalError)) return Promise.reject(renewalError);
+
         await clearTokens();
         onSessionLost();
       }
