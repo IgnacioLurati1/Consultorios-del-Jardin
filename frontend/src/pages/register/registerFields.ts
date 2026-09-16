@@ -40,9 +40,16 @@ export const emptyRegisterForm: RegisterForm = {
   about: "",
 };
 
-export function validateAccount(form: RegisterForm): string | null {
+/** Solo el email. Lo usa el alta de profesionales, donde la contraseña la elige él después. */
+export function validateEmailOnly(form: RegisterForm): string | null {
   if (!form.email.trim()) return "Falta el email";
   if (!EMAIL_REGEX.test(form.email.trim())) return "Formato de email inválido. Debe incluir @ y un punto";
+  return null;
+}
+
+export function validateAccount(form: RegisterForm): string | null {
+  const email = validateEmailOnly(form);
+  if (email) return email;
   if (!form.password) return "Falta la contraseña";
   if (form.password.length < MIN_PASSWORD) return `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres`;
   if (!form.confirmPassword) return "Falta repetir la contraseña";
@@ -54,9 +61,15 @@ export function validateAccount(form: RegisterForm): string | null {
  * Igual que validateAccount, pero además le pregunta al servidor si el email ya tiene
  * cuenta. Va en el primer paso del registro: enterarse ahí es mucho mejor que llenar
  * los tres pasos y recibir un "ya existe" al final.
+ *
+ * Con `password: false` mira solo el email: es el alta de profesionales, donde la
+ * contraseña la elige el profesional desde el mail.
  */
-export async function validateAccountAsync(form: RegisterForm): Promise<string | null> {
-  const problem = validateAccount(form);
+export async function validateAccountAsync(
+  form: RegisterForm,
+  options: { password?: boolean } = {}
+): Promise<string | null> {
+  const problem = options.password === false ? validateEmailOnly(form) : validateAccount(form);
   if (problem) return problem;
 
   const available = await isEmailAvailable(form.email.trim());

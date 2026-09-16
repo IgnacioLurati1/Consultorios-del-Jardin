@@ -14,6 +14,7 @@ import { OfficesAdmin } from "./pages/adminCRUDS/adminOffices/OfficesAdmin.tsx";
 import { RoomsAdmin } from "./pages/adminCRUDS/adminRooms/RoomsAdmin.tsx";
 import { RecoverPassword } from "./pages/newPassword/RecoverPassword.tsx";
 import { NewPassword } from "./pages/newPassword/NewPassword.tsx";
+import { Welcome } from "./pages/welcome/Welcome.tsx";
 import { PrivateRoutes } from "./PrivateRoutes.tsx";
 import { Outlet } from "react-router-dom";
 import { ProfessionalHome } from "./pages/homePages/professionalHome/professionalHome.tsx";
@@ -158,6 +159,8 @@ const router = createBrowserRouter([
       // Password Recovery Routes
       { path: "/forgot-password", element: <RecoverPassword /> },
       { path: "/reset-password", element: <NewPassword /> },
+      // Primer ingreso del profesional, desde el mail que le manda el alta.
+      { path: "/bienvenida", element: <Welcome /> },
       // 404 Routes
       { path: "*", element: <NotFoundPage /> },
     ],

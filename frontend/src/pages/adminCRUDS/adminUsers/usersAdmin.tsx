@@ -194,7 +194,7 @@ export function UsersAdmin() {
 
     if (user.email === self) badges.push({ label: "Cuenta propia", tone: "grey" });
 
-    if (user.anonymous) badges.push({ label: "Anónimo", tone: "amber" });
+    if (user.anonymous) badges.push({ label: "Sin cuenta", tone: "amber" });
 
     if (!user.active) {
       // Deshabilitado a mano y deshabilitado por una regla se ven distinto: el segundo

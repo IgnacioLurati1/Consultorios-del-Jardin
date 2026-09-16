@@ -133,7 +133,6 @@ export interface ProfessionalInput {
     docType: string;
     docNumber: string;
     phoneNumber: string;
-    password: string;
     speciality: string;
     /** Su presentación, opcional. Vacío no se manda. */
     about?: string;
@@ -142,6 +141,8 @@ export interface ProfessionalInput {
 // Va por /people/professional y no por el registro público: ese devuelve un token y
 // setea la cookie de refresh, así que el admin terminaba con la sesión del profesional
 // que acababa de crear.
+//
+// Sin contraseña: la elige el profesional desde el link que le llega por mail.
 export function registerProfessional(data: ProfessionalInput): Promise<Person>{
     return api.post('/people/professional', data)
     .then(res => res.data.data)

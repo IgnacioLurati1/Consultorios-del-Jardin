@@ -14,7 +14,6 @@ import { DOC_TYPES, SPECIALITIES } from "../../../lib/specialities";
 import { space } from "../../../theme/tokens";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD = 8;
 
 /** El mismo tope que valida el backend. */
 const ABOUT_MAX = 600;
@@ -37,7 +36,6 @@ export default function NewProfessionalScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [speciality, setSpeciality] = useState("");
   const [about, setAbout] = useState("");
-  const [password, setPassword] = useState("");
 
   const [docSheet, setDocSheet] = useState(false);
   const [specialitySheet, setSpecialitySheet] = useState(false);
@@ -54,7 +52,6 @@ export default function NewProfessionalScreen() {
       docNumber: /^\d{6,10}$/.test(docNumber.trim()) ? null : "El documento va sin puntos ni espacios",
       phoneNumber: /^[\d\s()+-]{6,30}$/.test(phoneNumber.trim()) ? null : "Formato de teléfono inválido",
       speciality: speciality ? null : "Falta la especialidad",
-      password: password.length >= MIN_PASSWORD ? null : `La contraseña necesita al menos ${MIN_PASSWORD} caracteres`,
     };
 
     setErrors(found);
@@ -72,10 +69,9 @@ export default function NewProfessionalScreen() {
         phoneNumber: phoneNumber.trim(),
         speciality,
         about: about.trim() || undefined,
-        password,
       });
 
-      feedback.done("Cuenta creada y habilitada");
+      feedback.done("Cuenta creada. Le mandamos un mail para que cree su contraseña");
       router.back();
     } catch (problem) {
       setErrors({ email: errorMessage(problem) });
@@ -150,19 +146,7 @@ export default function NewProfessionalScreen() {
             hint={`Opcional. Es lo que lee el paciente antes de elegir. ${about.length}/${ABOUT_MAX}`}
           />
 
-          <Field
-            label="Contraseña provisoria"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType="newPassword"
-            autoComplete="new-password"
-            hint={`Al menos ${MIN_PASSWORD} caracteres.`}
-            error={errors.password}
-            required
-          />
-
-          <Note>Pasar la contraseña por un canal seguro. Se cambia desde «Mis datos» al entrar.</Note>
+          <Note>Al profesional le llega un mail con un link para crear su contraseña y entrar por primera vez.</Note>
 
           <Button label="Crear la cuenta" onPress={save} loading={busy} block />
         </View>

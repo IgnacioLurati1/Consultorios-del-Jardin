@@ -30,7 +30,7 @@ export interface GuideStep {
 export const GUIDE_STEPS: GuideStep[] = [
   {
     icon: FaSeedling,
-    title: "Bienvenida al panel",
+    title: "Bienvenido/a al panel",
     text: "Un repaso de un minuto por lo más usado. Esta guía se vuelve a abrir cuando haga falta desde el botón de ayuda, arriba.",
   },
   {

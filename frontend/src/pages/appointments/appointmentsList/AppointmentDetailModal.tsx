@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 import type { Appointment, PaymentState, Person, RecurrenceFrequency, Room } from "../../types.ts";
 import { RepeatFields } from "./RepeatFields.tsx";
@@ -141,6 +141,19 @@ export function AppointmentDetailModal({
    */
   const ultimoHistorial = useRef(0);
 
+  // Los datos del turno como están guardados. De acá arranca la edición y acá vuelve al
+  // descartar: si no, lo descartado seguía escrito en el formulario la próxima vez.
+  const savedEdit = useMemo(
+    () => ({
+      date: appointment?.date?.slice(0, 10) ?? "",
+      initialHour: appointment?.initialHour?.slice(0, 5) ?? "",
+      finalHour: appointment?.finalHour?.slice(0, 5) ?? "",
+      room: appointment?.room ? String(appointment.room.idRoom) : "",
+      value: appointment?.value ? String(appointment.value) : "",
+    }),
+    [appointment]
+  );
+
   useEffect(() => {
     if (!appointment) return;
     ultimoHistorial.current += 1;
@@ -159,14 +172,8 @@ export function AppointmentDetailModal({
     setFrequency(appointment.recurrence?.frequency ?? "weekly");
     setRepeatForever(!appointment.recurrence?.endDate);
     setRepeatUntil(appointment.recurrence?.endDate?.slice(0, 10) ?? "");
-    setEdit({
-      date: appointment.date?.slice(0, 10) ?? "",
-      initialHour: appointment.initialHour?.slice(0, 5) ?? "",
-      finalHour: appointment.finalHour?.slice(0, 5) ?? "",
-      room: appointment.room ? String(appointment.room.idRoom) : "",
-      value: appointment.value ? String(appointment.value) : "",
-    });
-  }, [appointment]);
+    setEdit(savedEdit);
+  }, [appointment, savedEdit]);
 
   // Se apaga solo.
   useEffect(() => {
@@ -300,7 +307,14 @@ export function AppointmentDetailModal({
   // el registro clínico y el historial la ventana se pasaba del alto de la pantalla.
   const footer = editing ? (
     <>
-      <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setEditing(false)}>
+      <button
+        type="button"
+        className="adm-btn adm-btn-ghost"
+        onClick={() => {
+          setEdit(savedEdit);
+          setEditing(false);
+        }}
+      >
         Descartar
       </button>
       <button type="button" className="adm-btn adm-btn-primary" onClick={saveEdit}>

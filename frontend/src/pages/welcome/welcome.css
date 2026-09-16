@@ -1,0 +1,431 @@
+/* ============================================================
+   El primer ingreso del profesional: el saludo sobre negro y la
+   recorrida que hace el asistente.
+
+   El negro tapa la pantalla entera, la barra de arriba incluida,
+   y se queda hasta el final: abajo sigue estando el formulario de
+   la contraseña, y el cambio de pantalla pasa detrás.
+
+   Los tiempos están todos acá, en los retrasos de las
+   animaciones. La pantalla solo sabe dos números (COVERED_MS y
+   LEAVING_MS, en WelcomeTour.tsx): cuándo el negro tapó todo y
+   cuánto tarda el saludo en irse. Si acá se corre algo, allá hay
+   que correrlo también.
+   ============================================================ */
+
+.wl-dark {
+    position: fixed;
+    inset: 0;
+    /* Por encima de la barra de arriba (1000) y del globo del asistente: "todo en negro"
+       quiere decir todo. */
+    z-index: 1200;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+    background: #05090a;
+    color: #eaf3ee;
+    animation: wl-fade-in 1.2s ease both;
+}
+
+/* Un resplandor verde muy bajo arriba, para que el negro no sea una pared. */
+.wl-dark::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 45% at 50% 22%, rgba(47, 94, 70, 0.38), transparent 70%);
+    pointer-events: none;
+}
+
+/* ---------- el saludo ---------- */
+
+.wl-hello {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* Al medio de la pantalla: es una sola frase y es lo único que hay. */
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    width: min(860px, 100%);
+    padding: 40px 20px 48px;
+    text-align: center;
+}
+
+.wl-hello-logo {
+    height: clamp(74px, 11vh, 108px);
+    width: auto;
+    animation: wl-bloom 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) 1.4s both;
+}
+
+.wl-hello-title {
+    margin: 0;
+    max-width: 18ch;
+    color: #f1f6f3;
+    /* Grande, pero el mínimo manda en el celular: más que esto y "bienvenida" no entra. */
+    font-size: clamp(2.05rem, 6.2vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    animation: wl-rise-slow 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) 2.2s both;
+}
+
+/* Separado del saludo y con un halo verde: es lo único para tocar en toda la pantalla. */
+.wl-hello-go {
+    gap: 10px;
+    margin-top: clamp(26px, 6vh, 58px);
+    padding: clamp(15px, 2.1vh, 19px) clamp(30px, 7vw, 46px);
+    max-width: 100%;
+    font-size: clamp(1.06rem, 2.6vw, 1.28rem);
+    box-shadow: 0 12px 34px rgba(79, 174, 131, 0.34);
+    animation: wl-rise 1s cubic-bezier(0.2, 0.7, 0.3, 1) 3.4s both, wl-breathe 3.4s ease-in-out 4.4s infinite;
+}
+
+/* Al tocar "Comenzar" el saludo se va hacia arriba y deja el lugar al asistente. */
+.wl-hello.is-leaving {
+    animation: wl-leave 0.7s ease-in forwards;
+}
+
+.wl-hello.is-leaving .wl-hello-logo,
+.wl-hello.is-leaving .wl-hello-title,
+.wl-hello.is-leaving .wl-hello-go {
+    animation: none;
+}
+
+/* ---------- la recorrida del asistente ---------- */
+
+.wl-tour {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    /* Al medio, apenas para arriba: el bloque es más alto que el saludo y pegado arriba
+       dejaba media pantalla vacía. */
+    justify-content: center;
+    align-items: stretch;
+    gap: 22px;
+    width: min(620px, 100%);
+    padding: 40px 20px clamp(40px, 14vh, 170px);
+}
+
+/* Arriba, el que habla. */
+.wl-say-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    animation: wl-rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.wl-bot {
+    flex-shrink: 0;
+    width: clamp(62px, 15vw, 86px);
+    color: #4fae83;
+    /* Nunca se queda del todo quieto: es lo que lo vuelve alguien y no un dibujo. */
+    animation: wl-float 3.6s ease-in-out infinite;
+}
+
+.wl-bot svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55));
+}
+
+/* Los ojos se cierran un instante cada tanto. El transform-box es lo que hace que el
+   achatado salga desde el centro del ojo y no desde la esquina del dibujo. */
+.wl-bot-eyes {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: wl-blink 5.5s ease-in-out infinite;
+}
+
+.wl-bot-spark,
+.wl-bot-chest {
+    animation: wl-pulse 2.6s ease-in-out infinite;
+}
+
+.wl-say {
+    position: relative;
+    flex: 1;
+    padding: 16px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* El piquito que lo señala, del lado del asistente. */
+.wl-say::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: -7px;
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-right: none;
+    border-top: none;
+    border-radius: 0 0 0 3px;
+    background: #0d1513;
+    transform: rotate(45deg);
+}
+
+.wl-say-who {
+    margin: 0 0 4px;
+    color: #4fae83;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* El texto completo va invisible debajo y le da el alto a la burbuja: si creciera letra
+   por letra, todo lo de abajo saltaría mientras el asistente habla. */
+.wl-say-text {
+    position: relative;
+    margin: 0;
+    font-size: clamp(0.98rem, 2.4vw, 1.08rem);
+    line-height: 1.55;
+}
+
+.wl-say-ghost {
+    visibility: hidden;
+}
+
+.wl-say-real {
+    position: absolute;
+    inset: 0;
+}
+
+/* Abajo, la función del panel de la que está hablando. */
+.wl-feature {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 4px 16px;
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    animation: wl-rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.wl-feature-icon {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: rgba(79, 174, 131, 0.16);
+    color: #4fae83;
+    font-size: 1.25rem;
+}
+
+.wl-feature-title {
+    align-self: end;
+    font-size: 1.12rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.wl-feature-desc {
+    align-self: start;
+    color: rgba(234, 243, 238, 0.66);
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.wl-dots {
+    display: flex;
+    gap: 8px;
+    animation: wl-fade-in 0.6s ease 0.5s both;
+}
+
+.wl-dot {
+    flex: 1;
+    height: 4px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    transition: background 0.3s ease;
+    cursor: pointer;
+}
+
+.wl-dot.is-active {
+    background: #4fae83;
+}
+
+.wl-dot:focus-visible {
+    outline: 2px solid #4fae83;
+    outline-offset: 3px;
+}
+
+.wl-tour-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    animation: wl-fade-in 0.6s ease 0.6s both;
+}
+
+.wl-go {
+    gap: 8px;
+}
+
+/* El "Anterior": los botones fantasma del resto del sitio están pensados para fondos
+   claros, y sobre el negro no se veían. */
+.wl-ghost-btn {
+    padding: 10px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(234, 243, 238, 0.8);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wl-ghost-btn:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #f1f6f3;
+}
+
+.wl-ghost-btn:focus-visible {
+    outline: 2px solid #4fae83;
+    outline-offset: 3px;
+}
+
+/* ---------- las animaciones ---------- */
+
+@keyframes wl-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes wl-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Igual que la de arriba pero con más recorrido: para lo que entra despacio. */
+@keyframes wl-rise-slow {
+    from {
+        opacity: 0;
+        transform: translateY(26px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes wl-bloom {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes wl-leave {
+    to {
+        opacity: 0;
+        transform: translateY(-28px);
+    }
+}
+
+/* Respira, no late: el botón se hace notar sin sacudir la pantalla. */
+@keyframes wl-breathe {
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 12px 34px rgba(79, 174, 131, 0.34);
+    }
+    50% {
+        transform: scale(1.035);
+        box-shadow: 0 16px 42px rgba(79, 174, 131, 0.5);
+    }
+}
+
+@keyframes wl-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+/* Casi todo el rato abiertos: el parpadeo son dos cuadros al final de la vuelta. */
+@keyframes wl-blink {
+    0%,
+    92%,
+    100% {
+        transform: scaleY(1);
+    }
+    95% {
+        transform: scaleY(0.12);
+    }
+}
+
+@keyframes wl-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+
+@media (max-width: 560px) {
+    .wl-say-row {
+        gap: 12px;
+    }
+
+    .wl-tour-actions {
+        flex-direction: column-reverse;
+    }
+
+    .wl-tour-actions .adm-btn,
+    .wl-tour-actions .wl-ghost-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Quien pidió que no se mueva nada ve lo mismo, quieto: el asistente no flota ni parpadea
+   y el texto aparece entero (ver useTyped). */
+@media (prefers-reduced-motion: reduce) {
+    .wl-dark,
+    .wl-hello,
+    .wl-hello-logo,
+    .wl-hello-title,
+    .wl-hello-go,
+    .wl-say-row,
+    .wl-feature,
+    .wl-dots,
+    .wl-tour-actions,
+    .wl-bot,
+    .wl-bot-eyes,
+    .wl-bot-spark,
+    .wl-bot-chest {
+        animation: none;
+    }
+
+    .wl-dot {
+        transition: none;
+    }
+}

@@ -25,7 +25,7 @@ describe("guía del panel del profesional", () => {
   it("se abre sola la primera vez", () => {
     render(<Panel />);
     expect(screen.getByRole("dialog", { name: "Cómo funciona el panel" })).toBeInTheDocument();
-    expect(screen.getByText("Bienvenida al panel")).toBeInTheDocument();
+    expect(screen.getByText("Bienvenido/a al panel")).toBeInTheDocument();
   });
 
   // Cerrarla en el primer paso ya es decir que no: no se vuelve a abrir sola.
@@ -55,7 +55,7 @@ describe("guía del panel del profesional", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Ayuda" }));
-    expect(screen.getByText("Bienvenida al panel")).toBeInTheDocument();
+    expect(screen.getByText("Bienvenido/a al panel")).toBeInTheDocument();
   });
 
   // La regla de los textos de la web: en pantalla no van dos puntos.

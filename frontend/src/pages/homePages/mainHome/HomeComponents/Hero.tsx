@@ -40,18 +40,24 @@ const PHONE = "(max-width: 700px)";
 const HOLD_MAX_MS = 5000;
 
 /**
- * Que las fotos de la computadora aparezcan todas juntas.
+ * Que las fotos aparezcan todas juntas.
  *
- * Ahí se ven las cinco a la vez. Cuando cada una aparecía al terminar de bajar, la franja
- * cambiaba cinco veces en uno o dos segundos, de a una tira: un parpadeo de brillo que a
- * alguien con epilepsia fotosensible le puede hacer mal. Ahora esperan detrás de su vista
- * previa hasta que están todas, y hacen un solo fundido lento. Si alguna tarda más de la
- * cuenta, pasado `HOLD_MAX_MS` aparecen las que ya bajaron.
+ * En la computadora se ven las cinco a la vez. Cuando cada una aparecía al terminar de
+ * bajar, la franja cambiaba cinco veces en uno o dos segundos, de a una tira: un parpadeo
+ * de brillo que a alguien con epilepsia fotosensible le puede hacer mal. Ahora esperan
+ * detrás de su vista previa hasta que están todas, y hacen un solo fundido lento. Si
+ * alguna tarda más de la cuenta, pasado `HOLD_MAX_MS` aparecen las que ya bajaron.
  *
- * En el celular no hace falta, y demoraría la primera: ahí se ve una sola foto por vez.
+ * En el celular pasan de a una, y esperar también sirve: la que entra ya está bajada y no
+ * asoma a mitad del pase. Mientras tanto se ve su vista previa, así que no hay hueco.
+ *
+ * El fundido se decide para todas juntas. Si estaban todas en la caché aparecen de una,
+ * sin fundido; si una sola tuvo que bajar, van todas con fundido, porque mezclar las dos
+ * cosas es otra vez que cada foto aparezca por su cuenta.
  */
 function useHoldUntilAllReady(count: number) {
-  const [ready, setReady] = useState<ReadonlySet<number>>(() => new Set());
+  // Por foto, si llegó enseguida.
+  const [ready, setReady] = useState<ReadonlyMap<number, boolean>>(() => new Map());
   const [waitedEnough, setWaitedEnough] = useState(false);
 
   useEffect(() => {
@@ -59,14 +65,17 @@ function useHoldUntilAllReady(count: number) {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const phone = typeof window.matchMedia === "function" && window.matchMedia(PHONE).matches;
+  const all = ready.size >= count;
 
   return {
-    active: !phone && !waitedEnough && ready.size < count,
-    // Devuelve el mismo conjunto si ya estaba: HomePhoto puede avisar más de una vez.
-    markReady: (index: number) => setReady((prev) => (prev.has(index) ? prev : new Set(prev).add(index))),
+    active: !waitedEnough && !all,
+    instant: all && [...ready.values()].every(Boolean),
+    // Devuelve el mismo mapa si ya estaba: HomePhoto puede avisar más de una vez.
+    markReady: (index: number, fast: boolean) =>
+      setReady((prev) => (prev.has(index) ? prev : new Map(prev).set(index, fast))),
   };
 }
+
 /** Cuánto queda cada foto antes de pasar a la siguiente. */
 const SLIDE_MS = 5000;
 
@@ -165,7 +174,8 @@ export function Hero({ session }: HeroProps) {
                 key={photo.src}
                 preview={PHOTO_PREVIEWS[photo.name]}
                 hold={hold.active}
-                onReady={() => hold.markReady(index)}
+                instant={hold.instant}
+                onReady={(fast) => hold.markReady(index, fast)}
                 frameClassName={index === slide.current ? "is-active" : index === slide.leaving ? "is-leaving" : undefined}
                 src={photo.src}
                 srcSet={`${photo.src} 640w, ${photo.large} 960w`}

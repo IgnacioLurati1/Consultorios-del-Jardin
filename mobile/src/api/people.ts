@@ -132,7 +132,6 @@ export interface ProfessionalInput {
   docType: string;
   docNumber: string;
   phoneNumber: string;
-  password: string;
   speciality: string;
   /** Su presentación, opcional. Vacío no se manda. */
   about?: string;
@@ -142,6 +141,8 @@ export interface ProfessionalInput {
  * Alta de profesional hecha por el admin. Va por su propia ruta y no por el registro
  * público, que devuelve tokens: si no, el admin terminaba con la sesión del profesional
  * que acababa de crear.
+ *
+ * Sin contraseña: la elige el profesional desde el link que le llega por mail.
  */
 export async function registerProfessional(input: ProfessionalInput): Promise<Person> {
   const { data } = await api.post("/people/professional", input);

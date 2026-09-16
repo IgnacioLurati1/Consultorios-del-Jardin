@@ -46,7 +46,8 @@
 
 .entrance-host .login-card,
 .entrance-host .sf-card,
-.entrance-host .pw-card {
+.entrance-host .pw-card,
+.entrance-host .wl-card {
   box-shadow: 0 22px 60px rgba(10, 16, 14, 0.35);
 }
 

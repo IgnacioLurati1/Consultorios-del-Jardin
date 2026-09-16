@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaBell, FaBellSlash, FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import type { Person } from "../../types";
@@ -48,23 +48,29 @@ export function UserModal({
   const isProfessional = user?.type === "professional";
   const isAdmin = user?.type === "admin";
 
+  // Lo que hay guardado, que es de donde arranca la ficha y a donde vuelve al descartar.
+  const savedFields = useMemo(
+    () => ({
+      email: user?.email ?? "",
+      name: user?.name ?? "",
+      surname: user?.surname ?? "",
+      docType: user?.docType ?? "",
+      docNumber: user?.docNumber ?? "",
+      phoneNumber: user?.phoneNumber ?? "",
+      speciality: user?.speciality ?? "",
+      about: user?.about ?? "",
+    }),
+    [user]
+  );
+
   useEffect(() => {
     if (!visible || !user) return;
 
-    setUserData({
-      email: user.email,
-      name: user.name,
-      surname: user.surname,
-      docType: user.docType,
-      docNumber: user.docNumber,
-      phoneNumber: user.phoneNumber,
-      speciality: user.speciality ?? "",
-      about: user.about ?? "",
-    });
+    setUserData(savedFields);
     setEditing(false);
     setError(null);
     setConfirmingWaitlistOff(false);
-  }, [visible, user]);
+  }, [visible, user, savedFields]);
 
   if (!visible || !user) return null;
 
@@ -102,6 +108,10 @@ export function UserModal({
         type="button"
         className="adm-btn adm-btn-ghost"
         onClick={() => {
+          // Descartar vuelve a lo guardado, y no solo cierra el modo edición. Sin esto la
+          // ficha quedaba mostrando el texto que nadie guardó, así que la presentación se
+          // veía cambiada acá y seguía siendo la vieja para los pacientes.
+          setUserData(savedFields);
           setEditing(false);
           setError(null);
         }}

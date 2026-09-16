@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { SteppedForm, type FormStep } from "../../../components/steppedForm/SteppedForm.tsx";
 import { registerProfessional } from "./usersService";
@@ -9,7 +8,6 @@ import { useLogo } from "../../../lib/useLogo";
 import { subirAlPrincipio } from "../../../lib/scroll";
 import {
   DOC_TYPES,
-  MIN_PASSWORD,
   emptyRegisterForm,
   validateAccountAsync,
   validateContact,
@@ -26,7 +24,6 @@ export function RegisterProf() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState<RegisterForm>(emptyRegisterForm);
-  const [showPassword, setShowPassword] = useState(false);
   const [sending, setSending] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -46,12 +43,11 @@ export function RegisterProf() {
       docType: form.docType,
       docNumber: form.docNumber.trim(),
       phoneNumber: form.phoneNumber.replace(/\D/g, ""),
-      password: form.password,
       speciality: form.speciality.trim(),
       about: form.about.trim() || undefined,
     })
       .then(() => {
-        toast.success("Profesional registrado");
+        toast.success("Profesional registrado. Le mandamos un mail para que cree su contraseña");
         navigate("/AdminHome/UsersAdmin");
         subirAlPrincipio();
       })
@@ -65,46 +61,14 @@ export function RegisterProf() {
     {
       id: "cuenta",
       title: "Cuenta",
-      hint: "Datos de acceso del profesional. La contraseña se puede cambiar después desde el perfil.",
-      validate: () => validateAccountAsync(form),
+      hint: "Al profesional le llega un mail para que cree su contraseña y entre por primera vez.",
+      validate: () => validateAccountAsync(form, { password: false }),
       content: (
-        <>
-          <label className="ui-field">
-            <span>Email</span>
-            <input type="email" placeholder="profesional@mail.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
-          </label>
-
-          <label className="ui-field">
-            <span>Contraseña</span>
-            <div className="sf-input-wrap">
-              <input
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-              />
-              <button
-                type="button"
-                className="sf-input-toggle"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Ocultar" : "Mostrar"}
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
-            <small>Al menos {MIN_PASSWORD} caracteres.</small>
-          </label>
-
-          <label className="ui-field">
-            <span>Repetir contraseña</span>
-            <input
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              value={form.confirmPassword}
-              onChange={(e) => set("confirmPassword", e.target.value)}
-            />
-          </label>
-        </>
+        <label className="ui-field">
+          <span>Email</span>
+          <input type="email" placeholder="profesional@mail.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
+          <small>Ahí le llega el link para crear su contraseña, así que conviene revisarlo dos veces.</small>
+        </label>
       ),
     },
     {
@@ -191,7 +155,7 @@ export function RegisterProf() {
     <>
       <SteppedForm
         title="Registrar profesional"
-        subtitle="Queda habilitado para atender apenas se guarda"
+        subtitle="Queda habilitado para atender apenas se guarda. La contraseña la elige el profesional desde su mail"
         logo={logo}
         steps={steps}
         submitLabel="Registrar profesional"

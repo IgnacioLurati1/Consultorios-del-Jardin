@@ -13,8 +13,13 @@ interface HomePhotoProps extends ImgHTMLAttributes<HTMLImageElement> {
    * usa la portada para que las cinco aparezcan juntas: ver Hero.
    */
   hold?: boolean;
-  /** Avisa que la foto terminó de bajar. */
-  onReady?: () => void;
+  /**
+   * Aparecer sin fundido. Sin esto lo decide la foto sola, por lo que tardó. La portada lo
+   * decide por todas juntas, para que no se mezclen un fundido y una que aparece de golpe.
+   */
+  instant?: boolean;
+  /** Avisa que la foto terminó de bajar, y si llegó enseguida. */
+  onReady?: (fast: boolean) => void;
 }
 
 /**
@@ -28,9 +33,9 @@ interface HomePhotoProps extends ImgHTMLAttributes<HTMLImageElement> {
  * La vista previa es el fondo del marco y no un filtro sobre la imagen: así la foto real
  * puede fundirse sobre ella, y el difuminado no tiene que recalcularse en cada cuadro.
  */
-export function HomePhoto({ preview, frameClassName, hold = false, onReady, onLoad, ...img }: HomePhotoProps) {
+export function HomePhoto({ preview, frameClassName, hold = false, instant, onReady, onLoad, ...img }: HomePhotoProps) {
   const [loaded, setLoaded] = useState(false);
-  const [instant, setInstant] = useState(false);
+  const [fast, setFast] = useState(false);
   const mountedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -43,9 +48,11 @@ export function HomePhoto({ preview, frameClassName, hold = false, onReady, onLo
     // foto: un parpadeo que no hacía falta, y más fuerte en el tema claro. El fundido queda
     // para cuando la foto tarda de verdad, que es cuando la vista previa sirve.
     const since = mountedAt.current === null ? 0 : performance.now() - mountedAt.current;
-    if (since < FAST_MS) setInstant(true);
+    const quick = since < FAST_MS;
+    // Solo se enciende: esto puede volver a correr más tarde, y ahí ya nada llega "enseguida".
+    if (quick) setFast(true);
     setLoaded(true);
-    onReady?.();
+    onReady?.(quick);
   }, [onReady]);
 
   // Si la foto ya estaba en la caché, puede terminar de cargar antes de que React escuche
@@ -57,11 +64,13 @@ export function HomePhoto({ preview, frameClassName, hold = false, onReady, onLo
     [markLoaded]
   );
 
+  const noFade = instant ?? fast;
+
   return (
     <span
       // "home-pic-frame" y no "home-photo": ese nombre ya lo usa el ícono de las tarjetas de
       // especialidades, y sus reglas se mezclaban con estas.
-      className={`home-pic-frame ${loaded && !hold ? "is-loaded" : ""} ${instant ? "is-instant" : ""} ${frameClassName ?? ""}`}
+      className={`home-pic-frame ${loaded && !hold ? "is-loaded" : ""} ${noFade ? "is-instant" : ""} ${frameClassName ?? ""}`}
       // Una foto sin vista previa cargada no pide nada: queda el marco liso, como antes.
       style={preview ? { backgroundImage: `url("${preview}")` } : undefined}
     >
