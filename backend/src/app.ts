@@ -38,7 +38,7 @@ import { startWaitlistJob } from "./jobs/waitlist.job.js";
 import { rentRouter } from "./rent/rent.routes.js";
 import { startRentJob } from "./jobs/rent.job.js";
 import { setupSwagger } from './config/swagger.js';
-import { attendanceLimiter, authLimiter, generalLimiter } from "./config/rateLimiter.js";
+import { attendanceLimiter, authLimiter, generalLimiter, refreshLimiter } from "./config/rateLimiter.js";
 
 
 const app = express();
@@ -121,7 +121,7 @@ app.use("/api/schedules", verifyToken, scheduleRouter);
 app.use("/api/tokenStatus", authLimiter, verifyToken, (req: Request, res: Response) => {
   res.status(200).json({ message: "Token válido" });
 });
-app.use("/api/refreshToken",authLimiter, refreshToken);
+app.use("/api/refreshToken", refreshLimiter, refreshToken);
 app.use("/api/appointments", verifyToken, appointmentRouter);
 app.use("/api/recurrences", verifyToken, recurrenceRouter);
 app.use("/api/analytics", verifyToken, analyticsRouter);

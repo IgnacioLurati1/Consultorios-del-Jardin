@@ -1,5 +1,7 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { REFRESH_TOKEN_HEADER } from "./clients.js";
 
 /**
  * En desarrollo los topes se multiplican por veinte.
@@ -63,10 +65,34 @@ function announce(name: string, windowMs: number) {
  * —"Request failed with status code 429"— en lugar de lo que dice acá.
  */
 
+/**
+ * El general, contado por cuenta cuando la request trae una sesión válida.
+ *
+ * Por lo mismo que la renovación (ver refreshKey): detrás del proxy muchas personas caían
+ * en el mismo contador de IP, y quinientas requests cada quince minutos repartidas entre
+ * todo el consultorio se llenaban. Sin sesión, o con el token vencido, cuenta por
+ * dirección como siempre.
+ */
+function generalKey(req: Request): string {
+  const token = req.headers?.authorization?.split(" ")[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET as jwt.Secret) as { email?: string };
+      if (decoded?.email) return `cuenta ${decoded.email}`;
+    } catch {
+      // Vencido o roto: cuenta por dirección.
+    }
+  }
+
+  return `ip ${ipKeyGenerator(req.ip ?? "")}`;
+}
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // ventana de 15 minutos
   handler: announce("el limitador general", 15 * 60 * 1000),
   max: 500 * RELAX,
+  keyGenerator: generalKey,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Demasiadas solicitudes, intentá más tarde.' },
@@ -84,6 +110,46 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Probaste varias veces seguidas. Esperá un minuto y volvé a intentar.' },
+});
+
+/**
+ * Renovar la sesión, contado por cuenta y no por dirección.
+ *
+ * Estaba adentro de authLimiter, diez por minuto por IP, y en producción eso cerraba
+ * sesiones. Detrás del proxy de Railway la IP que ve el servidor no siempre es la del
+ * visitante, y muchas personas terminaban sumando contra el mismo contador. Cuando se
+ * llenaba, la renovación volvía 429. La app lo tomaba como sesión vencida y mandaba al
+ * login, y la web también, si justo se estaba abriendo.
+ *
+ * Contar por IP acá no protegía nada. Un refresh token está firmado y no se adivina
+ * probando, así que el tope solo tiene que frenar a un cliente que se quedó renovando en
+ * círculo. La cuenta sale del token ya verificado, y el que no trae uno válido cuenta por
+ * dirección, como antes.
+ */
+function refreshKey(req: Request): string {
+  const fromHeader = req.headers?.[REFRESH_TOKEN_HEADER];
+  const token = typeof fromHeader === "string" && fromHeader.length > 0 ? fromHeader : req.cookies?.refreshToken;
+
+  if (typeof token === "string" && token.length > 0) {
+    try {
+      const decoded = jwt.verify(token, process.env.REFRESH_SECRET as jwt.Secret) as { email?: string };
+      if (decoded?.email) return `cuenta ${decoded.email}`;
+    } catch {
+      // Vencido o roto: cuenta por dirección y el handler contesta lo de siempre.
+    }
+  }
+
+  return `ip ${ipKeyGenerator(req.ip ?? "")}`;
+}
+
+const refreshLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  handler: announce("el limitador de renovación de sesión", 60 * 1000),
+  max: 30 * RELAX,
+  keyGenerator: refreshKey,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Demasiadas renovaciones seguidas. Esperá un minuto.' },
 });
 
 // Consultas de solo lectura sin sesión (¿este email ya tiene cuenta?). Es más
@@ -135,4 +201,4 @@ const attendanceLimiter = rateLimit({
   message: { message: 'Demasiados intentos con este link. Esperá un rato y volvé a abrirlo.' },
 });
 
-export { generalLimiter, authLimiter, lookupLimiter, contactLimiter, importLimiter, attendanceLimiter };
+export { generalLimiter, authLimiter, refreshLimiter, lookupLimiter, contactLimiter, importLimiter, attendanceLimiter };
