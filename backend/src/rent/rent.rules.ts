@@ -2,7 +2,7 @@
  * Las reglas del alquiler, sin base de datos de por medio.
  *
  * Están aparte del servicio para poder probarlas solas: qué bloques ocupa un horario,
- * cuántas veces cae un día en un mes, cuánto sale una cuota y si se pagó a tiempo. El
+ * cuánto sale una cuota y si se pagó a tiempo. El
  * servicio junta los datos y le pregunta a esto; esto no sabe de dónde salieron.
  *
  * Cómo se cobra, tal como lo definió el consultorio:
@@ -11,8 +11,9 @@
  *   mañana de 9 a 13 y la tarde de 14 a 20, y cada bloque de cada consultorio tiene su
  *   propio precio.
  * - Se paga el bloque entero. Quien atiende los lunes de 9 a 11 en un consultorio usa la
- *   mañana de ese consultorio los lunes, y paga esa mañana completa por cada lunes del mes.
- * - Los meses se cuentan de verdad: un mes con cinco lunes cobra cinco mañanas.
+ *   mañana de ese consultorio los lunes, y paga esa mañana completa.
+ * - Los precios son por mes, no por semana. La mañana de los lunes cuesta lo mismo en un
+ *   mes con cuatro lunes que en uno con cinco. Lo mismo el día entero y el valor a mano.
  * - Las vacaciones no descuentan nada. El horario es del profesional aunque no venga, y
  *   si no lo paga lo pierde.
  * - Lo que queda fuera de los dos bloques (de 13 a 14, antes de las 9, después de las 20)
@@ -156,20 +157,14 @@ export function monthsBetween(from: string, to: string): string[] {
   return months;
 }
 
-/** Cuántas veces cae un día de la semana en un mes. Es lo que multiplica cada bloque. */
-export function weekdayCount(month: string, day: string): number {
-  const target = DAY_INDEX[day];
-  if (target === undefined) return 0;
-
-  const [year, number] = month.split("-").map(Number);
-  const days = new Date(year, number, 0).getDate();
-  const first = new Date(year, number - 1, 1).getDay();
-
-  let count = 0;
-  for (let date = 1; date <= days; date++) if ((first + date - 1) % 7 === target) count++;
-
-  return count;
-}
+/**
+ * Cuántas veces se cobra cada bloque, día o valor a mano en un mes. Siempre una: el precio
+ * ya es el del mes, tenga ese día cuatro o cinco semanas.
+ *
+ * Sigue viajando como `times` en cada línea porque las cuotas guardadas y las apps ya
+ * instaladas lo leen y multiplican por él.
+ */
+const TIMES_PER_MONTH = 1;
 
 /* ============================================================
    La cuota
@@ -199,7 +194,7 @@ export interface BlockLine {
   room: string;
   day: string;
   block: BlockKey;
-  /** Cuántas veces cae ese día en el mes. */
+  /** Cuántas veces se cobra en el mes. Siempre una. */
   times: number;
   price: number | null;
   subtotal: number;
@@ -299,12 +294,12 @@ export function computeCharge(
     if (price === null || !coversWholeDay(group)) continue;
 
     wholeDays.add(id);
-    const times = weekdayCount(month, first.day);
+    const times = TIMES_PER_MONTH;
     days.push({ roomId: first.roomId, room: first.room, day: first.day, times, price, subtotal: price * times });
   }
 
   for (const slot of slots) {
-    const times = weekdayCount(month, slot.day);
+    const times = TIMES_PER_MONTH;
     const whole = wholeDays.has(`${slot.roomId}|${slot.day}`);
 
     for (const key of whole ? [] : blocksOf(slot.initialHour, slot.finalHour)) {
@@ -451,7 +446,7 @@ export function freeBlocks(rooms: RoomInfo[], slots: ScheduleSlot[], prices: Roo
           continue;
         }
 
-        const times = weekdayCount(month, day);
+        const times = TIMES_PER_MONTH;
         const price = prices.get(room.roomId)?.[key] ?? null;
         free.push({ day, block: key, times, price, subtotal: (price ?? 0) * times });
       }

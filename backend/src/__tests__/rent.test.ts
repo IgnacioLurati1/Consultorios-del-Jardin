@@ -11,14 +11,13 @@ import {
   outsideParts,
   paymentStatus,
   shiftMonth,
-  weekdayCount,
   usesOf,
   type RoomPrices,
   type ScheduleSlot,
 } from "../rent/rent.rules.js";
 import { buildXlsx } from "../shared/xlsx.js";
 
-// Septiembre de 2026 empieza un martes: tiene cuatro lunes y cinco martes.
+// Septiembre de 2026 tiene cuatro lunes y cinco martes, y los dos se cobran igual.
 const SEPT = "2026-09";
 
 const slot = (day: string, initialHour: string, finalHour: string, roomId = 1): ScheduleSlot => ({
@@ -49,11 +48,13 @@ describe("alquiler - bloques de un horario", () => {
 });
 
 describe("alquiler - meses", () => {
-  it("cuenta los días reales de cada mes", () => {
-    expect(weekdayCount(SEPT, "lunes")).toBe(4);
-    expect(weekdayCount(SEPT, "martes")).toBe(5);
-    expect(weekdayCount(SEPT, "miercoles")).toBe(5);
-    expect(weekdayCount("2026-02", "lunes")).toBe(4);
+  it("un mes con cinco semanas cuesta lo mismo que uno con cuatro", () => {
+    const prices: RoomPrices = new Map([[1, { morning: 1000 }]]);
+    const lunes = computeCharge([slot("lunes", "09:00", "10:00")], prices, new Map(), SEPT);
+    const martes = computeCharge([slot("martes", "09:00", "10:00")], prices, new Map(), SEPT);
+
+    expect(lunes.amount).toBe(1000);
+    expect(martes.amount).toBe(1000);
   });
 
   it("pasa de año", () => {
@@ -72,30 +73,30 @@ describe("alquiler - la cuota por bloques", () => {
     const charge = computeCharge([slot("lunes", "09:00", "10:00"), slot("lunes", "11:00", "12:00")], prices, new Map(), SEPT);
 
     expect(charge.blocks).toHaveLength(1);
-    expect(charge.amount).toBe(4000); // cuatro lunes de mañana a $1000
+    expect(charge.amount).toBe(1000); // la mañana de los lunes, por mes
     expect(charge.missing).toEqual([]);
   });
 
   it("lo que cae de 13 a 14 queda sin cobrar y avisa que falta el valor", () => {
     const charge = computeCharge([slot("martes", "12:00", "15:00", 2)], prices, new Map(), SEPT);
 
-    // Cinco martes: mañana a $1500 y tarde a $2000.
-    expect(charge.amount).toBe(17500);
+    // Mañana a $1500 y tarde a $2000.
+    expect(charge.amount).toBe(3500);
     expect(charge.outside).toHaveLength(1);
     expect(charge.missing).toEqual(["Falta el valor del martes de 13:00 a 14:00"]);
   });
 
-  it("con el valor a mano, la franja se cobra cada vez", () => {
+  it("con el valor a mano, la franja se cobra una vez por mes", () => {
     const extras = new Map([[extraKey("martes", "12:00"), 300]]);
     const charge = computeCharge([slot("martes", "12:00", "15:00", 2)], prices, extras, SEPT);
 
-    expect(charge.amount).toBe(17500 + 5 * 300);
+    expect(charge.amount).toBe(3500 + 300);
     expect(charge.missing).toEqual([]);
   });
 
   it("el ajuste propio sube la cuota entera", () => {
     const charge = computeCharge([slot("lunes", "09:00", "10:00")], prices, new Map(), SEPT, 1000);
-    expect(charge.amount).toBe(4400);
+    expect(charge.amount).toBe(1100);
   });
 
   it("un bloque sin precio no suma y queda anotado", () => {
@@ -119,7 +120,7 @@ describe("alquiler - el día entero", () => {
     expect(charge.blocks).toEqual([]);
     expect(charge.outside).toEqual([]);
     expect(charge.days).toHaveLength(1);
-    expect(charge.amount).toBe(8000); // cuatro lunes a $2000
+    expect(charge.amount).toBe(2000);
     expect(charge.missing).toEqual([]);
   });
 
@@ -132,14 +133,14 @@ describe("alquiler - el día entero", () => {
     );
 
     expect(charge.days).toHaveLength(1);
-    expect(charge.amount).toBe(8000);
+    expect(charge.amount).toBe(2000);
   });
 
   it("con un corte en el medio son bloques", () => {
     const charge = computeCharge([slot("lunes", "09:00", "13:00"), slot("lunes", "14:00", "20:00")], prices, new Map(), SEPT);
 
     expect(charge.days).toEqual([]);
-    expect(charge.amount).toBe(4 * 1000 + 4 * 1200);
+    expect(charge.amount).toBe(1000 + 1200);
   });
 
   it("si no llega a las 20 son bloques", () => {
@@ -174,8 +175,8 @@ describe("alquiler - el día entero", () => {
     );
 
     expect(charge.days.map((line) => `${line.roomId}|${line.day}`)).toEqual(["1|lunes"]);
-    expect(charge.amount).toBe(4 * 2000 + 5 * 1000 + 4 * 1500);
-    expect(usesOf(charge)).toBe(4 * 2 + 5 + 4); // el día cuenta como sus dos bloques
+    expect(charge.amount).toBe(2000 + 1000 + 1500);
+    expect(usesOf(charge)).toBe(2 + 1 + 1); // el día cuenta como sus dos bloques
   });
 });
 
@@ -187,8 +188,8 @@ describe("alquiler - bloques libres", () => {
     expect(room.occupied).toBe(1);
     expect(room.free).toHaveLength(9); // cinco días por dos bloques, menos el lunes a la mañana
     expect(room.free.some((block) => block.day === "lunes" && block.block === "morning")).toBe(false);
-    // La tarde del lunes vale 4 veces $1200.
-    expect(room.free.find((block) => block.day === "lunes" && block.block === "afternoon")?.subtotal).toBe(4800);
+    // La tarde del lunes vale $1200 por mes.
+    expect(room.free.find((block) => block.day === "lunes" && block.block === "afternoon")?.subtotal).toBe(1200);
   });
 });
 
