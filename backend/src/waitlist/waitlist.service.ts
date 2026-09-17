@@ -12,7 +12,6 @@ import MailService from "../config/mailer.js";
 import { button, escapeHtml, factsCard, note, paragraph, title } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { addDays, longDate, monthKey, startOfDay, startOfWeek, toISODate } from "../shared/dates.js";
-import { roomLabel } from "../shared/roomLabel.js";
 import { WAITLIST_LIMITS, fits, freedInTime, parseDays, parseWaitlistRequest } from "./waitlist.rules.js";
 
 const em = orm.em;
@@ -534,10 +533,9 @@ export class WaitlistService {
       paragraph(`Estás en la lista de espera de <strong>${escapeHtml(name)}</strong> y se liberó un turno que te sirve.`),
       factsCard("El horario", [
         { label: "Fecha", value: longDate(appointment.date) },
-        // Sin la hora de fin, como en todos los mails al paciente: ver appointmentFacts.
+        // Sin la hora de fin ni el consultorio, como en todos los mails al paciente: ver appointmentFacts.
         { label: "Hora", value: start },
         { label: "Profesional", value: name },
-        { label: "Consultorio", value: await roomLabel(appointment.room) },
       ]),
       paragraph("Les avisamos a todas las personas que esperan este horario, así que se lo queda el primero que lo reserva."),
       button("Reservarlo", url),
@@ -588,7 +586,6 @@ export class WaitlistService {
         { label: "Hora de inicio", value: start },
         { label: "Hora de fin", value: hhmm(appointment.finalHour) },
         { label: "Profesional", value: name },
-        { label: "Consultorio", value: await roomLabel(appointment.room) },
       ]),
       note(
         pending
@@ -609,6 +606,4 @@ type BookedAppointment = {
   finalHour: string;
   state?: string;
   professional: { email: string; name?: string; surname?: string };
-  /** Para el renglón del consultorio en el mail. Puede venir sin cargar: ver roomLabel. */
-  room?: unknown;
 };

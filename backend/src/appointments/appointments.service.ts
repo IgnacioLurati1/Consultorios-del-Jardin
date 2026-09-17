@@ -1097,6 +1097,9 @@ export class AppointmentService {
    * `to` es quién lo recibe. Al paciente se le nombra el profesional y solo la hora de
    * inicio: con la de fin a la vista, la sesión parece de duración fija, y no lo es. Al
    * profesional se le nombra el paciente y las dos horas, que es como lee su agenda.
+   *
+   * El consultorio va solo al profesional. Al paciente no le sirve de nada: el nombre es
+   * interno (naranja, verde) y en la puerta lo recibe el profesional.
    */
   private async appointmentFacts(appointment: Appointment, to: "patient" | "professional" = "patient") {
     const hours =
@@ -1107,12 +1110,18 @@ export class AppointmentService {
             { label: "Hora de fin", value: hhmm(appointment.finalHour) },
           ];
 
+    if (to === "patient") {
+      return [
+        { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
+        ...hours,
+        { label: "Profesional", value: this.professionalName(appointment) },
+      ];
+    }
+
     return [
       { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
       ...hours,
-      to === "patient"
-        ? { label: "Profesional", value: this.professionalName(appointment) }
-        : { label: "Paciente", value: this.patientName(appointment) },
+      { label: "Paciente", value: this.patientName(appointment) },
       { label: "Consultorio", value: await roomLabel(appointment.room) },
     ];
   }
