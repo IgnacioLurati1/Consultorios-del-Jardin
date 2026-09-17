@@ -14,9 +14,15 @@
   border-radius: 50%;
   background: var(--adm-surface);
   color: var(--adm-green-dark);
-  font-size: 1.15rem;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+/* En píxeles enteros y par, como el hueco que deja el borde: con un tamaño en rem el
+   ícono queda a medio píxel del centro y se ve corrido dentro del círculo. */
+.prof-help svg {
+  width: 18px;
+  height: 18px;
 }
 
 .prof-help:hover {
