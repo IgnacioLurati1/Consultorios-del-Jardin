@@ -6,11 +6,21 @@ import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow, type PersonBadge } from "../../../components/peopleList/PeopleList.tsx";
-import { getAllUsers, toggleBookable, toggleState, toggleWaitlist, updatePerson } from "./usersService";
+import {
+  changePatientEmail,
+  deletePerson,
+  findBouncedEmails,
+  getAllUsers,
+  toggleBookable,
+  toggleState,
+  toggleWaitlist,
+  updatePerson,
+} from "./usersService";
 import { getDecodedToken } from "../../commonServices.ts";
 import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
 import { explainCompromise } from "../../analytics/compromisedService.ts";
 import { UserModal } from "./userModal";
+import { deletionLabel, formatDeletionDate } from "./accountDeletion.ts";
 import { PasswordLinksModal } from "./PasswordLinksModal";
 import type { Person } from "../../types";
 
@@ -50,7 +60,9 @@ function explainBan(user: Person): string {
 
   return (
     `El sistema la deshabilitó solo${when}${reason ? `: ${reason}` : ""}. ` +
-    "Los turnos que había sacado en esa tanda se dieron de baja. Si fue un error, se vuelve a habilitar desde su ficha."
+    `Los turnos de esa tanda se dieron de baja. Se vuelve a habilitar desde su ficha, hasta el ${deletionLabel(
+      user.bannedAt ?? undefined
+    )}, que es cuando se elimina.`
   );
 }
 
@@ -68,6 +80,8 @@ export function UsersAdmin() {
   // Los pacientes marcados por su asistencia. Van por separado porque no son un campo de
   // la persona sino una cuenta sobre sus turnos, y se recalcula cada vez que se mira.
   const [flagged, setFlagged] = useState<Map<string, FlaggedPatient>>(new Map());
+  /** Los correos que rebotaron. Tampoco son un campo de la persona, sino del correo. */
+  const [bounced, setBounced] = useState<Set<string>>(new Set());
   const [modalData, setModalData] = useState<Person>();
   const [modalVisible, setModalVisible] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
@@ -88,6 +102,8 @@ export function UsersAdmin() {
     findBehaviourReport()
       .then((report) => setFlagged(new Map(report.suspicious.map((patient) => [patient.email, patient]))))
       .catch(() => setFlagged(new Map()));
+
+    findBouncedEmails().then((emails) => setBounced(new Set(emails)));
   }, []);
 
   const filtered = useMemo(() => {
@@ -143,14 +159,63 @@ export function UsersAdmin() {
         const active = estado ? estado.active : !antes?.active;
         const bookable = estado ? estado.bookable : antes?.bookable;
 
+        // Al deshabilitar, el servidor dice cuándo se borra la cuenta. Si contesta como
+        // antes y no lo dice, la fecha se calcula acá con la misma regla.
+        const deletionAt = estado?.deletionAt ?? null;
+
         toast.success(
-          active && antes?.type === "professional" && bookable === false
-            ? "Cuenta habilitada. Para que aparezca en la búsqueda de turnos, volver a ofrecerla"
-            : "Estado del usuario cambiado"
+          active
+            ? antes?.type === "professional" && bookable === false
+              ? "Cuenta habilitada. Para que aparezca en la búsqueda de turnos, volver a ofrecerla"
+              : "Cuenta habilitada"
+            : `Cuenta deshabilitada. Se elimina a partir del ${deletionAt ? formatDeletionDate(deletionAt) : deletionLabel()}`
         );
-        setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, active, bookable })));
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.email !== email ? user : { ...user, active, bookable, bannedAt: active ? null : new Date().toISOString() }
+          )
+        );
       })
       .catch((err) => toast.error(`Error al cambiar el estado: ${err.message}`));
+  }
+
+  /**
+   * La baja definitiva de un paciente.
+   *
+   * El servidor la rechaza en cuanto la persona tenga un turno, y ese motivo es el que se
+   * muestra. La fila se saca de la lista recién cuando el servidor contestó que sí.
+   */
+  async function deleteUser(email: string, force: boolean) {
+    try {
+      await deletePerson(email, force);
+      toast.success("Paciente eliminado");
+      setUsers((prev) => prev.filter((user) => user.email !== email));
+      return null;
+    } catch (err: any) {
+      // Con turnos cargados el servidor frena y dice cuántos son. La ventana lo muestra y
+      // vuelve a preguntar, así que acá no se avisa nada todavía.
+      if (err.code === "HAS_APPOINTMENTS") return { message: err.message, code: err.code };
+
+      toast.error(err.message);
+      return { message: err.message };
+    }
+  }
+
+  /**
+   * Corrige el correo de un paciente sin cuenta.
+   *
+   * La fila cambia de clave, porque el correo es lo que identifica a la persona en la
+   * base, así que se reemplaza entera con lo que devuelve el servidor.
+   */
+  async function changeEmail(email: string, newEmail: string) {
+    try {
+      const moved = await changePatientEmail(email, newEmail);
+      toast.success("Correo corregido");
+      setUsers((prev) => prev.map((user) => (user.email === email ? moved : user)));
+      return null;
+    } catch (err: any) {
+      return err.message as string;
+    }
   }
 
   /** Esconderlo de la búsqueda de turnos no lo deshabilita: sigue trabajando igual. */
@@ -198,6 +263,16 @@ export function UsersAdmin() {
 
     if (user.anonymous) badges.push({ label: "Sin cuenta", tone: "amber" });
 
+    // Lo dijo el servidor de correo del otro lado, así que no es una sospecha: a esta
+    // persona no le llega nada de lo que se le manda.
+    if (bounced.has(user.email)) {
+      badges.push({
+        label: "El correo no existe",
+        tone: "red",
+        hint: "No recibe el turno ni el recordatorio. Se arregla corrigiendo el correo en su ficha.",
+      });
+    }
+
     if (!user.active) {
       // Deshabilitado a mano y deshabilitado por una regla se ven distinto: el segundo
       // no lo revisó nadie todavía, y es el que hay que ir a mirar.
@@ -206,7 +281,14 @@ export function UsersAdmin() {
           ? { label: "Posible cuenta hackeada", tone: "red", hint: explainCompromise(user.banReason ?? null, false) }
           : user.bannedBy === "system"
           ? { label: "Baneado por el sistema", tone: "red", hint: explainBan(user) }
-          : { label: "Deshabilitado", tone: "red", hint: "Lo deshabilitó la administración a mano. Se vuelve a habilitar desde su ficha." }
+          : {
+              label: "Deshabilitado",
+              tone: "red",
+              hint:
+                `Lo deshabilitó la administración. Se vuelve a habilitar desde su ficha, hasta el ${deletionLabel(
+                  user.bannedAt ?? undefined
+                )}, que es cuando se elimina.`,
+            }
       );
     } else if (user.banKind === "compromise") {
       // Marcada pero con el acceso abierto: solo pasa con la última cuenta de
@@ -313,6 +395,8 @@ export function UsersAdmin() {
         onToggleState={toggleStateUser}
         onToggleBookable={toggleBookableUser}
         onToggleWaitlist={toggleWaitlistUser}
+        onDelete={deleteUser}
+        onChangeEmail={changeEmail}
         onEdit={editUser}
       />
 

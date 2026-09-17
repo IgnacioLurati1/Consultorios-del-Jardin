@@ -55,6 +55,7 @@ vi.mock("./patientsService.ts", () => ({
   createAnonymousPatient: vi.fn(),
   deleteAnonymousPatient: vi.fn(),
   updatePatient: vi.fn(),
+  findBouncedEmails: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock("../appointments/appointmentsService.ts", () => ({ getPatientMedicalHistory: traerHistorial }));

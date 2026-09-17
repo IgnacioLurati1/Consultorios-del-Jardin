@@ -143,6 +143,11 @@ button.people-row:focus-visible {
   justify-content: flex-end;
 }
 
+/* Un cartelito no se parte por la mitad ni se estira más que su texto. */
+.people-row-badges .adm-badge {
+  white-space: nowrap;
+}
+
 /* Nota explicativa arriba del listado. */
 .people-note {
   margin: 0 0 20px;
@@ -165,8 +170,13 @@ button.people-row:focus-visible {
     flex-basis: calc(100% - 60px);
   }
 
+  /* En el ancho de un teléfono los cartelitos se van a su propio renglón y se apilan
+     solos. Sin esto el grupo no achica —flex-shrink en 0— y el último queda cortado
+     contra el borde derecho de la pantalla. */
   .people-row-badges {
     justify-content: flex-start;
+    flex: 1 1 100%;
+    min-width: 0;
   }
 }
 

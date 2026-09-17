@@ -38,6 +38,22 @@ export function findAllPatients(): Promise<Person[]> {
 }
 
 /**
+ * Las direcciones que rebotaron, o sea las que no existen.
+ *
+ * Lo dice el proveedor de correo después de intentar entregar un mail. La pantalla las usa
+ * para marcar al paciente que no está recibiendo nada de lo que se le manda.
+ *
+ * Si falla, se devuelve una lista vacía: la marca es un extra sobre el listado y quedarse
+ * sin ella no impide hacer nada.
+ */
+export function findBouncedEmails(): Promise<string[]> {
+  return api
+    .get("/people/bounced")
+    .then((response) => (response.data.data ?? []) as string[])
+    .catch(() => []);
+}
+
+/**
  * `alreadyLoaded` dice que ese email ya lo había cargado otro profesional: no se creó nada,
  * y desde ahora este también lo ve, con los datos que cargó el otro.
  */
@@ -54,16 +70,33 @@ export function createAnonymousPatient(data: AnonymousPatientInput): Promise<Cre
 }
 
 /**
+ * Corrige el correo de un paciente sin cuenta.
+ *
+ * El correo es su clave en la base, así que el servidor crea la ficha con la dirección
+ * nueva y le lleva todo lo que tenía la vieja. Lo puede hacer quien lo cargó.
+ */
+export function changePatientEmail(email: string, newEmail: string): Promise<Person> {
+  return api
+    .patch(`/people/${encodeURIComponent(email)}/email`, { email: newEmail })
+    .then((response) => response.data.data as Person)
+    .catch(backendError);
+}
+
+/**
  * Deshace el alta de un paciente sin cuenta.
  *
  * El backend solo lo deja si lo cargó este mismo profesional y todavía no tiene ningún
  * turno. No es una baja: es para el que se cargó sin querer o con el mail mal escrito.
  */
-export function deleteAnonymousPatient(email: string): Promise<void> {
+export function deleteAnonymousPatient(email: string, force = false): Promise<void> {
   return api
-    .delete(`/people/anonymous/${encodeURIComponent(email)}`)
+    .delete(`/people/anonymous/${encodeURIComponent(email)}${force ? "?force=1" : ""}`)
     .then(() => undefined)
-    .catch(backendError);
+    .catch((err) => {
+      // El código distingue "no se puede" de "tiene turnos y hay que decirlo de nuevo".
+      const backendMsg = err.response?.data?.message || err.message;
+      throw Object.assign(new Error(backendMsg), { code: err.response?.data?.code });
+    });
 }
 
 /**

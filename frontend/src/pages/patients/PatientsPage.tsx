@@ -6,7 +6,7 @@ import { AdminHeader } from "../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow } from "../../components/peopleList/PeopleList.tsx";
-import { findAllPatients, findMyPatients, deleteAnonymousPatient, updatePatient } from "./patientsService.ts";
+import { findAllPatients, findMyPatients, deleteAnonymousPatient, findBouncedEmails, updatePatient } from "./patientsService.ts";
 import { useUndo } from "../../context/UndoContext.tsx";
 import { AppointmentDetailModal } from "../appointments/appointmentsList/AppointmentDetailModal.tsx";
 import { useAppointmentActions } from "../appointments/useAppointmentActions.ts";
@@ -47,6 +47,16 @@ export function PatientsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Person | null>(null);
   const { remember } = useUndo();
+
+  /**
+   * Los correos que rebotaron. Van por separado del paciente porque no son un dato suyo
+   * sino lo que contestó el servidor de correo del otro lado.
+   */
+  const [bounced, setBounced] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    findBouncedEmails().then((emails) => setBounced(new Set(emails)));
+  }, []);
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -256,6 +266,15 @@ export function PatientsPage() {
                     : { label: "Con cuenta", tone: "green" as const },
                   // Un pago a medias también es una deuda: lo que se mira es si quedó algo
                   // sin cobrar, no si no pagó nada.
+                  ...(bounced.has(patient.email)
+                    ? [
+                        {
+                          label: "El correo no existe",
+                          tone: "red" as const,
+                          hint: "No recibe el turno ni el recordatorio. Se arregla corrigiendo el correo en su ficha.",
+                        },
+                      ]
+                    : []),
                   ...(patient.owesPayment
                     ? [
                         {
@@ -302,11 +321,26 @@ export function PatientsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         patient={editing}
+        bounced={!!editing && bounced.has(editing.email)}
         historyToken={historyToken}
         onOpenAppointment={turno.open}
         onFailed={() => remember(null)}
+        onDeleted={(email) => {
+          // Sin deshacer: la ficha se fue con todo lo que tenía, y lo que no existe no
+          // se puede devolver con un botón.
+          remember(null);
+          setPatients((prev) => prev.filter((p) => p.email !== email));
+        }}
         onSaved={(saved, previous, alreadyLoaded) => {
           if (previous) {
+            // Corregir el correo mueve la ficha entera, así que la fila cambia de clave y
+            // se reemplaza en lugar de completarse.
+            if (saved.email !== previous.email) {
+              remember(null);
+              setPatients((prev) => prev.map((p) => (p.email === previous.email ? saved : p)));
+              return;
+            }
+
             setPatients((prev) => prev.map((p) => (p.email === previous.email ? { ...p, ...saved } : p)));
             // Los datos de antes, tal como estaban en la fila. Solo se puede sobre un
             // paciente sin cuenta, que son los únicos que este profesional puede editar.

@@ -89,7 +89,7 @@ export default function NewPatientScreen() {
             autoComplete="email"
             autoCapitalize="none"
             autoCorrect={false}
-            hint="Es lo que lo identifica, aunque no reciba mails."
+            hint="Ahí le llegan el turno y el recordatorio. Si el paciente no tiene correo o se prefiere el de otra persona, va ese en su lugar."
             error={errors.email}
             required
           />
@@ -114,7 +114,7 @@ export default function NewPatientScreen() {
             error={errors.phoneNumber}
           />
 
-          <Note tone="warn">No recibe mails ni recordatorios.</Note>
+          <Note tone="warn">El correo tiene que existir de verdad. Es adonde llegan el turno y el recordatorio.</Note>
 
           <Button label="Cargar el paciente" onPress={save} loading={busy} block />
         </View>

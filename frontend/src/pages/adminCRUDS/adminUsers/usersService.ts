@@ -108,11 +108,44 @@ export function toggleWaitlist(email: string){
  */
 export function toggleState(email:string){
     return api.patch(`/people/${email}/toggleState`)
-    .then(res => (res.data?.data ?? null) as { active: boolean; bookable: boolean } | null)
+    .then(res => (res.data?.data ?? null) as { active: boolean; bookable: boolean; deletionAt?: string | null } | null)
     .catch(err => {
         const backendMsg = err.response?.data?.message || err.message;
         throw new Error(backendMsg)
     })
+}
+
+/**
+ * Borra a un paciente de la base, con todo lo que tenga cargado.
+ *
+ * Con turnos, el servidor lo frena la primera vez y contesta `HAS_APPOINTMENTS` con el
+ * detalle. `force` es el sí a esa segunda pregunta, la que dice que los turnos se van
+ * también.
+ */
+export function deletePerson(email: string, force = false): Promise<void>{
+    return api.delete(`/people/${encodeURIComponent(email)}${force ? "?force=1" : ""}`)
+    .then(() => undefined)
+    .catch(err => {
+        const backendMsg = err.response?.data?.message || err.message;
+        // El código viaja pegado al error: es lo que distingue "no se puede" de "tiene
+        // historial y hace falta decirlo de nuevo".
+        throw Object.assign(new Error(backendMsg), { code: err.response?.data?.code });
+    });
+}
+
+/**
+ * Corrige el correo de un paciente sin cuenta.
+ *
+ * El correo es su clave en la base, así que el servidor mueve la ficha entera con sus
+ * turnos. Devuelve la ficha nueva.
+ */
+export function changePatientEmail(email: string, newEmail: string): Promise<Person>{
+    return api.patch(`/people/${encodeURIComponent(email)}/email`, { email: newEmail })
+    .then(res => res.data.data as Person)
+    .catch(err => {
+        const backendMsg = err.response?.data?.message || err.message;
+        throw new Error(backendMsg);
+    });
 }
 
 // Actualiza los datos de una persona. El backend ignora email y password en este
@@ -124,6 +157,19 @@ export function updatePerson(email: string, data: Partial<Person>): Promise<Pers
         const backendMsg = err.response?.data?.message || err.message;
         throw new Error(backendMsg);
     });
+}
+
+/**
+ * Las direcciones que rebotaron, o sea las que no existen.
+ *
+ * Lo dice el proveedor de correo al intentar entregar un mail. Sirve para marcar en el
+ * listado a quien no está recibiendo nada. Si falla, lista vacía: es un extra sobre la
+ * pantalla y sin él se sigue haciendo todo igual.
+ */
+export function findBouncedEmails(): Promise<string[]>{
+    return api.get('/people/bounced')
+    .then(res => (res.data?.data ?? []) as string[])
+    .catch(() => []);
 }
 
 /** Un profesional habilitado, con su último cambio de contraseña. */

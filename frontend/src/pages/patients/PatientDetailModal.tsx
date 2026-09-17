@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { FaEnvelope, FaTrash } from "react-icons/fa6";
 import { Modal } from "../../components/modal/Modal.tsx";
 import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { getPatientMedicalHistory } from "../appointments/appointmentsService.ts";
 import { isCancelled, pendingAmount } from "../appointments/appointmentTypes.ts";
 import type { Appointment, Person } from "../types.ts";
-import { createAnonymousPatient, updatePatient, type AnonymousPatientInput } from "./patientsService.ts";
+import {
+  changePatientEmail,
+  createAnonymousPatient,
+  deleteAnonymousPatient,
+  updatePatient,
+  type AnonymousPatientInput,
+} from "./patientsService.ts";
 import { getDecodedToken } from "../commonServices.ts";
 
 const emptyForm: AnonymousPatientInput = {
@@ -81,6 +88,10 @@ interface PatientDetailModalProps {
   onSaved?: (saved: Person, previous: Person | null, alreadyLoaded?: boolean) => void;
   /** Qué hacer si algo salió mal después de haber anunciado que se guardaba. */
   onFailed?: () => void;
+  /** La ficha se borró de la base, con todo lo que tuviera. */
+  onDeleted?: (email: string) => void;
+  /** Si el correo de esta persona rebotó, o sea si la dirección no existe. */
+  bounced?: boolean;
   /**
    * Abrir la ficha de un turno del historial.
    *
@@ -106,6 +117,8 @@ export function PatientDetailModal({
   patient,
   onSaved,
   onFailed,
+  onDeleted,
+  bounced = false,
   onOpenAppointment,
   historyToken = 0,
 }: PatientDetailModalProps) {
@@ -125,6 +138,18 @@ export function PatientDetailModal({
    * existiera y es lo que hay que ver cuando uno abre una ficha sin buscar nada puntual.
    */
   const [historyFilters, setHistoryFilters] = useState<HistoryFilter[]>([]);
+
+  /**
+   * Lo que está esperando una confirmación, o el correo nuevo esperando que lo escriban.
+   *
+   * Las dos cosas se llevan puesta la ficha entera, así que ninguna pasa de un clic.
+   * "delete-todo" es el segundo sí, el que el servidor pide cuando la persona tiene
+   * turnos cargados.
+   */
+  const [pending, setPending] = useState<null | "email" | "delete" | "delete-todo">(null);
+  const [newEmail, setNewEmail] = useState("");
+  /** Lo que contestó el servidor al frenar la baja, que dice cuántos turnos hay. */
+  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
 
   // Los pacientes con cuenta propia se muestran, pero no se tocan desde acá. Tampoco los
   // sin cuenta que cargó otro profesional y se comparten: los datos los corrige quien los
@@ -153,6 +178,9 @@ export function PatientDetailModal({
     const vigente = () => mio === ultimoHistorial.current;
 
     setFormError(null);
+    setPending(null);
+    setNewEmail("");
+    setDeleteWarning(null);
     // Los recortes son de la ficha que se estaba mirando, no de la que se abre ahora:
     // dejarlos puestos abriría el historial del siguiente ya escondiendo cosas.
     setHistoryFilters([]);
@@ -190,6 +218,16 @@ export function PatientDetailModal({
     // es de quién es.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, email, historyToken]);
+
+  /**
+   * Si se ofrece borrar la ficha.
+   *
+   * Sin turnos es deshacer el alta, y eso lo puede hacer quien la cargó. Con turnos solo
+   * si el correo rebotó, que es la ficha que nació mal: el servidor pide lo mismo. Con el
+   * historial todavía cargando no se sabe, y se ofrece igual, que es lo que evita que el
+   * botón aparezca y desaparezca a los dos segundos.
+   */
+  const canDelete = history === null || history.length === 0 || bounced;
 
   // El historial ya recortado. Sin filtros puestos es el historial entero.
   const shownHistory = useMemo(() => {
@@ -249,6 +287,65 @@ export function PatientDetailModal({
     }
   }
 
+  /**
+   * Guarda el correo nuevo.
+   *
+   * Del otro lado no es una edición: el correo es la clave de la persona en la base, así
+   * que el servidor crea la ficha con la dirección nueva y le lleva todo lo que tenía la
+   * vieja. Por eso la de acá se reemplaza entera.
+   */
+  async function handleEmail() {
+    if (!patient) return;
+
+    const wanted = newEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(wanted)) {
+      setFormError("El correo nuevo no tiene un formato válido");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const moved = await changePatientEmail(patient.email, wanted);
+      toast.success("Correo corregido");
+      onSaved?.(moved, patient);
+      setFormError(null);
+      onClose();
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /**
+   * Borra la ficha.
+   *
+   * La primera vez va sin `force`. Si la persona tiene turnos cargados el servidor la
+   * frena y cuenta cuántos son, y eso se muestra antes de volver a preguntar: lo que se
+   * borra en ese caso es el historial del consultorio con esa persona.
+   */
+  async function handleDelete(force: boolean) {
+    if (!patient) return;
+
+    setSaving(true);
+    try {
+      await deleteAnonymousPatient(patient.email, force);
+      toast.success("Paciente borrado");
+      onDeleted?.(patient.email);
+      onClose();
+    } catch (err: any) {
+      if (err.code === "HAS_APPOINTMENTS") {
+        setDeleteWarning(err.message);
+        setPending("delete-todo");
+      } else {
+        setFormError(err.message);
+        setPending(null);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Modal
       open={open}
@@ -257,20 +354,106 @@ export function PatientDetailModal({
       title={patient ? (readOnly ? "Datos del paciente" : "Editar paciente") : "Nuevo paciente sin cuenta"}
       subtitle={patient ? patient.email : "Los campos con * son obligatorios"}
       footer={
-        <>
-          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
-            {readOnly ? "Cerrar" : "Cancelar"}
-          </button>
-          {!readOnly && (
-            <button type="button" className="adm-btn adm-btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando…" : patient ? "Guardar cambios" : "Crear paciente"}
+        pending ? (
+          <>
+            <button
+              type="button"
+              className="adm-btn adm-btn-ghost"
+              onClick={() => {
+                setPending(null);
+                setFormError(null);
+              }}
+            >
+              Volver
             </button>
-          )}
-        </>
+            {pending === "email" ? (
+              <button type="button" className="adm-btn adm-btn-primary" onClick={handleEmail} disabled={saving}>
+                {saving ? "Guardando…" : "Guardar el correo"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="adm-btn adm-btn-danger"
+                onClick={() => handleDelete(pending === "delete-todo")}
+                disabled={saving}
+              >
+                <FaTrash />
+                {pending === "delete-todo" ? "Eliminar igual" : "Sí, eliminar"}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
+              {readOnly ? "Cerrar" : "Cancelar"}
+            </button>
+            {/* Solo sobre un paciente sin cuenta propio: los demás no se tocan desde acá. */}
+            {patient && !readOnly && (
+              <>
+                <button
+                  type="button"
+                  className="adm-btn adm-btn-ghost"
+                  onClick={() => {
+                    setNewEmail(patient.email);
+                    setFormError(null);
+                    setPending("email");
+                  }}
+                >
+                  <FaEnvelope />
+                  Corregir el correo
+                </button>
+                {/* Deshacer un alta recién hecha, o sacar la ficha que quedó mal con el
+                    correo que no existe. Una ficha sana con turnos es historial del
+                    consultorio, y esa baja la decide la administración. */}
+                {canDelete && (
+                  <button type="button" className="adm-btn adm-btn-danger" onClick={() => setPending("delete")}>
+                    <FaTrash />
+                    Eliminar
+                  </button>
+                )}
+              </>
+            )}
+            {!readOnly && (
+              <button type="button" className="adm-btn adm-btn-primary" onClick={handleSave} disabled={saving}>
+                {saving ? "Guardando…" : patient ? "Guardar cambios" : "Crear paciente"}
+              </button>
+            )}
+          </>
+        )
       }
     >
       <div className="ui-section">
-        {readOnly && (
+        {/* Corregir el correo es mover la ficha entera, así que se hace acá y no en el
+            formulario de datos, donde parecería un campo más. */}
+        {pending === "email" && (
+          <>
+            <label className="ui-field">
+              <span>Correo nuevo</span>
+              <input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="paciente@mail.com"
+                autoFocus
+              />
+              <small>Se mueve la ficha entera con sus turnos. Si el paciente no tiene correo, va el de otra persona.</small>
+            </label>
+            {formError && <p className="ui-alert ui-alert-error">{formError}</p>}
+          </>
+        )}
+
+        {pending === "delete" && (
+          <p className="ui-alert ui-alert-warn">
+            Se borra la ficha y todo lo suyo, sin vuelta atrás. Si el correo está mal, conviene corregirlo.
+          </p>
+        )}
+
+        {pending === "delete-todo" && (
+          <p className="ui-alert ui-alert-warn">
+            {deleteWarning}. Se van también sus turnos, con lo cobrado y lo anotado en cada uno.
+          </p>
+        )}
+
+        {!pending && readOnly && (
           <p className="ui-alert ui-alert-info">
             {loadedByOther
               ? "Lo cargó otro profesional, así que sus datos los corrige quien lo cargó."
@@ -281,7 +464,7 @@ export function PatientDetailModal({
         {/* Email, nombre y apellido son lo único obligatorio, igual que en el servidor. El
             documento y el teléfono se pueden dejar para después. El asterisco no se lee en
             voz alta: lo que avisa a un lector de pantalla es aria-required. */}
-        {!patient && (
+        {!patient && !pending && (
           <label className="ui-field">
             <span>
               Email<span className="ui-required" aria-hidden="true">*</span>
@@ -292,10 +475,17 @@ export function PatientDetailModal({
               placeholder="paciente@mail.com"
               aria-required="true"
             />
-            <small>Si esta persona se registra con este email, hereda todo lo que le cargues.</small>
+            <small>
+              Ahí le llegan el turno y el recordatorio, así que tiene que ser real. Si el paciente no tiene correo, va el de otra
+              persona. Si más adelante se registra, hereda lo cargado.
+            </small>
           </label>
         )}
 
+        {/* Mientras se confirma algo, los datos y el historial se esconden: lo que hay que
+            leer es el aviso, y con la ficha entera abajo pasa desapercibido. */}
+        {!pending && (
+        <>
         <div className="ui-field-row">
           <label className="ui-field">
             <span>
@@ -348,9 +538,11 @@ export function PatientDetailModal({
         </label>
 
         {formError && <p className="ui-alert ui-alert-error">{formError}</p>}
+        </>
+        )}
       </div>
 
-      {patient && (
+      {patient && !pending && (
         <div className="ui-section patients-history">
           <h3 className="patients-history-title">Historial de turnos</h3>
 

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaBell, FaBellSlash, FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
+import { FaBan, FaBell, FaBellSlash, FaEnvelope, FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import type { Person } from "../../types";
 import { SPECIALITIES } from "../../specialities.ts";
+import { deletionLabel, deletionThisMonth } from "./accountDeletion.ts";
 
 interface UserModalProps {
   visible: boolean;
@@ -17,6 +18,15 @@ interface UserModalProps {
   onToggleBookable: (email: string) => void;
   /** Prende o apaga su lista de espera. Solo para profesionales. */
   onToggleWaitlist?: (email: string) => void;
+  /**
+   * Borra al paciente de la base. Solo se ofrece para pacientes.
+   *
+   * `force` es el sí a la segunda pregunta, la que el servidor pide cuando la persona
+   * tiene turnos cargados. Devuelve el motivo si el servidor lo frenó, y nada si salió.
+   */
+  onDelete?: (email: string, force: boolean) => Promise<{ message: string; code?: string } | null>;
+  /** Corrige el correo de un paciente sin cuenta. Devuelve el motivo si no se pudo. */
+  onChangeEmail?: (email: string, newEmail: string) => Promise<string | null>;
   /** Guarda los cambios. Solo se ofrece para profesionales. */
   onEdit: (email: string, data: Partial<Person>) => void;
 }
@@ -25,6 +35,18 @@ const emptyUser = { email: "", name: "", surname: "", docType: "", docNumber: ""
 
 /** El mismo tope que valida el backend. */
 const ABOUT_MAX = 600;
+
+/**
+ * Cómo se lee la fecha de borrado, con el cierre de mes al que corresponde.
+ *
+ * "A partir de" y no "el": la limpieza corre una vez por semana, así que la cuenta que
+ * cumple su fecha un martes se borra el lunes siguiente. Lo que la fecha promete es que
+ * hasta ahí se puede recuperar.
+ */
+function deletionSentence(bannedAt?: string | null): string {
+  const date = deletionLabel(bannedAt ?? undefined);
+  return `${date}, ${deletionThisMonth(bannedAt ?? undefined) ? "al cierre de este mes" : "al cierre del mes que viene"}`;
+}
 
 /**
  * La última vez que entró, y por dónde. Se cuenta un acceso por día y por canal, así que
@@ -53,18 +75,30 @@ export function UserModal({
   onToggleState,
   onToggleBookable,
   onToggleWaitlist,
+  onDelete,
+  onChangeEmail,
   onEdit,
 }: UserModalProps) {
   const [userData, setUserData] = useState(emptyUser);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Apagar la lista se pregunta: la vacía, y a la gente que estaba le llega un aviso. */
-  const [confirmingWaitlistOff, setConfirmingWaitlistOff] = useState(false);
+  /**
+   * Lo que está esperando un sí. Los tres cambian algo que no se deshace solo, así que
+   * ninguno pasa de un clic. Apagar la lista de espera la vacía y avisa a quien estaba,
+   * deshabilitar le pone fecha de borrado a la cuenta, y eliminar borra al paciente.
+   */
+  const [confirming, setConfirming] = useState<null | "waitlist" | "disable" | "delete" | "delete-todo" | "email">(null);
+  /** El correo nuevo, mientras se lo escribe. Corregirlo mueve la ficha entera. */
+  const [newEmail, setNewEmail] = useState("");
+  /** Lo que contestó el servidor al frenar la baja, que dice cuántos turnos hay. */
+  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   // El admin solo edita profesionales. Los pacientes quedan en modo lectura: los suyos
   // los mantiene cada persona, y los sin cuenta, el profesional que los cargó.
   const isProfessional = user?.type === "professional";
   const isAdmin = user?.type === "admin";
+  const isPatient = user?.type === "client";
 
   // Lo que hay guardado, que es de donde arranca la ficha y a donde vuelve al descartar.
   const savedFields = useMemo(
@@ -87,7 +121,10 @@ export function UserModal({
     setUserData(savedFields);
     setEditing(false);
     setError(null);
-    setConfirmingWaitlistOff(false);
+    setConfirming(null);
+    setNewEmail("");
+    setDeleteWarning(null);
+    setBusy(false);
   }, [visible, user, savedFields]);
 
   if (!visible || !user) return null;
@@ -120,6 +157,53 @@ export function UserModal({
     });
   }
 
+  /**
+   * Guarda el correo nuevo de un paciente sin cuenta.
+   *
+   * Del otro lado no es editar un campo: el correo es la clave de la persona en la base,
+   * así que el servidor mueve la ficha entera con sus turnos.
+   */
+  async function handleEmail() {
+    const wanted = newEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(wanted)) {
+      setError("El correo nuevo no tiene un formato válido");
+      return;
+    }
+
+    setBusy(true);
+    const problem = await onChangeEmail?.(user!.email, wanted);
+    setBusy(false);
+
+    if (problem) setError(problem);
+    else onClose();
+  }
+
+  /**
+   * Borra la ficha. La primera vez sin `force`: si la persona tiene turnos cargados, el
+   * servidor frena y cuenta cuántos son, y eso se muestra antes de volver a preguntar.
+   */
+  async function handleDelete(force: boolean) {
+    setBusy(true);
+    const problem = await onDelete?.(user!.email, force);
+    setBusy(false);
+
+    if (!problem) {
+      onClose();
+      return;
+    }
+
+    // `HAS_APPOINTMENTS` es el servidor diciendo que esa persona tiene historial, y que
+    // hace falta decir que sí de nuevo sabiendo qué se lleva puesto.
+    if (problem.code === "HAS_APPOINTMENTS") {
+      setDeleteWarning(problem.message);
+      setConfirming("delete-todo");
+      setError(null);
+    } else {
+      setError(problem.message);
+      setConfirming(null);
+    }
+  }
+
   const footer = editing ? (
     <>
       <button
@@ -140,21 +224,60 @@ export function UserModal({
         Guardar cambios
       </button>
     </>
-  ) : confirmingWaitlistOff ? (
+  ) : confirming === "email" ? (
     <>
-      <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingWaitlistOff(false)}>
+      <button
+        type="button"
+        className="adm-btn adm-btn-ghost"
+        onClick={() => {
+          setConfirming(null);
+          setError(null);
+        }}
+      >
+        Volver
+      </button>
+      <button type="button" className="adm-btn adm-btn-primary" disabled={busy} onClick={handleEmail}>
+        {busy ? "Guardando…" : "Guardar el correo"}
+      </button>
+    </>
+  ) : confirming ? (
+    <>
+      <button
+        type="button"
+        className="adm-btn adm-btn-ghost"
+        onClick={() => {
+          setConfirming(null);
+          setError(null);
+        }}
+      >
         Volver
       </button>
       <button
         type="button"
         className="adm-btn adm-btn-danger"
+        disabled={busy}
         onClick={() => {
-          onToggleWaitlist?.(user.email);
-          onClose();
+          if (confirming === "waitlist") {
+            onToggleWaitlist?.(user.email);
+            onClose();
+            return;
+          }
+          if (confirming === "disable") {
+            onToggleState(user.email);
+            onClose();
+            return;
+          }
+          void handleDelete(confirming === "delete-todo");
         }}
       >
-        <FaBellSlash />
-        Sí, apagarla
+        {confirming === "waitlist" ? <FaBellSlash /> : confirming === "disable" ? <FaBan /> : <FaTrash />}
+        {confirming === "waitlist"
+          ? "Sí, apagarla"
+          : confirming === "disable"
+          ? "Sí, deshabilitar"
+          : confirming === "delete-todo"
+          ? "Eliminar igual"
+          : "Sí, eliminar"}
       </button>
     </>
   ) : (
@@ -192,7 +315,7 @@ export function UserModal({
               onToggleWaitlist(user.email);
               onClose();
             } else {
-              setConfirmingWaitlistOff(true);
+              setConfirming("waitlist");
             }
           }}
         >
@@ -204,16 +327,35 @@ export function UserModal({
       {/* La propia cuenta no se deshabilita desde acá: quien queda afuera no puede pedir
           volver, ni siquiera para sí mismo. El backend lo rechaza igual; esto es para no
           ofrecer un botón que solo puede terminar en un error. */}
-      {user.active && isSelf ? null : user.active ? (
+      {/* Eliminar es la única baja sin vuelta, y por eso está solo donde no se lleva nada
+          puesto: un paciente sin turnos. El servidor lo vuelve a comprobar. */}
+      {/* Solo en los que no tienen cuenta. Quien tiene la suya entra con ese correo, y
+          cambiárselo desde acá sería sacarle la llave de su casa. */}
+      {isPatient && user.anonymous && onChangeEmail && (
         <button
           type="button"
-          className="adm-btn adm-btn-danger"
+          className="adm-btn adm-btn-ghost"
           onClick={() => {
-            onToggleState(user.email);
-            onClose();
+            setNewEmail(user.email);
+            setError(null);
+            setConfirming("email");
           }}
         >
+          <FaEnvelope />
+          Corregir el correo
+        </button>
+      )}
+
+      {isPatient && onDelete && (
+        <button type="button" className="adm-btn adm-btn-danger" onClick={() => setConfirming("delete")}>
           <FaTrash />
+          Eliminar
+        </button>
+      )}
+
+      {user.active && isSelf ? null : user.active ? (
+        <button type="button" className="adm-btn adm-btn-danger" onClick={() => setConfirming("disable")}>
+          <FaBan />
           Deshabilitar
         </button>
       ) : (
@@ -323,6 +465,14 @@ export function UserModal({
                 {user.active ? "Habilitado" : "Deshabilitado"}
               </span>
             </div>
+            {/* Una cuenta deshabilitada tiene fecha de vencimiento, y el día que la borren
+                se va con sus turnos. Hasta ahí, habilitarla la salva. */}
+            {!user.active && (
+              <div className="ui-detail-row">
+                <span>Se elimina a partir del</span>
+                <strong>{deletionSentence(user.bannedAt)}</strong>
+              </div>
+            )}
             {isProfessional && (
               <div className="ui-detail-row">
                 <span>En la búsqueda de turnos</span>
@@ -392,12 +542,41 @@ export function UserModal({
             </p>
           )}
 
-          {confirmingWaitlistOff && (
+          {confirming === "waitlist" && (
             <p className="ui-alert ui-alert-warn">
               Al desactivarla, la lista de espera se vacía y las personas anotadas reciben un aviso. Desde ese momento, el
               profesional figura sin lista de espera.
             </p>
           )}
+
+          {confirming === "email" && (
+            <label className="ui-field">
+              <span>Correo nuevo</span>
+              <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="paciente@mail.com" autoFocus />
+              <small>Se mueve la ficha entera con sus turnos.</small>
+            </label>
+          )}
+
+          {confirming === "delete-todo" && (
+            <p className="ui-alert ui-alert-warn">
+              {deleteWarning}. Se van también sus turnos, con lo cobrado y lo anotado en cada uno.
+            </p>
+          )}
+
+          {confirming === "disable" && (
+            <p className="ui-alert ui-alert-warn">
+              Deja de entrar en el momento. La cuenta y sus turnos se eliminan a partir del {deletionSentence()}. Hasta esa
+              fecha se puede volver a habilitar.
+            </p>
+          )}
+
+          {confirming === "delete" && (
+            <p className="ui-alert ui-alert-warn">
+              Se borra la ficha y todo lo suyo, sin vuelta atrás. Si el correo está mal, conviene corregirlo.
+            </p>
+          )}
+
+          {error && !editing && <p className="ui-alert ui-alert-error">{error}</p>}
 
           {isSelf && user.active && (
             <p className="ui-alert ui-alert-info">
