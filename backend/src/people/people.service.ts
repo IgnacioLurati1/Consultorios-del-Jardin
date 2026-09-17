@@ -14,6 +14,10 @@ import { startOfDay } from "../shared/dates.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { visiblePatientsFilter } from "./patientVisibility.js";
 import { PatientAccess } from "./patientAccess.entity.js";
+import { assertDeliverableEmail } from "../shared/emailCheck.js";
+import { deletionDateFor, purgeAccount } from "./accountCleanup.js";
+import { bouncedEmails, hasBounced } from "./mailBounces.js";
+import { movePatientEmail } from "./patientEmail.js";
 
 dotenv.config();
 
@@ -198,11 +202,25 @@ export class PeopleService {
    * contraseña. Es el alta del profesional, que no eligió nada todavía porque la cuenta
    * se la creó el administrador. La bienvenida le llega después, cuando la elige.
    */
+  /** Las direcciones que rebotaron, para que las pantallas marquen la fila. */
+  async bouncedEmails(): Promise<string[]> {
+    return bouncedEmails(em);
+  }
+
   async createPerson(data: RequiredEntityData<Person>, hashed = false, options: { invite?: boolean } = {}) {
     if (data.phoneNumber)
       data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
 
     this.validateCommonFields(data as Partial<Person>);
+
+    // El alta del profesional la hace el administrador con un mail que escribió él, y de
+    // ese mail depende que el profesional pueda entrar por primera vez. Quien se registra
+    // solo no pasa por acá: prueba su mail abriendo el link (ver sendSignupMail).
+    if (options.invite) {
+      data.email = await assertDeliverableEmail(data.email);
+      if (await hasBounced(em, data.email as string))
+        throw badRequest("Ese correo no existe, ya rebotó una vez");
+    }
 
     const hashedPassword = hashed ? (data.password as string) : await bcrypt.hash(data.password as string, 10);
 
@@ -244,12 +262,24 @@ export class PeopleService {
   }) {
     const phoneNumber = data.phoneNumber ? this.normalizePhoneNumber(data.phoneNumber) : "";
 
-    if (!data.email || !this.validateEmail(data.email)) throw badRequest("El email no tiene un formato válido");
     if (!data.name?.trim() || !data.surname?.trim()) throw badRequest("El nombre y el apellido son obligatorios");
     if (data.docNumber && !this.validateDocNumber(data.docNumber))
       throw badRequest("El número de documento debe contener solo dígitos");
     if (phoneNumber && !this.validatePhoneNumber(phoneNumber))
       throw badRequest("El número de teléfono tiene que tener 10 dígitos, sin 0 ni 15, por ejemplo 3411234567");
+
+    // El mail tiene que existir de verdad, y va último porque es lo único que se pregunta
+    // afuera. Es el único dato del paciente que el sistema usa para escribirle, y uno mal
+    // escrito manda a la nada el turno y el recordatorio sin que nadie se entere. Si el
+    // paciente no tiene correo o se prefiere el de otra persona, va ese en su lugar, que es
+    // lo que dice la pantalla que lo carga.
+    data.email = await assertDeliverableEmail(data.email);
+
+    // Y si esa dirección ya rebotó alguna vez, no existe y no hay nada que discutir: lo
+    // dijo el servidor de correo del otro lado. Es lo que corta volver a cargar el mismo
+    // error después de borrar la ficha (ver mailBounces).
+    if (await hasBounced(em, data.email))
+      throw badRequest("Ese correo no existe, ya rebotó una vez");
 
     const existing = await em.findOne(Person, { email: data.email });
     if (existing) {
@@ -483,7 +513,7 @@ export class PeopleService {
    * Lo puede hacer el profesional que lo cargó, y nadie más. En cuanto la persona se
    * registra deja de ser anónima y la cuenta pasa a ser suya, así que tampoco.
    */
-  async deleteAnonymousPatient(email: string, professionalEmail: string) {
+  async deleteAnonymousPatient(email: string, professionalEmail: string, options: { force?: boolean } = {}) {
     const person = await em.findOne(Person, { email });
     if (!person) throw notFound("No encontramos a esa persona");
 
@@ -491,25 +521,89 @@ export class PeopleService {
       throw forbidden("Solo se puede borrar un paciente sin cuenta");
     if (person.createdBy !== professionalEmail) throw forbidden("Ese paciente lo cargó otro profesional");
 
-    // Cuenta los turnos de cualquier estado, cancelados incluidos. Un turno cancelado
-    // sigue siendo algo que pasó entre esas dos personas.
-    const turnos = await em.count(Appointment, { patient: { email } });
-    if (turnos > 0) throw conflict("Ese paciente ya tiene turnos, así que no se puede borrar");
+    // El profesional puede deshacer un alta y puede borrar la ficha que quedó mal, que es
+    // la del correo que rebotó. Una ficha sana con turnos es historial del consultorio, y
+    // esa baja la decide la administración.
+    if ((await em.count(Appointment, { patient: { email } })) > 0 && !(await hasBounced(em, email)))
+      throw forbidden("El paciente ya tiene turnos, consultar a un administrador si desea borrarlo definitivamente");
 
-    await em.removeAndFlush(person);
+    await this.assertNoAppointments(email, options.force);
+    await purgeAccount(em, email);
     return true;
   }
 
-  async deletePersonRequest(email: string) {
-    //El metodo permite eliminar un profesional siempre y cuando no este activo, es decir, sea una request. Si ya trabajo previamente, la bd tirara error y no lo permitira
+  /**
+   * Frena la baja de un paciente que tiene historial, salvo que ya se haya dicho que sí a
+   * borrarlo entero.
+   *
+   * Cuenta los turnos de cualquier estado, cancelados incluidos: un turno cancelado sigue
+   * siendo algo que pasó entre esas dos personas. El mensaje dice cuántos son, porque
+   * "tiene turnos" y "tiene cuarenta turnos" no se deciden igual.
+   *
+   * `HAS_APPOINTMENTS` es lo que mira la pantalla para preguntar de nuevo, esta vez
+   * diciendo qué se lleva puesto.
+   */
+  private async assertNoAppointments(email: string, force?: boolean) {
+    if (force) return;
+
+    const turnos = await em.count(Appointment, { patient: { email } });
+    if (turnos === 0) return;
+
+    throw conflict(
+      `El paciente tiene ${turnos === 1 ? "un turno cargado" : `${turnos} turnos cargados`}`,
+      "HAS_APPOINTMENTS"
+    );
+  }
+
+  /**
+   * Le cambia el correo a un paciente sin cuenta.
+   *
+   * Lo puede hacer la administración y el profesional que lo cargó, que son los mismos que
+   * pueden borrarlo. El correo nuevo pasa por los mismos controles que un alta, porque un
+   * arreglo que vuelve a escribir mal la dirección no arregla nada.
+   *
+   * El movimiento de todo lo que cuelga está en patientEmail.ts.
+   */
+  async changePatientEmail(email: string, newEmail: unknown, actor: { email: string; type: string }) {
+    const person = await em.findOne(Person, { email });
+    if (!person) throw notFound("No encontramos a esa persona");
+
+    if (person.type !== "client" || !person.anonymous)
+      throw forbidden("Solo se corrige el correo de un paciente sin cuenta");
+
+    const isAdmin = actor.type === "admin";
+    const isLoader = actor.type === "professional" && person.createdBy === actor.email;
+    if (!isAdmin && !isLoader) throw forbidden("Ese paciente lo cargó otro profesional");
+
+    const wanted = await assertDeliverableEmail(newEmail);
+
+    if (wanted === person.email) throw badRequest("Es el correo que ya tiene");
+    if (await hasBounced(em, wanted))
+      throw badRequest("Ese correo no existe, ya rebotó una vez");
+    if (await em.findOne(Person, { email: wanted }))
+      throw conflict("Ya hay una persona con ese correo");
+
+    return movePatientEmail(em, person, wanted);
+  }
+
+  /**
+   * La baja de una persona que hace el administrador a mano.
+   *
+   * Solo un paciente. Un profesional no, porque arrastra agenda, horarios y alquileres, y
+   * para eso está deshabilitar.
+   *
+   * Con turnos cargados hace falta decirlo dos veces (ver assertNoAppointments): ese
+   * historial es del consultorio —quién vino, quién pagó, quién faltó— y se va con él.
+   */
+  async deletePerson(email: string, options: { force?: boolean } = {}) {
     const person = await em.findOneOrFail(Person, { email });
 
-    if (!person.active && person.type == "professional") {
-      await em.removeAndFlush(person);
-      return true;
-    }
+    if (person.type !== "client")
+      throw forbidden("Solo se eliminan pacientes, el resto se deshabilita");
 
-    return false;
+    await this.assertNoAppointments(email, options.force);
+    await purgeAccount(em, email);
+    return true;
   }
 
   /* ============================================================
@@ -915,6 +1009,11 @@ export class PeopleService {
       console.warn(`SEGURIDAD: ${person.clearedBy} volvió a habilitar a ${email}, cerrada por posible intrusión`);
     }
 
-    return { active: person.active, bookable: person.bookable };
+    // Cuándo se borra, para que la pantalla lo diga sin tener que volver a preguntar.
+    return {
+      active: person.active,
+      bookable: person.bookable,
+      deletionAt: person.active ? null : deletionDateFor(person.bannedAt ?? new Date()),
+    };
   }
 }

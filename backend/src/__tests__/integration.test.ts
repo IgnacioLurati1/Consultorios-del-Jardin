@@ -51,6 +51,24 @@ const { mailsMandados, sobres, enviados } = vi.hoisted(() => ({
   enviados: [] as string[],
 }));
 
+// Cargar a otro comprueba contra el DNS que el dominio del mail exista (ver emailCheck).
+// Acá los mails son inventados y lo que se prueba es otra cosa, así que se dan por buenos.
+// La comprobación tiene sus propios tests en accounts.test.ts.
+// La lista de direcciones que rebotaron vive en su propia tabla y tiene sus tests en
+// bounces.test.ts. Acá la base es un doble que contesta lo mismo a todo, así que sin esto
+// cualquier persona cargada parecería una dirección rebotada.
+vi.mock("../people/mailBounces.js", () => ({
+  hasBounced: vi.fn(async () => false),
+  bouncedEmails: vi.fn(async () => []),
+  fetchBounced: vi.fn(),
+  syncBounces: vi.fn(),
+}));
+
+vi.mock("../shared/emailCheck.js", () => ({
+  assertDeliverableEmail: vi.fn(async (email: unknown) => String(email ?? "").trim().toLowerCase()),
+  clearEmailCache: vi.fn(),
+}));
+
 vi.mock("../config/mailer.js", () => ({
   default: class MailServiceMock {
     createMessage = vi.fn().mockImplementation(async (to: string, asunto: string, html: string) => {
@@ -82,6 +100,11 @@ import { AnnouncementService } from "../announcements/announcements.service.js";
 import { findOne as findOnePerson } from "../people/people.controller.js";
 import refreshTokenHandler from "../config/refreshToken.js";
 import { PatientAccess } from "../people/patientAccess.entity.js";
+import { Person } from "../people/people.entity.js";
+import { Appointment } from "../appointments/appointments.entity.js";
+import { assertPatientEnabled } from "../appointments/appointments.engine.js";
+import { deletionDateFor } from "../people/accountCleanup.js";
+import { hasBounced } from "../people/mailBounces.js";
 
 // ============================================================
 // DATOS MOCK - Cadena completa: Province → City → Office → Room
@@ -349,25 +372,56 @@ describe("Integracion: deshacer el alta de un paciente anonimo", () => {
     vi.clearAllMocks();
   });
 
+  beforeEach(() => {
+    mockEm.transactional.mockImplementation(async (work: any) => work(mockEm));
+    vi.mocked(hasBounced).mockResolvedValue(false);
+  });
+
   it("lo borra cuando lo cargo este profesional y no tiene turnos", async () => {
     mockEm.findOne.mockResolvedValue(mockAnonimo);
     mockEm.count.mockResolvedValue(0);
-    mockEm.removeAndFlush.mockResolvedValue(undefined);
 
     const ok = await peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email);
 
     expect(ok).toBe(true);
-    expect(mockEm.removeAndFlush).toHaveBeenCalledWith(mockAnonimo);
+    expect(mockEm.nativeDelete).toHaveBeenCalledWith(Person, { email: mockAnonimo.email });
   });
 
-  it("no lo borra si ya tiene turnos, aunque sean cancelados", async () => {
+  // Con turnos hace falta decirlo dos veces, porque lo que se borra es el historial del
+  // consultorio con esa persona. El mensaje dice cuántos son.
+  it("con turnos cargados no lo borra de una, y cuenta cuántos son", async () => {
     mockEm.findOne.mockResolvedValue(mockAnonimo);
-    mockEm.count.mockResolvedValue(1);
+    mockEm.count.mockResolvedValue(3);
+    // El correo rebotó, así que la ficha se puede borrar; lo que falta es el segundo sí.
+    vi.mocked(hasBounced).mockResolvedValue(true);
 
     await expect(peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email)).rejects.toThrow(
-      /ya tiene turnos/
+      /3 turnos cargados/
     );
-    expect(mockEm.removeAndFlush).not.toHaveBeenCalled();
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
+  });
+
+  it("con turnos y el sí de la segunda pregunta, se va con todo", async () => {
+    mockEm.findOne.mockResolvedValue(mockAnonimo);
+    mockEm.count.mockResolvedValue(3);
+    vi.mocked(hasBounced).mockResolvedValue(true);
+
+    await peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email, { force: true });
+
+    expect(mockEm.nativeDelete).toHaveBeenCalledWith(Person, { email: mockAnonimo.email });
+  });
+
+  // El profesional borra la ficha que nació mal, no una sana con historial. Esa baja la
+  // decide la administración.
+  it("no borra una ficha con turnos si el correo anda bien", async () => {
+    mockEm.findOne.mockResolvedValue(mockAnonimo);
+    mockEm.count.mockResolvedValue(3);
+    vi.mocked(hasBounced).mockResolvedValue(false);
+
+    await expect(
+      peopleService.deleteAnonymousPatient(mockAnonimo.email, mockProfessional.email, { force: true })
+    ).rejects.toThrow(/consultar a un administrador/);
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
   });
 
   it("no deja que un profesional borre el paciente que cargo otro", async () => {
@@ -376,7 +430,7 @@ describe("Integracion: deshacer el alta de un paciente anonimo", () => {
     await expect(peopleService.deleteAnonymousPatient(mockAnonimo.email, "otro@demo.local")).rejects.toThrow(
       /otro profesional/
     );
-    expect(mockEm.removeAndFlush).not.toHaveBeenCalled();
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
   });
 
   it("no toca una cuenta registrada, ni siquiera si la cargo el mismo", async () => {
@@ -590,29 +644,186 @@ describe("Integracion: deshabilitar a un profesional lo saca de la busqueda", ()
   it("al deshabilitarlo deja de ofrecerse cuando alguien busca turno", async () => {
     mockEm.findOneOrFail.mockResolvedValue({ ...mockProfessional, active: true, bookable: true });
 
-    expect(await peopleService.toggleState(mockProfessional.email, "admin@test.com")).toEqual({
+    expect(await peopleService.toggleState(mockProfessional.email, "admin@test.com")).toMatchObject({
       active: false,
       bookable: false,
     });
+  });
+
+  // Deshabilitar le pone fecha de borrado a la cuenta, y la pantalla la anuncia antes de
+  // que el administrador apriete. Ver accountCleanup.
+  it("al deshabilitarlo dice cuándo se borra la cuenta", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockProfessional, active: true, bookable: true });
+
+    const { deletionAt } = await peopleService.toggleState(mockProfessional.email, "admin@test.com");
+
+    expect(deletionAt).toEqual(deletionDateFor(new Date()));
   });
 
   // La cuenta vuelve, la agenda del público no: eso lo decide un administrador aparte.
   it("volver a habilitarlo no lo devuelve solo a la busqueda", async () => {
     mockEm.findOneOrFail.mockResolvedValue({ ...mockProfessional, active: false, bookable: false });
 
-    expect(await peopleService.toggleState(mockProfessional.email, "admin@test.com")).toEqual({
+    expect(await peopleService.toggleState(mockProfessional.email, "admin@test.com")).toMatchObject({
       active: true,
       bookable: false,
+      deletionAt: null,
     });
   });
 
   it("a un paciente no le toca una marca que no es suya", async () => {
     mockEm.findOneOrFail.mockResolvedValue({ ...mockClient, active: true, bookable: true });
 
-    expect(await peopleService.toggleState(mockClient.email, "admin@test.com")).toEqual({
+    expect(await peopleService.toggleState(mockClient.email, "admin@test.com")).toMatchObject({
       active: false,
       bookable: true,
     });
+  });
+});
+
+// ============================================================
+// Un paciente deshabilitado está afuera de la agenda.
+//
+// Darle un turno sería anotar a alguien que no recibe la confirmación ni el recordatorio,
+// y que en unas semanas se borra con todo lo suyo. El mensaje dice qué hacer, porque el
+// profesional que lo carga tiene a la persona enfrente y no sabe por qué la dieron de baja.
+// ============================================================
+
+describe("Integracion: no se le cargan turnos a un paciente deshabilitado", () => {
+  it("lo frena y dice a quién recurrir", () => {
+    expect(() => assertPatientEnabled({ ...mockClient, active: false } as any)).toThrow(/deshabilitado/);
+    expect(() => assertPatientEnabled({ ...mockClient, active: false } as any)).toThrow(/administrador/);
+  });
+
+  it("al habilitado no lo toca", () => {
+    expect(() => assertPatientEnabled({ ...mockClient, active: true } as any)).not.toThrow();
+  });
+});
+
+// ============================================================
+// Corregir el correo de un paciente sin cuenta.
+//
+// El correo es su clave en la base, así que esto no edita un campo: mueve la ficha entera
+// con todo lo que tenga colgando. Existe porque el correo mal escrito se descubre cuando
+// la persona ya tiene turnos, y hasta acá esa ficha quedaba trabada para siempre.
+// ============================================================
+
+describe("Integracion: corregir el correo de un paciente sin cuenta", () => {
+  const peopleService = new PeopleService();
+
+  const anonimo = {
+    email: "mal.escrito@demo.local",
+    name: "Marta",
+    surname: "Gomez",
+    type: "client",
+    active: true,
+    anonymous: true,
+    createdBy: mockProfessional.email,
+  };
+
+  const profesional = { email: mockProfessional.email, type: "professional" };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.transactional.mockImplementation(async (work: any) => work(mockEm));
+    mockEm.create.mockImplementation((_entity: any, data: any) => data);
+  });
+
+  it("mueve la ficha con sus turnos y borra la vieja", async () => {
+    // La persona, y después ninguna cargada con el correo nuevo.
+    mockEm.findOne.mockResolvedValueOnce(anonimo).mockResolvedValueOnce(null);
+
+    const moved = await peopleService.changePatientEmail(anonimo.email, "bien.escrito@demo.local", profesional);
+
+    expect(moved.email).toBe("bien.escrito@demo.local");
+    expect(mockEm.nativeUpdate).toHaveBeenCalledWith(Appointment, { patient: { email: anonimo.email } }, { patient: moved });
+    expect(mockEm.nativeDelete).toHaveBeenCalledWith(Person, { email: anonimo.email });
+  });
+
+  it("no lo hace un profesional que no lo cargó", async () => {
+    mockEm.findOne.mockResolvedValueOnce(anonimo);
+
+    await expect(
+      peopleService.changePatientEmail(anonimo.email, "bien.escrito@demo.local", { email: "otro@demo.local", type: "professional" })
+    ).rejects.toThrow(/otro profesional/);
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
+  });
+
+  // Quien tiene cuenta propia entra con ese correo. Cambiárselo desde afuera sería
+  // sacarle la llave de su casa.
+  it("no toca el correo de una cuenta registrada", async () => {
+    mockEm.findOne.mockResolvedValueOnce({ ...anonimo, anonymous: false });
+
+    await expect(
+      peopleService.changePatientEmail(anonimo.email, "otro@demo.local", { email: "admin@test.com", type: "admin" })
+    ).rejects.toThrow(/sin cuenta/);
+  });
+
+  it("no lo deja apuntar a alguien que ya existe", async () => {
+    mockEm.findOne.mockResolvedValueOnce(anonimo).mockResolvedValueOnce({ email: "ocupado@demo.local" });
+
+    await expect(peopleService.changePatientEmail(anonimo.email, "ocupado@demo.local", profesional)).rejects.toThrow(
+      /ya hay una persona/i
+    );
+  });
+});
+
+// ============================================================
+// La baja definitiva que hace el administrador.
+//
+// Es la única que borra de la base sin esperar. Por eso está tan acotada: un paciente que
+// no tiene ningún turno no se lleva nada puesto. Cualquier otra cuenta se deshabilita, y
+// la borra la limpieza de fin de mes.
+// ============================================================
+
+describe("Integracion: el administrador borra a un paciente sin turnos", () => {
+  const peopleService = new PeopleService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEm.fork.mockReturnValue(mockEm);
+    mockEm.transactional.mockImplementation(async (work: any) => work(mockEm));
+  });
+
+  // Lo que se deja puesto acá lo leería el siguiente bloque como si fuera suyo.
+  afterEach(() => {
+    mockEm.findOneOrFail.mockReset();
+    mockEm.count.mockReset();
+    mockEm.transactional.mockReset();
+    mockEm.nativeDelete.mockReset();
+    mockEm.nativeUpdate.mockReset();
+  });
+
+  it("lo borra si no tiene ningún turno", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockClient });
+    mockEm.count.mockResolvedValue(0);
+
+    await expect(peopleService.deletePerson(mockClient.email)).resolves.toBe(true);
+    expect(mockEm.nativeDelete).toHaveBeenCalled();
+  });
+
+  it("con turnos cargados no se puede de una, y dice cuántos son", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockClient });
+    mockEm.count.mockResolvedValue(3);
+
+    await expect(peopleService.deletePerson(mockClient.email)).rejects.toThrow(/3 turnos cargados/);
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
+  });
+
+  it("con el sí de la segunda pregunta, se lleva también los turnos", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockClient });
+    mockEm.count.mockResolvedValue(3);
+
+    await peopleService.deletePerson(mockClient.email, { force: true });
+
+    expect(mockEm.nativeDelete).toHaveBeenCalledWith(Person, { email: mockClient.email });
+  });
+
+  it("a un profesional no se lo borra, se lo deshabilita", async () => {
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockProfessional });
+
+    await expect(peopleService.deletePerson(mockProfessional.email)).rejects.toThrow(/paciente/);
+    expect(mockEm.nativeDelete).not.toHaveBeenCalled();
   });
 });
 
@@ -1004,6 +1215,10 @@ describe("Integracion: quien puede ver la ficha entera de una persona", () => {
     vi.clearAllMocks();
     mockEm.findOne.mockReset();
     mockEm.findOne.mockResolvedValue({ ...mockClient });
+    // La ficha se busca con findOneOrFail. Estaba puesto de un bloque anterior, así que el
+    // orden en que corrían los tests decidía qué persona contestaba la base.
+    mockEm.findOneOrFail.mockReset();
+    mockEm.findOneOrFail.mockResolvedValue({ ...mockClient });
   });
 
   // Antes esto devolvia la ficha entera a cualquiera con sesion abierta: con saberse un
@@ -1579,6 +1794,14 @@ describe("Integracion: cargar un paciente sin cuenta que ya existe", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  // Una dirección que ya rebotó no existe, lo dijo el servidor de correo del otro lado.
+  // Es lo que corta volver a cargar el mismo error después de borrar la ficha.
+  it("una dirección que ya rebotó no se puede volver a cargar", async () => {
+    vi.mocked(hasBounced).mockResolvedValueOnce(true);
+
+    await expect(peopleService.createAnonymousPatient(alta)).rejects.toThrow(/ya rebotó/);
   });
 
   it("si lo cargó otro, no lo crea de nuevo: se lo deja ver a este", async () => {

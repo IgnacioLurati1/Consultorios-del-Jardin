@@ -4,6 +4,7 @@ import { Recurrence, type RecurrenceFrequency } from "./recurrences.entity.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import { AppointmentService, ACTIVE_APPOINTMENT_STATES } from "../appointments/appointments.service.js";
 import { RoomService } from "../rooms/rooms.service.js";
+import { assertPatientEnabled } from "../appointments/appointments.engine.js";
 import { PeopleService } from "../people/people.service.js";
 import { badRequest, conflict, notFound } from "../shared/errors.js";
 import { addDays, startOfDay } from "../shared/dates.js";
@@ -314,7 +315,11 @@ export class RecurrenceService {
     }
 
     if (data.patientEmail !== undefined) {
-      recurrence.patient = data.patientEmail ? await this.peopleService.findPersonByEmail(data.patientEmail) : null;
+      const patient = data.patientEmail ? await this.peopleService.findPersonByEmail(data.patientEmail) : null;
+      // Una repetición es una fábrica de turnos: ponerle un paciente deshabilitado sería
+      // cargarle turnos todas las semanas a alguien que está afuera del sistema.
+      if (patient) assertPatientEnabled(patient);
+      recurrence.patient = patient;
     }
 
     if (data.endDate !== undefined) {

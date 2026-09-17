@@ -73,7 +73,10 @@ export class AppointmentEngine {
     // Antes que el cruce de horarios: si el paciente es uno sin cuenta de otro profesional,
     // decir que "ya tiene otro turno" contaría algo de alguien que acá no existe.
     const patient = patientEmail ? await this.peopleService.findPersonByEmail(patientEmail, this.em) : null;
-    if (patient) await assertCanSeePatient(patient, professionalEmail, this.em);
+    if (patient) {
+      await assertCanSeePatient(patient, professionalEmail, this.em);
+      assertPatientEnabled(patient);
+    }
 
     // El sobreturno se saltea los módulos, no la agenda del paciente: nadie está en dos
     // turnos a la vez. Sin esto se le podía cargar uno encima de otro que ya tenía, con
@@ -372,4 +375,20 @@ export class AppointmentEngine {
 
     return availableSlots;
   }
+}
+
+/**
+ * Que a ese paciente se le puedan cargar turnos.
+ *
+ * Una cuenta deshabilitada está afuera del sistema, y eso incluye la agenda: darle un
+ * turno sería anotar a alguien que no va a recibir la confirmación ni el recordatorio, y
+ * que dentro de unas semanas se borra con todo lo suyo (ver accountCleanup).
+ *
+ * El mensaje dice qué hacer, porque quien lo lee es el profesional que tiene a la persona
+ * enfrente y no tiene forma de saber por qué la dieron de baja.
+ */
+export function assertPatientEnabled(patient: Person): void {
+  if (patient.active) return;
+
+  throw badRequest("El paciente está deshabilitado, consultar a un administrador");
 }

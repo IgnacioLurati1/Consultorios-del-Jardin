@@ -7,7 +7,7 @@ import { ScheduleService } from "../schedule/schedule.service.js";
 import { OfficeService } from "../offices/offices.service.js";
 import { EntityManager } from "@mikro-orm/mysql";
 import { RoomService } from "../rooms/rooms.service.js";
-import { AppointmentEngine } from "./appointments.engine.js";
+import { AppointmentEngine, assertPatientEnabled } from "./appointments.engine.js";
 import MailService from "../config/mailer.js";
 import { button, buttonPair, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
@@ -915,6 +915,10 @@ export class AppointmentService {
       this.assertValidHour(initialHour, "La hora de inicio");
       this.assertBookableDate(date);
 
+      // Una sesión abierta sobrevive unos minutos a la baja de la cuenta, así que la
+      // comprobación va acá y no solo en quien deja entrar.
+      assertPatientEnabled(await this.peopleService.findPersonByEmail(patientEmail, em));
+
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
       const appointment: Appointment = await engine.validateAndCreateAppointment(
         patientEmail,
@@ -1043,6 +1047,7 @@ export class AppointmentService {
     // Un paciente sin cuenta de otro profesional no existe para este: ver canSeePatient.
     const patient = await this.peopleService.findPersonByEmail(patientEmail);
     await assertCanSeePatient(patient, professionalEmail);
+    assertPatientEnabled(patient);
 
     if (await this.checkPatientAppointmentOverlap(appointment.initialHour, appointment.finalHour, patientEmail, appointment.date))
       throw conflict("El paciente ya tiene otro turno que se superpone con ese horario");

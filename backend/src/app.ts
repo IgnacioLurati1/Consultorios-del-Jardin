@@ -22,6 +22,8 @@ import { startExpiryJob } from "./jobs/expiry.job.js";
 import { startAttendanceJob } from "./jobs/attendance.job.js";
 import { startPaymentJob } from "./jobs/payment.job.js";
 import { startNotificationCleanupJob } from "./jobs/notifications.job.js";
+import { startAccountCleanupJob } from "./jobs/cleanup.job.js";
+import { startMailBounceJob } from "./jobs/mailBounce.job.js";
 import { recurrenceRouter } from "./recurrences/recurrences.routes.js";
 import { analyticsRouter } from "./analytics/analytics.routes.js";
 import { agendaRouter } from "./agenda/agenda.routes.js";
@@ -154,6 +156,8 @@ startExpiryJob();
 startAttendanceJob();
 startPaymentJob();
 startNotificationCleanupJob();
+startAccountCleanupJob();
+startMailBounceJob();
 startWaitlistJob();
 startRentJob();
 

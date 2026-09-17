@@ -26,7 +26,9 @@ import {
   findAllNoAdmin,
   findProfesionalByOffice,
   findAllPerTypeActive,
-  checkEmailAvailability
+  checkEmailAvailability,
+  bouncedEmails,
+  changePatientEmail
 } from "./people.controller.js";
 import { verifyToken, verifyAdmin } from "../config/middlewares.js";
 import { authLimiter, lookupLimiter } from "../config/rateLimiter.js";
@@ -232,6 +234,25 @@ personRouter.get("/professionals/office/:officeId/:speciality?", verifyToken, fi
  *         description: Demasiadas consultas
  */
 personRouter.get("/available/:email", lookupLimiter, checkEmailAvailability);
+
+/**
+ * @swagger
+ * /api/people/bounced:
+ *   get:
+ *     summary: Las direcciones de correo que rebotaron
+ *     description: >
+ *       Las que el proveedor de correo dejó de usar porque la casilla no existe. Sirven
+ *       para marcar en pantalla a la persona que no está recibiendo nada.
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de direcciones
+ *       403:
+ *         description: Acceso denegado
+ */
+personRouter.get("/bounced", verifyToken, bouncedEmails);
 
 /**
  * @swagger
@@ -460,6 +481,44 @@ personRouter.delete("/anonymous/:email", verifyToken, removeAnonymousPatient);
 
 /**
  * @swagger
+ * /api/people/{email}/email:
+ *   patch:
+ *     summary: Corregir el correo de un paciente sin cuenta
+ *     description: >
+ *       El correo es la clave de la persona en la base, así que se crea la ficha con la
+ *       dirección nueva, se le lleva todo lo que tenía la vieja (turnos, recurrencias,
+ *       lista de espera, avisos) y se borra la vieja. Lo puede hacer la administración y
+ *       el profesional que cargó a esa persona.
+ *     tags: [People]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *     responses:
+ *       200:
+ *         description: Correo corregido
+ *       400:
+ *         description: El correo nuevo no sirve
+ *       403:
+ *         description: No lo cargó este profesional, o la persona tiene cuenta propia
+ *       409:
+ *         description: Ya hay una persona con ese correo
+ */
+personRouter.patch("/:email/email", verifyToken, sanitizePersonInput, changePatientEmail);
+
+/**
+ * @swagger
  * /api/people/professional:
  *   post:
  *     summary: Registrar un profesional. Solo admin, no devuelve token
@@ -679,7 +738,11 @@ personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
  * @swagger
  * /api/people/{email}:
  *   delete:
- *     summary: Eliminar persona
+ *     summary: Eliminar un paciente sin turnos (solo admin)
+ *     description: >
+ *       Borra a la persona y todo lo que cuelga de ella. Solo para un paciente que no
+ *       tenga ningún turno cargado. Las demás cuentas se deshabilitan, y las borra la
+ *       limpieza de fin de mes cuando llevan tres semanas afuera.
  *     tags: [People]
  *     security:
  *       - bearerAuth: []
@@ -691,11 +754,13 @@ personRouter.patch("/:email", verifyToken, sanitizePersonInput, update);
  *           type: string
  *     responses:
  *       200:
- *         description: Solicitud procesada
- *       401:
- *         description: Token ausente, inválido o expirado
+ *         description: Paciente eliminado
  *       403:
- *         description: Acceso denegado
+ *         description: No es un paciente
+ *       404:
+ *         description: No existe esa persona
+ *       409:
+ *         description: El paciente ya tiene turnos cargados
  *       500:
  *         description: Error del servidor
  */

@@ -208,6 +208,19 @@ async function checkEmailAvailability(req: Request, res: Response) {
   }
 }
 
+// Las direcciones que rebotaron. Es una lista corta de texto y sin datos de nadie: la usan
+// la lista de pacientes y la de usuarios para marcar a quién no le llega lo que se le manda.
+async function bouncedEmails(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type === "client") return res.status(403).json({ message: "Forbidden" });
+
+    const emails = await peopleService.bouncedEmails();
+    res.status(200).json({ message: "Correos rebotados", data: emails });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
 async function add(req: Request, res: Response) {
   try {
     if (!["client", "professional"].includes(req.body.sanitizedInput.type))
@@ -420,23 +433,34 @@ async function removeAnonymousPatient(req: RequestWithUser, res: Response) {
   try {
     if (req.user.type !== "professional") return res.status(403).json({ message: "Forbidden" });
 
-    await peopleService.deleteAnonymousPatient(req.params.email, req.user.email);
+    // `force` es el sí a la segunda pregunta, la que dice que se van también los turnos.
+    await peopleService.deleteAnonymousPatient(req.params.email, req.user.email, { force: req.query.force === "1" });
     res.status(200).json({ message: "Paciente borrado" });
   } catch (error: any) {
     sendError(res, error, { missing: "No encontramos a esa persona" });
   }
 }
 
+// Le cambia el correo a un paciente sin cuenta. El correo es su clave en la base, así que
+// esto mueve la ficha entera con todo lo que tenga colgando (ver patientEmail).
+async function changePatientEmail(req: RequestWithUser, res: Response) {
+  try {
+    const person = await peopleService.changePatientEmail(req.params.email, req.body.sanitizedInput?.email, req.user);
+    const safeData = { ...person, password: undefined };
+    res.status(200).json({ message: "Correo corregido", data: safeData });
+  } catch (error: any) {
+    sendError(res, error, { missing: "No encontramos a esa persona", duplicate: "Ya hay una persona cargada con ese correo" });
+  }
+}
+
+// La baja definitiva que hace el administrador. El servicio solo la deja pasar para un
+// paciente sin ningún turno; el resto se deshabilita y lo borra la limpieza de fin de mes.
 async function remove(req: Request, res: Response) {
   try {
-    const valid = await peopleService.deletePersonRequest(req.params.email);
-
-    if (valid) {
-      return res.status(200).json({ message: "Solicitud rechazada" });
-    }
-    return res.status(401).json({ message: "La persona no puede ser removida" });
+    await peopleService.deletePerson(req.params.email, { force: req.query.force === "1" });
+    res.status(200).json({ message: "Paciente eliminado" });
   } catch (error: any) {
-    sendError(res, error);
+    sendError(res, error, { missing: "No encontramos a esa persona" });
   }
 }
 
@@ -670,4 +694,6 @@ export {
   removeAnonymousPatient,
   addProfessional,
   checkEmailAvailability,
+  bouncedEmails,
+  changePatientEmail,
 };
