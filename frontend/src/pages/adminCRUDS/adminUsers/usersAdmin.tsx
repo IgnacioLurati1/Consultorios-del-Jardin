@@ -15,6 +15,7 @@ import {
   toggleState,
   toggleWaitlist,
   updatePerson,
+  type BounceKind,
 } from "./usersService";
 import { getDecodedToken } from "../../commonServices.ts";
 import { explainSuspicion, findBehaviourReport, type FlaggedPatient } from "../../analytics/behaviourService.ts";
@@ -81,7 +82,7 @@ export function UsersAdmin() {
   // la persona sino una cuenta sobre sus turnos, y se recalcula cada vez que se mira.
   const [flagged, setFlagged] = useState<Map<string, FlaggedPatient>>(new Map());
   /** Los correos que rebotaron. Tampoco son un campo de la persona, sino del correo. */
-  const [bounced, setBounced] = useState<Set<string>>(new Set());
+  const [bounced, setBounced] = useState<Map<string, BounceKind>>(new Map());
   const [modalData, setModalData] = useState<Person>();
   const [modalVisible, setModalVisible] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
@@ -103,7 +104,7 @@ export function UsersAdmin() {
       .then((report) => setFlagged(new Map(report.suspicious.map((patient) => [patient.email, patient]))))
       .catch(() => setFlagged(new Map()));
 
-    findBouncedEmails().then((emails) => setBounced(new Set(emails)));
+    findBouncedEmails().then((rows) => setBounced(new Map(rows.map((row) => [row.email, row.kind]))));
   }, []);
 
   const filtered = useMemo(() => {
@@ -265,11 +266,18 @@ export function UsersAdmin() {
 
     // Lo dijo el servidor de correo del otro lado, así que no es una sospecha: a esta
     // persona no le llega nada de lo que se le manda.
-    if (bounced.has(user.email)) {
+    if (bounced.get(user.email) === "missing") {
       badges.push({
         label: "El correo no existe",
         tone: "red",
         hint: "No recibe el turno ni el recordatorio. Se arregla corrigiendo el correo en su ficha.",
+      });
+    } else if (bounced.get(user.email) === "blocked") {
+      // La dirección existe. No se arregla corrigiendo nada, así que no se dice que esté mal.
+      badges.push({
+        label: "No le llegan los mails",
+        tone: "amber",
+        hint: "La dirección existe, pero los mensajes vuelven. Puede estar llena o dada de baja.",
       });
     }
 

@@ -160,15 +160,17 @@ export function updatePerson(email: string, data: Partial<Person>): Promise<Pers
 }
 
 /**
- * Las direcciones que rebotaron, o sea las que no existen.
+ * Las direcciones a las que no les llegan los mails.
  *
- * Lo dice el proveedor de correo al intentar entregar un mail. Sirve para marcar en el
- * listado a quien no está recibiendo nada. Si falla, lista vacía: es un extra sobre la
- * pantalla y sin él se sigue haciendo todo igual.
+ * `missing` es la casilla que no existe, según el servidor del otro lado. `blocked` es la
+ * que existe y aun así no recibe. Si falla, lista vacía: es un extra sobre la pantalla y
+ * sin él se sigue haciendo todo igual.
  */
-export function findBouncedEmails(): Promise<string[]>{
+export type BounceKind = "missing" | "blocked";
+
+export function findBouncedEmails(): Promise<Array<{ email: string; kind: BounceKind }>>{
     return api.get('/people/bounced')
-    .then(res => (res.data?.data ?? []) as string[])
+    .then(res => (res.data?.data ?? []) as Array<{ email: string; kind: BounceKind }>)
     .catch(() => []);
 }
 

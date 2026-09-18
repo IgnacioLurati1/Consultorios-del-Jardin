@@ -6,7 +6,14 @@ import { AdminHeader } from "../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { PeopleList, PeopleSearch, PersonRow } from "../../components/peopleList/PeopleList.tsx";
-import { findAllPatients, findMyPatients, deleteAnonymousPatient, findBouncedEmails, updatePatient } from "./patientsService.ts";
+import {
+  findAllPatients,
+  findMyPatients,
+  deleteAnonymousPatient,
+  findBouncedEmails,
+  updatePatient,
+  type BounceKind,
+} from "./patientsService.ts";
 import { useUndo } from "../../context/UndoContext.tsx";
 import { AppointmentDetailModal } from "../appointments/appointmentsList/AppointmentDetailModal.tsx";
 import { useAppointmentActions } from "../appointments/useAppointmentActions.ts";
@@ -52,10 +59,10 @@ export function PatientsPage() {
    * Los correos que rebotaron. Van por separado del paciente porque no son un dato suyo
    * sino lo que contestó el servidor de correo del otro lado.
    */
-  const [bounced, setBounced] = useState<Set<string>>(new Set());
+  const [bounced, setBounced] = useState<Map<string, BounceKind>>(new Map());
 
   useEffect(() => {
-    findBouncedEmails().then((emails) => setBounced(new Set(emails)));
+    findBouncedEmails().then((rows) => setBounced(new Map(rows.map((row) => [row.email, row.kind]))));
   }, []);
 
   useEffect(() => {
@@ -266,12 +273,22 @@ export function PatientsPage() {
                     : { label: "Con cuenta", tone: "green" as const },
                   // Un pago a medias también es una deuda: lo que se mira es si quedó algo
                   // sin cobrar, no si no pagó nada.
-                  ...(bounced.has(patient.email)
+                  // Dos problemas distintos. Uno se arregla corrigiendo el correo y el
+                  // otro no, así que no pueden decir lo mismo.
+                  ...(bounced.get(patient.email) === "missing"
                     ? [
                         {
                           label: "El correo no existe",
                           tone: "red" as const,
                           hint: "No recibe el turno ni el recordatorio. Se arregla corrigiendo el correo en su ficha.",
+                        },
+                      ]
+                    : bounced.get(patient.email) === "blocked"
+                    ? [
+                        {
+                          label: "No le llegan los mails",
+                          tone: "amber" as const,
+                          hint: "La dirección existe, pero los mensajes vuelven. Puede estar llena o dada de baja.",
                         },
                       ]
                     : []),
@@ -321,7 +338,7 @@ export function PatientsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         patient={editing}
-        bounced={!!editing && bounced.has(editing.email)}
+        bounced={!!editing && bounced.get(editing.email) === "missing"}
         historyToken={historyToken}
         onOpenAppointment={turno.open}
         onFailed={() => remember(null)}

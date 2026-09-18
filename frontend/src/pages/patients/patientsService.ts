@@ -38,18 +38,22 @@ export function findAllPatients(): Promise<Person[]> {
 }
 
 /**
- * Las direcciones que rebotaron, o sea las que no existen.
+ * Las direcciones a las que no les llegan los mails.
  *
- * Lo dice el proveedor de correo después de intentar entregar un mail. La pantalla las usa
- * para marcar al paciente que no está recibiendo nada de lo que se le manda.
+ * `missing` es la casilla que no existe, según lo que contestó el servidor del otro lado.
+ * `blocked` es la que existe y aun así no recibe, por ejemplo llena o dada de baja. Son
+ * dos problemas distintos y se muestran distinto: el primero se arregla corrigiendo el
+ * correo y el segundo no.
  *
- * Si falla, se devuelve una lista vacía: la marca es un extra sobre el listado y quedarse
- * sin ella no impide hacer nada.
+ * Si falla, lista vacía: la marca es un extra sobre el listado y quedarse sin ella no
+ * impide hacer nada.
  */
-export function findBouncedEmails(): Promise<string[]> {
+export type BounceKind = "missing" | "blocked";
+
+export function findBouncedEmails(): Promise<Array<{ email: string; kind: BounceKind }>> {
   return api
     .get("/people/bounced")
-    .then((response) => (response.data.data ?? []) as string[])
+    .then((response) => (response.data.data ?? []) as Array<{ email: string; kind: BounceKind }>)
     .catch(() => []);
 }
 
