@@ -17,9 +17,9 @@ function backendError(err: any): never {
 }
 
 /**
- * Los pacientes del profesional logueado: los que alguna vez tuvieron turno con el. Un
- * turno cancelado no cuenta como vinculo, asi que alguien cuyo unico turno se dio de
- * baja no figura.
+ * Los pacientes del profesional logueado: los que alguna vez tuvieron turno con el, y los
+ * que cargo el mismo sin cuenta aunque no tengan turnos. Un turno cancelado no cuenta como
+ * vinculo, asi que alguien cuyo unico turno se dio de baja no figura.
  */
 export function findMyPatients(): Promise<Person[]> {
   return api

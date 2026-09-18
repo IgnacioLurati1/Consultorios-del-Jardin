@@ -161,7 +161,7 @@ export default function PatientsScreen() {
                 search
                   ? "Buscar por apellido o email."
                   : scope === "mine"
-                    ? "Acá aparecen las personas con turno. Mientras tanto, están los del consultorio."
+                    ? "Acá aparecen los que tienen turno o se cargaron sin cuenta. Mientras tanto, están los del consultorio."
                     : "Se puede cargar a alguien sin cuenta para darle turno igual."
               }
               action={

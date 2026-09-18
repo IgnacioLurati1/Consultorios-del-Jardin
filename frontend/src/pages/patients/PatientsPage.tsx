@@ -173,7 +173,7 @@ export function PatientsPage() {
         title="Pacientes"
         subtitle={
           scope === "mine"
-            ? "Personas con al menos un turno"
+            ? "Con turno o cargados sin cuenta"
             : "Todos los pacientes con cuenta y los sin cuenta propios"
         }
         backTo="/ProfessionalHome"
@@ -245,7 +245,7 @@ export function PatientsPage() {
         ) : patients.length === 0 ? (
           <div className="adm-empty">
             {scope === "mine"
-              ? "Sin pacientes todavía. Acá aparecen las personas con turno."
+              ? "Sin pacientes todavía. Acá aparecen los que tienen turno o se cargaron sin cuenta."
               : "Sin pacientes cargados."}
           </div>
         ) : filtered.length === 0 ? (
