@@ -1804,6 +1804,28 @@ describe("Integracion: cargar un paciente sin cuenta que ya existe", () => {
     await expect(peopleService.createAnonymousPatient(alta)).rejects.toThrow(/ya rebotó/);
   });
 
+  // El aviso es también lo que hace rebotar un correo mal cargado: sin él, una ficha sin
+  // turnos no recibía nada y la dirección inventada no se descubría nunca.
+  it("un alta nueva le avisa al paciente, con la invitación a crear su cuenta", async () => {
+    const nuevo = { ...alta, email: "recien.cargado@demo.local" };
+    mockEm.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(mockProfessional);
+    mockEm.create.mockImplementationOnce((_entity: any, data: any) => data);
+    sobres.length = 0;
+
+    await peopleService.createAnonymousPatient(nuevo);
+    await vi.waitFor(() => expect(sobres).toContainEqual({ to: nuevo.email, subject: "Te registraron como paciente" }));
+    expect(mailsMandados.at(-1)).toContain("/Register");
+  });
+
+  it("si lo cargó otro, no le vuelve a escribir al paciente", async () => {
+    mockEm.findOne.mockResolvedValueOnce(cargado).mockResolvedValueOnce({ id: 1 });
+    mockEm.findOneOrFail.mockResolvedValueOnce(mockProfessional);
+    sobres.length = 0;
+
+    await peopleService.createAnonymousPatient(alta);
+    expect(sobres).toEqual([]);
+  });
+
   it("si lo cargó otro, no lo crea de nuevo: se lo deja ver a este", async () => {
     // El paciente que ya está, y después ningún permiso previo para este profesional.
     mockEm.findOne.mockResolvedValueOnce(cargado).mockResolvedValueOnce(null);

@@ -322,7 +322,42 @@ export class PeopleService {
     });
 
     await em.flush();
+
+    // Sin esperarlo: el alta ya está hecha y un mail que tarda o falla no la deshace.
+    this.sendLoadedPatientMail(person, data.createdBy).catch((error) =>
+      console.error("No se pudo avisar al paciente cargado:", error)
+    );
+
     return { person, alreadyLoaded: false };
+  }
+
+  /**
+   * El aviso al paciente que cargó un profesional, con la invitación a crear su cuenta.
+   *
+   * Es también lo que descubre un correo mal cargado. Que una casilla no existe solo se
+   * sabe escribiéndole, y antes de esto el primer mail salía recién con el primer turno:
+   * una ficha sin turnos podía tener un correo inventado para siempre sin que nadie se
+   * entere. Con este, el rebote llega en un minuto y lo levanta mailBounces.
+   *
+   * No pide nada. La cuenta es opcional y los turnos le llegan igual sin ella.
+   */
+  private async sendLoadedPatientMail(person: Person, professionalEmail: string) {
+    const base = process.env.BASE_URL ?? "";
+    const professional = await em.findOne(Person, { email: professionalEmail });
+    const who = professional ? `${professional.name ?? ""} ${professional.surname ?? ""}`.trim() : "";
+
+    const html = [
+      title("Te registraron como paciente"),
+      paragraph(
+        `${who ? `<strong>${escapeHtml(who)}</strong>` : "Un profesional"} te registró como paciente en ` +
+          "Consultorios del Jardín. Los turnos y recordatorios llegan a este correo."
+      ),
+      paragraph("Si querés, podés crear tu cuenta con este mismo correo para ver y pedir tus turnos."),
+      button("Crear mi cuenta", `${base}/Register`),
+      note("Si no corresponde, ignorá este mensaje."),
+    ].join("");
+
+    await this.mailService.sendMail(await this.mailService.createMessage(person.email, "Te registraron como paciente", html));
   }
 
   /**
