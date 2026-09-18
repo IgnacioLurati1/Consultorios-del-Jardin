@@ -256,7 +256,7 @@ export function ControlPanel() {
                       )}
                     </td>
                     <td>{appointment.room?.description ?? "—"}</td>
-                    <td>{appointment.overbooked ? <span className="appt-tag-over">Turno especial</span> : null}</td>
+                    <td>{appointment.overbooked ? <span className="appt-tag-over">Turno especial</span> : "Turno"}</td>
                     <td>
                       <span className={state.className}>{state.label}</span>
                     </td>
