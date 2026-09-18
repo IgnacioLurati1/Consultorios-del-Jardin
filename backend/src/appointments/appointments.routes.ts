@@ -239,7 +239,8 @@ appointmentRouter.get("/by-professional/:email/:page", getAppointmentsByProfessi
  *   get:
  *     summary: Los pacientes del profesional logueado
  *     description: >
- *       Las personas que alguna vez tuvieron un turno con el profesional. No cuenta los
+ *       Las personas que alguna vez tuvieron un turno con el profesional, mas los
+ *       pacientes sin cuenta que cargo el mismo aunque no tengan turnos. No cuenta los
  *       turnos cancelados: si lo unico que hubo fue un turno dado de baja, esa persona no
  *       es su paciente. Cada persona aparece una sola vez.
  *     tags: [Appointments]

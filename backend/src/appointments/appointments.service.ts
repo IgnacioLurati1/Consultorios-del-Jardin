@@ -123,11 +123,17 @@ export class AppointmentService {
   }
 
   /**
-   * Los pacientes del profesional: los que alguna vez tuvieron turno con él.
+   * Los pacientes del profesional: los que alguna vez tuvieron turno con él, y los que
+   * cargó él mismo sin cuenta aunque todavía no tengan ninguno.
    *
    * No cuenta el turno cancelado como vínculo: si lo único que hubo entre los dos fue un
    * turno que se dio de baja, esa persona no es su paciente. Un turno pendiente sí
    * cuenta, porque ya está en la agenda.
+   *
+   * El que cargó él entra igual porque, si no, la ficha recién creada no aparecía en
+   * ningún lado y parecía que el alta no había andado. Solo el que cargó él: al que cargó
+   * otro profesional y ahora también ve (PatientAccess) lo encuentra buscándolo, como a
+   * cualquier otro.
    *
    * El estado guarda un ISO timestamp cuando se cancela, así que "no cancelado" es
    * pertenecer a la lista de estados con nombre.
@@ -147,6 +153,11 @@ export class AppointmentService {
     const unique = new Map<string, (typeof appointments)[number]["patient"]>();
     for (const appointment of appointments) {
       if (appointment.patient) unique.set(appointment.patient.email, appointment.patient);
+    }
+
+    const loaded = await em.find(Person, { anonymous: true, createdBy: professionalEmail });
+    for (const patient of loaded) {
+      if (!unique.has(patient.email)) unique.set(patient.email, patient);
     }
 
     // Quién quedó debiendo algo, para que la lista lo diga sin tener que entrar a la
