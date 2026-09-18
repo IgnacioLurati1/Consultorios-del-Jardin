@@ -17,6 +17,7 @@ import { PatientAccess } from "./patientAccess.entity.js";
 import { assertDeliverableEmail } from "../shared/emailCheck.js";
 import { deletionDateFor, purgeAccount } from "./accountCleanup.js";
 import { bouncedEmails, hasBounced } from "./mailBounces.js";
+import { checkBounceSoon } from "../jobs/mailBounce.job.js";
 import { movePatientEmail } from "./patientEmail.js";
 
 dotenv.config();
@@ -324,9 +325,11 @@ export class PeopleService {
     await em.flush();
 
     // Sin esperarlo: el alta ya está hecha y un mail que tarda o falla no la deshace.
-    this.sendLoadedPatientMail(person, data.createdBy).catch((error) =>
-      console.error("No se pudo avisar al paciente cargado:", error)
-    );
+    // Y un par de minutos después se mira si rebotó, para que un correo mal cargado se
+    // marque mientras el profesional todavía está con el paciente (ver mailBounce.job).
+    this.sendLoadedPatientMail(person, data.createdBy)
+      .then(() => checkBounceSoon(person.email))
+      .catch((error) => console.error("No se pudo avisar al paciente cargado:", error));
 
     return { person, alreadyLoaded: false };
   }

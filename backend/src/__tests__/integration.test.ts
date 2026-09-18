@@ -64,6 +64,13 @@ vi.mock("../people/mailBounces.js", () => ({
   syncBounces: vi.fn(),
 }));
 
+// La revisión adelantada de rebotes arma temporizadores contra la base real. Acá solo
+// importa que se pida.
+vi.mock("../jobs/mailBounce.job.js", () => ({
+  checkBounceSoon: vi.fn(),
+  startMailBounceJob: vi.fn(),
+}));
+
 vi.mock("../shared/emailCheck.js", () => ({
   assertDeliverableEmail: vi.fn(async (email: unknown) => String(email ?? "").trim().toLowerCase()),
   clearEmailCache: vi.fn(),
@@ -105,6 +112,7 @@ import { Appointment } from "../appointments/appointments.entity.js";
 import { assertPatientEnabled } from "../appointments/appointments.engine.js";
 import { deletionDateFor } from "../people/accountCleanup.js";
 import { hasBounced } from "../people/mailBounces.js";
+import { checkBounceSoon } from "../jobs/mailBounce.job.js";
 
 // ============================================================
 // DATOS MOCK - Cadena completa: Province → City → Office → Room
@@ -1815,6 +1823,7 @@ describe("Integracion: cargar un paciente sin cuenta que ya existe", () => {
     await peopleService.createAnonymousPatient(nuevo);
     await vi.waitFor(() => expect(sobres).toContainEqual({ to: nuevo.email, subject: "Te registraron como paciente" }));
     expect(mailsMandados.at(-1)).toContain("/Register");
+    await vi.waitFor(() => expect(checkBounceSoon).toHaveBeenCalledWith(nuevo.email));
   });
 
   it("si lo cargó otro, no le vuelve a escribir al paciente", async () => {
