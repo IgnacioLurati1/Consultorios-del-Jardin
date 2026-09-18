@@ -202,8 +202,8 @@ export class PeopleService {
    * contraseña. Es el alta del profesional, que no eligió nada todavía porque la cuenta
    * se la creó el administrador. La bienvenida le llega después, cuando la elige.
    */
-  /** Las direcciones que rebotaron, para que las pantallas marquen la fila. */
-  async bouncedEmails(): Promise<string[]> {
+  /** Las direcciones con problemas de entrega, para que las pantallas marquen la fila. */
+  async bouncedEmails() {
     return bouncedEmails(em);
   }
 

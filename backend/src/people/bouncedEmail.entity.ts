@@ -24,6 +24,20 @@ export class BouncedEmail {
   @Property({ type: "text", nullable: true })
   reason?: string | null;
 
+  /**
+   * Qué clase de rebote fue, según lo que contestó el otro servidor.
+   *
+   * `missing` es la casilla que no existe, y es la única que se puede afirmar: el servidor
+   * lo dice con todas las letras ("does not exist", "user unknown"). `blocked` es todo lo
+   * demás que no se pudo entregar —la casilla llena, la cuenta inactiva, el correo que
+   * rechaza al remitente—, que tiene una consecuencia parecida, que a esa persona no le
+   * llega nada, pero no significa que la dirección esté mal escrita.
+   *
+   * Meter las dos en la misma bolsa hacía que un correo perfecto figurara como inexistente.
+   */
+  @Property({ default: "missing" })
+  kind: "missing" | "blocked" = "missing";
+
   /** Si ya se le avisó a quien lo cargó. Sin esto, cada vuelta del reloj avisaría de nuevo. */
   @Property({ default: false })
   notified: boolean = false;
