@@ -809,7 +809,11 @@ export function createEntrance(
   const lampLight = add(new THREE.PointLight(blood ? "#ff8a6a" : "#ffd3a0", lampPower, 0, 2));
   lampLight.position.set(deskX - 0.3, 1.1, deskZ + 0.72);
   lamp.userData.onTouch = () => {
-    const on = lampLight.intensity === 0;
+    const on = lampLight.userData.off === true;
+    // Queda anotado en la luz y en la pantalla: la noche de terror maneja la intensidad de
+    // todas las luces en cada cuadro, y así sabe que esta la apagaron a mano.
+    lampLight.userData.off = !on;
+    shadeMaterial.userData.off = !on;
     lampLight.intensity = on ? lampPower : 0;
     shadeMaterial.emissiveIntensity = on ? shadeGlow : 0;
   };
@@ -1361,6 +1365,7 @@ export function createEntrance(
         openingZ: OPENING_Z,
         backZ: BACK_Z,
         gardenBackZ: GARDEN_BACK_Z,
+        roomZ: ROOM_Z,
         hallH: HALL_H,
         corridorH: CORRIDOR_H,
         doorTop: DOOR_TOP,

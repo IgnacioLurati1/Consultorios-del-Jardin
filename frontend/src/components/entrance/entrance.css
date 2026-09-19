@@ -707,3 +707,136 @@
   border-radius: 0 0 4px 4px;
   background: #7a0d0d;
 }
+
+/* ---------- lo que pesa en el aire ---------- */
+
+/* Los bordes de la vista, siempre en sombra, y más cerrados a medida que pasan las horas.
+   Encima un granulado apenas, como una grabación vieja. Respira despacio. */
+.night-gloom {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent calc(52% - var(--night-hour, 0) * 3%),
+    rgba(0, 0, 0, 0.55) 86%,
+    rgba(0, 0, 0, 0.88) 100%
+  );
+  animation: night-breathe 7s ease-in-out infinite;
+}
+
+.night-gloom::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.13;
+  mix-blend-mode: overlay;
+  animation: night-grain 0.3s steps(3) infinite;
+}
+
+@keyframes night-breathe {
+  50% { opacity: 0.72; }
+}
+
+/* ---------- después de ver al Retorcido ---------- */
+
+/* La vista se cierra de golpe, sin transición: de un cuadro al otro queda un agujero. Late
+   con el corazón y después se desvanece, sin moverse. */
+.night-dread {
+  position: absolute;
+  inset: -60%;
+  background: radial-gradient(circle at center, transparent 0, transparent 9%, rgba(0, 0, 0, 0.92) 24%, #000 34%);
+  transform: scale(0.6);
+  animation:
+    night-dread-open 8s ease-in both,
+    night-dread-beat 0.36s ease-in-out infinite;
+}
+
+@keyframes night-dread-open {
+  0%,
+  45% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes night-dread-beat {
+  30% { filter: brightness(0.4); }
+}
+
+.entrance-host.is-night:has(.night-dread):not(:has(.night-hud.is-cams)) .entrance-backdrop {
+  animation: night-dread-blur 8s ease-out both;
+}
+
+@keyframes night-dread-blur {
+  0% { filter: blur(3px) saturate(0.2) brightness(0.45); }
+  45% { filter: blur(1.5px) saturate(0.5) brightness(0.7); }
+  100% { filter: none; }
+}
+
+/* ---------- "it's me" ---------- */
+
+.night-itsme {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  animation: night-itsme-flick 0.52s steps(1) infinite;
+}
+
+@keyframes night-itsme-flick {
+  0% { background: #000; }
+  17% { background: transparent; }
+  41% { background: #000; }
+  56% { background: transparent; }
+  78% { background: rgba(70, 0, 0, 0.55); }
+}
+
+.night-itsme span {
+  position: absolute;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #efe9da;
+  text-shadow: 3px 0 #9c0000, -3px 0 #0a8f8f;
+  white-space: nowrap;
+  animation: night-itsme-show 0.29s steps(1) infinite;
+}
+
+.night-itsme span:nth-child(1) {
+  top: 44%;
+  left: 50%;
+  font-size: clamp(2.4rem, 7vw, 5.6rem);
+  transform: translate(-50%, -50%);
+}
+
+.night-itsme span:nth-child(2) {
+  top: 14%;
+  left: 9%;
+  font-size: 1.4rem;
+  animation-delay: -0.12s;
+}
+
+.night-itsme span:nth-child(3) {
+  bottom: 16%;
+  right: 11%;
+  font-size: 2rem;
+  transform: rotate(-4deg);
+  animation-delay: -0.2s;
+}
+
+@keyframes night-itsme-show {
+  0% { opacity: 1; }
+  38% { opacity: 0; }
+  60% { opacity: 1; translate: 4px -2px; }
+  82% { opacity: 0.6; translate: -3px 1px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-gloom,
+  .night-gloom::after,
+  .night-itsme,
+  .night-itsme span {
+    animation: none;
+  }
+
+  .night-dread {
+    animation: night-dread-open 8s ease-out both;
+  }
+}

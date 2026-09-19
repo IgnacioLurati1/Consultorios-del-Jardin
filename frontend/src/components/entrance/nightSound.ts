@@ -45,6 +45,16 @@ export interface NightSound {
   growl(place?: Place): void;
   screech(): void;
   scream(): void;
+  /** Pasos que se acercan desde donde no hay nadie. */
+  footsteps(place?: Place): void;
+  /** Una respiración ronca, muy cerca. */
+  breath(place?: Place): void;
+  /** Lo que deja el Retorcido al irse: un golpe, un pitido en los oídos y todo apagado. */
+  dread(): void;
+  /** "It's me": una voz que no es voz, dos veces, entre estática. */
+  itsMe(): void;
+  /** El Retorcido: huesos que crujen y se acomodan, y un gemido grave que no respira. */
+  twisted(place?: Place): void;
   toll(times: number): void;
   crackle(): void;
   click(): void;
@@ -69,6 +79,11 @@ const SILENT: NightSound = {
   growl() {},
   screech() {},
   scream() {},
+  footsteps() {},
+  breath() {},
+  dread() {},
+  itsMe() {},
+  twisted() {},
   toll() {},
   crackle() {},
   click() {},
@@ -96,7 +111,12 @@ export function createNightSound(): NightSound {
   const master = ac.createGain();
   master.gain.value = 0;
   master.gain.setTargetAtTime(0.9, now(), 1.5);
-  master.connect(out);
+  // Todo pasa por acá: con el susto del Retorcido se cierra, como oír bajo el agua.
+  const muffle = ac.createBiquadFilter();
+  muffle.type = "lowpass";
+  muffle.frequency.value = 20000;
+  master.connect(muffle);
+  muffle.connect(out);
   out.connect(ac.destination);
 
   // El eco: la respuesta de una sala grande y vacía, tres segundos y medio que se apagan.
@@ -622,6 +642,151 @@ export function createNightSound(): NightSound {
       once(hiss, t, 1.6);
     },
 
+    footsteps(place) {
+      const t = now();
+      const count = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        // Cada vez un poco más fuertes: vienen para acá.
+        const at = t + i * (0.5 + Math.random() * 0.08);
+        const hit = source(brown);
+        const g = gain();
+        chain(hit, filter("lowpass", 240 + Math.random() * 60), g, exit(place, 0.5));
+        envelope(g, at, 0.35 + i * 0.12, 0.004, 0.02, 0.16);
+        once(hit, at, 0.25);
+        const scuff = source(noise);
+        const sg = gain();
+        chain(scuff, filter("bandpass", 1800, 2), sg, exit(place, 0.5));
+        envelope(sg, at + 0.03, 0.03 + i * 0.01, 0.01, 0.03, 0.08);
+        once(scuff, at, 0.2);
+      }
+    },
+
+    breath(place) {
+      const t = now();
+      const air = source(noise);
+      const band = filter("bandpass", 600, 1.2);
+      const g = gain();
+      chain(air, band, filter("lowpass", 2200), g, exit(place, 0.15));
+      // Entra despacio y sale ronca, con un temblor.
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.22, t + 1.1);
+      g.gain.exponentialRampToValueAtTime(0.02, t + 1.35);
+      g.gain.exponentialRampToValueAtTime(0.3, t + 1.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 3);
+      band.frequency.setValueAtTime(900, t);
+      band.frequency.linearRampToValueAtTime(1300, t + 1.1);
+      band.frequency.setValueAtTime(500, t + 1.4);
+      band.frequency.linearRampToValueAtTime(350, t + 3);
+      const rattle = osc("square", 31);
+      const depth = gain(0.35);
+      chain(rattle, depth, g.gain);
+      once(air, t, 3.2);
+      once(rattle, t + 1.35, 1.7);
+    },
+
+    dread() {
+      const t = now();
+      thump(t, 1.3, 38);
+      thump(t + 0.02, 0.9, 70);
+      // Un pitido agudo que tapa todo y se va muy de a poco.
+      const ring = osc("sine", 5400);
+      const rg = gain();
+      chain(ring, rg, master);
+      envelope(rg, t, 0.035, 0.01, 1.5, 5);
+      once(ring, t, 7);
+      muffle.frequency.cancelScheduledValues(t);
+      muffle.frequency.setValueAtTime(20000, t);
+      muffle.frequency.exponentialRampToValueAtTime(320, t + 0.08);
+      muffle.frequency.setValueAtTime(320, t + 2.5);
+      muffle.frequency.exponentialRampToValueAtTime(20000, t + 8);
+    },
+
+    itsMe() {
+      const t = now();
+      // La estática de fondo, a golpes.
+      const hiss = source(noise);
+      const hg = gain();
+      chain(hiss, filter("highpass", 900), hg, master);
+      for (let i = 0; i < 18; i++) hg.gain.setValueAtTime(Math.random() < 0.5 ? 0.02 : 0.14, t + i * 0.15);
+      hg.gain.setValueAtTime(0.0001, t + 2.8);
+      once(hiss, t, 2.9);
+      // La voz: grave, rota y con formantes que dicen, más o menos, "it's me". Dos veces,
+      // la segunda más grave y más cerca.
+      const shaper = ac.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(((i / (curve.length - 1)) * 2 - 1) * 4);
+      shaper.curve = curve;
+      for (const [start, pitch, level] of [
+        [0.25, 92, 0.9],
+        [1.45, 68, 1.2],
+      ]) {
+        const at = t + start;
+        const voice = osc("sawtooth", pitch);
+        voice.frequency.setValueAtTime(pitch * 1.1, at);
+        voice.frequency.linearRampToValueAtTime(pitch * 0.8, at + 0.9);
+        const vg = gain();
+        voice.connect(shaper);
+        const f1 = filter("bandpass", 320, 6);
+        const f2 = filter("bandpass", 2300, 9);
+        shaper.connect(f1);
+        shaper.connect(f2);
+        f1.connect(vg);
+        f2.connect(vg);
+        vg.connect(exit({ pan: 0, near: 1 }, 0.6));
+        // "i" corta, un corte, "ts" soplado, y "miii" larga con la boca cerrada al principio.
+        vg.gain.setValueAtTime(0.0001, at);
+        vg.gain.exponentialRampToValueAtTime(level * 0.5, at + 0.04);
+        vg.gain.setValueAtTime(0.0001, at + 0.14);
+        vg.gain.setValueAtTime(0.0001, at + 0.3);
+        vg.gain.exponentialRampToValueAtTime(level * 0.35, at + 0.36);
+        vg.gain.setValueAtTime(level * 0.35, at + 0.44);
+        vg.gain.exponentialRampToValueAtTime(level, at + 0.52);
+        vg.gain.setValueAtTime(level, at + 0.85);
+        vg.gain.exponentialRampToValueAtTime(0.0001, at + 1.05);
+        f2.frequency.setValueAtTime(900, at + 0.3);
+        f2.frequency.linearRampToValueAtTime(2500, at + 0.5);
+        once(voice, at, 1.1);
+        const ts = source(noise);
+        const tg = gain();
+        chain(ts, filter("highpass", 4500), tg, exit({ pan: 0, near: 1 }, 0.3));
+        envelope(tg, at + 0.15, level * 0.3, 0.01, 0.08, 0.05);
+        once(ts, at + 0.15, 0.3);
+      }
+      thump(t, 1, 45);
+    },
+
+    twisted(place) {
+      const t = now();
+      // Crujidos: chasquidos secos y graves, en ráfagas desparejas, como nudillos o vértebras.
+      const cracks = 4 + Math.floor(Math.random() * 5);
+      let at = t;
+      for (let i = 0; i < cracks; i++) {
+        at += 0.03 + Math.random() * (i % 3 === 2 ? 0.25 : 0.07);
+        const snap = source(noise);
+        const g = gain();
+        chain(snap, filter("bandpass", 900 + Math.random() * 1400, 5), g, exit(place, 0.35));
+        envelope(g, at, 0.5 + Math.random() * 0.4, 0.001, 0.004, 0.03);
+        once(snap, at, 0.06);
+        const body = source(brown);
+        const bg = gain();
+        chain(body, filter("lowpass", 300), bg, exit(place, 0.35));
+        envelope(bg, at, 0.35, 0.002, 0.01, 0.06);
+        once(body, at, 0.1);
+      }
+      // El gemido: una voz grave con la boca cerrada, que baja y tiembla, casi un zumbido.
+      const moanAt = t + 0.2 + Math.random() * 0.4;
+      const moan = osc("sawtooth", 62 + Math.random() * 10);
+      moan.frequency.linearRampToValueAtTime(44, moanAt + 2.2);
+      const shake = osc("sine", 7 + Math.random() * 3);
+      const depth = gain(4);
+      chain(shake, depth, moan.frequency);
+      const mg = gain();
+      chain(moan, filter("bandpass", 420, 4), filter("lowpass", 900), mg, exit(place, 0.5));
+      envelope(mg, moanAt, 0.55, 0.5, 0.9, 0.8);
+      once(moan, moanAt, 2.4);
+      once(shake, moanAt, 2.4);
+    },
+
     /** Un reloj de péndulo lejano: una campana grave con parciales desafinados. */
     toll(times) {
       for (let i = 0; i < times; i++) {
@@ -679,6 +844,7 @@ export function createNightSound(): NightSound {
           }
         }
         master.disconnect();
+        muffle.disconnect();
         out.disconnect();
       }, 400);
     },

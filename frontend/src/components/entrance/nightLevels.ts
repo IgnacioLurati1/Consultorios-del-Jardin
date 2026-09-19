@@ -21,6 +21,10 @@ export interface NightState {
   doll: number | null;
   /** Los segundos con los que arranca la muñeca en esta noche. */
   dollMax: number;
+  /** Se acaba de ir el Retorcido: la vista se cierra un rato. */
+  dread: boolean;
+  /** Está diciendo que es él. */
+  itsMe: boolean;
 }
 
 /**

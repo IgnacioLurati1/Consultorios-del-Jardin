@@ -34,7 +34,12 @@ export function NightHud({
   const dollWarning = phase === "play" && doll !== null && doll <= 10;
 
   return (
-    <div className={`night-hud ${state?.cams ? "is-cams" : ""} ${NIGHTS[night]?.blood ? "is-blood" : ""}`}>
+    <div
+      className={`night-hud ${state?.cams ? "is-cams" : ""} ${NIGHTS[night]?.blood ? "is-blood" : ""}`}
+      style={{ "--night-hour": state?.hour ?? 0 } as React.CSSProperties}
+    >
+      {!over && <div className="night-gloom" aria-hidden="true" />}
+
       {!over && (
         <div className="night-clock" aria-live="polite">
           <strong>{HOURS[state?.hour ?? 0]}</strong>
@@ -47,7 +52,7 @@ export function NightHud({
         </div>
       )}
 
-      {phase === "play" && !state?.cams && (
+      {phase === "play" && !state?.cams && !state?.itsMe && (
         <>
           <span className={`walk-aim ${aim !== null ? "is-on" : ""}`} aria-hidden="true" />
           {aim ? <span className="night-aim-label">{aim}</span> : null}
@@ -117,6 +122,16 @@ export function NightHud({
       )}
 
       {phase === "scare" && <div className="night-scare" aria-hidden="true" />}
+
+      {state?.dread && <div className="night-dread" aria-hidden="true" />}
+
+      {state?.itsMe && (
+        <div className="night-itsme" aria-hidden="true">
+          <span>IT'S ME</span>
+          <span>IT'S ME</span>
+          <span>IT'S ME</span>
+        </div>
+      )}
 
       {over && (
         <div className={`night-end ${phase === "won" ? "is-won" : ""}`}>

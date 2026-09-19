@@ -1,23 +1,29 @@
 import * as THREE from "three";
 
 /**
- * Las cuatro cosas de la noche de terror. Cada una con su silueta, para reconocerla de un
- * vistazo por la cámara aunque se vea chica y verde:
- * - El Doctor (naranja): altísimo y flaco, guardapolvo manchado, barbijo, cuello torcido y
- *   brazos que le llegan a las rodillas.
+ * Las cosas de la noche de terror. Cada una con su silueta, para reconocerla de un vistazo
+ * por la cámara aunque se vea chica y verde:
+ * - El Doctor (naranja): altísimo, doblado por la mitad, con el guardapolvo abierto sobre
+ *   las costillas, el espejo de cabeza torcido, la boca cosida de oreja a oreja y el
+ *   barbijo colgando de una oreja.
  * - La Muñeca (turquesa): chica, de porcelana rajada, cabezona, con vestido y moño.
  * - La Mujer (verde): vestido largo y pelo negro hasta la cintura que le tapa la cara; se le
  *   ve un solo ojo.
  * - El Hombre árbol (jardín): corteza, ramas por brazos, una bolsa cosida por cabeza y astas.
+ * - El Retorcido: no es de ningún consultorio. Todo quebrado para el lado que no va, con la
+ *   cabeza de costado sobre el hombro. Solo mira.
  *
  * No caminan: se paran en un lugar con una pose y, de un estado al otro, aparecen en otro.
  * Los brazos y la cabeza van en pivotes para que cada pose se lea distinta.
  */
 
-export type Pose = "emerge" | "wait" | "stand" | "peek" | "sit" | "reach";
+/** `lurk` es solo del Doctor: asomado por la puerta entreabierta. Los demás se paran. */
+export type Pose = "emerge" | "wait" | "stand" | "peek" | "sit" | "reach" | "lurk";
 
 export interface Figure {
   group: THREE.Group;
+  /** La cabeza, para saber dónde queda la cara estando torcida. */
+  head: THREE.Object3D;
   /** A qué altura está el centro de la cara, sin la escala: para encuadrar el susto. */
   headY: number;
   /** Hasta dónde llegan las manos con los brazos al frente: a esa distancia se para de una puerta. */
@@ -27,6 +33,8 @@ export interface Figure {
   face(x: number, z: number): void;
   pose(pose: Pose): void;
   scream(on: boolean): void;
+  /** Deja solo los ojos brillando, para cuando se lo ve en la oscuridad. */
+  eyes(on: boolean): void;
   hide(): void;
 }
 
@@ -90,8 +98,9 @@ function figure(
   rig: Rig,
   headY: number,
   reach: number,
-  poses: Record<Pose, (rig: Rig) => void>,
-  scream: (rig: Rig, on: boolean) => void
+  poses: Record<Exclude<Pose, "lurk">, (rig: Rig) => void> & Partial<Record<"lurk", (rig: Rig) => void>>,
+  scream: (rig: Rig, on: boolean) => void,
+  eyes: (on: boolean) => void = () => {}
 ): Figure {
   const { root } = rig;
   root.position.y = HIDDEN_Y;
@@ -109,6 +118,7 @@ function figure(
   };
   return {
     group: root,
+    head: rig.head,
     headY,
     reach,
     place(x, y, z, yaw) {
@@ -120,11 +130,12 @@ function figure(
     },
     pose(name) {
       reset();
-      poses[name](rig);
+      (poses[name] ?? poses.stand)(rig);
     },
     scream(on) {
       scream(rig, on);
     },
+    eyes,
     hide() {
       root.position.set(0, HIDDEN_Y, 0);
       root.rotation.set(0, 0, 0);
@@ -190,91 +201,201 @@ export function makeDoctor(scene: THREE.Scene, keep: Keep): Figure {
   const k = kit(keep);
   const root = new THREE.Group();
   const body = k.pivot(root, [0, 0, 0]);
-  const coat = "#aaa393";
-  const skin = "#8d897f";
-  const blood = "#4a0b08";
-  const pants = "#16161a";
+  const coat = "#9c9482";
+  const coatDark = "#6f6858";
+  const skin = "#7d8076";
+  const blood = "#3d0806";
+  const pants = "#141417";
 
-  const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.1, 0.95, 0]), k.pivot(body, [0.1, 0.95, 0])];
+  // Piernas de palo, con las rodillas apenas para atrás y el pantalón hecho jirones.
+  const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.1, 1.02, 0]), k.pivot(body, [0.1, 1.02, 0])];
   for (const leg of legs) {
-    k.cyl(leg, pants, 0.055, 0.95, [0, -0.475, 0]);
-    k.box(leg, "#0a0a0a", [0.1, 0.06, 0.24], [0, -0.93, 0.05]);
+    k.cyl(leg, pants, 0.045, 0.52, [0, -0.26, 0]);
+    const knee = k.pivot(leg, [0, -0.52, 0]);
+    knee.rotation.x = 0.16;
+    k.ball(knee, pants, [0.05, 0.05, 0.05], [0, 0, 0]);
+    k.cyl(knee, skin, 0.03, 0.46, [0, -0.23, 0]);
+    k.box(knee, "#0a0a0a", [0.09, 0.05, 0.26], [0, -0.48, 0.06]);
+    for (const x of [-0.03, 0.03]) k.box(knee, pants, [0.025, 0.1, 0.01], [x, -0.04, 0.045]).rotation.z = x * 6;
   }
-  const torso = k.pivot(body, [0, 0.95, 0]);
-  // Encorvado, con los hombros para adelante.
-  torso.rotation.x = 0.22;
-  // El guardapolvo: el faldón abierto y el torso, con manchas oscuras.
-  k.cone(torso, coat, 0.27, 0.75, [0, -0.2, 0]);
-  k.box(torso, coat, [0.42, 0.72, 0.22], [0, 0.5, 0]);
-  k.box(torso, "#8f897b", [0.03, 1.2, 0.01], [0, 0.2, 0.115]);
-  for (const [x, y, w, h] of [
-    [0.1, 0.55, 0.09, 0.14],
-    [-0.12, 0.25, 0.07, 0.2],
-    [0.05, -0.1, 0.12, 0.08],
-    [-0.05, 0.75, 0.05, 0.05],
-  ]) {
-    k.box(torso, "#3b0c09", [w, h, 0.01], [x, y, 0.118]);
-  }
-  const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.25, 0.82, 0]), k.pivot(torso, [0.25, 0.82, 0])];
-  const hands = arms.map((shoulder) => arm(k, shoulder, coat, skin, 0.6, 0.6, 0.045, 4, 0.2, "#5a1d16"));
-  // Un bisturí en la mano derecha.
-  k.box(hands[1], "#c9ced3", [0.01, 0.16, 0.03], [0, -0.2, 0.03]);
-  k.box(hands[1], "#2a2a2a", [0.018, 0.09, 0.02], [0, -0.1, 0.03]);
-  // Salpicaduras en las mangas.
-  for (const shoulder of arms) k.box(shoulder, blood, [0.07, 0.12, 0.01], [0, -0.45, 0.046]);
-  // El cuello largo, torcido hacia un lado.
-  const neck = k.pivot(torso, [0, 0.86, 0]);
-  neck.rotation.z = 0.28;
-  k.cyl(neck, skin, 0.04, 0.3, [0, 0.15, 0]);
-  const head = k.pivot(neck, [0, 0.32, 0]);
-  k.ball(head, skin, [0.135, 0.175, 0.145], [0, 0.1, 0]);
-  // El gorro de cirujano.
-  k.ball(head, "#5e7b80", [0.145, 0.1, 0.155], [0, 0.2, -0.01]);
-  // Cuencas hondas con un punto de luz, y lágrimas de sangre.
+
+  const torso = k.pivot(body, [0, 1.02, 0]);
+  // Doblado por la mitad, con los hombros caídos hacia adelante.
+  torso.rotation.x = 0.34;
+  // El guardapolvo abierto: dos paños, y entre medio el pecho hundido, con las costillas.
   for (const side of [-1, 1]) {
-    k.ball(head, "#030303", [0.05, 0.058, 0.035], [side * 0.055, 0.14, 0.11]);
-    k.ball(head, "#ff9a3c", [0.009, 0.009, 0.009], [side * 0.055, 0.135, 0.142], true);
-    k.box(head, blood, [0.012, 0.11, 0.008], [side * 0.058, 0.07, 0.128]);
+    k.box(torso, coat, [0.17, 0.78, 0.2], [side * 0.13, 0.5, -0.01]);
+    // El faldón, largo hasta las rodillas y roto en tiras.
+    for (let i = 0; i < 4; i++) {
+      const strip = k.box(torso, i % 2 ? coatDark : coat, [0.07, 0.5 + ((i * 3) % 4) * 0.08, 0.02], [side * (0.06 + i * 0.05), -0.2, 0.08 - i * 0.04]);
+      strip.rotation.z = side * (0.04 + i * 0.03);
+    }
   }
-  const mouth = k.ball(head, "#050505", [0.035, 0.008, 0.03], [0, 0.02, 0.1]);
-  const mask = k.box(head, "#8aa4ad", [0.19, 0.1, 0.05], [0, 0.03, 0.105]);
-  k.box(head, "#6d8790", [0.26, 0.012, 0.012], [0, 0.07, 0.07]);
+  k.box(torso, "#1a0c0a", [0.1, 0.72, 0.16], [0, 0.52, 0.02]);
+  for (let i = 0; i < 5; i++) k.box(torso, "#b9b19f", [0.12, 0.018, 0.02], [0, 0.35 + i * 0.09, 0.1]).rotation.z = i % 2 ? 0.1 : -0.1;
+  // Manchas de sangre que chorrean del cuello y del bolsillo.
+  for (const [x, y, w, h] of [
+    [0.13, 0.72, 0.09, 0.22],
+    [-0.14, 0.38, 0.08, 0.3],
+    [0.12, 0.05, 0.1, 0.16],
+    [-0.12, -0.3, 0.06, 0.2],
+  ]) {
+    k.box(torso, blood, [w, h, 0.01], [x, y, 0.095]);
+  }
+  // Los hombros huesudos, más altos que el cuello.
+  for (const side of [-1, 1]) k.ball(torso, coat, [0.09, 0.07, 0.1], [side * 0.24, 0.86, 0]);
+
+  const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.27, 0.84, 0]), k.pivot(torso, [0.27, 0.84, 0])];
+  const hands = arms.map((shoulder) => arm(k, shoulder, coat, skin, 0.66, 0.7, 0.04, 5, 0.26, "#2e0d0a"));
+  // Un bisturí largo en la mano derecha, y una jeringa en la otra.
+  k.box(hands[1], "#d6dbe0", [0.01, 0.22, 0.03], [0, -0.26, 0.03]);
+  k.box(hands[1], "#2a2a2a", [0.02, 0.1, 0.022], [0, -0.12, 0.03]);
+  k.cyl(hands[0], "#c9d2cf", 0.018, 0.16, [0, -0.2, 0.03]);
+  k.cyl(hands[0], "#5a0d0a", 0.014, 0.08, [0, -0.23, 0.03]);
+  k.cyl(hands[0], "#d6dbe0", 0.003, 0.1, [0, -0.33, 0.03]);
+  for (const shoulder of arms) k.box(shoulder, blood, [0.07, 0.18, 0.01], [0, -0.5, 0.042]);
+
+  // El cuello largo, quebrado hacia un costado.
+  const neck = k.pivot(torso, [0, 0.9, 0.02]);
+  neck.rotation.set(0.35, 0, 0.42);
+  k.cyl(neck, skin, 0.035, 0.34, [0, 0.17, 0]);
+  for (let i = 0; i < 3; i++) k.ball(neck, "#6a6d63", [0.042, 0.02, 0.04], [0, 0.07 + i * 0.1, -0.01]);
+  const head = k.pivot(neck, [0, 0.36, 0]);
+  // Una cabeza larga y chupada: el cráneo se marca, las mejillas se hunden.
+  const skull = k.ball(head, skin, [0.12, 0.19, 0.135], [0, 0.1, 0]);
+  for (const side of [-1, 1]) k.ball(head, "#5d6158", [0.035, 0.07, 0.04], [side * 0.085, 0.02, 0.07]);
+  // El espejo de cabeza de los médicos de antes, en una vincha, torcido.
+  const band = k.cyl(head, "#2b2b2b", 0.128, 0.03, [0, 0.2, 0]);
+  band.rotation.z = -0.12;
+  const mirror = k.cyl(head, "#9aa3a8", 0.04, 0.01, [0.045, 0.255, 0.125]);
+  mirror.rotation.set(Math.PI / 2 - 0.5, 0, 0.3);
+  k.ball(head, "#050505", [0.008, 0.008, 0.005], [0.045, 0.258, 0.13]);
+  // Cuencas negras y hondas, con un punto naranja en el fondo, y lágrimas de sangre.
+  const sparks: THREE.Mesh[] = [];
+  const glows: THREE.Mesh[] = [];
+  const sockets: THREE.Mesh[] = [];
+  for (const side of [-1, 1]) {
+    sockets.push(k.ball(head, "#020202", [0.042, 0.052, 0.03], [side * 0.048, 0.13, 0.11]));
+    sparks.push(k.ball(head, "#ff8a2a", [0.008, 0.008, 0.008], [side * 0.048, 0.125, 0.136], true));
+    // Los ojos cuando la luz se apaga: más grandes, con un halo, y nada más alrededor.
+    const glow = k.ball(head, "#fff0cc", [0.036, 0.024, 0.012], [side * 0.05, 0.128, 0.14], true);
+    glow.visible = false;
+    glows.push(glow);
+    const halo = new THREE.Mesh(
+      glow.geometry,
+      keep(new THREE.MeshBasicMaterial({ color: "#ff7a1a", transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }))
+    );
+    halo.scale.set(0.058, 0.04, 0.02);
+    halo.position.set(side * 0.05, 0.128, 0.15);
+    halo.visible = false;
+    head.add(halo);
+    glows.push(halo);
+    k.box(head, blood, [0.01, 0.13, 0.006], [side * 0.05, 0.05, 0.126]);
+  }
+  // La boca abierta de oreja a oreja y cosida, con los puntos negros cruzados.
+  const mouth = k.box(head, "#0a0202", [0.16, 0.012, 0.01], [0, -0.01, 0.118]);
+  const stitches: THREE.Mesh[] = [];
+  for (let i = 0; i < 9; i++) {
+    const x = -0.07 + i * 0.0175;
+    stitches.push(k.box(head, "#0b0b0b", [0.004, 0.04, 0.004], [x, -0.01, 0.124]));
+  }
+  // Adentro, dientes que se ven cuando la abre.
+  const teeth: THREE.Mesh[] = [];
+  for (let i = 0; i < 10; i++) {
+    const x = -0.063 + i * 0.014;
+    const tooth = k.cone(head, "#d9cfb3", 0.006, 0.03, [x, 0.012, 0.12]);
+    tooth.rotation.x = Math.PI;
+    tooth.visible = false;
+    teeth.push(tooth);
+    const low = k.cone(head, "#d9cfb3", 0.006, 0.03, [x + 0.007, -0.06, 0.12]);
+    low.visible = false;
+    teeth.push(low);
+  }
+  // El barbijo roto, colgando de una sola oreja.
+  const mask = k.box(head, "#7f9ba3", [0.16, 0.09, 0.02], [0.07, -0.08, 0.1]);
+  mask.rotation.set(0.2, 0.25, 0.9);
+  k.box(head, "#5a0d0a", [0.05, 0.04, 0.005], [0.08, -0.08, 0.112]).rotation.z = 0.9;
+
+  /**
+   * La cara de cuando se asoma: la cabeza estirada, un ojo que se le sale de la cuenca y la
+   * boca arrancada de las costuras, abierta en diagonal hasta el mentón.
+   */
+  function twistFace(on: boolean) {
+    skull.scale.set(on ? 0.105 : 0.12, on ? 0.23 : 0.19, 0.135);
+    sockets[0].scale.set(on ? 0.062 : 0.042, on ? 0.075 : 0.052, 0.03);
+    sparks[0].scale.setScalar(on ? 0.016 : 0.008);
+    sockets[1].scale.set(on ? 0.03 : 0.042, on ? 0.022 : 0.052, 0.03);
+    mask.visible = !on;
+    mouth.scale.set(on ? 0.12 : 0.16, on ? 0.16 : 0.012, 0.01);
+    mouth.position.set(on ? 0.01 : 0, on ? -0.07 : -0.01, 0.118);
+    mouth.rotation.z = on ? 0.45 : 0;
+    for (const stitch of stitches) stitch.visible = !on;
+    teeth.forEach((tooth, i) => {
+      tooth.visible = on;
+      // Los de arriba quedan torcidos sobre el tajo; los de abajo, caídos hasta el mentón.
+      tooth.position.y = on ? (i % 2 ? -0.15 : 0.01) : i % 2 ? -0.06 : 0.012;
+    });
+  }
+  const plain = (pose: (r: Rig) => void) => (r: Rig) => {
+    twistFace(false);
+    pose(r);
+  };
 
   scene.add(root);
   const rig: Rig = { root, body, head, arms, legs, torso };
   return figure(
     rig,
-    2.1,
-    1.45,
+    2.25,
+    1.55,
     {
-      emerge(r) {
-        r.body.position.y = -1.25;
+      emerge: plain((r) => {
+        r.body.position.y = -1.3;
         armPoses.up(r);
         r.head.rotation.x = -0.5;
-      },
-      wait(r) {
+      }),
+      wait: plain((r) => {
         armPoses.onDoor(r);
         r.head.rotation.set(0.25, 0, 0.35);
-      },
-      stand(r) {
-        armPoses.hang(r, 0.12);
-        r.head.rotation.set(0.15, 0, -0.2);
-      },
-      reach(r) {
+      }),
+      stand: plain((r) => {
+        armPoses.hang(r, 0.1);
+        r.arms[1].rotation.x = -0.25;
+        r.head.rotation.set(0.1, 0, -0.25);
+      }),
+      reach: plain((r) => {
         armPoses.reach(r);
         r.head.rotation.set(0, 0, -0.3);
-      },
-      peek(r) {
+      }),
+      // Parado quieto en la oscuridad, con la cara levantada hacia la cámara del techo.
+      peek: plain((r) => {
+        armPoses.hang(r, 0.05);
+        r.head.rotation.set(-0.7, 0, 0.2);
+      }),
+      sit: plain((r) => {
         armPoses.hang(r);
-      },
-      sit(r) {
-        armPoses.hang(r);
+      }),
+      // Detrás de la puerta entreabierta, inclinado hacia la rendija: los dedos agarrados
+      // del canto de la hoja y la cabeza que asoma, volcada de costado.
+      lurk(r) {
+        twistFace(true);
+        r.body.rotation.x = 0.15;
+        r.arms[0].rotation.set(0.6, 0, -0.05);
+        r.arms[1].rotation.set(0.6, 0, 0.05);
+        r.head.rotation.set(-0.15, 0.6, -1.05);
       },
     },
     (r, on) => {
+      twistFace(false);
       mask.visible = !on;
-      mouth.scale.set(0.05, on ? 0.09 : 0.008, 0.03);
+      mouth.scale.set(on ? 0.18 : 0.16, on ? 0.1 : 0.012, 0.01);
+      mouth.position.y = on ? -0.03 : -0.01;
+      for (const stitch of stitches) stitch.visible = !on;
+      for (const tooth of teeth) tooth.visible = on;
       if (on) armPoses.reach(r);
+    },
+    (on) => {
+      for (const glow of glows) glow.visible = on;
+      for (const spark of sparks) spark.visible = !on;
     }
   );
 }
@@ -590,6 +711,131 @@ export function makeTreeMan(scene: THREE.Scene, keep: Keep): Figure {
     (r, on) => {
       mouth.scale.set(0.09, on ? 0.09 : 0.035, 0.03);
       if (on) armPoses.reach(r);
+    }
+  );
+}
+
+/* ---------------- el Retorcido ---------------- */
+
+export function makeTwisted(scene: THREE.Scene, keep: Keep): Figure {
+  const k = kit(keep);
+  const root = new THREE.Group();
+  const body = k.pivot(root, [0, 0, 0]);
+  const skin = "#b9b2a2";
+  const shade = "#8c8576";
+  const raw = "#4e0b09";
+  const dark = "#030303";
+
+  // Piernas al revés: la rodilla para adelante y el resto doblado hacia atrás, como un
+  // animal, y los pies largos con uñas que rascan el piso.
+  const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.13, 1.2, 0]), k.pivot(body, [0.13, 1.2, 0])];
+  for (const [i, leg] of legs.entries()) {
+    k.cyl(leg, skin, 0.05, 0.7, [0, -0.35, 0]);
+    const knee = k.pivot(leg, [0, -0.7, 0]);
+    knee.rotation.set(1.35 + i * 0.1, 0, i ? -0.75 : 0.8);
+    k.ball(knee, shade, [0.06, 0.07, 0.06], [0, 0, 0]);
+    k.cyl(knee, skin, 0.03, 0.76, [0, -0.38, 0]);
+    const foot = k.pivot(knee, [0, -0.76, 0]);
+    foot.rotation.x = -0.75;
+    for (let t = 0; t < 4; t++) {
+      const toe = k.pivot(foot, [(t - 1.5) * 0.03, 0, 0]);
+      toe.rotation.set(-1.2, 0, (t - 1.5) * 0.18);
+      k.cyl(toe, shade, 0.008, 0.2, [0, -0.1, 0]);
+      k.cone(toe, "#1c1812", 0.006, 0.05, [0, -0.22, 0]).rotation.x = Math.PI;
+    }
+  }
+
+  // El torso, echado para atrás y retorcido sobre sí mismo: la columna se marca de un lado y
+  // las costillas del otro, con la piel abierta en tajos.
+  const torso = k.pivot(body, [0, 1.2, 0]);
+  torso.rotation.set(-0.22, 0.55, 0.14);
+  // La cintura, finita como un palo, y el pecho hundido que se abre en costillas.
+  k.cyl(torso, skin, 0.055, 0.6, [0, 0.28, 0]);
+  k.ball(torso, skin, [0.07, 0.07, 0.06], [0, 0.04, 0]);
+  k.ball(torso, skin, [0.17, 0.24, 0.11], [0, 0.74, -0.01]);
+  for (let i = 0; i < 9; i++) k.ball(torso, shade, [0.035, 0.03, 0.035], [0, 0.15 + i * 0.09, -0.12 - Math.sin(i / 3) * 0.02]);
+  for (let i = 0; i < 6; i++) {
+    const rib = k.box(torso, shade, [0.3 - Math.abs(i - 2.5) * 0.03, 0.018, 0.03], [0, 0.58 + i * 0.06, 0.1]);
+    rib.rotation.set(0, 0, (i % 2 ? 0.12 : -0.1) + i * 0.02);
+  }
+  for (const [x, y, h, tilt] of [
+    [0.06, 0.4, 0.22, 0.3],
+    [-0.09, 0.72, 0.16, -0.5],
+    [0.1, 0.86, 0.12, 0.8],
+  ]) {
+    k.box(torso, raw, [0.035, h, 0.01], [x, y, 0.15]).rotation.z = tilt;
+  }
+
+  // Un hombro más alto que el otro, desencajado.
+  const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.2, 0.92, 0]), k.pivot(torso, [0.18, 0.78, 0.02])];
+  const hands = arms.map((shoulder, i) => arm(k, shoulder, skin, skin, i ? 0.62 : 0.82, i ? 0.6 : 0.86, 0.035, 5, i ? 0.24 : 0.34, shade));
+  k.ball(arms[0], shade, [0.07, 0.06, 0.07], [0, 0.02, 0]);
+  // El codo del brazo alto, quebrado para el lado que no va.
+  const brokenElbow = hands[1].parent!;
+  // Una mano cuelga hasta el piso y la otra se agarra la cabeza por arriba, al revés.
+  for (let i = 0; i < 3; i++) k.box(arms[0], raw, [0.012, 0.1 + i * 0.04, 0.008], [0.02 * i - 0.02, -0.4 - i * 0.12, 0.036]);
+
+  // El cuello, largo y doblado casi en ángulo recto: la cabeza apoyada de costado en el hombro.
+  const neck = k.pivot(torso, [-0.03, 0.95, 0.02]);
+  neck.rotation.set(0.25, 0, 1.25);
+  for (let i = 0; i < 5; i++) k.ball(neck, i % 2 ? skin : shade, [0.04, 0.06, 0.04], [0, 0.05 + i * 0.085, 0]);
+  const head = k.pivot(neck, [0, 0.46, 0]);
+  head.rotation.z = 0.55;
+  // La cara: larga, estirada hacia abajo como si se derritiera.
+  k.ball(head, skin, [0.13, 0.2, 0.13], [0, 0.08, 0]);
+  k.ball(head, shade, [0.1, 0.12, 0.1], [0.03, -0.08, 0.02]);
+  // Los ojos: uno enorme y hundido, el otro chiquito y más abajo. Los dos con un punto
+  // blanco que se ve aunque no haya luz.
+  k.ball(head, dark, [0.06, 0.07, 0.03], [-0.045, 0.14, 0.1]);
+  k.ball(head, dark, [0.028, 0.03, 0.02], [0.06, 0.06, 0.11]);
+  const glows = [
+    k.ball(head, "#f3efe2", [0.012, 0.012, 0.01], [-0.042, 0.13, 0.125], true),
+    k.ball(head, "#f3efe2", [0.008, 0.008, 0.008], [0.06, 0.06, 0.128], true),
+  ];
+  // La boca: un tajo vertical que le parte la cara, con dientes de los dos lados.
+  const mouth = k.box(head, dark, [0.03, 0.2, 0.02], [0.005, -0.02, 0.115]);
+  mouth.rotation.z = 0.12;
+  for (let i = 0; i < 7; i++) {
+    for (const side of [-1, 1]) {
+      const tooth = k.cone(head, "#d8ceb2", 0.006, 0.028, [0.005 + side * 0.016, -0.1 + i * 0.028, 0.12]);
+      tooth.rotation.z = (side * Math.PI) / 2;
+    }
+  }
+  k.box(head, raw, [0.05, 0.16, 0.01], [0.02, -0.02, 0.108]).rotation.z = 0.12;
+  // La mandíbula, suelta, colgando de un costado.
+  const jaw = k.pivot(head, [0.07, -0.14, 0.04]);
+  jaw.rotation.z = -0.5;
+  k.box(jaw, shade, [0.09, 0.03, 0.08], [0, -0.03, 0]);
+  // Un par de mechones negros, largos y ralos.
+  for (let i = 0; i < 9; i++) {
+    const angle = -1.6 + i * 0.4;
+    k.box(head, "#0a0806", [0.012, 0.35 + (i % 3) * 0.12, 0.006], [Math.sin(angle) * 0.12, -0.02, Math.cos(angle) * 0.1 - 0.04]).rotation.set(0, angle, 0.1);
+  }
+
+  // Más alto que cualquier persona: toca casi el dintel de la puerta de calle.
+  root.scale.setScalar(1.2);
+  scene.add(root);
+  const rig: Rig = { root, body, head, arms, legs, torso };
+  const still = (r: Rig) => {
+    // Las piernas abiertas hacia afuera y vueltas a juntar en la rodilla: de frente, un rombo.
+    r.legs![0].rotation.set(-0.6, 0, -0.36);
+    r.legs![1].rotation.set(-0.72, 0, 0.32);
+    r.arms[0].rotation.set(0.05, 0, -0.18);
+    // El otro, abierto hacia afuera y doblado al revés en el codo, con la mano para arriba.
+    r.arms[1].rotation.set(0.15, 0, 0.55);
+    brokenElbow.rotation.set(0.3, 0, -2.35);
+  };
+  return figure(
+    rig,
+    2.1,
+    0.9,
+    { emerge: still, wait: still, stand: still, peek: still, sit: still, reach: still },
+    (_r, on) => {
+      mouth.scale.set(on ? 0.09 : 0.03, on ? 0.26 : 0.2, 0.02);
+      jaw.rotation.z = on ? -1.1 : -0.5;
+    },
+    (on) => {
+      for (const glow of glows) glow.scale.setScalar(on ? 0.02 : 0.012);
     }
   );
 }

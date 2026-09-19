@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { makeDoctor, makeDoll, makeTreeMan, makeWoman, type Figure } from "./nightFigures";
+import { makeDoctor, makeDoll, makeTreeMan, makeTwisted, makeWoman, type Figure } from "./nightFigures";
 import { NIGHTS, type NightState } from "./nightLevels";
 import { createNightSound, type Place } from "./nightSound";
 
@@ -11,8 +11,10 @@ export { CAMERA_NAMES, NIGHTS, type NightState } from "./nightLevels";
  *
  * Tardan en aparecer, pero una vez que aparecen avanzan rápido y se pueden juntar.
  * - El Doctor (naranja): asoma del piso de su consultorio, después espera pegado a la
- *   puerta y al final la abre de par en par y se queda mirando. Hay cinco segundos para ir
- *   a cerrarla; si no, ataca.
+ *   puerta y al final la abre de par en par y se queda parado en el vano, con la cabeza
+ *   asomada al hall. Hay cinco segundos para ir a cerrarla; si no, ataca. La mitad de las
+ *   veces, en vez de esperar en la puerta, apaga su consultorio y se pega a la cámara: por
+ *   ella no se ve nada, solo sus dos ojos.
  * - La Muñeca (turquesa): aparece una vez y se queda. Tiene treinta segundos que se van
  *   gastando; cada segundo que se la mira por la cámara suma dos. Mientras más se gasta, más
  *   cerca de la cámara está. Si llega a cero, ataca. Su cajita de música avisa cómo viene.
@@ -23,6 +25,11 @@ export { CAMERA_NAMES, NIGHTS, type NightState } from "./nightLevels";
  *   la corrediza a medias y asoma la cabeza. Hay diez segundos para tocársela, que cierra la
  *   puerta de un golpe. Si no, entra y se corta la luz: oscuridad total y sin cámaras hasta
  *   subir la palanca del tablero, y la luz vuelve cinco segundos después.
+ *
+ * Y uno que no ataca: el Retorcido. Cada tanto aparece en el hall, a unos pasos de la
+ * recepción, del lado de la entrada, y se queda mirando mientras le crujen los huesos. Un
+ * instante después de verlo desaparece, y lo que deja es la vista que se cierra y el
+ * corazón a mil. Alguna noche, no todas, además dice que es él.
  *
  * Hay cinco noches, iguales salvo por la dificultad (ver NIGHTS): qué tan seguido aparecen,
  * cuánto tiempo dan una vez que salen y cuántos cortes de luz sueltos hay.
@@ -44,6 +51,8 @@ export interface NightContext {
     openingZ: number;
     backZ: number;
     gardenBackZ: number;
+    /** La pared del fondo de la entrada, la de la puerta de calle. */
+    roomZ: number;
     hallH: number;
     corridorH: number;
     doorTop: number;
@@ -115,7 +124,20 @@ const DOLL_AUDIBLE_S = 10;
 const FAULT_TICK_S = 5;
 const RESTORE_S = 5;
 const INTRO_S = 4;
+/** Cuánto de la luz del hall queda prendida de noche. */
+const LIGHT_LEVEL = 0.5;
 const SCARE_S = 1.5;
+/** El Retorcido: cada cuánto prueba aparecer, con qué chance, y cuánto espera a que lo vean. */
+const TWISTED_TICK_S = 7;
+const TWISTED_CHANCE = 0.14;
+const TWISTED_COOLDOWN_S = 70;
+const TWISTED_WAIT_S = 40;
+/** Lo que tarda en irse una vez que se lo ve, y lo que dura lo que deja. */
+const TWISTED_SEEN_S = 0.7;
+const DREAD_S = 8;
+/** La chance de que en la noche diga que es él, y cuánto dura. */
+const ITS_ME_CHANCE = 0.4;
+const ITS_ME_S = 2.8;
 
 type FoeKey = "doctor" | "doll" | "woman" | "tree";
 
@@ -166,14 +188,17 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
       }
     }
   });
-  const ambient = ctx.ambient.map((light) => ({ light, base: light.intensity }));
-  const environmentBase = scene.environmentIntensity;
+  // Todo el edificio más a oscuras que el hall de siempre: se ve, pero apenas.
+  for (const lamp of lamps) lamp.base *= LIGHT_LEVEL;
+  for (const glow of glowing) glow.base *= LIGHT_LEVEL;
+  const ambient = ctx.ambient.map((light) => ({ light, base: light.intensity * LIGHT_LEVEL }));
+  const environmentBase = scene.environmentIntensity * LIGHT_LEVEL;
   const flickering = new Set(ctx.flicker);
 
   let power = 1;
   function setPower(level: number) {
     power = level;
-    for (const { material, base } of glowing) material.emissiveIntensity = base * level;
+    for (const { material, base } of glowing) material.emissiveIntensity = material.userData.off ? 0 : base * level;
     ctx.glow.color.copy(glowBase).multiplyScalar(level);
     // Sin luz queda apenas un resto de la luna: los ojos, los rayos y nada más.
     for (const { light, base } of ambient) light.intensity = base * (0.06 + 0.94 * level);
@@ -198,7 +223,8 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
     deadline: 0,
   }));
   const foe = (key: FoeKey) => foes.find((f) => f.key === key)!;
-  if (blood) paintBlood(scene, layout, keep, nightIndex, foes.map((f) => f.figure.group));
+  const twisted = makeTwisted(scene, keep);
+  if (blood) paintBlood(scene, layout, keep, nightIndex, [...foes.map((f) => f.figure.group), twisted.group]);
   const doctor = foe("doctor");
   const doll = foe("doll");
   const woman = foe("woman");
@@ -301,6 +327,38 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
   let dollLeft: number | null = null;
   const plantsTouched = new Set<number>();
   let scareFoe: Foe | null = null;
+  const lurkLight = new THREE.PointLight("#c8d3e6", 0, 1.6, 1.5);
+  scene.add(lurkLight);
+  /** El Doctor está en su consultorio a oscuras, y no en la puerta. */
+  let doctorDark = false;
+  let roomDark = false;
+  // Sus ojos, casi tocando el lente. La cámara de ese consultorio, mientras tanto, no ve
+  // nada más que esta capa: el cuarto, los muebles y hasta los relámpagos quedan afuera.
+  const EYES_LAYER = 5;
+  const darkEyes = new THREE.Group();
+  const eyeGeometry = keep(new THREE.SphereGeometry(1, 12, 8));
+  const eyeCore = keep(new THREE.MeshBasicMaterial({ color: "#fff4d6", fog: false }));
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(eyeGeometry, eyeCore);
+    eye.scale.set(0.011, 0.007, 0.004);
+    eye.position.set(side * 0.042, 0, 0);
+    eye.rotation.z = side * -0.12;
+    eye.layers.set(EYES_LAYER);
+    darkEyes.add(eye);
+  }
+  darkEyes.visible = false;
+  // Un poco abajo y a la derecha del centro, a un palmo del lente.
+  darkEyes.quaternion.copy(feeds[0].quaternion);
+  darkEyes.position.copy(feeds[0].position).add(new THREE.Vector3(0.05, -0.06, -0.3).applyQuaternion(feeds[0].quaternion));
+  scene.add(darkEyes);
+  // La luz del techo de ese consultorio, para apagarla mientras está ahí.
+  const roomLamp = lamps.find(({ light }) => light.position.x < layout.hallLeft - 1 && Math.abs(light.position.z - ctx.doorZ[0]) < 0.3);
+  const roomLampBase = roomLamp?.base ?? 0;
+  function endDark() {
+    doctorDark = false;
+    darkEyes.visible = false;
+    if (roomLamp) roomLamp.base = roomLampBase;
+  }
   let scareUntil = 0;
   let outside = false;
   const lastStep = walker.position.clone();
@@ -310,6 +368,23 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
   scareLight.position.set(0, -0.45, -0.2);
   camera.add(scareLight);
   scene.add(camera);
+
+  /**
+   * Pega una figura delante de la cámara, con la cara en el medio a esa distancia. Se mide
+   * la cabeza de verdad: encorvados o con el cuello quebrado, la altura sola no alcanza.
+   */
+  const faceAt = new THREE.Vector3();
+  function frameFace(figure: Figure, distance: number, roll = 0) {
+    camera.add(figure.group);
+    figure.group.visible = true;
+    figure.group.position.set(0, 0, 0);
+    figure.group.rotation.set(0, 0, roll);
+    figure.group.updateMatrixWorld(true);
+    const head = figure.head.getWorldPosition(new THREE.Vector3());
+    camera.worldToLocal(head);
+    faceAt.set(-head.x, -head.y - 0.03, -head.z - distance);
+    figure.group.position.copy(faceAt);
+  }
 
   function advance(f: Foe) {
     f.stage += 1;
@@ -339,7 +414,13 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
     }
 
     if (f.stage === 2) {
-      if (index >= 0) waitAtDoor(f, index);
+      if (f.key === "doctor" && Math.random() < 0.5) {
+        // Apagó su consultorio y está pegado a la cámara: no se lo ve, solo los ojos.
+        doctorDark = true;
+        f.figure.hide();
+        darkEyes.visible = true;
+        if (roomLamp) roomLamp.base = 0;
+      } else if (index >= 0) waitAtDoor(f, index);
       else {
         // Contra el vidrio del jardín, con las manos apoyadas, mirando adentro.
         f.figure.place(0.5, 0, backZ - 0.2 - f.figure.reach, 0);
@@ -352,12 +433,24 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
 
     sound.screech();
     if (f.key === "doctor") {
+      endDark();
       f.deadline = time + DOCTOR_S;
-      doors[0].target = 1;
+      // La puerta abierta de par en par. Él, parado en el vano, apenas adentro: el cuerpo a
+      // la altura de la puerta y la cabeza asomada al hall.
+      // Más que el uno de siempre: la hoja queda contra la pared y el vano, a la vista desde
+      // cualquier lado.
+      doors[0].target = 2.45;
       doors[0].closeAt = Infinity;
-      // Del lado del marco donde no está la hoja abierta: más al medio, la atravesaba.
-      f.figure.place(left + 0.7, 0, ctx.doorZ[0] + 0.6, 0);
-      f.figure.pose("stand");
+      f.figure.place(left - 0.38, 0, ctx.doorZ[0] + 0.05, Math.PI / 2 + 0.15);
+      f.figure.pose("lurk");
+      // Una luz fría que le da en la cara desde el pasillo: sin ella, en la rendija oscura
+      // no se le ve más que los ojos.
+      f.figure.group.updateMatrixWorld(true);
+      f.figure.head.getWorldPosition(lurkLight.position);
+      lurkLight.position.x += 0.35;
+      lurkLight.position.y -= 0.3;
+      lurkLight.position.z -= 0.45;
+      lurkLight.intensity = 0.9;
       sound.creak(place, 1.2);
     } else if (f.key === "woman") {
       f.deadline = time + WOMAN_S;
@@ -389,6 +482,10 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
   function reset(f: Foe) {
     f.stage = 0;
     f.since = time;
+    if (f.key === "doctor") {
+      lurkLight.intensity = 0;
+      endDark();
+    }
     delete f.figure.group.userData.onTouch;
     f.figure.hide();
   }
@@ -426,6 +523,16 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
     if (next === cam) return;
     cam = next;
     sound.crackle();
+    // Muy de vez en cuando, al cambiar, el Retorcido está en ese consultorio. Un instante.
+    if (next < 3 && twistedAt === "gone" && itsMeUntil < 0 && Math.random() < 0.05) {
+      const z = ctx.doorZ[next];
+      twisted.place(left - 0.3, 0, z - 0.35, 0);
+      twisted.face(feeds[next].position.x, feeds[next].position.z);
+      twisted.pose("stand");
+      glimpseUntil = time + 0.35 + Math.random() * 0.3;
+      glimpseCam = next;
+      sound.setStatic(true);
+    }
   }
 
   function blackout(byFault = false) {
@@ -447,6 +554,7 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
   }
 
   function scare(f: Foe) {
+    endItsMe();
     phase = "scare";
     closeCams(false);
     ctx.setView(null);
@@ -456,10 +564,9 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
     const { figure } = f;
     figure.pose("stand");
     figure.scream(true);
-    camera.add(figure.group);
-    figure.group.rotation.set(0, 0, 0);
-    figure.group.position.set(0, -figure.headY, -0.55);
+    frameFace(figure, 0.55);
     scareLight.intensity = 1.4;
+    lurkLight.intensity = 0;
     sound.scream();
     sound.setHeartbeat(0);
     sound.setMusicBox(null);
@@ -628,7 +735,8 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
         if (time > lamp.flickUntil && Math.random() < dt * 0.12) lamp.flickUntil = time + 0.2 + Math.random() * 0.6;
         if (time < lamp.flickUntil) factor *= Math.random() > 0.5 ? 1 : 0.1;
       }
-      lamp.light.intensity = lamp.base * factor;
+      // La lámpara del escritorio, si se la apagó, queda apagada pase lo que pase.
+      lamp.light.intensity = lamp.light.userData.off ? 0 : lamp.base * factor;
     }
   }
 
@@ -641,11 +749,189 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
     // En las noches de sangre la tensión arranca alta y no baja.
     const floor = blood ? 0.45 : 0;
     sound.setTension(Math.min(1, floor + hour / 10 + out * 0.12 + (striking ? 0.3 : 0) + (blackoutAt >= 0 ? 0.2 : 0)));
-    sound.setHeartbeat(phase !== "play" ? 0 : striking ? 128 : waiting ? 78 : 0);
+    // Después de ver al Retorcido, el corazón a mil, y baja de a poco.
+    const dread = dreadUntil > time ? (dreadUntil - time) / DREAD_S : 0;
+    const beat = phase !== "play" ? 0 : itsMeUntil >= 0 ? 170 : striking ? 128 : waiting ? 78 : 0;
+    sound.setHeartbeat(dread > 0 ? Math.max(beat, 90 + dread * 90) : beat);
     // La cajita se oye solo mirándola por la cámara, o cuando ya casi no le queda.
     const watchingDoll = cams && cam === 1 && blackoutAt < 0;
     const audible = dollLeft !== null && phase === "play" && (watchingDoll || dollLeft < DOLL_AUDIBLE_S);
     sound.setMusicBox(audible ? dollLeft! / DOLL_S : null);
+  }
+
+  /* ---------------- el Retorcido ---------------- */
+
+  // Una luz fría y débil encima de él, que titila: sin ella, al fondo de la entrada no se
+  // distingue de la pared.
+  const twistedLight = new THREE.PointLight("#b8c4d8", 0, 4.5, 1.6);
+  scene.add(twistedLight);
+  let twistedAt: "gone" | "waiting" | "seen" = "gone";
+  let twistedSince = -TWISTED_COOLDOWN_S;
+  let nextTwisted = GRACE_S + 15 + Math.random() * 30;
+  let nextSightCheck = 0;
+  let nextCrack = 0;
+  const TWISTED_SPOT = { x: 0.9, z: -1.3 };
+  let dreadUntil = -1;
+  let glimpseUntil = -1;
+  let glimpseCam = -1;
+  const eye = new THREE.Vector3();
+  const target = new THREE.Vector3();
+  const sight = new THREE.Raycaster();
+
+  /** Si desde donde está parado se le ve la cara: en pantalla y sin nada en el medio. */
+  function seesTwisted() {
+    if (cams || itsMeUntil >= 0) return false;
+    twisted.head.getWorldPosition(target);
+    const onScreen = target.clone().project(camera);
+    if (onScreen.z > 1 || Math.abs(onScreen.x) > 0.85 || Math.abs(onScreen.y) > 0.9) return false;
+    camera.getWorldPosition(eye);
+    const distance = eye.distanceTo(target);
+    sight.set(eye, target.sub(eye).normalize());
+    sight.far = distance;
+    for (const hit of sight.intersectObjects(scene.children, true)) {
+      let object: THREE.Object3D | null = hit.object;
+      let hidden = false;
+      let his = false;
+      while (object) {
+        if (!object.visible) hidden = true;
+        if (object === twisted.group) his = true;
+        object = object.parent;
+      }
+      if (hidden) continue;
+      return his || hit.distance > distance - 0.4;
+    }
+    return true;
+  }
+
+  function showTwisted() {
+    twistedAt = "waiting";
+    twistedSince = time;
+    // En el hall, a unos pasos del escritorio, del lado de la entrada: a la izquierda y
+    // atrás de quien está sentado frente a la computadora.
+    twisted.place(TWISTED_SPOT.x, 0, TWISTED_SPOT.z, 0);
+    twisted.face(walker.position.x, walker.position.z);
+    twisted.pose("stand");
+    twisted.eyes(true);
+    twistedLight.position.set(TWISTED_SPOT.x + 0.3, 2.6, TWISTED_SPOT.z - 0.9);
+    nextCrack = time + 0.5;
+  }
+
+  function hideTwisted() {
+    twistedAt = "gone";
+    twistedSince = time;
+    twisted.hide();
+    twistedLight.intensity = 0;
+  }
+
+  function updateTwisted() {
+    if (glimpseUntil >= 0 && (time >= glimpseUntil || !cams || cam !== glimpseCam)) {
+      glimpseUntil = -1;
+      twisted.hide();
+      sound.setStatic(false);
+    }
+    if (phase !== "play") {
+      if (twistedAt !== "gone") hideTwisted();
+      return;
+    }
+    if (twistedAt === "gone") {
+      if (time < nextTwisted) return;
+      nextTwisted = time + TWISTED_TICK_S * (0.8 + Math.random() * 0.4);
+      if (time - twistedSince < TWISTED_COOLDOWN_S || glimpseUntil >= 0 || itsMeUntil >= 0) return;
+      if (Math.random() < TWISTED_CHANCE * Math.min(2, level.appear)) {
+        showTwisted();
+        // Si justo se está mirando hacia ahí, no vale: aparece cuando nadie lo ve.
+        if (seesTwisted()) hideTwisted();
+      }
+      return;
+    }
+    twistedLight.intensity = Math.random() < 0.08 ? 0.15 : 1.1 * (0.4 + 0.6 * power);
+    // Mientras está, cada tanto le crujen los huesos y gime por lo bajo, desde donde está.
+    if (time >= nextCrack) {
+      nextCrack = time + 2.5 + Math.random() * 2.5;
+      sound.twisted(placeOf(TWISTED_SPOT.x, TWISTED_SPOT.z));
+    }
+    if (twistedAt === "waiting") {
+      twisted.face(walker.position.x, walker.position.z);
+      if (time - twistedSince > TWISTED_WAIT_S) return hideTwisted();
+      if (time < nextSightCheck) return;
+      nextSightCheck = time + 0.1;
+      if (seesTwisted()) {
+        twistedAt = "seen";
+        twistedSince = time;
+      }
+      return;
+    }
+    if (time - twistedSince >= TWISTED_SEEN_S) {
+      hideTwisted();
+      dreadUntil = time + DREAD_S;
+      sound.dread();
+    }
+  }
+
+  /* ---------------- "it's me" ---------------- */
+
+  let itsMeAt = Math.random() < ITS_ME_CHANCE ? HOUR_S * (1.5 + Math.random() * 3.5) : Infinity;
+  let itsMeUntil = -1;
+  let nextFlick = 0;
+
+  function startItsMe() {
+    itsMeUntil = time + ITS_ME_S;
+    itsMeAt = Infinity;
+    hideTwisted();
+    // Pegado a la cara, en el medio de la pantalla. Se lo gira un poco para que la cabeza,
+    // que la tiene acostada sobre el hombro, se lea como una cara, torcida igual.
+    twisted.pose("stand");
+    twisted.scream(true);
+    frameFace(twisted, 0.62, -1.15);
+    scareLight.intensity = 1.2;
+    sound.itsMe();
+  }
+
+  function endItsMe() {
+    if (itsMeUntil < 0) return;
+    itsMeUntil = -1;
+    scene.add(twisted.group);
+    twisted.group.visible = true;
+    twisted.scream(false);
+    twisted.hide();
+    scareLight.intensity = 0;
+  }
+
+  function updateItsMe() {
+    if (itsMeUntil < 0) {
+      if (phase === "play" && time >= itsMeAt) {
+        if (blackoutAt < 0 && twistedAt === "gone") startItsMe();
+        else itsMeAt = time + 10;
+      }
+      return;
+    }
+    if (time >= itsMeUntil || phase !== "play") return endItsMe();
+    // A saltos: la cara, negro, la cara. Cada cuadro dura lo que quiere.
+    if (time >= nextFlick) {
+      nextFlick = time + 0.05 + Math.random() * 0.13;
+      twisted.group.visible = Math.random() < 0.55;
+    }
+    ctx.setView(null);
+  }
+
+  /* ---------------- más cosas que se oyen ---------------- */
+
+  let nextSteps = GRACE_S + 40 + Math.random() * 40;
+  let nextBreath = 0;
+
+  function updateHaunting() {
+    if (phase !== "play") return;
+    // Pasos detrás: se da vuelta y no hay nadie.
+    if (time >= nextSteps) {
+      nextSteps = time + 35 + Math.random() * (60 - hour * 6);
+      const behind = walker.yaw + Math.PI + (Math.random() - 0.5) * 0.8;
+      sound.footsteps(placeOf(walker.position.x + Math.sin(behind) * 3, walker.position.z + Math.cos(behind) * 3));
+    }
+    // A oscuras, una respiración muy cerca, de un lado o del otro.
+    if (blackoutAt >= 0 && time >= nextBreath) {
+      nextBreath = time + 5 + Math.random() * 5;
+      sound.breath({ pan: Math.random() < 0.5 ? -0.8 : 0.8, near: 0.95 });
+    }
   }
 
   /* ---------------- el estado para la pantalla ---------------- */
@@ -663,6 +949,8 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
       doll: dollLeft === null ? null : Math.ceil(dollLeft),
       dollMax: DOLL_S,
       night: nightIndex,
+      dread: dreadUntil > time,
+      itsMe: itsMeUntil >= 0,
     };
     const key = JSON.stringify(state);
     if (key === last) return;
@@ -690,8 +978,8 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
 
     if (phase === "scare" && scareFoe) {
       const { group } = scareFoe.figure;
-      group.position.x = (Math.random() - 0.5) * 0.05;
-      group.position.y = -scareFoe.figure.headY + (Math.random() - 0.5) * 0.05;
+      group.position.x = faceAt.x + (Math.random() - 0.5) * 0.05;
+      group.position.y = faceAt.y + (Math.random() - 0.5) * 0.05;
       group.rotation.z = (Math.random() - 0.5) * 0.12;
       if (time >= scareUntil) {
         phase = "dead";
@@ -711,6 +999,9 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
         if (hour === 6) {
           phase = "won";
           for (const f of foes) reset(f);
+          endItsMe();
+          hideTwisted();
+          dreadUntil = -1;
           dollLeft = null;
           closeCams(false);
           ctx.releasePointer();
@@ -731,7 +1022,6 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
       }
 
       if (doctor.stage === 3) {
-        doctor.figure.face(walker.position.x, walker.position.z);
         if (time >= doctor.deadline) scare(doctor);
       }
     }
@@ -796,9 +1086,23 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
       sound.click();
     }
 
+    updateTwisted();
+    updateHaunting();
+
+    // El Doctor a oscuras: su cámara solo ve la capa de los ojos. Al entrar, se lo oye
+    // respirar ahí nomás.
+    const dark = cams && cam === 0 && doctorDark;
+    if (dark !== roomDark) {
+      roomDark = dark;
+      if (dark) {
+        feeds[0].layers.set(EYES_LAYER);
+        sound.breath({ pan: 0, near: 0.9 });
+      } else feeds[0].layers.set(0);
+    }
+
     updateMood();
 
-    infrared.forEach((light, index) => (light.intensity = cams && index === cam ? (index === 3 ? 4 : 2.2) : 0));
+    infrared.forEach((light, index) => (light.intensity = cams && index === cam && !roomDark ? (index === 3 ? 4 : 2.2) : 0));
     if (cams) {
       const feed = feeds[cam];
       if (feed.aspect !== camera.aspect) {
@@ -809,6 +1113,7 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
       }
       ctx.setView(feed);
     }
+    updateItsMe();
 
     refreshTouchables();
     emit();
@@ -841,8 +1146,9 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
     dispose() {
       sound.dispose();
       camera.remove(scareLight);
-      scene.remove(rain, flash, ...infrared);
+      scene.remove(rain, flash, twistedLight, lurkLight, darkEyes, ...infrared);
       for (const f of foes) f.figure.group.removeFromParent();
+      twisted.group.removeFromParent();
       for (const thing of disposables) thing.dispose();
     },
   };
