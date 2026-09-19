@@ -1100,6 +1100,10 @@ export function createNight(ctx: NightContext, nightIndex = 0): Night {
       } else feeds[0].layers.set(0);
     }
 
+    // Lo que se mueve solo en las figuras que están a la vista: respirar, temblar, mirar.
+    for (const f of foes) if (f.figure.group.position.y > -1) f.figure.tick?.(time);
+    twisted.tick?.(time);
+
     updateMood();
 
     infrared.forEach((light, index) => (light.intensity = cams && index === cam && !roomDark ? (index === 3 ? 4 : 2.2) : 0));

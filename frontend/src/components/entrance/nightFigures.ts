@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import * as flesh from "./nightFlesh";
 
 /**
  * Las cosas de la noche de terror. Cada una con su silueta, para reconocerla de un vistazo
@@ -35,6 +36,8 @@ export interface Figure {
   scream(on: boolean): void;
   /** Deja solo los ojos brillando, para cuando se lo ve en la oscuridad. */
   eyes(on: boolean): void;
+  /** Lo que se mueve solo mientras está a la vista: respirar, temblar, mirar. */
+  tick?(time: number): void;
   hide(): void;
 }
 
@@ -82,8 +85,6 @@ function kit(keep: Keep) {
   };
 }
 
-type Kit = ReturnType<typeof kit>;
-
 /** Lo que tienen todas: dónde van, hacia dónde miran, cómo se esconden. */
 interface Rig {
   root: THREE.Group;
@@ -100,7 +101,8 @@ function figure(
   reach: number,
   poses: Record<Exclude<Pose, "lurk">, (rig: Rig) => void> & Partial<Record<"lurk", (rig: Rig) => void>>,
   scream: (rig: Rig, on: boolean) => void,
-  eyes: (on: boolean) => void = () => {}
+  eyes: (on: boolean) => void = () => {},
+  tick?: (time: number) => void
 ): Figure {
   const { root } = rig;
   root.position.y = HIDDEN_Y;
@@ -136,44 +138,12 @@ function figure(
       scream(rig, on);
     },
     eyes,
+    tick,
     hide() {
       root.position.set(0, HIDDEN_Y, 0);
       root.rotation.set(0, 0, 0);
     },
   };
-}
-
-/** Un brazo largo con codo y dedos: cuelga del hombro, a lo largo de -y. */
-function arm(
-  k: Kit,
-  shoulder: THREE.Group,
-  color: string,
-  skin: string,
-  upper: number,
-  lower: number,
-  radius: number,
-  fingers: number,
-  fingerLength: number,
-  handColor = skin
-) {
-  k.cyl(shoulder, color, radius, upper, [0, -upper / 2, 0]);
-  const elbow = k.pivot(shoulder, [0, -upper, 0]);
-  elbow.rotation.x = -0.15;
-  k.ball(elbow, color, [radius * 1.15, radius * 1.15, radius * 1.15], [0, 0, 0]);
-  k.cyl(elbow, skin, radius * 0.75, lower, [0, -lower / 2, 0]);
-  const hand = k.pivot(elbow, [0, -lower, 0]);
-  k.box(hand, handColor, [radius * 1.6, 0.08, radius * 1.2], [0, -0.03, 0]);
-  // Dedos largos, con un nudillo y la punta curvada como garra.
-  for (let i = 0; i < fingers; i++) {
-    const spread = (i - (fingers - 1) / 2) * 0.022;
-    const finger = k.pivot(hand, [spread, -0.07, 0.005]);
-    finger.rotation.z = spread * 3;
-    k.cyl(finger, handColor, 0.008, fingerLength * 0.6, [0, -fingerLength * 0.3, 0]);
-    const tip = k.pivot(finger, [0, -fingerLength * 0.6, 0]);
-    tip.rotation.x = 0.5;
-    k.cyl(tip, handColor, 0.006, fingerLength * 0.45, [0, -fingerLength * 0.22, 0]);
-  }
-  return hand;
 }
 
 const armPoses = {
@@ -201,142 +171,789 @@ export function makeDoctor(scene: THREE.Scene, keep: Keep): Figure {
   const k = kit(keep);
   const root = new THREE.Group();
   const body = k.pivot(root, [0, 0, 0]);
-  const coat = "#9c9482";
-  const coatDark = "#6f6858";
-  const skin = "#7d8076";
-  const blood = "#3d0806";
-  const pants = "#141417";
 
-  // Piernas de palo, con las rodillas apenas para atrás y el pantalón hecho jirones.
+  /* --- de qué está hecho --- */
+
+  const skinArt = flesh.skinTexture("#9a9d90", 7, 0.55);
+  const coatArt = flesh.clothTexture("#b3ab96", 21, 1);
+  const chance = flesh.dice(17);
+
+  /** Un material con su relieve, para que la luz agarre los poros y las fibras. */
+  function surface(color: string, art: THREE.CanvasTexture | null, repeat: number, bump: number, roughness: number, side?: THREE.Side) {
+    const map = (repeat === 1 ? art : art?.clone()) ?? null;
+    if (map && map !== art) {
+      map.repeat.set(repeat, repeat);
+      map.needsUpdate = true;
+    }
+    if (map) keep(map);
+    const bumpMap = flesh.relief(map);
+    if (bumpMap) keep(bumpMap);
+    return keep(new THREE.MeshStandardMaterial({ color, map, bumpMap, bumpScale: bump, roughness, side: side ?? THREE.FrontSide }));
+  }
+  const plain = (color: string, roughness: number, metalness = 0) => keep(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
+
+  const skinHead = surface("#ffffff", skinArt, 1, 0.5, 0.84);
+  const skinBody = surface("#f0f0ea", skinArt, 2, 0.6, 0.88);
+  const coat = surface("#ffffff", coatArt, 1, 0.7, 0.95, THREE.DoubleSide);
+  const rag = surface("#4a4a54", coatArt, 2, 0.7, 1, THREE.DoubleSide);
+  const dark = plain("#080505", 1);
+  const bone = plain("#cfc4a4", 0.55);
+  const metal = plain("#98a1a6", 0.3, 0.6);
+  const leather = plain("#17151a", 0.8);
+  const gore = plain("#46100c", 0.35);
+  const wet = plain("#2a0b09", 0.25);
+  const nailMat = plain("#241a18", 0.45);
+  const sclera = plain("#b3ac93", 0.25);
+
+  /** Una pieza ya armada, colgada de donde corresponda. */
+  function piece(parent: THREE.Object3D, geometry: THREE.BufferGeometry, material: THREE.Material) {
+    const mesh = new THREE.Mesh(keep(geometry), material);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  /* --- las piernas: palos con el pantalón hecho jirones --- */
+
   const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.1, 1.02, 0]), k.pivot(body, [0.1, 1.02, 0])];
-  for (const leg of legs) {
-    k.cyl(leg, pants, 0.045, 0.52, [0, -0.26, 0]);
+  legs.forEach((leg, side) => {
+    piece(leg, flesh.limb(0.52, 0.066, 0.052, { bend: 0.008, rough: 0.05, seed: side * 3 }), rag);
+    // El ruedo del pantalón, comido y colgando en tiras alrededor de la rodilla.
+    const strips: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + side;
+      const length = 0.08 + ((i * 7) % 5) * 0.035;
+      strips.push(
+        flesh.at(
+          flesh.cloth(
+            0.05,
+            length,
+            (v) => {
+              v.z += Math.sin(v.x * 44 + i) * 0.005;
+              if (v.y < -length / 2 + 0.012) v.y += flesh.fbm(v.x * 30, i, 0, 2) * 0.03;
+            },
+            [3, 4]
+          ),
+          [Math.sin(angle) * 0.054, -0.47 - length / 2, Math.cos(angle) * 0.054],
+          [0, angle, 0]
+        )
+      );
+    }
+    piece(leg, flesh.fuse(strips), rag);
+
     const knee = k.pivot(leg, [0, -0.52, 0]);
     knee.rotation.x = 0.16;
-    k.ball(knee, pants, [0.05, 0.05, 0.05], [0, 0, 0]);
-    k.cyl(knee, skin, 0.03, 0.46, [0, -0.23, 0]);
-    k.box(knee, "#0a0a0a", [0.09, 0.05, 0.26], [0, -0.48, 0.06]);
-    for (const x of [-0.03, 0.03]) k.box(knee, pants, [0.025, 0.1, 0.01], [x, -0.04, 0.045]).rotation.z = x * 6;
-  }
+    piece(
+      knee,
+      flesh.blob([0.058, 0.052, 0.056], 10, (v) => {
+        flesh.swell(v, [0, 0.005, 0.048], 0.05, 0.014);
+        flesh.lumps(v, 28, 0.008, side);
+      }),
+      skinBody
+    );
+    // La pantorrilla, flaca y con las venas marcadas.
+    piece(knee, flesh.limb(0.46, 0.042, 0.028, { rough: 0.1, seed: 5 + side }), skinBody);
+    // El zapato: grande, gastado y con la puntera levantada.
+    piece(
+      knee,
+      flesh.at(
+        flesh.blob([0.052, 0.045, 0.12], 10, (v) => {
+          v.y = Math.max(v.y, -0.022);
+          flesh.dent(v, [0, 0.03, -0.06], 0.07, 0.022);
+          flesh.swell(v, [0, 0.01, 0.1], 0.05, 0.008);
+          flesh.lumps(v, 22, 0.006, 2 + side);
+        }),
+        [0, -0.48, 0.045]
+      ),
+      leather
+    );
+  });
+
+  /* --- el torso: doblado, vacío y abierto --- */
 
   const torso = k.pivot(body, [0, 1.02, 0]);
-  // Doblado por la mitad, con los hombros caídos hacia adelante.
   torso.rotation.x = 0.34;
-  // El guardapolvo abierto: dos paños, y entre medio el pecho hundido, con las costillas.
-  for (const side of [-1, 1]) {
-    k.box(torso, coat, [0.17, 0.78, 0.2], [side * 0.13, 0.5, -0.01]);
-    // El faldón, largo hasta las rodillas y roto en tiras.
-    for (let i = 0; i < 4; i++) {
-      const strip = k.box(torso, i % 2 ? coatDark : coat, [0.07, 0.5 + ((i * 3) % 4) * 0.08, 0.02], [side * (0.06 + i * 0.05), -0.2, 0.08 - i * 0.04]);
-      strip.rotation.z = side * (0.04 + i * 0.03);
+
+  const chest = piece(
+    torso,
+    flesh.at(
+      flesh.blob([0.175, 0.42, 0.112], 18, (v) => {
+        // Pecho hundido y panza vacía: se le marcan las costillas, las clavículas y la cadera.
+        flesh.dent(v, [0, 0.02, 0.11], 0.19, 0.05);
+        flesh.dent(v, [0, -0.2, 0.09], 0.16, 0.06);
+        for (let i = 0; i < 6; i++) {
+          const y = 0.19 - i * 0.055;
+          for (const s of [-1, 1]) flesh.ridge(v, [s * 0.02, y, 0.105], [s * 0.155, y - 0.07, -0.02], 0.017, 0.03);
+        }
+        for (const s of [-1, 1]) {
+          flesh.ridge(v, [s * 0.02, 0.3, 0.09], [s * 0.145, 0.325, 0.005], 0.026, 0.024);
+          flesh.swell(v, [s * 0.155, 0.35, 0], 0.09, 0.022);
+          flesh.swell(v, [s * 0.115, -0.33, 0.05], 0.06, 0.028);
+        }
+        // El surco del esternón, de la garganta al estómago.
+        flesh.ridge(v, [0, 0.28, 0.12], [0, 0.02, 0.12], 0.026, -0.016);
+        flesh.lumps(v, 11, 0.009, 4);
+        flesh.lumps(v, 34, 0.003, 12);
+      }),
+      [0, 0.48, 0]
+    ),
+    skinBody
+  );
+
+  // El corte en Y de la autopsia, cerrado a mano y con los puntos cruzados y grandes.
+  const cut: flesh.Vec[][] = [
+    [
+      [0, 0.52, 0.108],
+      [0, 0.34, 0.118],
+      [0, 0.16, 0.115],
+      [0, 0.02, 0.095],
+    ],
+    [
+      [-0.12, 0.72, 0.05],
+      [-0.06, 0.62, 0.1],
+      [0, 0.52, 0.108],
+    ],
+    [
+      [0.12, 0.72, 0.05],
+      [0.06, 0.62, 0.1],
+      [0, 0.52, 0.108],
+    ],
+  ];
+  piece(
+    torso,
+    flesh.fuse(cut.map((line) => flesh.thread(line, 0.005, 16))),
+    wet
+  );
+  const seam: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 13; i++) {
+    const t = i / 12;
+    const y = 0.54 - t * 0.53;
+    const z = 0.118 - Math.abs(t - 0.35) * 0.05;
+    for (const s of [-1, 1]) {
+      seam.push(
+        flesh.thread(
+          [
+            [s * 0.036, y + 0.014, z - 0.012],
+            [0, y, z + 0.005],
+            [-s * 0.036, y - 0.014, z - 0.012],
+          ],
+          0.0032,
+          6
+        )
+      );
     }
   }
-  k.box(torso, "#1a0c0a", [0.1, 0.72, 0.16], [0, 0.52, 0.02]);
-  for (let i = 0; i < 5; i++) k.box(torso, "#b9b19f", [0.12, 0.018, 0.02], [0, 0.35 + i * 0.09, 0.1]).rotation.z = i % 2 ? 0.1 : -0.1;
-  // Manchas de sangre que chorrean del cuello y del bolsillo.
-  for (const [x, y, w, h] of [
-    [0.13, 0.72, 0.09, 0.22],
-    [-0.14, 0.38, 0.08, 0.3],
-    [0.12, 0.05, 0.1, 0.16],
-    [-0.12, -0.3, 0.06, 0.2],
-  ]) {
-    k.box(torso, blood, [w, h, 0.01], [x, y, 0.095]);
+  piece(torso, flesh.fuse(seam), leather);
+
+  // Un tajo que se abrió solo en el costado: adentro está negro y asoman dos costillas.
+  piece(torso, flesh.at(flesh.blob([0.018, 0.075, 0.02], 10), [-0.105, 0.6, 0.09], [0, 0, 0.25]), dark);
+  piece(
+    torso,
+    flesh.fuse([0, 1, 2].map((i) => flesh.at(flesh.limb(0.05, 0.006, 0.005, { rings: 3, radial: 6 }), [-0.105, 0.665 - i * 0.05, 0.098], [0, 0, 1.5]))),
+    bone
+  );
+
+  // El guardapolvo: dos paños que caen del hombro, con pliegues, y el faldón en tiras.
+  const panels: THREE.BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    panels.push(
+      flesh.at(
+        flesh.cloth(0.26, 0.62, (v) => {
+          v.z -= (v.x / 0.13) ** 2 * 0.1;
+          v.z += Math.sin(v.x * 26 + v.y * 9) * 0.01;
+          v.x *= 1 - Math.max(0, -v.y - 0.1) * 0.25;
+          if (v.y < -0.29) v.y += flesh.fbm(v.x * 40, side, 0, 2) * 0.06;
+        }),
+        [side * 0.125, 0.58, 0.055],
+        [0, -side * 0.16, 0]
+      )
+    );
+    for (let i = 0; i < 5; i++) {
+      const length = 0.24 + ((i * 3) % 4) * 0.1;
+      panels.push(
+        flesh.at(
+          flesh.cloth(
+            0.055,
+            length,
+            (v) => {
+              v.z += Math.sin(v.y * 22 + i) * 0.012;
+              if (v.y < -length / 2 + 0.02) v.y += flesh.fbm(v.x * 40, i * 3, 0, 2) * 0.05;
+            },
+            [3, 6]
+          ),
+          [side * (0.055 + i * 0.048), 0.27 - length / 2, 0.095 - i * 0.032],
+          [0, 0, side * (0.04 + i * 0.02)]
+        )
+      );
+    }
   }
-  // Los hombros huesudos, más altos que el cuello.
-  for (const side of [-1, 1]) k.ball(torso, coat, [0.09, 0.07, 0.1], [side * 0.24, 0.86, 0]);
+  // El cuello del guardapolvo, parado y sucio.
+  panels.push(
+    flesh.at(
+      flesh.cloth(0.3, 0.13, (v) => {
+        v.z -= (v.x / 0.15) ** 2 * 0.1;
+        v.y += Math.abs(v.x) * 0.25;
+      }),
+      [0, 0.86, -0.015],
+      [0.55, 0, 0]
+    )
+  );
+  piece(torso, flesh.fuse(panels), coat);
+  // Lo que le bajó del cuello y le empapó el guardapolvo, todavía sin secarse del todo.
+  piece(
+    torso,
+    flesh.fuse([
+      flesh.at(
+        flesh.cloth(0.15, 0.3, (v) => {
+          v.z -= (v.x / 0.075) ** 2 * 0.05;
+          // El borde de abajo no es una línea: es hasta donde llegó a bajar.
+          v.y -= Math.max(0, flesh.fbm(v.x * 26, 3, 0, 2) + 0.2) * (v.y < -0.1 ? 0.12 : 0);
+          v.x *= 1 - Math.max(0, -v.y - 0.06) * 1.4;
+        }),
+        [0, 0.66, 0.125]
+      ),
+    ]),
+    wet
+  );
+  // Lo que chorrea del faldón y de las costillas, a punto de gotear.
+  piece(
+    torso,
+    flesh.drips(
+      [
+        [-0.04, 0.28, 0.13],
+        [0.06, 0.26, 0.13],
+        [-0.12, 0.2, 0.11],
+        [0.13, 0.22, 0.1],
+        [-0.105, 0.53, 0.1],
+        [0.02, 0.04, 0.09],
+      ],
+      chance
+    ),
+    wet
+  );
+
+  /* --- los brazos: largos, con garras, un bisturí y una jeringa --- */
 
   const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.27, 0.84, 0]), k.pivot(torso, [0.27, 0.84, 0])];
-  const hands = arms.map((shoulder) => arm(k, shoulder, coat, skin, 0.66, 0.7, 0.04, 5, 0.26, "#2e0d0a"));
-  // Un bisturí largo en la mano derecha, y una jeringa en la otra.
-  k.box(hands[1], "#d6dbe0", [0.01, 0.22, 0.03], [0, -0.26, 0.03]);
-  k.box(hands[1], "#2a2a2a", [0.02, 0.1, 0.022], [0, -0.12, 0.03]);
-  k.cyl(hands[0], "#c9d2cf", 0.018, 0.16, [0, -0.2, 0.03]);
-  k.cyl(hands[0], "#5a0d0a", 0.014, 0.08, [0, -0.23, 0.03]);
-  k.cyl(hands[0], "#d6dbe0", 0.003, 0.1, [0, -0.33, 0.03]);
-  for (const shoulder of arms) k.box(shoulder, blood, [0.07, 0.18, 0.01], [0, -0.5, 0.042]);
+  const hands = arms.map((shoulder, side) => {
+    const sign = side ? 1 : -1;
+    piece(shoulder, flesh.at(flesh.limb(0.48, 0.07, 0.055, { rough: 0.12, seed: side }), [0, -0.01, 0]), coat);
+    piece(shoulder, flesh.limb(0.66, 0.042, 0.03, { bend: sign * 0.012, rough: 0.07, seed: 2 + side }), skinBody);
+    const elbow = k.pivot(shoulder, [0, -0.66, 0]);
+    elbow.rotation.x = -0.15;
+    piece(
+      elbow,
+      flesh.blob([0.042, 0.046, 0.042], 10, (v) => {
+        flesh.swell(v, [0, 0, -0.038], 0.045, 0.012);
+        flesh.lumps(v, 30, 0.008, side);
+      }),
+      skinBody
+    );
+    // El antebrazo, con los tendones tirantes.
+    piece(
+      elbow,
+      flesh.limb(0.7, 0.032, 0.023, { rough: 0.07, seed: 6 + side }),
+      skinBody
+    );
+    const hand = k.pivot(elbow, [0, -0.7, 0]);
 
-  // El cuello largo, quebrado hacia un costado.
+    /** Un dedo: tres falanges que se van cerrando, con nudillos y una uña negra. */
+    function claw(x: number, z: number, length: number, curl: number, seed: number) {
+      const parts: THREE.BufferGeometry[] = [];
+      let y = -0.062;
+      let angle = curl * 0.5;
+      for (let s = 0; s < 3; s++) {
+        const long = length * [0.44, 0.33, 0.23][s];
+        const phalanx = flesh.limb(long, 0.0098 - s * 0.0018, 0.0085 - s * 0.0018, { rough: 0.18, seed: seed + s, rings: 3, radial: 7 });
+        phalanx.rotateX(angle);
+        phalanx.translate(x, y, z);
+        parts.push(phalanx);
+        parts.push(flesh.at(flesh.blob([0.0115, 0.0095, 0.0115], 5), [x, y, z]));
+        y -= Math.cos(angle) * long;
+        z -= Math.sin(angle) * long;
+        angle += curl;
+      }
+      const nail = flesh.limb(0.024, 0.0075, 0.0005, { rings: 2, radial: 6 });
+      nail.rotateX(angle - curl);
+      nail.translate(x, y, z);
+      return { parts, nail };
+    }
+
+    const bits = [
+      flesh.at(
+        flesh.blob([0.036, 0.055, 0.022], 12, (v) => {
+          flesh.dent(v, [0, -0.01, 0.022], 0.045, 0.014);
+          flesh.lumps(v, 26, 0.006, side);
+        }),
+        [0, -0.03, 0]
+      ),
+    ];
+    const nails: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 5; i++) {
+      const spread = (i - 2) * 0.019;
+      const { parts, nail } = claw(spread, 0.004 + Math.abs(spread) * 0.3, 0.26 - Math.abs(i - 2) * 0.022, -0.22 - i * 0.03, 30 + i * 7 + side);
+      bits.push(...parts);
+      nails.push(nail);
+    }
+    piece(hand, flesh.fuse(bits), skinBody);
+    piece(hand, flesh.fuse(nails), nailMat);
+    // Las manos metidas en algo hasta el codo: lo que queda cae de las puntas de los dedos.
+    piece(
+      elbow,
+      flesh.at(flesh.limb(0.22, 0.029, 0.024, { rough: 0.07, seed: 6 + side }), [0, -0.7, 0]),
+      wet
+    );
+    piece(hand, flesh.drips([-0.038, -0.019, 0, 0.019, 0.038].map((x) => [x, -0.3 + Math.abs(x) * 0.5, 0.05] as flesh.Vec), chance), wet);
+    return hand;
+  });
+
+  // Un bisturí en una mano: la hoja con filo y el mango con la sangre seca.
+  piece(
+    hands[1],
+    flesh.fuse([
+      flesh.at(
+        flesh.sculpt(new THREE.BoxGeometry(0.004, 0.2, 0.026, 1, 5, 1), (v) => {
+          // La hoja se afina hacia la punta y tiene el filo de un solo lado.
+          const t = v.y / 0.2 + 0.5;
+          v.z += (1 - t) * 0.012;
+          v.x *= 0.3 + t * 0.9;
+        }),
+        [0, -0.3, 0.03]
+      ),
+    ]),
+    metal
+  );
+  piece(hands[1], flesh.at(new THREE.BoxGeometry(0.014, 0.1, 0.022), [0, -0.14, 0.03]), leather);
+  piece(hands[1], flesh.drips([[0, -0.4, 0.035]], chance), wet);
+  // Una jeringa en la otra, cargada hasta la mitad y con la aguja larga.
+  piece(hands[0], flesh.at(flesh.limb(0.15, 0.019, 0.019, { rings: 3 }), [0, -0.12, 0.03]), metal);
+  piece(hands[0], flesh.at(flesh.limb(0.07, 0.016, 0.016, { rings: 3 }), [0, -0.19, 0.03]), gore);
+  piece(hands[0], flesh.at(flesh.limb(0.12, 0.0022, 0.0012, { rings: 3 }), [0, -0.27, 0.03]), metal);
+
+  /* --- el cuello: quebrado, con los tendones y un agujero --- */
+
   const neck = k.pivot(torso, [0, 0.9, 0.02]);
   neck.rotation.set(0.35, 0, 0.42);
-  k.cyl(neck, skin, 0.035, 0.34, [0, 0.17, 0]);
-  for (let i = 0; i < 3; i++) k.ball(neck, "#6a6d63", [0.042, 0.02, 0.04], [0, 0.07 + i * 0.1, -0.01]);
+  piece(
+    neck,
+    flesh.at(
+      flesh.limb(0.36, 0.046, 0.038, { bend: 0.012, rough: 0.06, seed: 9 }),
+      [0, 0.36, 0]
+    ),
+    skinBody
+  );
+  piece(
+    neck,
+    flesh.fuse([
+      ...[-1, 1].map((s) =>
+        flesh.thread(
+          [
+            [s * 0.03, 0.02, 0.028],
+            [s * 0.026, 0.16, 0.034],
+            [s * 0.014, 0.31, 0.022],
+          ],
+          0.007,
+          10
+        )
+      ),
+      // Las vértebras, marcadas una por una en la nuca.
+      ...[0, 1, 2, 3].map((i) => flesh.at(flesh.blob([0.017, 0.012, 0.014], 7), [0, 0.07 + i * 0.075, -0.032])),
+    ]),
+    skinBody
+  );
+  // Lo que bajó del mentón le dejó el cuello pintado.
+  piece(
+    neck,
+    flesh.fuse([
+      ...[-0.02, 0.012, 0.03].map((x, i) =>
+        flesh.thread(
+          [
+            [x, 0.3, 0.038],
+            [x + 0.008, 0.2 - i * 0.03, 0.045],
+            [x + 0.004, 0.08 - i * 0.04, 0.04],
+          ],
+          0.005,
+          10
+        )
+      ),
+    ]),
+    wet
+  );
+  // La traqueotomía: un agujero con la cánula todavía puesta.
+  piece(neck, flesh.at(flesh.blob([0.022, 0.018, 0.012], 8), [0.01, 0.13, 0.038]), dark);
+  piece(neck, flesh.at(new THREE.TorusGeometry(0.019, 0.005, 4, 10), [0.01, 0.13, 0.042], [0, 0, 0]), metal);
+  piece(
+    neck,
+    flesh.fuse([
+      flesh.thread(
+        [
+          [0.01, 0.12, 0.04],
+          [0.02, 0.06, 0.05],
+          [0.03, -0.02, 0.045],
+        ],
+        0.006,
+        8
+      ),
+    ]),
+    wet
+  );
+
+  /* --- la cabeza --- */
+
   const head = k.pivot(neck, [0, 0.36, 0]);
-  // Una cabeza larga y chupada: el cráneo se marca, las mejillas se hunden.
-  const skull = k.ball(head, skin, [0.12, 0.19, 0.135], [0, 0.1, 0]);
-  for (const side of [-1, 1]) k.ball(head, "#5d6158", [0.035, 0.07, 0.04], [side * 0.085, 0.02, 0.07]);
-  // El espejo de cabeza de los médicos de antes, en una vincha, torcido.
-  const band = k.cyl(head, "#2b2b2b", 0.128, 0.03, [0, 0.2, 0]);
-  band.rotation.z = -0.12;
-  const mirror = k.cyl(head, "#9aa3a8", 0.04, 0.01, [0.045, 0.255, 0.125]);
-  mirror.rotation.set(Math.PI / 2 - 0.5, 0, 0.3);
-  k.ball(head, "#050505", [0.008, 0.008, 0.005], [0.045, 0.258, 0.13]);
-  // Cuencas negras y hondas, con un punto naranja en el fondo, y lágrimas de sangre.
+  // Todo lo de la cabeza cuelga de acá adentro, para poder estirarla entera de una.
+  const skull = k.pivot(head, [0, 0, 0]);
+
+  // El cráneo. Se esculpe centrado y después sube a su lugar: las cuencas son agujeros de
+  // verdad, no dos bolas negras pegadas a la cara.
+  piece(
+    skull,
+    flesh.at(
+      flesh.blob([0.115, 0.175, 0.135], 22, (v) => {
+        // La caja del cráneo tirada para atrás y para arriba, y la mandíbula angosta.
+        if (v.y > 0) v.z -= 0.05 * (v.y / 0.175) ** 2;
+        const low = Math.max(0, (-v.y - 0.02) / 0.15);
+        v.x *= 1 - 0.3 * low;
+        // Abajo del corte de la boca no hay nada: lo que sigue es la mandíbula, aparte.
+        if (v.y < -0.11) v.y = -0.11 - (-0.11 - v.y) * 0.55;
+        // Un lado más chico que el otro, y todo apenas volcado.
+        if (v.x < 0) v.x *= 0.94;
+        v.x += 0.018 * (v.y / 0.175);
+        for (const s of [-1, 1]) {
+          flesh.dent(v, [s * 0.05, 0.03, 0.105], 0.058, 0.05);
+          flesh.swell(v, [s * 0.06, 0.075, 0.1], 0.048, 0.013);
+          flesh.dent(v, [s * 0.105, 0.055, 0.015], 0.07, 0.022);
+          flesh.dent(v, [s * 0.082, -0.055, 0.07], 0.062, 0.03);
+          flesh.swell(v, [s * 0.085, -0.012, 0.08], 0.05, 0.012);
+        }
+        flesh.swell(v, [0, 0.075, 0.115], 0.085, 0.014);
+        // La nariz, hundida hasta el hueso.
+        flesh.dent(v, [0, -0.025, 0.135], 0.038, 0.032);
+        // El agujero de la trepanación, arriba, con el borde levantado.
+        flesh.swell(v, [0.04, 0.155, -0.02], 0.075, 0.012);
+        flesh.dent(v, [0.04, 0.16, -0.02], 0.052, 0.05);
+        // El bulto del otro lado, donde algo creció.
+        flesh.swell(v, [-0.1, 0.085, -0.05], 0.068, 0.022);
+        flesh.lumps(v, 13, 0.007, 3);
+        flesh.lumps(v, 40, 0.0025, 9);
+      }),
+      [0, 0.1, 0]
+    ),
+    skinHead
+  );
+  // Las orejas, una entera y la otra comida.
+  piece(
+    skull,
+    flesh.fuse(
+      [-1, 1].map((s) =>
+        flesh.at(
+          flesh.blob([0.016, s > 0 ? 0.046 : 0.03, 0.03], 9, (v) => {
+            flesh.dent(v, [0, 0, 0.02], 0.03, 0.012);
+            flesh.lumps(v, 40, 0.006, s);
+          }),
+          [s * 0.112, 0.085, -0.008],
+          [0, 0, s * 0.2]
+        )
+      )
+    ),
+    skinHead
+  );
+  // Adentro del agujero de la cabeza no hay nada.
+  piece(skull, flesh.at(flesh.blob([0.04, 0.03, 0.04], 8), [0.04, 0.245, -0.02]), dark);
+
+  /* la cara */
+
+  const eyeZ = 0.074;
   const sparks: THREE.Mesh[] = [];
   const glows: THREE.Mesh[] = [];
-  const sockets: THREE.Mesh[] = [];
+  const eyeSpins: THREE.Group[] = [];
   for (const side of [-1, 1]) {
-    sockets.push(k.ball(head, "#020202", [0.042, 0.052, 0.03], [side * 0.048, 0.13, 0.11]));
-    sparks.push(k.ball(head, "#ff8a2a", [0.008, 0.008, 0.008], [side * 0.048, 0.125, 0.136], true));
-    // Los ojos cuando la luz se apaga: más grandes, con un halo, y nada más alrededor.
-    const glow = k.ball(head, "#fff0cc", [0.036, 0.024, 0.012], [side * 0.05, 0.128, 0.14], true);
+    const socket = k.pivot(skull, [side * 0.05, 0.13, eyeZ]);
+    eyeSpins.push(socket);
+    // El ojo, amarillento y venoso, hundido en la cuenca.
+    piece(socket, flesh.blob([0.024, 0.024, 0.024], 10, (v) => flesh.lumps(v, 50, 0.004, side)), sclera);
+    piece(socket, flesh.at(flesh.blob([0.0105, 0.0105, 0.008], 8), [0, 0, 0.019]), dark);
+    sparks.push(k.ball(socket, "#ff8a2a", [0.005, 0.005, 0.005], [0, 0, 0.027], true));
+    // Los ojos cuando se corta la luz: más grandes, con halo, y nada alrededor.
+    const glow = k.ball(socket, "#fff0cc", [0.034, 0.024, 0.014], [0, 0, 0.02], true);
     glow.visible = false;
     glows.push(glow);
     const halo = new THREE.Mesh(
       glow.geometry,
       keep(new THREE.MeshBasicMaterial({ color: "#ff7a1a", transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }))
     );
-    halo.scale.set(0.058, 0.04, 0.02);
-    halo.position.set(side * 0.05, 0.128, 0.15);
+    halo.scale.set(1.7, 1.7, 1);
+    halo.position.z = 0.025;
     halo.visible = false;
-    head.add(halo);
+    socket.add(halo);
     glows.push(halo);
-    k.box(head, blood, [0.01, 0.13, 0.006], [side * 0.05, 0.05, 0.126]);
   }
-  // La boca abierta de oreja a oreja y cosida, con los puntos negros cruzados.
-  const mouth = k.box(head, "#0a0202", [0.16, 0.012, 0.01], [0, -0.01, 0.118]);
-  const stitches: THREE.Mesh[] = [];
-  for (let i = 0; i < 9; i++) {
-    const x = -0.07 + i * 0.0175;
-    stitches.push(k.box(head, "#0b0b0b", [0.004, 0.04, 0.004], [x, -0.01, 0.124]));
-  }
-  // Adentro, dientes que se ven cuando la abre.
-  const teeth: THREE.Mesh[] = [];
+  // Lo que le chorrea de las cuencas y de la nariz, ya seco.
+  piece(
+    skull,
+    flesh.fuse([
+      ...[-1, 1].map((s) =>
+        flesh.thread(
+          [
+            [s * 0.05, 0.1, 0.105],
+            [s * 0.057, 0.055, 0.1],
+            [s * 0.052, 0.005, 0.088],
+          ],
+          0.0024,
+          10
+        )
+      ),
+      flesh.thread(
+        [
+          [0.012, 0.045, 0.116],
+          [0.016, 0.02, 0.112],
+          [0.01, -0.005, 0.1],
+        ],
+        0.002,
+        8
+      ),
+    ]),
+    wet
+  );
+  // Los agujeros de la nariz, dos tajos.
+  piece(
+    skull,
+    flesh.fuse([-1, 1].map((s) => flesh.at(flesh.blob([0.006, 0.012, 0.008], 6), [s * 0.013, 0.058, 0.118]))),
+    dark
+  );
+
+  /* la boca: cosida de oreja a oreja, y la mandíbula que se descuelga */
+
+  // El hueco, tapado por los labios y la mandíbula mientras está cerrada.
+  piece(skull, flesh.at(flesh.blob([0.062, 0.03, 0.055], 10), [0, -0.012, 0.03]), dark);
+
+  /** Una fila de dientes en arco, desparejos y con faltantes, armada en el origen. */
+  const teeth = (rows: number, up: boolean, seed: number) => {
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < rows; i++) {
+      const t = i / (rows - 1) - 0.5;
+      if ((i * 5 + seed) % 7 === 3) continue;
+      const long = 0.02 + ((i * 3 + seed) % 4) * 0.007;
+      const tooth = flesh.limb(long, 0.0075, 0.001, { rings: 2, radial: 6 });
+      if (up) tooth.rotateZ(Math.PI);
+      tooth.rotateZ(t * 0.5);
+      tooth.rotateX((up ? -1 : 1) * 0.15);
+      tooth.translate(t * 0.14, 0, -t * t * 0.17);
+      parts.push(tooth);
+    }
+    return flesh.fuse(parts);
+  };
+  piece(skull, flesh.at(teeth(11, false, 1), [0, -0.004, 0.088]), bone);
+
+  // La costura: cruces de hilo negro de punta a punta de la boca.
+  const stitchParts: THREE.BufferGeometry[] = [];
+  const tornParts: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 10; i++) {
-    const x = -0.063 + i * 0.014;
-    const tooth = k.cone(head, "#d9cfb3", 0.006, 0.03, [x, 0.012, 0.12]);
-    tooth.rotation.x = Math.PI;
-    tooth.visible = false;
-    teeth.push(tooth);
-    const low = k.cone(head, "#d9cfb3", 0.006, 0.03, [x + 0.007, -0.06, 0.12]);
-    low.visible = false;
-    teeth.push(low);
+    const t = i / 9 - 0.5;
+    const x = t * 0.15;
+    const z = 0.101 - t * t * 0.17;
+    for (const s of [-1, 1]) {
+      stitchParts.push(
+        flesh.thread(
+          [
+            [x + s * 0.012, -0.022, z - 0.004],
+            [x, -0.008, z + 0.003],
+            [x - s * 0.012, 0.008, z - 0.004],
+          ],
+          0.0026,
+          5
+        )
+      );
+    }
+    // Cuando la boca se abre, de los mismos agujeros cuelgan los hilos cortados.
+    if (i % 2 === 0) {
+      tornParts.push(
+        flesh.thread(
+          [
+            [x, -0.004, z],
+            [x + 0.004, -0.02, z + 0.004],
+            [x - 0.003, -0.036, z],
+          ],
+          0.0022,
+          6
+        )
+      );
+    }
   }
-  // El barbijo roto, colgando de una sola oreja.
-  const mask = k.box(head, "#7f9ba3", [0.16, 0.09, 0.02], [0.07, -0.08, 0.1]);
-  mask.rotation.set(0.2, 0.25, 0.9);
-  k.box(head, "#5a0d0a", [0.05, 0.04, 0.005], [0.08, -0.08, 0.112]).rotation.z = 0.9;
+  // Los labios, gruesos y levantados alrededor de la costura.
+  piece(
+    skull,
+    flesh.fuse([
+      flesh.thread(
+        [
+          [-0.076, 0.004, 0.052],
+          [-0.038, 0.014, 0.088],
+          [0, 0.016, 0.098],
+          [0.038, 0.014, 0.088],
+          [0.076, 0.004, 0.052],
+        ],
+        0.0075,
+        16
+      ),
+      flesh.thread(
+        [
+          [-0.076, -0.024, 0.052],
+          [-0.038, -0.03, 0.088],
+          [0, -0.032, 0.098],
+          [0.038, -0.03, 0.088],
+          [0.076, -0.024, 0.052],
+        ],
+        0.0075,
+        16
+      ),
+    ]),
+    skinHead
+  );
+  // Lo que se le escapa por la boca cosida y le baja por el mentón y el cuello.
+  piece(
+    skull,
+    flesh.fuse([
+      ...[-0.05, 0.015, 0.045].map((x, i) =>
+        flesh.thread(
+          [
+            [x, -0.026, 0.085 - x * x * 2],
+            [x + 0.006, -0.06 - i * 0.015, 0.075],
+            [x + 0.004, -0.1 - i * 0.02, 0.055],
+          ],
+          0.0045,
+          8
+        )
+      ),
+      flesh.at(flesh.blob([0.05, 0.02, 0.03], 8), [0, -0.04, 0.07]),
+    ]),
+    wet
+  );
+  const stitches = piece(skull, flesh.fuse(stitchParts), leather);
+  const torn = piece(skull, flesh.fuse(tornParts), leather);
+  torn.visible = false;
+  // Los hilos de baba, de arriba abajo, para cuando abre.
+  const drool = piece(
+    skull,
+    flesh.fuse(
+      [-0.045, 0.01, 0.052].map((x, i) =>
+        flesh.thread(
+          [
+            [x, -0.012, 0.075 - x * x * 2],
+            [x + 0.004, -0.05 - i * 0.012, 0.07],
+            [x - 0.002, -0.085 - i * 0.02, 0.062],
+          ],
+          0.0016,
+          8
+        )
+      )
+    ),
+    keep(new THREE.MeshStandardMaterial({ color: "#c8c4a8", roughness: 0.1, transparent: true, opacity: 0.55 }))
+  );
+  drool.visible = false;
+
+  // La mandíbula: cuelga de las bisagras de atrás y se abre de verdad.
+  const jaw = k.pivot(skull, [0, 0.03, -0.085]);
+  piece(
+    jaw,
+    flesh.at(
+      flesh.blob([0.084, 0.058, 0.085], 14, (v) => {
+        // Chata arriba, con el mentón para adelante y para abajo.
+        if (v.y > 0) v.y *= 0.3;
+        flesh.swell(v, [0, -0.035, 0.065], 0.055, 0.018);
+        flesh.dent(v, [0, -0.02, -0.055], 0.06, 0.02);
+        flesh.lumps(v, 24, 0.007, 6);
+      }),
+      [0, -0.082, 0.095]
+    ),
+    skinHead
+  );
+  // Las ramas que suben hasta la bisagra, debajo de la oreja.
+  piece(
+    jaw,
+    flesh.fuse([-1, 1].map((s) => flesh.at(flesh.blob([0.017, 0.05, 0.02], 8), [s * 0.07, -0.05, 0.05]))),
+    skinHead
+  );
+  piece(jaw, flesh.at(teeth(9, true, 4), [0, -0.062, 0.155]), bone);
+  // La lengua, hinchada y quieta al fondo.
+  piece(jaw, flesh.at(flesh.blob([0.03, 0.013, 0.045], 8), [0, -0.072, 0.12]), gore);
+
+  /* lo que lleva puesto */
+
+  // El espejo de cabeza, en la vincha de cuero, torcido sobre una ceja.
+  const bandGeometry = new THREE.TorusGeometry(0.108, 0.0065, 6, 24);
+  bandGeometry.rotateX(Math.PI / 2);
+  bandGeometry.scale(1, 1, 1.22);
+  bandGeometry.rotateZ(-0.14);
+  bandGeometry.translate(0, 0.215, 0);
+  piece(skull, bandGeometry, leather);
+  piece(
+    skull,
+    flesh.fuse([
+      flesh.at(new THREE.TorusGeometry(0.03, 0.006, 5, 14), [0.052, 0.243, 0.118], [Math.PI / 2 - 1.05, 0, 0.3]),
+      flesh.at(new THREE.CylinderGeometry(0.028, 0.028, 0.005, 14), [0.052, 0.243, 0.116], [Math.PI / 2 - 1.05, 0, 0.3]),
+      flesh.at(new THREE.BoxGeometry(0.009, 0.03, 0.006), [0.052, 0.228, 0.102], [0.3, 0, 0]),
+    ]),
+    metal
+  );
+  piece(skull, flesh.at(flesh.blob([0.006, 0.006, 0.004], 7), [0.052, 0.243, 0.121]), dark);
+
+  // El barbijo, colgando de una oreja y pegado a la mejilla.
+  const mask = piece(
+    skull,
+    flesh.fuse([
+      flesh.at(
+        flesh.cloth(
+          0.105,
+          0.07,
+          (v) => {
+            v.z -= (v.x / 0.052) ** 2 * 0.022;
+            v.z += Math.sin(v.y * 40) * 0.005;
+            if (v.y < -0.025) v.x *= 1.15;
+          },
+          [5, 4]
+        ),
+        [0.078, -0.075, 0.055],
+        [0.1, -0.85, 1]
+      ),
+      flesh.thread(
+        [
+          [0.108, 0.08, -0.005],
+          [0.115, 0.02, 0.03],
+          [0.1, -0.04, 0.062],
+        ],
+        0.0026,
+        8
+      ),
+    ]),
+    coat
+  );
+
+  /* --- cómo se le pone la cara --- */
+
+  let jawBase = 0;
+
+  /** Abre la boca: los hilos se cortan, aparece la baba y la mandíbula se va de lado. */
+  function openJaw(open: number, twist: number) {
+    jawBase = open;
+    jaw.rotation.set(open, twist * 0.5, twist);
+    stitches.visible = open < 0.06;
+    torn.visible = open >= 0.06;
+    drool.visible = open >= 0.35;
+  }
 
   /**
-   * La cara de cuando se asoma: la cabeza estirada, un ojo que se le sale de la cuenca y la
-   * boca arrancada de las costuras, abierta en diagonal hasta el mentón.
+   * La cara de cuando se asoma por la puerta: la cabeza estirada, un ojo que se le sale de
+   * la cuenca, el otro casi cerrado y la mandíbula descolgada de costado.
    */
   function twistFace(on: boolean) {
-    skull.scale.set(on ? 0.105 : 0.12, on ? 0.23 : 0.19, 0.135);
-    sockets[0].scale.set(on ? 0.062 : 0.042, on ? 0.075 : 0.052, 0.03);
-    sparks[0].scale.setScalar(on ? 0.016 : 0.008);
-    sockets[1].scale.set(on ? 0.03 : 0.042, on ? 0.022 : 0.052, 0.03);
+    skull.scale.set(on ? 0.94 : 1, on ? 1.13 : 1, on ? 1.04 : 1);
+    skull.rotation.z = on ? 0.12 : 0;
+    eyeSpins[0].scale.setScalar(on ? 1.45 : 1);
+    eyeSpins[0].position.z = eyeZ + (on ? 0.016 : 0);
+    eyeSpins[1].scale.set(on ? 0.85 : 1, on ? 0.5 : 1, 1);
     mask.visible = !on;
-    mouth.scale.set(on ? 0.12 : 0.16, on ? 0.16 : 0.012, 0.01);
-    mouth.position.set(on ? 0.01 : 0, on ? -0.07 : -0.01, 0.118);
-    mouth.rotation.z = on ? 0.45 : 0;
-    for (const stitch of stitches) stitch.visible = !on;
-    teeth.forEach((tooth, i) => {
-      tooth.visible = on;
-      // Los de arriba quedan torcidos sobre el tajo; los de abajo, caídos hasta el mentón.
-      tooth.position.y = on ? (i % 2 ? -0.15 : 0.01) : i % 2 ? -0.06 : 0.012;
-    });
+    openJaw(on ? 0.62 : 0, on ? 0.2 : 0);
   }
-  const plain = (pose: (r: Rig) => void) => (r: Rig) => {
+  const calm = (pose: (r: Rig) => void) => (r: Rig) => {
     twistFace(false);
     pose(r);
   };
@@ -348,34 +965,33 @@ export function makeDoctor(scene: THREE.Scene, keep: Keep): Figure {
     2.25,
     1.55,
     {
-      emerge: plain((r) => {
+      emerge: calm((r) => {
         r.body.position.y = -1.3;
         armPoses.up(r);
         r.head.rotation.x = -0.5;
       }),
-      wait: plain((r) => {
+      wait: calm((r) => {
         armPoses.onDoor(r);
         r.head.rotation.set(0.25, 0, 0.35);
       }),
-      stand: plain((r) => {
+      stand: calm((r) => {
         armPoses.hang(r, 0.1);
         r.arms[1].rotation.x = -0.25;
         r.head.rotation.set(0.1, 0, -0.25);
       }),
-      reach: plain((r) => {
+      reach: calm((r) => {
         armPoses.reach(r);
         r.head.rotation.set(0, 0, -0.3);
       }),
       // Parado quieto en la oscuridad, con la cara levantada hacia la cámara del techo.
-      peek: plain((r) => {
+      peek: calm((r) => {
         armPoses.hang(r, 0.05);
         r.head.rotation.set(-0.7, 0, 0.2);
       }),
-      sit: plain((r) => {
+      sit: calm((r) => {
         armPoses.hang(r);
       }),
-      // Detrás de la puerta entreabierta, inclinado hacia la rendija: los dedos agarrados
-      // del canto de la hoja y la cabeza que asoma, volcada de costado.
+      // Parado en el vano de la puerta abierta, con la cabeza asomada al hall.
       lurk(r) {
         twistFace(true);
         r.body.rotation.x = 0.15;
@@ -387,15 +1003,27 @@ export function makeDoctor(scene: THREE.Scene, keep: Keep): Figure {
     (r, on) => {
       twistFace(false);
       mask.visible = !on;
-      mouth.scale.set(on ? 0.18 : 0.16, on ? 0.1 : 0.012, 0.01);
-      mouth.position.y = on ? -0.03 : -0.01;
-      for (const stitch of stitches) stitch.visible = !on;
-      for (const tooth of teeth) tooth.visible = on;
-      if (on) armPoses.reach(r);
+      openJaw(on ? 0.95 : 0, on ? -0.12 : 0);
+      for (const socket of eyeSpins) socket.scale.setScalar(on ? 1.25 : 1);
+      if (on) {
+        armPoses.reach(r);
+        // Levanta la cara del piso: con el cuello quebrado y la joroba, si no mira los pies.
+        r.head.rotation.set(-0.45, 0, -0.4);
+      }
     },
     (on) => {
       for (const glow of glows) glow.visible = on;
       for (const spark of sparks) spark.visible = !on;
+    },
+    (time) => {
+      // Respira, pero mal: toma aire de a poco y lo suelta de golpe.
+      const breath = Math.sin(time * 1.15);
+      chest.scale.set(1 + breath * 0.018, 1 - breath * 0.006, 1 + breath * 0.03);
+      // La mandíbula le tiembla, y más cuanto más abierta la tiene.
+      jaw.rotation.x = jawBase + Math.sin(time * 19) * 0.005 * (1 + jawBase * 5);
+      // Los ojos no se quedan quietos nunca.
+      const dart = Math.sin(time * 0.7) + Math.sin(time * 1.9) * 0.4;
+      for (const socket of eyeSpins) socket.rotation.set(dart * 0.08, dart * 0.15, 0);
     }
   );
 }
@@ -406,64 +1034,297 @@ export function makeDoll(scene: THREE.Scene, keep: Keep): Figure {
   const k = kit(keep);
   const root = new THREE.Group();
   const body = k.pivot(root, [0, 0, 0]);
-  const porcelain = "#ddd6c8";
-  const dress = "#0e3a3f";
+
+  const chinaArt = flesh.porcelainTexture("#ded6c4", 31, 0.35);
+  const dressArt = flesh.clothTexture("#2a6d73", 44, 0.45);
+  const chance = flesh.dice(93);
+
+  function surface(color: string, art: THREE.CanvasTexture | null, repeat: number, bump: number, roughness: number, side?: THREE.Side) {
+    const map = (repeat === 1 ? art : art?.clone()) ?? null;
+    if (map && map !== art) {
+      map.repeat.set(repeat, repeat);
+      map.needsUpdate = true;
+    }
+    if (map) keep(map);
+    const bumpMap = flesh.relief(map);
+    if (bumpMap) keep(bumpMap);
+    return keep(new THREE.MeshStandardMaterial({ color, map, bumpMap, bumpScale: bump, roughness, side: side ?? THREE.FrontSide }));
+  }
+  const plain = (color: string, roughness: number, metalness = 0) => keep(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
+  function piece(parent: THREE.Object3D, geometry: THREE.BufferGeometry, material: THREE.Material) {
+    const mesh = new THREE.Mesh(keep(geometry), material);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  // La porcelana brilla, así que va lisa y con poco relieve: lo que se ve son las grietas.
+  const china = surface("#ffffff", chinaArt, 1, 0.25, 0.35);
+  const chinaBody = surface("#f4f0e6", chinaArt, 2, 0.3, 0.38);
+  const dress = surface("#ffffff", dressArt, 1, 0.6, 0.95, THREE.DoubleSide);
+  const hollow = plain("#050404", 1);
+  const wet = plain("#33090a", 0.25);
+  const thread = plain("#141414", 0.9);
+  const rose = plain("#6e3234", 0.8);
+  const shoe = plain("#0d0d10", 0.6);
+
+  /* --- las piernas: porcelana con las articulaciones a la vista --- */
 
   const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.07, 0.5, 0]), k.pivot(body, [0.07, 0.5, 0])];
-  for (const leg of legs) {
-    k.cyl(leg, porcelain, 0.035, 0.46, [0, -0.23, 0]);
-    k.ball(leg, porcelain, [0.042, 0.042, 0.042], [0, -0.24, 0]);
-    k.box(leg, "#0b0b0b", [0.08, 0.06, 0.14], [0, -0.47, 0.03]);
-  }
+  legs.forEach((leg, side) => {
+    piece(leg, flesh.limb(0.24, 0.042, 0.032, { rough: 0.02, seed: side }), chinaBody);
+    // La rótula de bisagra, una bola que gira en el hueco.
+    piece(leg, flesh.at(flesh.blob([0.045, 0.045, 0.045], 10), [0, -0.25, 0]), chinaBody);
+    piece(leg, flesh.at(flesh.limb(0.2, 0.034, 0.028, { rough: 0.02, seed: 3 + side }), [0, -0.26, 0]), chinaBody);
+    piece(
+      leg,
+      flesh.at(
+        flesh.blob([0.046, 0.032, 0.075], 10, (v) => {
+          v.y = Math.max(v.y, -0.016);
+          flesh.swell(v, [0, 0, 0.06], 0.04, 0.006);
+        }),
+        [0, -0.455, 0.02]
+      ),
+      shoe
+    );
+    // Una media caída, con el elástico comido.
+    piece(
+      leg,
+      flesh.at(
+        flesh.limb(0.12, 0.038, 0.036, { rough: 0.05, seed: 7 + side }),
+        [0, -0.3 - side * 0.05, 0]
+      ),
+      dress
+    );
+  });
+
+  /* --- el cuerpo: vestido de fiesta arruinado --- */
+
   const torso = k.pivot(body, [0, 0.5, 0]);
-  k.cone(torso, dress, 0.25, 0.42, [0, 0.12, 0]);
-  // El vestido roto y manchado.
-  for (const [x, z, w] of [
-    [0.12, 0.18, 0.08],
-    [-0.15, 0.12, 0.06],
-    [0.02, 0.23, 0.05],
-  ]) {
-    k.box(torso, "#061b1d", [w, 0.12, 0.01], [x, -0.03, z]);
-  }
-  k.cyl(torso, dress, 0.11, 0.26, [0, 0.42, 0]);
-  k.cyl(torso, "#e9e4da", 0.14, 0.03, [0, 0.55, 0]);
+  piece(torso, flesh.at(flesh.limb(0.08, 0.045, 0.06, { rough: 0.03 }), [0, 0.6, 0]), chinaBody);
+  piece(torso, flesh.at(flesh.limb(0.24, 0.115, 0.105, { rough: 0.04 }), [0, 0.53, 0]), dress);
+  // La pollera: acampanada, con pliegues que bajan y el ruedo hecho tiras.
+  piece(
+    torso,
+    flesh.sculpt(new THREE.CylinderGeometry(0.11, 0.27, 0.44, 30, 8, true), (v) => {
+      const t = v.y / 0.44 + 0.5;
+      const angle = Math.atan2(v.z, v.x);
+      const fold = 1 + Math.sin(angle * 11) * 0.09 * (1 - t);
+      v.x *= fold;
+      v.z *= fold;
+      if (t < 0.12) v.y += flesh.fbm(v.x * 18, v.z * 18, 0, 2) * 0.07;
+    }).translate(0, 0.12, 0),
+    dress
+  );
+  // El cuello de encaje, ya gris.
+  piece(torso, flesh.at(new THREE.TorusGeometry(0.095, 0.018, 5, 18), [0, 0.555, 0], [Math.PI / 2, 0, 0]), dress);
+  // La faja de la cintura, corrida.
+  piece(torso, flesh.at(new THREE.TorusGeometry(0.115, 0.016, 4, 20), [0, 0.32, 0], [Math.PI / 2 + 0.12, 0, 0]), dress);
+
+  /* --- los brazos: uno entero y el otro sin dedos --- */
+
   const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.13, 0.52, 0]), k.pivot(torso, [0.13, 0.52, 0])];
-  for (const shoulder of arms) {
-    k.ball(shoulder, porcelain, [0.035, 0.035, 0.035], [0, 0, 0]);
-    k.cyl(shoulder, porcelain, 0.028, 0.3, [0, -0.16, 0]);
-    k.ball(shoulder, porcelain, [0.035, 0.035, 0.035], [0, -0.32, 0]);
-  }
+  arms.forEach((shoulder, side) => {
+    piece(shoulder, flesh.at(flesh.blob([0.04, 0.04, 0.04], 10), [0, 0, 0]), chinaBody);
+    piece(shoulder, flesh.limb(0.17, 0.03, 0.026, { rough: 0.02, seed: 9 + side }), chinaBody);
+    const elbow = k.pivot(shoulder, [0, -0.17, 0]);
+    piece(elbow, flesh.at(flesh.blob([0.032, 0.032, 0.032], 9), [0, 0, 0]), chinaBody);
+    piece(elbow, flesh.limb(0.16, 0.026, 0.022, { rough: 0.02, seed: 12 + side }), chinaBody);
+    const hand = k.pivot(elbow, [0, -0.16, 0]);
+    const bits = [flesh.at(flesh.blob([0.026, 0.03, 0.016], 9), [0, -0.02, 0])];
+    // A una mano le quedan tres dedos; la otra se rompió en la muñeca.
+    if (side === 1) {
+      for (let i = 0; i < 3; i++) {
+        bits.push(flesh.at(flesh.limb(0.035, 0.008, 0.006, { rings: 2, radial: 6 }), [(i - 1) * 0.015, -0.04, 0.004]));
+      }
+    } else {
+      bits.push(flesh.at(flesh.blob([0.022, 0.012, 0.018], 8), [0, -0.045, 0]));
+    }
+    piece(hand, flesh.fuse(bits), chinaBody);
+    if (side === 0) piece(hand, flesh.at(flesh.blob([0.019, 0.016, 0.016], 8), [0, -0.05, 0]), hollow);
+  });
+
+  /* --- la cabeza: demasiado grande y rota --- */
+
   const head = k.pivot(torso, [0, 0.6, 0]);
-  // Cabezona, de porcelana, con rajaduras, mejillas pintadas y ojos de botón.
-  k.ball(head, porcelain, [0.17, 0.18, 0.16], [0, 0.16, 0]);
-  k.ball(head, "#1d130d", [0.18, 0.15, 0.17], [0, 0.22, -0.035]);
-  k.box(head, "#1d130d", [0.3, 0.05, 0.1], [0, 0.3, 0.08]);
-  // Un ojo de botón que brilla y, del otro lado, el agujero de uno que se cayó.
-  k.ball(head, "#030303", [0.04, 0.04, 0.02], [0.06, 0.17, 0.14]);
-  k.ball(head, "#6ff2ff", [0.008, 0.008, 0.008], [0.06, 0.17, 0.162], true);
-  k.ball(head, "#000000", [0.05, 0.055, 0.04], [-0.062, 0.175, 0.125]);
-  for (const side of [-1, 1]) k.ball(head, "#8a2f2f", [0.025, 0.015, 0.01], [side * 0.09, 0.1, 0.14]);
-  // Rajaduras: una grande que baja del agujero del ojo, y otras más chicas.
-  for (const [x, y, len, tilt] of [
-    [-0.075, 0.1, 0.12, 0.25],
-    [-0.04, 0.26, 0.1, -0.5],
-    [0.03, 0.22, 0.12, 0.5],
-    [0.07, 0.1, 0.08, -0.7],
-    [-0.1, 0.03, 0.06, 1.1],
-  ]) {
-    k.box(head, "#141414", [0.007, len, 0.006], [x, y, 0.158]).rotation.z = tilt;
+  const skull = k.pivot(head, [0, 0, 0]);
+  piece(
+    skull,
+    flesh.at(
+      flesh.blob([0.168, 0.182, 0.158], 22, (v) => {
+        // Frente de nena, mentón chiquito y en punta.
+        flesh.swell(v, [0, 0.085, 0.1], 0.11, 0.012);
+        const low = Math.max(0, (-v.y - 0.04) / 0.14);
+        v.x *= 1 - 0.35 * low;
+        v.z *= 1 - 0.25 * low;
+        // La cuenca vacía, honda; del otro lado apenas el hueco del botón.
+        flesh.dent(v, [-0.064, 0.015, 0.125], 0.055, 0.06);
+        flesh.dent(v, [0.062, 0.012, 0.13], 0.05, 0.018);
+        // El pedazo que le falta arriba, y la grieta que baja del ojo vacío.
+        flesh.dent(v, [-0.1, 0.115, 0.02], 0.085, 0.05);
+        flesh.dent(v, [-0.07, -0.05, 0.11], 0.05, 0.012);
+        flesh.lumps(v, 34, 0.0018, 5);
+      }),
+      [0, 0.16, 0]
+    ),
+    china
+  );
+  // Adentro está hueca: por el agujero del ojo y por donde le falta el pedazo se ve negro.
+  piece(skull, flesh.at(flesh.blob([0.15, 0.162, 0.14], 14), [0, 0.16, 0]), hollow);
+  piece(skull, flesh.at(flesh.blob([0.045, 0.05, 0.035], 10), [-0.066, 0.175, 0.105]), hollow);
+  piece(skull, flesh.at(flesh.blob([0.06, 0.05, 0.05], 10), [-0.105, 0.275, 0.01]), hollow);
+
+  // El botón que le queda de ojo, con los hilos todavía puestos.
+  const eyeSpin = k.pivot(skull, [0.062, 0.172, 0.138]);
+  piece(eyeSpin, flesh.at(new THREE.CylinderGeometry(0.034, 0.034, 0.008, 14), [0, 0, 0], [Math.PI / 2, 0, 0]), plain("#08090b", 0.25));
+  const shine = k.ball(eyeSpin, "#6ff2ff", [0.007, 0.007, 0.007], [0, 0, 0.007], true);
+  const shineBase = shine.scale.clone();
+  piece(
+    eyeSpin,
+    flesh.fuse([
+      flesh.thread(
+        [
+          [-0.012, 0.012, 0.008],
+          [0.012, -0.012, 0.008],
+        ],
+        0.0025,
+        3
+      ),
+      flesh.thread(
+        [
+          [0.012, 0.012, 0.008],
+          [-0.012, -0.012, 0.008],
+        ],
+        0.0025,
+        3
+      ),
+    ]),
+    thread
+  );
+  // Del ojo que falta cuelga el hilo con el que estaba cosido, y lo que le chorreó.
+  piece(
+    skull,
+    flesh.fuse([
+      flesh.thread(
+        [
+          [-0.066, 0.15, 0.115],
+          [-0.072, 0.1, 0.13],
+          [-0.06, 0.05, 0.12],
+        ],
+        0.0022,
+        8
+      ),
+    ]),
+    thread
+  );
+  piece(
+    skull,
+    flesh.fuse([
+      ...[-0.075, -0.055].map((x, i) =>
+        flesh.thread(
+          [
+            [x, 0.14, 0.125],
+            [x - 0.004, 0.08 - i * 0.02, 0.135],
+            [x + 0.004, 0.02 - i * 0.03, 0.115],
+          ],
+          0.004,
+          8
+        )
+      ),
+    ]),
+    wet
+  );
+  // Las mejillas pintadas, corridas.
+  piece(
+    skull,
+    flesh.fuse([-1, 1].map((s) => flesh.at(flesh.blob([0.023, 0.014, 0.003], 8), [s * 0.09, 0.103, 0.14]))),
+    rose
+  );
+  // La nariz, apenas un botoncito.
+  piece(skull, flesh.at(flesh.blob([0.016, 0.014, 0.012], 8), [0, 0.13, 0.155]), china);
+
+  // La sonrisa: la porcelana se abrió de oreja a oreja y adentro hay dientitos parejos.
+  const mouth = piece(
+    skull,
+    flesh.at(
+      flesh.blob([0.062, 0.013, 0.022], 12, (v) => {
+        // Las puntas se levantan: sonríe más de lo que puede una cara.
+        v.y += (v.x / 0.062) ** 2 * 0.016;
+      }),
+      [0, 0.072, 0.136]
+    ),
+    hollow
+  );
+  const smile: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 9; i++) {
+    const t = i / 8 - 0.5;
+    const x = t * 0.108;
+    const y = 0.078 + t * t * 0.055;
+    const z = 0.145 - t * t * 0.14;
+    smile.push(flesh.at(flesh.limb(0.012, 0.006, 0.003, { rings: 2, radial: 5 }), [x, y + 0.007, z]));
+    smile.push(flesh.at(flesh.limb(0.011, 0.0055, 0.003, { rings: 2, radial: 5 }), [x + 0.006, y - 0.018, z], [0, 0, Math.PI]));
   }
-  // Una sonrisa demasiado ancha, con dientitos.
-  const mouth = k.ball(head, "#050505", [0.075, 0.018, 0.02], [0, 0.065, 0.142]);
-  for (let i = 0; i < 7; i++) k.box(head, "#e8e1cf", [0.012, 0.014, 0.006], [-0.054 + i * 0.018, 0.074, 0.158]);
-  // El pelo desgreñado.
-  for (let i = 0; i < 12; i++) {
-    const angle = -1.4 + (i / 11) * 2.8;
-    const strand = k.box(head, "#1d130d", [0.02, 0.2 + (i % 3) * 0.05, 0.01], [Math.sin(angle) * 0.17, 0.12, Math.cos(angle) * 0.1 - 0.06]);
-    strand.rotation.set(0.1, angle, Math.sin(angle) * 0.3);
+  const teeth = piece(skull, flesh.fuse(smile), china);
+  // La grieta que cruza la cara entera, de la frente al mentón.
+  piece(
+    skull,
+    flesh.fuse([
+      flesh.thread(
+        [
+          [-0.02, 0.33, 0.06],
+          [0.01, 0.26, 0.12],
+          [-0.01, 0.19, 0.15],
+          [0.02, 0.12, 0.15],
+          [0.05, 0.04, 0.12],
+          [0.04, -0.01, 0.08],
+        ],
+        0.0035,
+        20
+      ),
+      flesh.thread(
+        [
+          [-0.105, 0.2, 0.1],
+          [-0.14, 0.13, 0.06],
+          [-0.15, 0.05, 0.02],
+        ],
+        0.003,
+        10
+      ),
+    ]),
+    hollow
+  );
+
+  // El pelo: mechones apelmazados que caen, y algunos parados.
+  const hair: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 40; i++) {
+    // De la coronilla para atrás: adelante no cae ni un pelo, para que la cara se vea.
+    const angle = 0.95 + (i / 39) * (Math.PI * 2 - 1.9);
+    const wild = chance();
+    const long = 0.16 + wild * 0.24;
+    const x = Math.sin(angle) * 0.155;
+    const z = Math.cos(angle) * 0.14 - 0.01;
+    hair.push(
+      flesh.thread(
+        [
+          [x, 0.31, z],
+          [x * 1.25, 0.31 - long * 0.35, z * 1.2 + (wild - 0.5) * 0.03],
+          [x * 1.35 + (wild - 0.5) * 0.04, 0.31 - long * 0.75, z * 1.15],
+          [x * 1.15, 0.31 - long, z * 0.95 + (wild - 0.5) * 0.05],
+        ],
+        0.0045 + wild * 0.004,
+        7
+      )
+    );
   }
-  // El moño.
-  k.box(head, "#0e3a3f", [0.12, 0.05, 0.04], [0.09, 0.33, 0.02]).rotation.z = 0.4;
+  piece(skull, flesh.fuse(hair), plain("#1a120c", 0.85));
+  // El moño de la cabeza, torcido.
+  piece(
+    skull,
+    flesh.fuse([
+      flesh.at(new THREE.TorusGeometry(0.036, 0.009, 4, 12), [0.09, 0.3, 0.01], [1.3, 0.5, 0.5]),
+      flesh.at(new THREE.TorusGeometry(0.03, 0.008, 4, 12), [0.125, 0.285, -0.015], [1.3, 0.5, -0.5]),
+    ]),
+    dress
+  );
 
   scene.add(root);
   const rig: Rig = { root, body, head, arms, legs, torso };
@@ -499,11 +1360,22 @@ export function makeDoll(scene: THREE.Scene, keep: Keep): Figure {
       },
     },
     (r, on) => {
-      mouth.scale.set(0.075, on ? 0.07 : 0.018, 0.02);
+      mouth.scale.set(1, on ? 3.4 : 1, on ? 1.6 : 1);
+      teeth.visible = !on;
       if (on) {
         armPoses.reach(r);
         r.head.rotation.set(0, 0, 0);
       }
+    },
+    (on) => {
+      shine.scale.copy(shineBase).multiplyScalar(on ? 3.4 : 1);
+    },
+    (time) => {
+      // No respira. Cada tanto la cabeza se le mueve un grado, y el botón titila.
+      const twitch = Math.sin(time * 0.6) > 0.985 ? 1 : 0;
+      skull.rotation.z = twitch * 0.06;
+      skull.position.x = twitch * 0.004;
+      shine.visible = Math.sin(time * 7.3) > -0.85;
     }
   );
 }
@@ -514,49 +1386,273 @@ export function makeWoman(scene: THREE.Scene, keep: Keep): Figure {
   const k = kit(keep);
   const root = new THREE.Group();
   const body = k.pivot(root, [0, 0, 0]);
-  const dress = "#7e7c73";
-  const skin = "#9aa3a5";
-  const hair = "#040404";
+
+  const skinArt = flesh.skinTexture("#a9b0ac", 63, 0.4);
+  const gownArt = flesh.clothTexture("#8e8c80", 71, 0.5);
+  const chance = flesh.dice(211);
+
+  function surface(color: string, art: THREE.CanvasTexture | null, repeat: number, bump: number, roughness: number, side?: THREE.Side) {
+    const map = (repeat === 1 ? art : art?.clone()) ?? null;
+    if (map && map !== art) {
+      map.repeat.set(repeat, repeat);
+      map.needsUpdate = true;
+    }
+    if (map) keep(map);
+    const bumpMap = flesh.relief(map);
+    if (bumpMap) keep(bumpMap);
+    return keep(new THREE.MeshStandardMaterial({ color, map, bumpMap, bumpScale: bump, roughness, side: side ?? THREE.FrontSide }));
+  }
+  const plain = (color: string, roughness: number, metalness = 0) => keep(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
+  function piece(parent: THREE.Object3D, geometry: THREE.BufferGeometry, material: THREE.Material) {
+    const mesh = new THREE.Mesh(keep(geometry), material);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  // Ahogada: la piel gris y pesada, el camisón empapado y pegado al cuerpo.
+  const skin = surface("#ffffff", skinArt, 1, 0.45, 0.72);
+  const skinBody = surface("#f2f4f2", skinArt, 2, 0.5, 0.75);
+  const gown = surface("#ffffff", gownArt, 1, 0.65, 0.88, THREE.DoubleSide);
+  const dark = plain("#050505", 1);
+  const wet = plain("#2c0b09", 0.22);
+  const nailMat = plain("#1d1a1c", 0.4);
+  const mane = plain("#050506", 0.42);
 
   const torso = k.pivot(body, [0, 0, 0]);
-  k.cone(torso, dress, 0.33, 1.4, [0, 0.7, 0]);
-  // El ruedo deshilachado y manchas de barro.
-  for (let i = 0; i < 12; i++) {
-    const angle = (i / 12) * Math.PI * 2;
-    k.cone(torso, dress, 0.035, 0.18, [Math.sin(angle) * 0.31, 0.02, Math.cos(angle) * 0.31]).rotation.x = Math.PI;
-  }
-  for (const [x, y] of [
-    [0.1, 0.4],
-    [-0.14, 0.25],
-    [0.02, 0.8],
-  ]) {
-    k.box(torso, "#2c261d", [0.09, 0.14, 0.01], [x, y, 0.2 - y * 0.08]);
-  }
-  k.cyl(torso, dress, 0.13, 0.35, [0, 1.35, 0]);
-  const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.17, 1.47, 0]), k.pivot(torso, [0.17, 1.47, 0])];
-  for (const shoulder of arms) arm(k, shoulder, skin, skin, 0.5, 0.5, 0.028, 5, 0.18);
-  k.cyl(torso, skin, 0.035, 0.12, [0, 1.56, 0]);
+
+  /* --- el camisón: mojado, pegado y arrastrando --- */
+
+  piece(
+    torso,
+    flesh
+      .sculpt(new THREE.CylinderGeometry(0.1, 0.37, 1.4, 30, 12, true), (v) => {
+        const t = v.y / 1.4 + 0.5;
+        const angle = Math.atan2(v.z, v.x);
+        // Pegado arriba, suelto abajo: la tela mojada marca el cuerpo y después cae.
+        const cling = 1 - Math.max(0, t - 0.55) * 0.5;
+        const fold = 1 + Math.sin(angle * 13 + t * 4) * (0.02 + (1 - t) * 0.06);
+        v.x *= fold * cling;
+        v.z *= fold * cling;
+        // Se arrastra: el ruedo se alarga hacia atrás y está comido.
+        if (t < 0.1) {
+          v.y += flesh.fbm(v.x * 14, v.z * 14, 0, 2) * 0.12;
+          if (v.z < 0) v.z *= 1.35;
+        }
+      })
+      .translate(0, 0.7, 0),
+    gown
+  );
+  // Lo que le gotea del ruedo, ahí parada.
+  piece(
+    torso,
+    flesh.drips(
+      [
+        [-0.2, 0.06, 0.24],
+        [0.1, 0.04, 0.3],
+        [0.26, 0.05, -0.1],
+        [-0.28, 0.03, -0.14],
+      ],
+      chance
+    ),
+    wet
+  );
+
+  /* --- el cuerpo: los huesos marcados bajo la tela --- */
+
+  piece(
+    torso,
+    flesh.at(
+      flesh.blob([0.17, 0.26, 0.11], 16, (v) => {
+        for (const s of [-1, 1]) {
+          // Clavículas y hombros: lo único que se le nota de cuerpo.
+          flesh.ridge(v, [s * 0.02, 0.16, 0.08], [s * 0.14, 0.18, 0.005], 0.03, 0.02);
+          flesh.swell(v, [s * 0.15, 0.2, 0], 0.08, 0.018);
+        }
+        flesh.dent(v, [0, 0.02, 0.1], 0.14, 0.03);
+        flesh.lumps(v, 14, 0.008, 2);
+      }),
+      [0, 1.32, 0]
+    ),
+    skinBody
+  );
+  // Los breteles del camisón, uno caído del hombro.
+  piece(
+    torso,
+    flesh.fuse(
+      [-1, 1].map((side) =>
+        flesh.thread(
+          [
+            [side * 0.055, 1.38, 0.075],
+            [side * (0.13 + (side < 0 ? 0.03 : 0)), 1.44 - (side < 0 ? 0.07 : 0), 0.03],
+            [side * 0.1, 1.38, -0.06],
+          ],
+          0.012,
+          8
+        )
+      )
+    ),
+    gown
+  );
+
+  /* --- los brazos: largos, flacos, con las uñas negras --- */
+
+  const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.195, 1.46, 0]), k.pivot(torso, [0.195, 1.46, 0])];
+  arms.forEach((shoulder, side) => {
+    piece(shoulder, flesh.limb(0.5, 0.034, 0.026, { bend: (side ? 1 : -1) * 0.01, rough: 0.07, seed: side }), skinBody);
+    const elbow = k.pivot(shoulder, [0, -0.5, 0]);
+    elbow.rotation.x = -0.12;
+    piece(
+      elbow,
+      flesh.fuse([
+        flesh.at(flesh.blob([0.032, 0.036, 0.032], 9, (v) => flesh.lumps(v, 28, 0.007, side)), [0, 0, 0]),
+        flesh.at(flesh.limb(0.5, 0.026, 0.02, { rough: 0.07, seed: 4 + side }), [0, 0, 0]),
+      ]),
+      skinBody
+    );
+    const hand = k.pivot(elbow, [0, -0.5, 0]);
+    const bits = [flesh.at(flesh.blob([0.028, 0.042, 0.017], 10, (v) => flesh.dent(v, [0, -0.01, 0.017], 0.035, 0.01)), [0, -0.025, 0])];
+    const nails: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 5; i++) {
+      const spread = (i - 2) * 0.014;
+      const long = 0.17 - Math.abs(i - 2) * 0.018;
+      let y = -0.05;
+      let z = 0.004;
+      let angle = -0.1;
+      for (let s = 0; s < 2; s++) {
+        const bone = flesh.limb(long * (s ? 0.45 : 0.55), 0.0075 - s * 0.0015, 0.0065 - s * 0.0015, { rough: 0.16, seed: 20 + i, rings: 3, radial: 7 });
+        bone.rotateX(angle);
+        bone.translate(spread, y, z);
+        bits.push(bone);
+        bits.push(flesh.at(flesh.blob([0.009, 0.008, 0.009], 5), [spread, y, z]));
+        y -= Math.cos(angle) * long * (s ? 0.45 : 0.55);
+        z -= Math.sin(angle) * long * (s ? 0.45 : 0.55);
+        angle -= 0.22;
+      }
+      const nail = flesh.limb(0.026, 0.006, 0.0005, { rings: 2, radial: 6 });
+      nail.rotateX(angle + 0.22);
+      nail.translate(spread, y, z);
+      nails.push(nail);
+    }
+    piece(hand, flesh.fuse(bits), skinBody);
+    piece(hand, flesh.fuse(nails), nailMat);
+  });
+
+  /* --- el cuello quebrado --- */
+
+  piece(
+    torso,
+    flesh.fuse([
+      flesh.at(flesh.limb(0.14, 0.038, 0.034, { rough: 0.05, seed: 9 }), [0, 1.62, 0]),
+      // Las vértebras salidas, del lado en que se le fue la cabeza.
+      ...[0, 1, 2].map((i) => flesh.at(flesh.blob([0.015, 0.011, 0.012], 7), [0.004 * i, 1.52 + i * 0.035, -0.03])),
+    ]),
+    skinBody
+  );
+  // La marca que le dejó algo apretado alrededor del cuello.
+  piece(torso, flesh.at(new THREE.TorusGeometry(0.037, 0.005, 4, 14), [0, 1.55, 0], [Math.PI / 2 + 0.2, 0, 0]), wet);
+
+  /* --- la cabeza: la cara de abajo del pelo --- */
+
   const head = k.pivot(torso, [0, 1.62, 0]);
-  k.ball(head, skin, [0.11, 0.14, 0.12], [0, 0.05, 0]);
-  const mouth = k.ball(head, "#050505", [0.03, 0.006, 0.02], [0, -0.03, 0.105]);
-  // Un solo ojo a la vista, entre dos mechones.
-  k.ball(head, "#050505", [0.03, 0.03, 0.02], [0.045, 0.07, 0.1]);
-  k.ball(head, "#c8ff6a", [0.008, 0.008, 0.008], [0.045, 0.07, 0.12], true);
-  // El pelo: mechones largos que caen de la coronilla y tapan la cara, menos ese ojo.
-  k.ball(head, hair, [0.125, 0.1, 0.13], [0, 0.12, -0.01]);
-  const strands: THREE.Mesh[] = [];
-  // La cara que hay abajo: se ve recién cuando grita y se le abre el pelo.
-  for (const side of [-1, 1]) k.ball(head, "#020202", [0.028, 0.035, 0.02], [side * 0.045, 0.07, 0.1]);
-  for (let i = 0; i < 44; i++) {
-    const angle = (i / 44) * Math.PI * 2;
-    const x = Math.sin(angle) * 0.115;
-    const z = Math.cos(angle) * 0.12;
-    if (x > 0.02 && x < 0.075 && z > 0.05) continue;
-    const length = 0.6 + ((i * 7) % 5) * 0.1 + (z > 0 ? 0.15 : 0.35);
-    const strand = k.box(head, hair, [0.035, length, 0.012], [x, 0.14 - length / 2, z]);
-    strand.rotation.y = angle;
-    strands.push(strand);
-  }
+  // Todo lo de la cabeza cuelga acá adentro: así se puede mecer sin pisar la pose.
+  const sway = k.pivot(head, [0, 0, 0]);
+  piece(
+    sway,
+    flesh.at(
+      flesh.blob([0.105, 0.138, 0.115], 20, (v) => {
+        // Hinchada abajo y chupada arriba: la cara de la que estuvo mucho en el agua.
+        for (const s of [-1, 1]) {
+          flesh.dent(v, [s * 0.045, 0.03, 0.095], 0.05, 0.05);
+          flesh.dent(v, [s * 0.078, -0.03, 0.07], 0.055, 0.022);
+          flesh.swell(v, [s * 0.08, 0.055, 0.03], 0.05, 0.01);
+        }
+        flesh.swell(v, [0, -0.085, 0.07], 0.07, 0.018);
+        flesh.dent(v, [0, -0.02, 0.115], 0.03, 0.022);
+        flesh.lumps(v, 16, 0.006, 7);
+        flesh.lumps(v, 44, 0.002, 3);
+      }),
+      [0, 0.05, 0]
+    ),
+    skin
+  );
+  // Las dos cuencas vacías; en una todavía hay algo que mira.
+  piece(sway, flesh.fuse([-1, 1].map((s) => flesh.at(flesh.blob([0.03, 0.028, 0.02], 9), [s * 0.045, 0.08, 0.088]))), dark);
+  const shine = k.ball(sway, "#c8ff6a", [0.008, 0.008, 0.008], [0.045, 0.08, 0.105], true);
+  const shineBase = shine.scale.clone();
+  // La boca abierta, quieta, con los dientes chicos adentro.
+  const mouth = piece(sway, flesh.at(flesh.blob([0.032, 0.012, 0.022], 10), [0, -0.035, 0.1]), dark);
+  piece(
+    sway,
+    flesh.fuse(
+      [0, 1, 2, 3, 4, 5].map((i) => {
+        const t = i / 5 - 0.5;
+        return flesh.at(flesh.limb(0.012, 0.005, 0.003, { rings: 2, radial: 5 }), [t * 0.05, -0.026, 0.104 - t * t * 0.06]);
+      })
+    ),
+    plain("#b8b09a", 0.5)
+  );
+  // Lo que le sigue saliendo por la boca y por las cuencas.
+  piece(
+    sway,
+    flesh.fuse([
+      ...[-0.045, 0.045].map((x) =>
+        flesh.thread(
+          [
+            [x, 0.06, 0.1],
+            [x + 0.004, 0.01, 0.1],
+            [x, -0.05, 0.085],
+          ],
+          0.0035,
+          8
+        )
+      ),
+      flesh.thread(
+        [
+          [0.01, -0.042, 0.098],
+          [0.014, -0.08, 0.085],
+          [0.008, -0.13, 0.06],
+        ],
+        0.0045,
+        8
+      ),
+    ]),
+    wet
+  );
+
+  /* el pelo: la cortina de adelante se abre cuando grita */
+
+  const strands = (count: number, from: number, to: number, long: number, radius: number, seed: number) => {
+    const roll = flesh.dice(seed);
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < count; i++) {
+      const angle = from + (i / (count - 1)) * (to - from);
+      // El hueco por donde mira: ahí no cae ningún mechón.
+      if (angle > 0.2 && angle < 0.62) continue;
+      const wild = roll();
+      const drop = long * (0.6 + wild * 0.8);
+      const x = Math.sin(angle) * 0.108;
+      const z = Math.cos(angle) * 0.115;
+      parts.push(
+        flesh.thread(
+          [
+            [x * 0.5, 0.17, z * 0.5],
+            [x * 1.05, 0.12, z * 1.05],
+            [x * 1.1 + (wild - 0.5) * 0.02, 0.04 - drop * 0.3, z * 1.06],
+            [x * 1.0 + (wild - 0.5) * 0.04, 0.04 - drop * 0.7, z * 0.98 + (wild - 0.5) * 0.03],
+            [x * 0.92, 0.04 - drop, z * 0.9],
+          ],
+          radius * (0.7 + wild * 0.6),
+          9
+        )
+      );
+    }
+    return flesh.fuse(parts);
+  };
+  // Atrás y a los costados cae hasta la cintura; adelante, una cortina que tapa la cara.
+  piece(sway, strands(34, 0.9, Math.PI * 2 - 0.9, 0.95, 0.007, 5), mane);
+  const veil = piece(sway, strands(22, -0.95, 0.95, 0.62, 0.0065, 11), mane);
+  // La coronilla, para que no se vea el cuero cabelludo entre mechón y mechón.
+  piece(sway, flesh.at(flesh.blob([0.113, 0.085, 0.118], 12), [0, 0.115, -0.008]), mane);
 
   scene.add(root);
   const rig: Rig = { root, body, head, arms, torso };
@@ -589,10 +1685,22 @@ export function makeWoman(scene: THREE.Scene, keep: Keep): Figure {
       },
     },
     (r, on) => {
-      mouth.scale.set(0.045, on ? 0.08 : 0.006, 0.02);
-      // Al gritar, el pelo se abre y deja ver la cara.
-      for (const strand of strands) strand.scale.x = on ? 0.012 : 0.035;
-      if (on) armPoses.reach(r);
+      mouth.scale.set(on ? 1.4 : 1, on ? 3.8 : 1, on ? 1.4 : 1);
+      mouth.position.y = on ? -0.05 : -0.035;
+      // Al gritar se le abre el pelo y queda la cara a la vista.
+      veil.visible = !on;
+      if (on) {
+        armPoses.reach(r);
+        r.head.rotation.set(-0.25, 0, 0.1);
+      }
+    },
+    (on) => {
+      shine.scale.copy(shineBase).multiplyScalar(on ? 3 : 1);
+    },
+    (time) => {
+      // No respira: se balancea, apenas, como si algo la sostuviera del cuello.
+      sway.rotation.z = Math.sin(time * 0.45) * 0.05 + 0.02;
+      sway.position.x = Math.sin(time * 0.45) * 0.008;
     }
   );
 }
@@ -603,78 +1711,318 @@ export function makeTreeMan(scene: THREE.Scene, keep: Keep): Figure {
   const k = kit(keep);
   const root = new THREE.Group();
   const body = k.pivot(root, [0, 0, 0]);
-  const bark = "#4a3828";
-  const barkLight = "#634b33";
-  const moss = "#27331a";
-  const sack = "#86734f";
+
+  const barkArt = flesh.barkTexture("#4e3b29", 55, 0.35);
+  const sackArt = flesh.clothTexture("#9b8560", 77, 0.9);
+  const chance = flesh.dice(307);
+
+  function surface(color: string, art: THREE.CanvasTexture | null, repeat: number, bump: number, roughness: number, side?: THREE.Side) {
+    const map = (repeat === 1 ? art : art?.clone()) ?? null;
+    if (map && map !== art) {
+      map.repeat.set(repeat, repeat);
+      map.needsUpdate = true;
+    }
+    if (map) keep(map);
+    const bumpMap = flesh.relief(map);
+    if (bumpMap) keep(bumpMap);
+    return keep(new THREE.MeshStandardMaterial({ color, map, bumpMap, bumpScale: bump, roughness, side: side ?? THREE.FrontSide }));
+  }
+  const plain = (color: string, roughness: number) => keep(new THREE.MeshStandardMaterial({ color, roughness }));
+  function piece(parent: THREE.Object3D, geometry: THREE.BufferGeometry, material: THREE.Material) {
+    const mesh = new THREE.Mesh(keep(geometry), material);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  const bark = surface("#ffffff", barkArt, 1, 1.1, 0.95);
+  const barkFine = surface("#e8e2d8", barkArt, 3, 1.1, 0.95);
+  const sack = surface("#ffffff", sackArt, 1, 0.9, 1, THREE.DoubleSide);
+  const moss = plain("#2b3a1d", 1);
+  const dark = plain("#040403", 1);
+  const splinter = plain("#c9b48a", 0.7);
+  const cord = plain("#171008", 0.9);
+  const wet = plain("#33090a", 0.3);
+
+  /** Una rama que se abre en otras: sirve igual para las astas y para los dedos. */
+  function twig(parts: THREE.BufferGeometry[], from: flesh.Vec, yaw: number, pitch: number, long: number, radius: number, depth: number) {
+    const dx = Math.sin(yaw) * Math.cos(pitch);
+    const dy = Math.sin(pitch);
+    const dz = Math.cos(yaw) * Math.cos(pitch);
+    const end: flesh.Vec = [from[0] + dx * long, from[1] + dy * long - long * 0.1, from[2] + dz * long];
+    parts.push(
+      flesh.thread(
+        [
+          from,
+          [from[0] + dx * long * 0.5, from[1] + dy * long * 0.5 - long * 0.03, from[2] + dz * long * 0.5],
+          end,
+        ],
+        radius,
+        5
+      )
+    );
+    if (depth <= 0) return end;
+    for (const turn of [-1, 1]) {
+      twig(
+        parts,
+        end,
+        yaw + turn * (0.5 + chance() * 0.5),
+        pitch + (chance() - 0.35) * 0.7,
+        long * (0.52 + chance() * 0.22),
+        radius * 0.62,
+        depth - 1
+      );
+    }
+    return end;
+  }
+
+  /* --- las piernas: dos troncos con raíces --- */
 
   const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.13, 1.0, 0]), k.pivot(body, [0.13, 1.0, 0])];
-  for (const [i, leg] of legs.entries()) {
-    k.cyl(leg, bark, 0.075, 1.0, [0, -0.5, 0]).rotation.z = i ? -0.06 : 0.06;
-    // Raíces en vez de pies, que se meten en la tierra.
-    for (let r = 0; r < 4; r++) {
-      const angle = (r / 4) * Math.PI * 2 + i;
-      const rootling = k.cyl(leg, bark, 0.02, 0.35, [Math.sin(angle) * 0.1, -0.95, Math.cos(angle) * 0.1]);
-      rootling.rotation.set(Math.cos(angle) * 1.1, 0, -Math.sin(angle) * 1.1);
+  legs.forEach((leg, i) => {
+    piece(
+      leg,
+      flesh.sculpt(flesh.limb(1.0, 0.085, 0.075, { bend: i ? -0.03 : 0.03, rough: 0.14, seed: i * 5, rings: 14, radial: 14 }), (v) => {
+        // Los surcos que corren a lo largo del tronco.
+        const angle = Math.atan2(v.z, v.x);
+        const groove = 1 + Math.sin(angle * 7 + v.y * 5) * 0.16;
+        v.x *= groove;
+        v.z *= groove;
+      }),
+      bark
+    );
+    // Las raíces, que se abren y se meten en la tierra.
+    const roots: THREE.BufferGeometry[] = [];
+    for (let r = 0; r < 6; r++) {
+      const angle = (r / 6) * Math.PI * 2 + i;
+      twig(roots, [0, -0.92, 0], angle, -0.55 - chance() * 0.5, 0.26 + chance() * 0.12, 0.022, 1);
     }
-  }
+    piece(leg, flesh.fuse(roots), barkFine);
+  });
+
+  /* --- el tronco --- */
+
   const torso = k.pivot(body, [0, 1.0, 0]);
   torso.rotation.x = 0.28;
-  // El tronco: varios palos retorcidos juntos, con musgo.
-  for (const [x, tilt, r] of [
-    [-0.09, 0.12, 0.09],
-    [0.08, -0.1, 0.1],
-    [0, 0.03, 0.12],
-  ]) {
-    k.cyl(torso, x ? barkLight : bark, r, 0.95, [x, 0.45, 0]).rotation.z = tilt;
+  piece(
+    torso,
+    flesh.at(
+      flesh.sculpt(flesh.limb(0.98, 0.2, 0.145, { rough: 0.1, seed: 3, rings: 16, radial: 18 }), (v) => {
+        const angle = Math.atan2(v.z, v.x);
+        // Varios palos retorcidos que crecieron juntos, no un tronco liso.
+        const twistAngle = angle + v.y * 1.4;
+        const groove = 1 + Math.sin(twistAngle * 5) * 0.2 + Math.sin(twistAngle * 13) * 0.06;
+        v.x *= groove;
+        v.z *= groove;
+      }),
+      [0, 0.98, 0]
+    ),
+    bark
+  );
+  // Nudos: el árbol se cerró alrededor de algo y quedó la marca.
+  piece(
+    torso,
+    flesh.fuse([
+      flesh.at(
+        flesh.blob([0.09, 0.08, 0.05], 12, (v) => {
+          flesh.dent(v, [0, 0, 0.05], 0.05, 0.03);
+          flesh.lumps(v, 30, 0.01, 4);
+        }),
+        [0.07, 0.62, 0.13]
+      ),
+      flesh.at(
+        flesh.blob([0.06, 0.07, 0.04], 12, (v) => {
+          flesh.dent(v, [0, 0, 0.04], 0.04, 0.025);
+        }),
+        [-0.1, 0.32, 0.11]
+      ),
+    ]),
+    bark
+  );
+  piece(torso, flesh.at(flesh.blob([0.05, 0.045, 0.02], 10), [0.07, 0.62, 0.15]), dark);
+  // El musgo que le creció en el lado que no ve el sol.
+  piece(
+    torso,
+    flesh.fuse([
+      ...[0, 1, 2, 3, 4].map((i) =>
+        flesh.at(
+          flesh.blob([0.07 + chance() * 0.05, 0.05, 0.03], 9, (v) => flesh.lumps(v, 40, 0.012, i)),
+          [-0.1 + chance() * 0.16, 0.2 + i * 0.16, -0.12 - chance() * 0.04]
+        )
+      ),
+    ]),
+    moss
+  );
+  // El manto de jirones y musgo colgado de los hombros.
+  const cape: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 18; i++) {
+    const angle = -1.5 + (i / 17) * 3;
+    const long = 0.35 + chance() * 0.45;
+    cape.push(
+      flesh.at(
+        flesh.cloth(
+          0.05 + chance() * 0.03,
+          long,
+          (v) => {
+            v.z += Math.sin(v.y * 26) * 0.012;
+            if (v.y < -long / 2 + 0.03) v.y += flesh.fbm(v.x * 40, i, 0, 2) * 0.09;
+          },
+          [3, 7]
+        ),
+        [Math.sin(angle) * 0.24, 0.87 - long / 2, Math.cos(angle) * 0.17 - 0.02],
+        [0, angle, 0]
+      )
+    );
   }
-  k.box(torso, moss, [0.2, 0.18, 0.06], [0.06, 0.3, 0.11]);
+  piece(torso, flesh.fuse(cape), moss);
+
+  /* --- los brazos: ramas que se abren en dedos --- */
+
   const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.24, 0.85, 0]), k.pivot(torso, [0.24, 0.85, 0])];
-  for (const shoulder of arms) {
-    arm(k, shoulder, bark, barkLight, 0.66, 0.66, 0.05, 5, 0.28);
-    // Musgo que cuelga de las ramas.
-    for (let m = 0; m < 3; m++) k.box(shoulder, moss, [0.03, 0.25 + m * 0.08, 0.01], [(m - 1) * 0.04, -0.35 - m * 0.1, 0.05]);
-  }
+  arms.forEach((shoulder, side) => {
+    const sign = side ? 1 : -1;
+    piece(shoulder, flesh.limb(0.66, 0.06, 0.045, { bend: sign * 0.03, rough: 0.16, seed: 7 + side, rings: 10 }), bark);
+    const elbow = k.pivot(shoulder, [0, -0.66, 0]);
+    elbow.rotation.x = -0.15;
+    piece(
+      elbow,
+      flesh.fuse([
+        flesh.at(flesh.blob([0.055, 0.05, 0.055], 10, (v) => flesh.lumps(v, 24, 0.014, side)), [0, 0, 0]),
+        flesh.at(flesh.limb(0.66, 0.045, 0.032, { rough: 0.18, seed: 11 + side, rings: 10 }), [0, 0, 0]),
+      ]),
+      bark
+    );
+    const hand = k.pivot(elbow, [0, -0.66, 0]);
+    // La mano es el final de la rama: cinco gajos que se siguen abriendo.
+    const fingers: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 5; i++) {
+      twig(fingers, [(i - 2) * 0.022, -0.02, 0.01], (i - 2) * 0.45, -1.15 - chance() * 0.3, 0.17 + chance() * 0.06, 0.012, 2);
+    }
+    piece(hand, flesh.fuse(fingers), barkFine);
+    // Lo que le quedó en las ramas de la última vez.
+    piece(hand, flesh.drips([[-0.03, -0.3, 0.02], [0.02, -0.34, 0.03], [0.05, -0.28, 0]], chance), wet);
+    // Musgo colgando del codo.
+    piece(
+      elbow,
+      flesh.fuse([0, 1, 2].map((m) => flesh.thread([[(m - 1) * 0.035, -0.3, 0.04], [(m - 1) * 0.04, -0.45 - m * 0.06, 0.05], [(m - 1) * 0.03, -0.6 - m * 0.1, 0.03]], 0.008, 6))),
+      moss
+    );
+  });
+
+  /* --- la cabeza: una bolsa cosida al cuello --- */
+
   const neck = k.pivot(torso, [0, 0.95, 0.04]);
-  k.cyl(neck, "#5e4d33", 0.06, 0.07, [0, 0.03, 0]);
+  piece(neck, flesh.at(flesh.limb(0.1, 0.07, 0.055, { rough: 0.12, seed: 15 }), [0, 0.09, 0]), bark);
   const head = k.pivot(neck, [0, 0.08, 0]);
-  // La bolsa cosida por cabeza: dos ojos hundidos con luz roja y una costura por boca.
-  k.ball(head, sack, [0.17, 0.2, 0.16], [0, 0.17, 0]);
+  piece(
+    head,
+    flesh.at(
+      flesh.blob([0.175, 0.2, 0.165], 18, (v) => {
+        // La arpillera no cae lisa: adentro hay algo que no es una cabeza.
+        flesh.swell(v, [0.07, 0.06, 0.1], 0.08, 0.022);
+        flesh.swell(v, [-0.09, -0.02, 0.06], 0.07, 0.018);
+        flesh.dent(v, [0.062, 0.05, 0.135], 0.055, 0.045);
+        flesh.dent(v, [-0.06, 0.05, 0.135], 0.05, 0.03);
+        // Se cierra abajo, donde está atada.
+        const low = Math.max(0, (-v.y - 0.06) / 0.14);
+        v.x *= 1 - 0.45 * low;
+        v.z *= 1 - 0.45 * low;
+        flesh.lumps(v, 12, 0.012, 2);
+        flesh.lumps(v, 34, 0.004, 8);
+      }),
+      [0, 0.17, 0]
+    ),
+    sack
+  );
+  // La soga con que la ataron al cuello, y las puntas de la arpillera arriba.
+  piece(head, flesh.at(new THREE.TorusGeometry(0.075, 0.012, 5, 16), [0, 0.03, 0], [Math.PI / 2 - 0.1, 0, 0.1]), cord);
+  piece(
+    head,
+    flesh.fuse([
+      flesh.at(flesh.cloth(0.1, 0.13, (v) => (v.z += Math.sin(v.y * 40) * 0.01)), [0.06, 0.4, 0.02], [0.3, 0.4, 0.5]),
+      flesh.at(flesh.cloth(0.08, 0.1, (v) => (v.z += Math.sin(v.y * 40) * 0.01)), [-0.05, 0.39, -0.01], [-0.2, -0.5, -0.6]),
+    ]),
+    sack
+  );
+
   // Un ojo hundido con luz roja; el otro, cosido en cruz.
-  k.ball(head, "#050505", [0.05, 0.045, 0.03], [0.06, 0.22, 0.135]);
-  k.ball(head, "#ff2a1f", [0.013, 0.013, 0.013], [0.06, 0.22, 0.165], true);
-  for (const tilt of [0.8, -0.8]) k.box(head, "#1b140d", [0.008, 0.08, 0.008], [-0.06, 0.22, 0.158]).rotation.z = tilt;
-  // La boca: la bolsa rota de lado a lado, con astillas por dientes.
-  const mouth = k.ball(head, "#030303", [0.085, 0.035, 0.03], [0, 0.1, 0.14]);
-  for (let i = 0; i < 7; i++) {
-    const x = -0.066 + i * 0.022;
-    k.cone(head, "#c9b48a", 0.008, 0.045, [x, 0.125, 0.162]).rotation.x = Math.PI;
-    k.cone(head, "#c9b48a", 0.007, 0.035, [x + 0.011, 0.075, 0.162]);
+  piece(head, flesh.at(flesh.blob([0.045, 0.04, 0.03], 10), [0.062, 0.215, 0.118]), dark);
+  const spark = k.ball(head, "#ff2a1f", [0.013, 0.013, 0.013], [0.062, 0.215, 0.14], true);
+  const sparkBase = spark.scale.clone();
+  piece(
+    head,
+    flesh.fuse([
+      ...[-1, 1].map((t) =>
+        flesh.thread(
+          [
+            [-0.085, 0.215 + t * 0.035, 0.125],
+            [-0.06, 0.215, 0.145],
+            [-0.035, 0.215 - t * 0.035, 0.125],
+          ],
+          0.004,
+          6
+        )
+      ),
+    ]),
+    cord
+  );
+
+  // La boca: la arpillera se rajó de lado a lado y adentro hay astillas.
+  const mouth = piece(head, flesh.at(flesh.blob([0.085, 0.03, 0.035], 12), [0, 0.1, 0.13]), dark);
+  const fangs: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 9; i++) {
+    const t = i / 8 - 0.5;
+    const z = 0.15 - t * t * 0.18;
+    fangs.push(flesh.at(flesh.limb(0.045 + chance() * 0.02, 0.009, 0.001, { rings: 2, radial: 5 }), [t * 0.15, 0.13, z], [0, 0, t * 0.4]));
+    fangs.push(flesh.at(flesh.limb(0.035 + chance() * 0.02, 0.008, 0.001, { rings: 2, radial: 5 }), [t * 0.15 + 0.01, 0.07, z], [0, 0, Math.PI + t * 0.4]));
   }
+  piece(head, flesh.fuse(fangs), splinter);
+  // Lo que le salió por la raja y se secó en la arpillera.
+  piece(
+    head,
+    flesh.fuse(
+      [-0.05, 0.02, 0.06].map((x, i) =>
+        flesh.thread(
+          [
+            [x, 0.085, 0.14 - x * x * 2],
+            [x + 0.008, 0.03 - i * 0.015, 0.125],
+            [x, -0.02 - i * 0.02, 0.09],
+          ],
+          0.005,
+          8
+        )
+      )
+    ),
+    wet
+  );
+  // Los puntos con que cosieron la arpillera de un lado al otro de la cara.
+  piece(
+    head,
+    flesh.fuse(
+      [0, 1, 2, 3, 4, 5].map((i) =>
+        flesh.thread(
+          [
+            [-0.13 + i * 0.05, 0.31, 0.11],
+            [-0.11 + i * 0.05, 0.345, 0.1],
+          ],
+          0.0035,
+          4
+        )
+      )
+    ),
+    cord
+  );
+
   // El ojo tira luz roja alrededor: en el jardín oscuro, o en el hall sin luz, se ve venir.
   const eyeLight = new THREE.PointLight("#ff2a1f", 0.5, 2.8, 2);
-  eyeLight.position.set(0.06, 0.22, 0.6);
+  eyeLight.position.set(0.062, 0.215, 0.6);
   head.add(eyeLight);
-  // Un manto de musgo y jirones que le cuelga de los hombros.
-  for (let i = 0; i < 14; i++) {
-    const angle = -1.3 + (i / 13) * 2.6;
-    const strip = k.box(torso, i % 3 ? moss : "#2a1f15", [0.05, 0.45 + (i % 4) * 0.12, 0.012], [Math.sin(angle) * 0.2, 0.62, Math.cos(angle) * 0.12 - 0.02]);
-    strip.rotation.set(0.15, angle, 0);
-  }
-  // Las astas: ramas secas que le salen de la cabeza.
+
+  // Las astas: ramas secas que se abren en más ramas.
+  const antlers: THREE.BufferGeometry[] = [];
   for (const side of [-1, 1]) {
-    const antler = k.pivot(head, [side * 0.1, 0.32, 0]);
-    antler.rotation.z = -side * 0.5;
-    k.cyl(antler, bark, 0.018, 0.6, [0, 0.3, 0]);
-    for (const [y, lean, length] of [
-      [0.14, 0.9, 0.22],
-      [0.28, -0.8, 0.26],
-      [0.4, 0.7, 0.24],
-      [0.52, -0.6, 0.2],
-    ]) {
-      k.cyl(antler, bark, 0.011, length, [0, y, 0]).rotation.z = lean * side;
-    }
+    twig(antlers, [side * 0.1, 0.34, 0], side * 0.5, 1.15, 0.3, 0.018, 2);
   }
+  piece(head, flesh.fuse(antlers), barkFine);
 
   scene.add(root);
   const rig: Rig = { root, body, head, arms, legs, torso };
@@ -709,8 +2057,16 @@ export function makeTreeMan(scene: THREE.Scene, keep: Keep): Figure {
       },
     },
     (r, on) => {
-      mouth.scale.set(0.09, on ? 0.09 : 0.035, 0.03);
+      mouth.scale.set(1, on ? 2.6 : 1, on ? 1.3 : 1);
       if (on) armPoses.reach(r);
+    },
+    (on) => {
+      spark.scale.copy(sparkBase).multiplyScalar(on ? 2.6 : 1);
+    },
+    (time) => {
+      // Cruje como un árbol con viento, aunque adentro no corra nada de aire.
+      head.rotation.y = Math.sin(time * 0.31) * 0.06;
+      eyeLight.intensity = 0.5 + Math.sin(time * 2.1) * 0.12;
     }
   );
 }
@@ -721,96 +2077,321 @@ export function makeTwisted(scene: THREE.Scene, keep: Keep): Figure {
   const k = kit(keep);
   const root = new THREE.Group();
   const body = k.pivot(root, [0, 0, 0]);
-  const skin = "#b9b2a2";
-  const shade = "#8c8576";
-  const raw = "#4e0b09";
-  const dark = "#030303";
 
-  // Piernas al revés: la rodilla para adelante y el resto doblado hacia atrás, como un
-  // animal, y los pies largos con uñas que rascan el piso.
+  const skinArt = flesh.skinTexture("#c2bbaa", 131, 0.75);
+  const chance = flesh.dice(401);
+
+  function surface(color: string, repeat: number, bump: number, roughness: number) {
+    const map = (repeat === 1 ? skinArt : skinArt?.clone()) ?? null;
+    if (map && map !== skinArt) {
+      map.repeat.set(repeat, repeat);
+      map.needsUpdate = true;
+    }
+    if (map) keep(map);
+    const bumpMap = flesh.relief(map);
+    if (bumpMap) keep(bumpMap);
+    return keep(new THREE.MeshStandardMaterial({ color, map, bumpMap, bumpScale: bump, roughness }));
+  }
+  const plain = (color: string, roughness: number) => keep(new THREE.MeshStandardMaterial({ color, roughness }));
+  function piece(parent: THREE.Object3D, geometry: THREE.BufferGeometry, material: THREE.Material) {
+    const mesh = new THREE.Mesh(keep(geometry), material);
+    parent.add(mesh);
+    return mesh;
+  }
+
+  // Piel estirada hasta donde da: se transparenta lo que tiene abajo.
+  const skin = surface("#ffffff", 1, 0.55, 0.62);
+  const skinBody = surface("#f6f2e8", 2, 0.6, 0.66);
+  const dark = plain("#030303", 1);
+  const raw = plain("#4e0b09", 0.3);
+  const wet = plain("#2d0908", 0.22);
+  const bone = plain("#d8ceb2", 0.55);
+  const nailMat = plain("#1c1812", 0.45);
+  const mane = plain("#0a0806", 0.5);
+
+  /** Una mano de dedos largos, que se van cerrando hasta la uña. */
+  function claw(hand: THREE.Object3D, span: number, long: number, curl: number, seed: number) {
+    const bits: THREE.BufferGeometry[] = [flesh.at(flesh.blob([span * 1.1, long * 0.22, span * 0.6], 10, (v) => flesh.lumps(v, 30, 0.008, seed)), [0, -long * 0.13, 0])];
+    const nails: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 5; i++) {
+      const x = (i - 2) * span * 0.45;
+      let y = -long * 0.22;
+      let z = 0.004;
+      let angle = curl * 0.5;
+      for (let s = 0; s < 3; s++) {
+        const part = long * [0.42, 0.32, 0.24][s];
+        const geometry = flesh.limb(part, span * 0.2 - s * 0.002, span * 0.17 - s * 0.002, { rough: 0.18, seed: seed + i + s, rings: 3, radial: 7 });
+        geometry.rotateX(angle);
+        geometry.translate(x, y, z);
+        bits.push(geometry);
+        bits.push(flesh.at(flesh.blob([span * 0.24, span * 0.2, span * 0.24], 5), [x, y, z]));
+        y -= Math.cos(angle) * part;
+        z -= Math.sin(angle) * part;
+        angle += curl;
+      }
+      const nail = flesh.limb(long * 0.14, span * 0.17, 0.0008, { rings: 2, radial: 6 });
+      nail.rotateX(angle - curl);
+      nail.translate(x, y, z);
+      nails.push(nail);
+    }
+    piece(hand, flesh.fuse(bits), skinBody);
+    piece(hand, flesh.fuse(nails), nailMat);
+  }
+
+  /* --- las piernas al revés: la rodilla adelante y el resto para atrás --- */
+
   const legs: [THREE.Group, THREE.Group] = [k.pivot(body, [-0.13, 1.2, 0]), k.pivot(body, [0.13, 1.2, 0])];
-  for (const [i, leg] of legs.entries()) {
-    k.cyl(leg, skin, 0.05, 0.7, [0, -0.35, 0]);
+  legs.forEach((leg, i) => {
+    piece(leg, flesh.limb(0.7, 0.062, 0.045, { bend: i ? -0.02 : 0.02, rough: 0.1, seed: i }), skinBody);
     const knee = k.pivot(leg, [0, -0.7, 0]);
     knee.rotation.set(1.35 + i * 0.1, 0, i ? -0.75 : 0.8);
-    k.ball(knee, shade, [0.06, 0.07, 0.06], [0, 0, 0]);
-    k.cyl(knee, skin, 0.03, 0.76, [0, -0.38, 0]);
+    piece(
+      knee,
+      flesh.fuse([
+        // La rótula, salida, que estira la piel hasta ponerla blanca.
+        flesh.at(flesh.blob([0.062, 0.075, 0.062], 10, (v) => flesh.swell(v, [0, 0, 0.05], 0.05, 0.016)), [0, 0, 0]),
+        flesh.at(flesh.limb(0.76, 0.04, 0.026, { rough: 0.12, seed: 4 + i }), [0, 0, 0]),
+      ]),
+      skinBody
+    );
     const foot = k.pivot(knee, [0, -0.76, 0]);
     foot.rotation.x = -0.75;
+    const toes: THREE.BufferGeometry[] = [];
+    const nails: THREE.BufferGeometry[] = [];
     for (let t = 0; t < 4; t++) {
-      const toe = k.pivot(foot, [(t - 1.5) * 0.03, 0, 0]);
-      toe.rotation.set(-1.2, 0, (t - 1.5) * 0.18);
-      k.cyl(toe, shade, 0.008, 0.2, [0, -0.1, 0]);
-      k.cone(toe, "#1c1812", 0.006, 0.05, [0, -0.22, 0]).rotation.x = Math.PI;
+      const x = (t - 1.5) * 0.03;
+      const geometry = flesh.limb(0.2, 0.011, 0.008, { rough: 0.2, seed: 9 + t, rings: 3, radial: 7 });
+      geometry.rotateX(-1.2);
+      geometry.rotateZ((t - 1.5) * 0.18);
+      geometry.translate(x, 0, 0);
+      toes.push(geometry);
+      const nail = flesh.limb(0.055, 0.008, 0.001, { rings: 2, radial: 6 });
+      nail.rotateX(-1.2);
+      nail.rotateZ((t - 1.5) * 0.18);
+      nail.translate(x - (t - 1.5) * 0.034, -0.075, 0.19);
+      nails.push(nail);
     }
-  }
+    piece(foot, flesh.fuse(toes), skinBody);
+    piece(foot, flesh.fuse(nails), nailMat);
+  });
 
-  // El torso, echado para atrás y retorcido sobre sí mismo: la columna se marca de un lado y
-  // las costillas del otro, con la piel abierta en tajos.
+  /* --- el torso, retorcido sobre sí mismo --- */
+
   const torso = k.pivot(body, [0, 1.2, 0]);
   torso.rotation.set(-0.22, 0.55, 0.14);
-  // La cintura, finita como un palo, y el pecho hundido que se abre en costillas.
-  k.cyl(torso, skin, 0.055, 0.6, [0, 0.28, 0]);
-  k.ball(torso, skin, [0.07, 0.07, 0.06], [0, 0.04, 0]);
-  k.ball(torso, skin, [0.17, 0.24, 0.11], [0, 0.74, -0.01]);
-  for (let i = 0; i < 9; i++) k.ball(torso, shade, [0.035, 0.03, 0.035], [0, 0.15 + i * 0.09, -0.12 - Math.sin(i / 3) * 0.02]);
-  for (let i = 0; i < 6; i++) {
-    const rib = k.box(torso, shade, [0.3 - Math.abs(i - 2.5) * 0.03, 0.018, 0.03], [0, 0.58 + i * 0.06, 0.1]);
-    rib.rotation.set(0, 0, (i % 2 ? 0.12 : -0.1) + i * 0.02);
-  }
-  for (const [x, y, h, tilt] of [
+  // La cintura, un palo; arriba el pecho se abre y abajo no hay nada.
+  piece(
+    torso,
+    flesh.at(
+      flesh.blob([0.16, 0.5, 0.12], 20, (v) => {
+        // Se estrangula en la cintura y se abre en el pecho.
+        const waist = Math.exp(-((v.y + 0.18) ** 2) / 0.012);
+        v.x *= 1 - 0.62 * waist;
+        v.z *= 1 - 0.62 * waist;
+        // La columna, vértebra por vértebra, marcada contra la espalda.
+        for (let i = 0; i < 10; i++) flesh.swell(v, [0, -0.3 + i * 0.075, -0.105 - Math.sin(i / 3) * 0.015], 0.03, 0.034);
+        // Las costillas del otro lado, a punto de romper la piel.
+        for (let i = 0; i < 6; i++) {
+          const y = 0.08 + i * 0.062;
+          for (const s of [-1, 1]) flesh.ridge(v, [s * 0.02, y, 0.105], [s * 0.145, y - 0.05, -0.02], 0.015, 0.034);
+        }
+        flesh.dent(v, [0, 0.12, 0.11], 0.12, 0.035);
+        flesh.swell(v, [-0.14, 0.42, 0], 0.09, 0.025);
+        flesh.swell(v, [0.12, 0.3, -0.02], 0.08, 0.02);
+        flesh.lumps(v, 13, 0.01, 6);
+        flesh.lumps(v, 38, 0.003, 14);
+      }),
+      [0, 0.52, 0]
+    ),
+    skinBody
+  );
+  // Los tajos: la piel se abrió sola y abajo está en carne viva.
+  const gashes: [number, number, number, number][] = [
     [0.06, 0.4, 0.22, 0.3],
     [-0.09, 0.72, 0.16, -0.5],
     [0.1, 0.86, 0.12, 0.8],
-  ]) {
-    k.box(torso, raw, [0.035, h, 0.01], [x, y, 0.15]).rotation.z = tilt;
-  }
+    [-0.02, 0.26, 0.14, 0.15],
+  ];
+  piece(
+    torso,
+    flesh.fuse(gashes.map(([x, y, h, tilt]) => flesh.at(flesh.blob([0.016, h / 2, 0.02], 9), [x, y, 0.105], [0, 0, tilt]))),
+    raw
+  );
+  piece(
+    torso,
+    flesh.drips(
+      gashes.map(([x, y, h]) => [x, y - h / 2, 0.12] as flesh.Vec),
+      chance
+    ),
+    wet
+  );
 
-  // Un hombro más alto que el otro, desencajado.
+  /* --- los brazos: uno al piso, el otro roto al revés --- */
+
   const arms: [THREE.Group, THREE.Group] = [k.pivot(torso, [-0.2, 0.92, 0]), k.pivot(torso, [0.18, 0.78, 0.02])];
-  const hands = arms.map((shoulder, i) => arm(k, shoulder, skin, skin, i ? 0.62 : 0.82, i ? 0.6 : 0.86, 0.035, 5, i ? 0.24 : 0.34, shade));
-  k.ball(arms[0], shade, [0.07, 0.06, 0.07], [0, 0.02, 0]);
-  // El codo del brazo alto, quebrado para el lado que no va.
-  const brokenElbow = hands[1].parent!;
-  // Una mano cuelga hasta el piso y la otra se agarra la cabeza por arriba, al revés.
-  for (let i = 0; i < 3; i++) k.box(arms[0], raw, [0.012, 0.1 + i * 0.04, 0.008], [0.02 * i - 0.02, -0.4 - i * 0.12, 0.036]);
+  // El hombro desencajado, afuera de lugar.
+  piece(arms[0], flesh.at(flesh.blob([0.075, 0.065, 0.075], 10, (v) => flesh.lumps(v, 26, 0.012, 1)), [0, 0.02, 0]), skinBody);
+  piece(arms[1], flesh.at(flesh.blob([0.06, 0.055, 0.06], 10, (v) => flesh.lumps(v, 26, 0.012, 2)), [0, 0.01, 0]), skinBody);
+  piece(arms[0], flesh.limb(0.82, 0.042, 0.03, { bend: -0.02, rough: 0.09, seed: 21 }), skinBody);
+  piece(arms[1], flesh.limb(0.62, 0.038, 0.028, { bend: 0.02, rough: 0.09, seed: 22 }), skinBody);
+  const elbows = [k.pivot(arms[0], [0, -0.82, 0]), k.pivot(arms[1], [0, -0.62, 0])];
+  elbows.forEach((elbow, i) => {
+    piece(
+      elbow,
+      flesh.fuse([
+        flesh.at(flesh.blob([0.04, 0.045, 0.04], 9, (v) => flesh.lumps(v, 28, 0.01, i)), [0, 0, 0]),
+        flesh.at(flesh.limb(i ? 0.6 : 0.86, 0.03, 0.022, { rough: 0.1, seed: 25 + i }), [0, 0, 0]),
+      ]),
+      skinBody
+    );
+  });
+  const brokenElbow = elbows[1];
+  // Donde el codo se dobló para el lado que no va, el hueso asoma.
+  piece(elbows[1], flesh.at(flesh.limb(0.06, 0.016, 0.008, { rings: 3, radial: 7 }), [0.02, 0.02, -0.03], [0, 0, 0.6]), bone);
+  piece(elbows[1], flesh.at(flesh.blob([0.03, 0.025, 0.025], 9), [0.015, -0.01, -0.02]), raw);
+  claw(k.pivot(elbows[0], [0, -0.86, 0]), 0.045, 0.34, -0.2, 40);
+  claw(k.pivot(elbows[1], [0, -0.6, 0]), 0.038, 0.24, -0.3, 60);
 
-  // El cuello, largo y doblado casi en ángulo recto: la cabeza apoyada de costado en el hombro.
+  /* --- el cuello largo, doblado casi en ángulo recto --- */
+
   const neck = k.pivot(torso, [-0.03, 0.95, 0.02]);
   neck.rotation.set(0.25, 0, 1.25);
-  for (let i = 0; i < 5; i++) k.ball(neck, i % 2 ? skin : shade, [0.04, 0.06, 0.04], [0, 0.05 + i * 0.085, 0]);
+  piece(
+    neck,
+    flesh.fuse([
+      flesh.at(
+        flesh.sculpt(flesh.limb(0.46, 0.05, 0.042, { rough: 0.07, seed: 31, rings: 12 }), (v) => {
+          // Cada vértebra hace su bulto: el cuello se lee como una cadena.
+          const knuckle = 1 + Math.sin((v.y + 0.46) * 62) * 0.09;
+          v.x *= knuckle;
+          v.z *= knuckle;
+        }),
+        [0, 0.46, 0]
+      ),
+    ]),
+    skinBody
+  );
+
+  /* --- la cabeza: la cara estirada hacia abajo --- */
+
   const head = k.pivot(neck, [0, 0.46, 0]);
   head.rotation.z = 0.55;
-  // La cara: larga, estirada hacia abajo como si se derritiera.
-  k.ball(head, skin, [0.13, 0.2, 0.13], [0, 0.08, 0]);
-  k.ball(head, shade, [0.1, 0.12, 0.1], [0.03, -0.08, 0.02]);
-  // Los ojos: uno enorme y hundido, el otro chiquito y más abajo. Los dos con un punto
-  // blanco que se ve aunque no haya luz.
-  k.ball(head, dark, [0.06, 0.07, 0.03], [-0.045, 0.14, 0.1]);
-  k.ball(head, dark, [0.028, 0.03, 0.02], [0.06, 0.06, 0.11]);
+  const face = k.pivot(head, [0, 0, 0]);
+  piece(
+    face,
+    flesh.at(
+      flesh.blob([0.125, 0.205, 0.125], 22, (v) => {
+        // Como si se le hubiera derretido para abajo: el cráneo chico y la cara larga.
+        const low = Math.max(0, (-v.y - 0.02) / 0.19);
+        v.x *= 1 - 0.18 * low;
+        v.z *= 1 - 0.14 * low;
+        v.y -= low * 0.03;
+        // Una cuenca enorme de un lado y una chiquita y más abajo del otro.
+        flesh.dent(v, [-0.05, 0.06, 0.095], 0.075, 0.07);
+        flesh.dent(v, [0.062, -0.02, 0.105], 0.04, 0.045);
+        flesh.swell(v, [-0.05, 0.12, 0.085], 0.06, 0.016);
+        // El tajo vertical que le parte la cara: los bordes se levantan.
+        flesh.ridge(v, [-0.02, 0.06, 0.115], [0.01, -0.16, 0.1], 0.03, 0.018);
+        flesh.dent(v, [0.005, -0.05, 0.12], 0.028, 0.03);
+        // Los pómulos y las sienes hundidas.
+        for (const s of [-1, 1]) {
+          flesh.dent(v, [s * 0.105, 0.09, 0.02], 0.065, 0.02);
+          flesh.dent(v, [s * 0.085, -0.075, 0.06], 0.055, 0.025);
+        }
+        flesh.lumps(v, 14, 0.008, 11);
+        flesh.lumps(v, 40, 0.0025, 4);
+      }),
+      [0, 0.08, 0]
+    ),
+    skin
+  );
+  piece(
+    face,
+    flesh.fuse([
+      flesh.at(flesh.blob([0.058, 0.066, 0.03], 10), [-0.048, 0.14, 0.088]),
+      flesh.at(flesh.blob([0.028, 0.03, 0.022], 9), [0.06, 0.06, 0.098]),
+    ]),
+    dark
+  );
   const glows = [
-    k.ball(head, "#f3efe2", [0.012, 0.012, 0.01], [-0.042, 0.13, 0.125], true),
-    k.ball(head, "#f3efe2", [0.008, 0.008, 0.008], [0.06, 0.06, 0.128], true),
+    k.ball(face, "#f3efe2", [0.012, 0.012, 0.01], [-0.042, 0.13, 0.115], true),
+    k.ball(face, "#f3efe2", [0.008, 0.008, 0.008], [0.06, 0.06, 0.12], true),
   ];
-  // La boca: un tajo vertical que le parte la cara, con dientes de los dos lados.
-  const mouth = k.box(head, dark, [0.03, 0.2, 0.02], [0.005, -0.02, 0.115]);
-  mouth.rotation.z = 0.12;
-  for (let i = 0; i < 7; i++) {
+  // La boca: un tajo vertical con dientes de los dos lados, de la nariz al mentón.
+  const glowBase = glows.map((glow) => glow.scale.clone());
+  const mouth = piece(face, flesh.at(flesh.blob([0.018, 0.1, 0.022], 12), [0.005, -0.02, 0.105], [0, 0, 0.12]), dark);
+  const fangs: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 8; i++) {
+    const y = -0.105 + i * 0.028;
     for (const side of [-1, 1]) {
-      const tooth = k.cone(head, "#d8ceb2", 0.006, 0.028, [0.005 + side * 0.016, -0.1 + i * 0.028, 0.12]);
-      tooth.rotation.z = (side * Math.PI) / 2;
+      const tooth = flesh.limb(0.03 + chance() * 0.012, 0.007, 0.001, { rings: 2, radial: 5 });
+      tooth.rotateZ((side * Math.PI) / 2);
+      tooth.translate(0.005 + side * 0.016, y, 0.112 - Math.abs(y) * 0.12);
+      fangs.push(tooth);
     }
   }
-  k.box(head, raw, [0.05, 0.16, 0.01], [0.02, -0.02, 0.108]).rotation.z = 0.12;
+  piece(face, flesh.fuse(fangs), bone);
+  piece(face, flesh.at(flesh.blob([0.03, 0.09, 0.012], 10), [0.012, -0.02, 0.1], [0, 0, 0.12]), raw);
+  // Lo que le baja del tajo y de la cuenca grande.
+  piece(
+    face,
+    flesh.fuse([
+      flesh.thread(
+        [
+          [0.01, -0.1, 0.105],
+          [0.016, -0.16, 0.09],
+          [0.008, -0.22, 0.06],
+        ],
+        0.005,
+        8
+      ),
+      flesh.thread(
+        [
+          [-0.048, 0.1, 0.1],
+          [-0.055, 0.04, 0.095],
+          [-0.045, -0.04, 0.08],
+        ],
+        0.004,
+        8
+      ),
+    ]),
+    wet
+  );
   // La mandíbula, suelta, colgando de un costado.
-  const jaw = k.pivot(head, [0.07, -0.14, 0.04]);
+  const jaw = k.pivot(face, [0.07, -0.14, 0.04]);
   jaw.rotation.z = -0.5;
-  k.box(jaw, shade, [0.09, 0.03, 0.08], [0, -0.03, 0]);
-  // Un par de mechones negros, largos y ralos.
-  for (let i = 0; i < 9; i++) {
-    const angle = -1.6 + i * 0.4;
-    k.box(head, "#0a0806", [0.012, 0.35 + (i % 3) * 0.12, 0.006], [Math.sin(angle) * 0.12, -0.02, Math.cos(angle) * 0.1 - 0.04]).rotation.set(0, angle, 0.1);
+  piece(
+    jaw,
+    flesh.at(
+      flesh.blob([0.055, 0.03, 0.05], 10, (v) => {
+        if (v.y > 0) v.y *= 0.4;
+        flesh.lumps(v, 26, 0.008, 3);
+      }),
+      [0, -0.03, 0]
+    ),
+    skinBody
+  );
+  // Cuatro mechones largos, ralos, pegados al cráneo.
+  const hair: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 14; i++) {
+    const angle = -1.8 + (i / 13) * 3.6;
+    const long = 0.3 + chance() * 0.25;
+    const x = Math.sin(angle) * 0.11;
+    const z = Math.cos(angle) * 0.1 - 0.02;
+    hair.push(
+      flesh.thread(
+        [
+          [x * 0.5, 0.25, z * 0.5],
+          [x, 0.2, z],
+          [x * 1.05, 0.2 - long * 0.5, z * 1.02],
+          [x * 0.9 + (chance() - 0.5) * 0.04, 0.2 - long, z * 0.9],
+        ],
+        0.003 + chance() * 0.0025,
+        8
+      )
+    );
   }
+  piece(face, flesh.fuse(hair), mane);
 
   // Más alto que cualquier persona: toca casi el dintel de la puerta de calle.
   root.scale.setScalar(1.2);
@@ -831,11 +2412,17 @@ export function makeTwisted(scene: THREE.Scene, keep: Keep): Figure {
     0.9,
     { emerge: still, wait: still, stand: still, peek: still, sit: still, reach: still },
     (_r, on) => {
-      mouth.scale.set(on ? 0.09 : 0.03, on ? 0.26 : 0.2, 0.02);
+      mouth.scale.set(on ? 3 : 1, on ? 1.3 : 1, 1);
       jaw.rotation.z = on ? -1.1 : -0.5;
     },
     (on) => {
-      for (const glow of glows) glow.scale.setScalar(on ? 0.02 : 0.012);
+      glows.forEach((glow, i) => glow.scale.copy(glowBase[i]).multiplyScalar(on ? 1.8 : 1));
+    },
+    (time) => {
+      // No se mueve. Solo, cada tanto, un temblor que no termina de ser un movimiento.
+      const shiver = Math.max(0, Math.sin(time * 0.37) - 0.95) * 20;
+      face.rotation.x = shiver * 0.04 * Math.sin(time * 41);
+      face.position.z = shiver * 0.004 * Math.sin(time * 33);
     }
   );
 }
