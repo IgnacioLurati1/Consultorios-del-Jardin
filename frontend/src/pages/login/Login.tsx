@@ -10,9 +10,24 @@ import { LoginService } from "./loginServices.ts";
 import { LOCKOUT_KEY } from "../../axios";
 import { useLogo } from "../../lib/useLogo";
 import { EntranceBackdrop } from "../../components/entrance/EntranceBackdrop";
+import { backdropOn } from "../../components/entrance/backdropCookie";
+import { useDesktop } from "../../components/entrance/useDesktop";
+import { wakeNightAudio } from "../../components/entrance/nightAudio";
 import "./Login.css";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * La llave del paseo por el hall: con este usuario y esta contraseña, y el fondo prendido,
+ * la tarjeta se va y el hall se recorre. No es una cuenta ni llega al servidor; sin el fondo
+ * prendido, "blues" no es un email y el formulario lo frena como a cualquier otro.
+ */
+const WALK_USER = "blues";
+const WALK_PASSWORD = "stevie";
+
+/** La otra llave, la de la noche de terror en el mismo hall. Igual que la del paseo. */
+const NIGHT_USER = "fnaf";
+const NIGHT_PASSWORD = "1987";
 
 const HOME_BY_TYPE: Record<string, string> = {
   admin: "/AdminHome",
@@ -41,6 +56,21 @@ export function Login() {
     }
   });
   const [sending, setSending] = useState(false);
+  const desktop = useDesktop();
+  // "form" es lo de siempre; "walk", paseando por el hall; "night", la noche de terror;
+  // "back", la tarjeta volviendo.
+  const [phase, setPhase] = useState<"form" | "walk" | "night" | "back">("form");
+  const away = phase === "walk" || phase === "night";
+
+  function startWalk(next: "walk" | "night") {
+    setPassword("");
+    setError(null);
+    // Que el foco no quede en un campo oculto: las teclas son para caminar.
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    // El sonido de la noche solo puede arrancar desde un clic: este es el de "Entrar".
+    if (next === "night") wakeNightAudio();
+    setPhase(next);
+  }
 
   function validate(): string | null {
     if (!email.trim()) return "Falta el email";
@@ -52,6 +82,16 @@ export function Login() {
   function submit(event: React.FormEvent) {
     event.preventDefault();
     toast.dismiss();
+
+    const user = email.trim().toLowerCase();
+    if (desktop && backdropOn() && user === WALK_USER && password === WALK_PASSWORD) {
+      startWalk("walk");
+      return;
+    }
+    if (desktop && backdropOn() && user === NIGHT_USER && password === NIGHT_PASSWORD) {
+      startWalk("night");
+      return;
+    }
 
     const problem = validate();
     if (problem) {
@@ -83,12 +123,20 @@ export function Login() {
   }
 
   return (
-    <div className="login-page entrance-host">
-      <EntranceBackdrop />
+    <div className={`login-page entrance-host ${away ? "is-walking" : ""} ${phase === "night" ? "is-night" : ""}`}>
+      <EntranceBackdrop
+        mode={phase === "walk" || phase === "night" ? phase : undefined}
+        onLeave={() => setPhase("back")}
+      />
 
       {/* noValidate: la validación nativa del navegador bloquearía el submit antes de
           llegar acá y mostraría su propio globito. Los mensajes los damos nosotros. */}
-      <form className="login-card" onSubmit={submit} noValidate>
+      <form
+        className={`login-card ${away ? "is-away" : phase === "back" ? "is-back" : ""}`}
+        onSubmit={submit}
+        noValidate
+        aria-hidden={away || undefined}
+      >
         <div className="login-card-head">
           <img src={logo} alt="Consultorios del Jardín" className="login-logo" />
           <h1 className="login-title">Iniciar sesión</h1>

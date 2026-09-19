@@ -122,3 +122,588 @@
     transform: none;
   }
 }
+
+/* ============================================================
+   Caminando por el hall: la tarjeta se va, el velo también, y
+   aparecen la mira al medio y las teclas abajo.
+   ============================================================ */
+
+.entrance-host.is-walking .entrance-veil {
+  opacity: 0;
+}
+
+/* La tarjeta se hunde y se desenfoca mientras la cámara da el paso; al final queda oculta
+   y no recibe el puntero, así el clic llega al hall. */
+.entrance-host .login-card.is-away {
+  pointer-events: none;
+  animation: walk-card-away 0.7s cubic-bezier(0.55, 0, 0.8, 0.3) forwards;
+}
+
+.entrance-host .login-card.is-back {
+  animation: walk-card-back 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes walk-card-away {
+  to {
+    opacity: 0;
+    transform: translateY(26px) scale(0.94);
+    filter: blur(6px);
+    visibility: hidden;
+  }
+}
+
+@keyframes walk-card-back {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    filter: blur(4px);
+  }
+}
+
+.walk-leave {
+  animation: walk-fade-in 0.5s ease 0.9s both;
+}
+
+/* La mira: un punto que se agranda en un aro verde cuando lo de adelante se puede usar. */
+.walk-aim {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1.5px rgba(10, 16, 14, 0.55);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: width 0.15s ease, height 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  animation: walk-fade-in 0.4s ease 1.5s both;
+}
+
+.walk-aim.is-on {
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 2px var(--adm-green),
+    0 0 0 1.5px rgba(255, 255, 255, 0.8);
+}
+
+.walk-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  z-index: 1;
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--adm-surface) 84%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(10, 16, 14, 0.16);
+  color: var(--adm-text);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: walk-hint-in 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) 1.6s both;
+}
+
+.walk-hint kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-right: 3px;
+  border: 1px solid var(--adm-border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--adm-surface);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@keyframes walk-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes walk-hint-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entrance-host .login-card.is-away {
+    animation-duration: 0.01s;
+  }
+
+  .entrance-host .login-card.is-back,
+  .walk-leave,
+  .walk-aim,
+  .walk-hint {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   La noche de terror: la hora arriba, la mira, las cámaras con
+   su estática y los carteles del principio y del final.
+   ============================================================ */
+
+.night-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  color: #e9ecef;
+  font-family: "Courier New", ui-monospace, monospace;
+}
+
+.night-hud button {
+  pointer-events: auto;
+}
+
+.entrance-host.is-night .walk-leave {
+  z-index: 2;
+}
+
+/* Las cámaras se ven como las de seguridad de noche: verdosas, con contraste y granulado. */
+.entrance-host.is-night:has(.night-hud.is-cams) .entrance-backdrop {
+  filter: grayscale(0.7) sepia(0.35) hue-rotate(58deg) saturate(1.6) brightness(1.5) contrast(1.3);
+}
+
+.night-clock {
+  position: absolute;
+  top: 16px;
+  right: 22px;
+  display: grid;
+  justify-items: end;
+  text-shadow: 0 2px 8px #000;
+}
+
+.night-clock strong {
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+}
+
+.night-clock span {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.night-aim-label {
+  position: absolute;
+  top: calc(50% + 20px);
+  left: 50%;
+  padding: 3px 9px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 0.82rem;
+  transform: translateX(-50%);
+}
+
+.night-hud .walk-aim {
+  animation: none;
+}
+
+.night-hud .night-hint {
+  background: rgba(8, 10, 14, 0.62);
+  color: #cfd5dc;
+  box-shadow: none;
+  font-family: inherit;
+  animation-delay: 0.4s;
+}
+
+.night-hud .night-hint kbd,
+.night-cam-keys kbd {
+  border-color: #3b424c;
+  background: #161b22;
+  color: #e9ecef;
+}
+
+/* ---------- las cámaras ---------- */
+
+.night-cams {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 160px 40px rgba(0, 0, 0, 0.85);
+}
+
+/* Líneas de barrido y un granulado que se mueve a saltos. */
+.night-static {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  animation: night-grain 0.25s steps(4) infinite;
+}
+
+@keyframes night-grain {
+  0% { background-position: 0 0, 0 0; }
+  25% { background-position: 0 1px, -40px 30px; }
+  50% { background-position: 0 2px, 50px -20px; }
+  75% { background-position: 0 1px, -20px -50px; }
+  100% { background-position: 0 0, 0 0; }
+}
+
+.night-cam-name {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  text-shadow: 0 1px 4px #000;
+  transform: translateX(-50%);
+}
+
+.night-rec {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #e5362c;
+  animation: night-blink 1s steps(1) infinite;
+}
+
+@keyframes night-blink {
+  50% { opacity: 0; }
+}
+
+.night-cam-pad {
+  position: absolute;
+  right: 26px;
+  bottom: 70px;
+  display: grid;
+  grid-template-columns: repeat(2, 54px);
+  gap: 8px;
+}
+
+.night-cam-pad button {
+  position: relative;
+  overflow: hidden;
+  height: 42px;
+  border: 2px solid #9aa5b1;
+  border-radius: 4px;
+  background: rgba(10, 12, 16, 0.75);
+  color: #e9ecef;
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.night-cam-pad button.is-current {
+  border-color: #d9f99d;
+  background: rgba(64, 90, 30, 0.8);
+}
+
+.night-cam-pad .night-cam-close {
+  grid-column: span 2;
+}
+
+.night-cam-pad button:focus-visible {
+  outline: 2px solid #d9f99d;
+  outline-offset: 2px;
+}
+
+.night-cam-keys {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  margin: 0;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 4px #000;
+  transform: translateX(-50%);
+}
+
+.night-cam-keys kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-right: 3px;
+  border: 1px solid;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+/* ---------- el principio, el susto y el final ---------- */
+
+.night-intro,
+.night-end {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  background: #000;
+  text-align: center;
+}
+
+/* Entra después de que la tarjeta se fue, y se retira sola cuando arranca la noche. */
+.night-intro {
+  animation: night-intro 4s ease both;
+}
+
+@keyframes night-intro {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+
+.night-intro strong,
+.night-end strong {
+  font-size: 3.4rem;
+  letter-spacing: 0.06em;
+}
+
+.night-intro span,
+.night-end span {
+  font-size: 1.05rem;
+  opacity: 0.7;
+}
+
+/* Un parpadeo rojo encima de la cara, sin taparla. */
+.night-scare {
+  position: absolute;
+  inset: 0;
+  background: rgba(150, 0, 0, 0.35);
+  animation: night-scare 0.12s steps(2) infinite;
+}
+
+@keyframes night-scare {
+  50% { opacity: 0; }
+}
+
+.night-end {
+  animation: night-fade 0.6s ease both;
+}
+
+.night-end strong {
+  color: #e5362c;
+}
+
+.night-end.is-won strong {
+  color: #f5e6b8;
+}
+
+@keyframes night-fade {
+  from { opacity: 0; }
+}
+
+.night-end-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.night-end-actions button {
+  padding: 10px 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 4px;
+  background: #e9ecef;
+  color: #000;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.night-end-actions button.is-quiet {
+  background: transparent;
+  color: #e9ecef;
+}
+
+.night-end-actions button:focus-visible {
+  outline: 2px solid #f5e6b8;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-static,
+  .night-rec,
+  .night-scare {
+    animation: none;
+  }
+}
+
+/* ---------- la muñeca: su tiempo en la cámara, y el aviso cuando se acaba ---------- */
+
+.night-doll {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6ff2ff;
+  transform: translateX(-50%);
+}
+
+.night-doll-bar {
+  width: 220px;
+  height: 10px;
+  border: 1px solid #6ff2ff;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.night-doll-bar span {
+  display: block;
+  height: 100%;
+  background: #6ff2ff;
+  transition: width 0.3s linear;
+}
+
+.night-cam-doll {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #6ff2ff;
+}
+
+.night-doll-warning {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #7a0d0d;
+  color: #fff;
+  opacity: 1 !important;
+  animation: night-blink 0.7s steps(1) infinite;
+}
+
+/* ---------- las noches de sangre ---------- */
+
+/* Las cámaras, en vez de verdes, rojas. */
+.entrance-host.is-night:has(.night-hud.is-cams.is-blood) .entrance-backdrop {
+  filter: grayscale(1) sepia(1) hue-rotate(-45deg) saturate(3.2) brightness(1.35) contrast(1.45);
+}
+
+.night-hud.is-blood {
+  color: #ffd6d0;
+}
+
+.night-hud.is-blood .night-clock strong,
+.night-hud.is-blood .night-intro strong {
+  color: #e5362c;
+  text-shadow: 0 0 18px rgba(229, 54, 44, 0.55), 0 2px 8px #000;
+}
+
+.night-hud.is-blood .night-intro,
+.night-hud.is-blood .night-end {
+  background: radial-gradient(ellipse at center, #2a0304 0%, #000 75%);
+}
+
+.night-hud.is-blood .night-scare {
+  background: rgba(200, 0, 0, 0.55);
+}
+
+.night-hud.is-blood .night-cam-pad button.is-current {
+  border-color: #ff6a5a;
+  background: rgba(110, 10, 10, 0.85);
+}
+
+/* ---------- el menú de las noches ---------- */
+
+.night-menu {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: radial-gradient(ellipse at center, #120708 0%, #000 70%);
+  text-align: center;
+  animation: night-fade 0.8s ease both;
+}
+
+.night-menu-eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+.night-menu strong {
+  font-size: 2.6rem;
+  letter-spacing: 0.04em;
+  color: #d8d2c4;
+}
+
+.night-menu-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.night-menu-list button {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: 128px;
+  padding: 16px 10px;
+  border: 2px solid #3a3032;
+  border-radius: 4px;
+  background: rgba(20, 10, 11, 0.8);
+  color: #e9ecef;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.night-menu-list button b {
+  font-size: 2rem;
+}
+
+.night-menu-list button span {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.night-menu-list button:hover,
+.night-menu-list button:focus-visible {
+  border-color: #e5362c;
+  background: rgba(60, 10, 10, 0.85);
+  outline: none;
+}
+
+/* Las dos de sangre se distinguen desde el menú: rojas, con una gota que chorrea del borde. */
+.night-menu-list button.is-blood {
+  position: relative;
+  border-color: #7a0d0d;
+  background: linear-gradient(180deg, rgba(90, 5, 8, 0.9), rgba(20, 2, 3, 0.95));
+  color: #ffb3aa;
+}
+
+.night-menu-list button.is-blood b {
+  color: #ff3b30;
+  text-shadow: 0 0 14px rgba(255, 40, 30, 0.6);
+}
+
+.night-menu-list button.is-blood::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 30%;
+  width: 6px;
+  height: 18px;
+  border-radius: 0 0 4px 4px;
+  background: #7a0d0d;
+}

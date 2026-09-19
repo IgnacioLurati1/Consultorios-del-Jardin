@@ -4,6 +4,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPixelatedPass } from "three/examples/jsm/postprocessing/RenderPixelatedPass.js";
 import type { Season } from "../../context/SeasonContext";
+import { createNight, NIGHTS, type Night, type NightContext, type NightState } from "./nightGame";
 
 /**
  * El fondo del ingreso y del registro: el hall del consultorio visto desde la entrada,
@@ -31,6 +32,14 @@ import type { Season } from "../../context/SeasonContext";
  * cerrar solas, la corrediza del jardín se abre y se cierra, la lámpara y el monitor de la
  * recepción se prenden y se apagan, y las plantas, los arbustos y el árbol se sacuden.
  * Afuera es la estación elegida; en modo oscuro es de noche.
+ *
+ * Y un modo escondido: con `setWalk(true)` la cámara deja de ser un fondo y el hall se
+ * recorre en primera persona (ver "caminar", más abajo).
+ *
+ * Con `horror`, el mismo hall es el escenario de la noche de terror (ver nightGame): de
+ * noche siempre, más oscuro, con luces frías que fallan, lluvia y rayos. La silla de la
+ * recepción va detrás del escritorio y se puede usar, y en lugar del huevo con flores hay
+ * un tablero de luz.
  */
 
 interface Outside {
@@ -151,6 +160,21 @@ const WALK_IN_S = 3.6;
  * fondo del hall queda a la vista al costado de la tarjeta y el pasillo ocupa la izquierda.
  */
 const VANISHING_X = 0.75;
+
+/* ---------------- caminando ---------------- */
+
+/** La altura de los ojos de quien camina. */
+const EYE = 1.55;
+/** Lo que ocupa el cuerpo: más cerca de una pared o un mueble no se llega. */
+const BODY = 0.28;
+const WALK_SPEED = 2.2;
+/** Con las flechas de los costados, para quien no usa el mouse. En radianes por segundo. */
+const TURN_SPEED = 1.8;
+/** Hasta dónde llega la mano con la E. */
+const REACH = 2.6;
+/** Lo que tarda la cámara en pasar de fondo a caminar, y de vuelta. */
+const BLEND_S = 1.6;
+const MOVE_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"]);
 
 /** Un azar con semilla: el consultorio sale igual cada vez que se abre. */
 function seeded(seed: number): () => number {
@@ -313,6 +337,10 @@ export interface Entrance {
   render(seconds: number): boolean;
   /** Un cuadro quieto, ya adentro, para quien pidió menos movimiento. */
   renderStill(): void;
+  /** Pasa a caminar o vuelve a ser fondo. Con `instant`, sin el viaje de la cámara. */
+  setWalk(on: boolean, instant?: boolean): void;
+  /** Las órdenes de la pantalla de la noche de terror: cambiar de cámara o bajarlas. */
+  nightCommand(name: "cam" | "close", value?: number): void;
   dispose(): void;
 }
 
@@ -321,10 +349,29 @@ export function createEntrance(
   canvas: HTMLCanvasElement,
   {
     season,
-    night,
+    night: nightTheme,
     walkIn,
     centered = false,
-  }: { season: Season; night: boolean; walkIn: boolean; centered?: boolean }
+    horror = false,
+    nightLevel = 0,
+    onAim,
+    onNight,
+  }: {
+    season: Season;
+    night: boolean;
+    walkIn: boolean;
+    centered?: boolean;
+    horror?: boolean;
+    /** Qué noche de terror se juega, desde 0. */
+    nightLevel?: number;
+    /**
+     * Caminando, avisa qué se puede usar con la E de lo que queda en la mira: su nombre, o
+     * "" si no tiene uno. Con null, nada.
+     */
+    onAim?: (label: string | null) => void;
+    /** En la noche de terror, cada cambio de lo que muestra la pantalla. */
+    onNight?: (state: NightState) => void;
+  }
 ): Entrance | null {
   let renderer: THREE.WebGLRenderer;
   try {
@@ -341,6 +388,9 @@ export function createEntrance(
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
+  const night = nightTheme || horror;
+  // Las dos últimas noches de terror son rojas: la niebla, el cielo y todas las luces.
+  const blood = horror && (NIGHTS[nightLevel]?.blood ?? false);
   const outside = OUTSIDE[season];
   const rand = seeded(20240);
   const disposables: { dispose(): void }[] = [];
@@ -355,7 +405,8 @@ export function createEntrance(
   const pmrem = new THREE.PMREMGenerator(renderer);
   const studio = new RoomEnvironment();
   scene.environment = keep(pmrem.fromScene(studio, 0.04).texture);
-  scene.environmentIntensity = night ? 0.12 : 0.45;
+  scene.environmentIntensity = horror ? 0.02 : night ? 0.12 : 0.45;
+  if (horror) scene.fog = new THREE.FogExp2(blood ? "#1c0304" : "#05070b", blood ? 0.07 : 0.05);
   studio.dispose();
   pmrem.dispose();
 
@@ -386,6 +437,8 @@ export function createEntrance(
       transparent: true,
       opacity: 0.12,
       depthWrite: false,
+      // De los dos lados: caminando, el vidrio frena también a quien vuelve del jardín.
+      side: THREE.DoubleSide,
     })
   );
   const lampGlow = keep(new THREE.MeshBasicMaterial({ color: "#fff1d6" }));
@@ -560,13 +613,15 @@ export function createEntrance(
   const roomDepth2 = 2.4;
   const roomBackX = LEFT - 0.2 - roomDepth2;
   const roomMidX = LEFT - 0.2 - roomDepth2 / 2;
-  const roomWall = standard(INSIDE.wall, { roughness: 0.95, map: plaster, emissive: "#fff4e6", emissiveIntensity: 0.35 });
+  const roomWall = standard(INSIDE.wall, { roughness: 0.95, map: plaster, emissive: "#fff4e6", emissiveIntensity: horror ? 0.03 : 0.35 });
   const roomFloor = standard("#b8a189", { roughness: 0.7 });
   for (const door of DOORS) {
     block(roomWall, [0.1, CORRIDOR_H, 1.8], [roomBackX - 0.05, CORRIDOR_H / 2, door.z]);
     for (const side of [-1, 1]) block(roomWall, [roomDepth2, CORRIDOR_H, 0.1], [roomMidX, CORRIDOR_H / 2, door.z + side * 0.9]);
     block(roomWall, [roomDepth2, 0.1, 1.8], [roomMidX, CORRIDOR_H + 0.05, door.z]);
     block(roomFloor, [roomDepth2, 0.02, 1.8], [roomMidX, 0.01, door.z]);
+    // En la noche de terror, un tubo frío y débil: lo justo para que la cámara vea algo.
+    if (horror) add(new THREE.PointLight(blood ? "#c25050" : "#8fa6c8", 0.6, 0, 2)).position.set(roomMidX, CORRIDOR_H - 0.3, door.z);
 
     block(deskWood, [0.62, 0.04, 1.1], [roomBackX + 0.36, 0.74, door.z]);
     for (const side of [-1, 1]) block(deskWood, [0.58, 0.72, 0.04], [roomBackX + 0.36, 0.36, door.z + side * 0.52]);
@@ -610,8 +665,11 @@ export function createEntrance(
 
   // Los spots del techo del pasillo, prendidos también de día: es un pasillo sin ventanas.
   for (let z = OPENING_Z - 0.8; z > BACK_Z; z -= 1.6) spot(corridorMidX, CORRIDOR_H - 0.005, z);
+  const flickering: THREE.PointLight[] = [];
   for (const z of [0.2, -2.6, -5.6]) {
-    add(new THREE.PointLight("#ffd7a8", night ? 6 : 2.4, 0, 2)).position.set(corridorMidX, CORRIDOR_H - 0.3, z);
+    const light = add(new THREE.PointLight(blood ? "#ff5a48" : horror ? "#b9c6dd" : "#ffd7a8", horror ? 0.9 : night ? 6 : 2.4, 0, 2));
+    light.position.set(corridorMidX, CORRIDOR_H - 0.3, z);
+    flickering.push(light);
   }
 
   // Las tres sillas de espera, en fila sobre la línea del pasillo, mirando al hall. La
@@ -672,6 +730,12 @@ export function createEntrance(
   slider.userData.onTouch = () => {
     gardenDoor.target = gardenDoor.target ? 0 : 1;
   };
+  // Caminando, la E sobre el paño fijo también abre la corrediza: yendo derecho al jardín
+  // es lo que queda en la mira. Como fondo no cuenta, así el clic a través del vidrio sigue
+  // llegando al árbol.
+  const fixedPane = hitBox([leafWidth, DOOR_TOP, 0.04], [glassMid + leafWidth / 2, DOOR_TOP / 2, BACK_Z - 0.15], scene);
+  fixedPane.userData.walkOnly = true;
+  fixedPane.userData.onTouch = slider.userData.onTouch;
   // La viga donde se juntan la puerta y el techo: la línea oscura que cruza la foto a esa altura.
   block(frame, [hallWidth, 0.16, 0.18], [hallMidX, DOOR_TOP, BACK_Z - 0.1]);
 
@@ -718,14 +782,14 @@ export function createEntrance(
   block(frame, [1.26, 0.04, 1.96], [deskX, 0.78, deskZ]);
   // El monitor, que se prende y se apaga al tocarlo.
   const monitor = add(new THREE.Group());
-  const screenGlow = night ? 1.4 : 0.35;
+  const screenGlow = horror ? 0.35 : night ? 1.4 : 0.35;
   const screen = standard("#0d1520", { emissive: night ? "#bcd4ff" : "#8fb2d9", emissiveIntensity: screenGlow, roughness: 0.3 });
   block(metal, [0.04, 0.34, 0.56], [deskX - 0.3, 1.1, deskZ + 0.1], monitor);
   block(metal, [0.18, 0.02, 0.18], [deskX - 0.27, 0.81, deskZ + 0.1], monitor);
   block(metal, [0.03, 0.2, 0.04], [deskX - 0.29, 0.9, deskZ + 0.1], monitor);
   block(screen, [0.01, 0.3, 0.52], [deskX - 0.275, 1.1, deskZ + 0.1], monitor);
   hitBox([0.22, 0.5, 0.7], [deskX - 0.29, 1.05, deskZ + 0.1], monitor);
-  monitor.userData.onTouch = () => {
+  if (!horror) monitor.userData.onTouch = () => {
     screen.emissiveIntensity = screen.emissiveIntensity > 0 ? 0 : screenGlow;
   };
   block(metal, [0.16, 0.02, 0.44], [deskX + 0.05, 0.81, deskZ + 0.1]);
@@ -735,14 +799,14 @@ export function createEntrance(
   // La lámpara del escritorio: una luz cálida chica, que de noche es la que más se ve. Se
   // prende y se apaga al tocarla.
   const lamp = add(new THREE.Group());
-  const shadeGlow = night ? 0.8 : 0.2;
-  const lampPower = night ? 3 : 0.6;
+  const shadeGlow = horror ? 0.4 : night ? 0.8 : 0.2;
+  const lampPower = horror ? 1.6 : night ? 3 : 0.6;
   const shadeMaterial = standard("#e9e2d4", { roughness: 0.7, emissive: "#ffd9a8", emissiveIntensity: shadeGlow });
   block(metal, [0.12, 0.02, 0.12], [deskX - 0.35, 0.81, deskZ + 0.72], lamp);
   rod(metal, 0.012, 0.42, [deskX - 0.35, 1.02, deskZ + 0.72], lamp);
   rod(shadeMaterial, 0.09, 0.14, [deskX - 0.3, 1.24, deskZ + 0.72], lamp).castShadow = false;
   hitBox([0.4, 0.65, 0.4], [deskX - 0.32, 1.05, deskZ + 0.72], lamp);
-  const lampLight = add(new THREE.PointLight("#ffd3a0", lampPower, 0, 2));
+  const lampLight = add(new THREE.PointLight(blood ? "#ff8a6a" : "#ffd3a0", lampPower, 0, 2));
   lampLight.position.set(deskX - 0.3, 1.1, deskZ + 0.72);
   lamp.userData.onTouch = () => {
     const on = lampLight.intensity === 0;
@@ -752,8 +816,12 @@ export function createEntrance(
 
   // La silla de la recepción, del otro lado del escritorio.
   const officeChair = add(new THREE.Group());
-  officeChair.position.set(RIGHT - 0.35, 0, -3.3);
-  officeChair.rotation.y = -0.5;
+  // En la noche de terror va detrás del escritorio, derecha, mirando a la computadora.
+  if (horror) officeChair.position.set(RIGHT - 0.3, 0, deskZ + 0.1);
+  else {
+    officeChair.position.set(RIGHT - 0.35, 0, -3.3);
+    officeChair.rotation.y = -0.5;
+  }
   for (let i = 0; i < 5; i++) {
     const angle = (i * Math.PI * 2) / 5;
     block(metal, [0.3, 0.03, 0.04], [Math.cos(angle) * 0.15, 0.06, -Math.sin(angle) * 0.15], officeChair).rotation.y = angle;
@@ -765,7 +833,23 @@ export function createEntrance(
   block(upholstery, [0.3, 0.04, 0.05], [0.05, 0.72, -0.25], officeChair);
 
   /* el huevo de la pared derecha, con sus tres flores */
-  const eggArt = flowersTexture();
+  // El tablero de la luz, donde de día está el huevo: una caja de metal con una palanca.
+  const breaker = add(new THREE.Group());
+  const lever = add(new THREE.Group(), breaker);
+  if (horror) {
+    breaker.position.set(RIGHT - 0.04, 1.45, 0.55);
+    const panel = standard("#5b5f63", { roughness: 0.5, metalness: 0.5 });
+    block(panel, [0.06, 0.55, 0.4], [0, 0, 0], breaker);
+    block(frame, [0.02, 0.42, 0.28], [-0.035, 0, 0], breaker);
+    lever.position.set(-0.06, 0, 0);
+    lever.rotation.z = 0.6;
+    block(standard("#b0312a", { roughness: 0.5 }), [0.04, 0.2, 0.05], [0, 0.1, 0], lever);
+    hitBox([0.3, 0.7, 0.55], [-0.1, 0, 0], breaker);
+    // Una lucecita roja que no depende de la luz: en el apagón es lo único que se ve.
+    block(keep(new THREE.MeshBasicMaterial({ color: "#ff3322" })), [0.02, 0.025, 0.025], [-0.035, 0.22, 0.14], breaker);
+  }
+
+  const eggArt = horror ? null : flowersTexture();
   if (eggArt) {
     keep(eggArt);
     // La forma va centrada en el origen y la textura se corre medio lado para que calce.
@@ -808,6 +892,7 @@ export function createEntrance(
     group.userData.onTouch = () => {
       leafSway.kick = 1;
     };
+    return group;
   }
 
   pottedPlant(GLASS_LEFT + 0.35, BACK_Z + 0.45, 1.3, "#3f7d45", 0.24);
@@ -815,7 +900,7 @@ export function createEntrance(
   pottedPlant(LEFT + 0.35, BACK_Z + 0.4, 0.9, "#3f7d45");
   pottedPlant(LEFT + 0.3, ROOM_Z - 0.6, 1.0, "#467f48");
   // Las tres del boquete de la pared del pasillo, iguales, sobre el alféizar.
-  for (const dz of [-0.5, 0, 0.5]) pottedPlant(HALL_LEFT + 0.02, NICHE.z + dz, 0.42, "#4a8a4c", 0.09, NICHE.sill + 0.04);
+  const nichePlants = [-0.5, 0, 0.5].map((dz) => pottedPlant(HALL_LEFT + 0.02, NICHE.z + dz, 0.42, "#4a8a4c", 0.09, NICHE.sill + 0.04));
 
   /* ---------------- el jardín, del otro lado del vidrio ---------------- */
 
@@ -914,6 +999,10 @@ export function createEntrance(
 
   /* ---------------- cielo, nubes y estrellas ---------------- */
 
+  // En la noche de terror, un cielo cerrado de tormenta: casi negro, sin estrellas.
+  const skyTop = new THREE.Color(blood ? "#0e0102" : horror ? "#030509" : night ? "#0a1628" : outside.skyTop);
+  const skyHorizon = new THREE.Color(blood ? "#3d0507" : horror ? "#0c121c" : night ? "#1f3452" : outside.horizon);
+
   add(
     new THREE.Mesh(
       keep(new THREE.SphereGeometry(250, 32, 16)),
@@ -923,8 +1012,8 @@ export function createEntrance(
           depthWrite: false,
           toneMapped: false,
           uniforms: {
-            top: { value: new THREE.Color(night ? "#0a1628" : outside.skyTop) },
-            horizon: { value: new THREE.Color(night ? "#1f3452" : outside.horizon) },
+            top: { value: skyTop },
+            horizon: { value: skyHorizon },
           },
           vertexShader: /* glsl */ `
             varying vec3 vDirection;
@@ -949,7 +1038,7 @@ export function createEntrance(
   );
 
   const cloudGeometry = keep(new THREE.SphereGeometry(1, 16, 12));
-  const cloudMaterial = standard(night ? "#2a3a55" : "#ffffff", {
+  const cloudMaterial = standard(blood ? "#2a0506" : horror ? "#0e131b" : night ? "#2a3a55" : "#ffffff", {
     emissive: night ? "#000000" : "#ffffff",
     emissiveIntensity: night ? 0 : 0.55,
     roughness: 1,
@@ -966,7 +1055,7 @@ export function createEntrance(
     clouds.push({ group, speed: 0.6 + rand() * 0.6 });
   }
 
-  if (night) {
+  if (night && !horror) {
     const positions: number[] = [];
     for (let i = 0; i < 500; i++) {
       const azimuth = rand() * Math.PI * 2;
@@ -987,7 +1076,7 @@ export function createEntrance(
 
   // El sol entra desde atrás y arriba, por el techo: la perfilería queda dibujada en el
   // piso, hacia la cámara. De noche es la luna, que hace lo mismo más tenue y más fría.
-  const sun = add(new THREE.DirectionalLight(night ? "#9fb6e0" : outside.sun, night ? 0.6 : 3.4));
+  const sun = add(new THREE.DirectionalLight(blood ? "#c04040" : night ? "#9fb6e0" : outside.sun, horror ? 0.12 : night ? 0.6 : 3.4));
   sun.position.set(-2.5, 14, -11.5);
   sun.target.position.set(0.6, 0, -3);
   add(sun.target);
@@ -1000,12 +1089,24 @@ export function createEntrance(
   sun.shadow.normalBias = 0.03;
   sun.shadow.radius = 3;
 
-  add(new THREE.HemisphereLight(night ? "#1c2a44" : "#dfe9f3", night ? "#1a140f" : "#5b5046", night ? 0.35 : 1.05));
+  const sky = add(
+    new THREE.HemisphereLight(blood ? "#4a0a0c" : night ? "#1c2a44" : "#dfe9f3", blood ? "#1a0404" : night ? "#1a140f" : "#5b5046", horror ? 0.07 : night ? 0.35 : 1.05)
+  );
 
   // Un relleno suave desde la entrada: sin él, lo que queda a contraluz es una mancha negra.
-  add(new THREE.DirectionalLight("#fff7ee", night ? 0.08 : 0.35)).position.set(1, 3, 10);
+  const fill = add(new THREE.DirectionalLight("#fff7ee", horror ? 0.01 : night ? 0.08 : 0.35));
+  fill.position.set(1, 3, 10);
 
-  if (night) {
+  if (horror) {
+    // Dos tubos fríos que andan mal, y un farol débil en el jardín.
+    for (const z of [-1.5, -5.5]) {
+      const light = add(new THREE.PointLight(blood ? "#ff4a3a" : "#a9b8d4", 1.1, 0, 2));
+      light.position.set(0.8, 3.4, z);
+      flickering.push(light);
+    }
+    // El farol del jardín, junto a la puerta: lo que se acerque se recorta contra la luz.
+    add(new THREE.PointLight(blood ? "#d04a3a" : "#9fb2d0", 2.6, 0, 2)).position.set(0.4, 2.3, BACK_Z - 1.4);
+  } else if (night) {
     for (const z of [-1.5, -5.5]) add(new THREE.PointLight("#ffcf9a", 8, 0, 2)).position.set(0.8, 3.4, z);
     add(new THREE.PointLight("#ffd9a0", 6, 0, 2)).position.set(-1.6, 1.2, -11);
   }
@@ -1046,47 +1147,178 @@ export function createEntrance(
     return object instanceof THREE.Points || !material || material.transparent || material instanceof THREE.ShaderMaterial;
   };
 
-  function touchAt(event: MouseEvent): (() => void) | null {
-    const rect = canvas.getBoundingClientRect();
-    ndc.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+  /** Lo que se puede tocar en ese punto de la pantalla (de -1 a 1), hasta `far` metros. */
+  function touchNodeAt(x: number, y: number, far = Infinity): THREE.Object3D | null {
+    ndc.set(x, y);
     raycaster.setFromCamera(ndc, camera);
+    raycaster.far = far;
     for (const hit of raycaster.intersectObjects(scene.children, true)) {
-      if (seeThrough(hit.object)) continue;
+      if (seeThrough(hit.object) || (!walking && hit.object.userData.walkOnly)) continue;
+      let passThrough = false;
       for (let node: THREE.Object3D | null = hit.object; node; node = node.parent) {
-        if (typeof node.userData.onTouch === "function") return node.userData.onTouch as () => void;
+        if (typeof node.userData.onTouch === "function") return node;
+        if (node.userData.passThrough) passThrough = true;
       }
+      if (passThrough) continue;
       return null;
     }
     return null;
+  }
+
+  function touchableAt(x: number, y: number, far = Infinity): (() => void) | null {
+    return (touchNodeAt(x, y, far)?.userData.onTouch as (() => void) | undefined) ?? null;
+  }
+
+  function touchAt(event: MouseEvent): (() => void) | null {
+    const rect = canvas.getBoundingClientRect();
+    return touchableAt(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
   }
 
   // Buscar bajo el puntero en cada movimiento es caro; con veinte veces por segundo alcanza
   // para que la manito aparezca a tiempo.
   let lastHover = 0;
   const onHover = (event: PointerEvent) => {
+    if (walking) return;
     if (event.timeStamp - lastHover < 50) return;
     lastHover = event.timeStamp;
     canvas.style.cursor = touchAt(event) ? "pointer" : "";
   };
+  // Caminando, el clic no toca: atrapa el puntero para mirar con el mouse. Lo que se usa es
+  // lo que queda en la mira, con la E. Esc lo suelta, como en cualquier juego.
   const onTap = (event: MouseEvent) => {
-    touchAt(event)?.();
+    if (!walking) {
+      touchAt(event)?.();
+      return;
+    }
+    if (blend || document.pointerLockElement === canvas) return;
+    const lock = canvas.requestPointerLock?.() as unknown as Promise<void> | undefined;
+    lock?.catch?.(() => {});
   };
   canvas.addEventListener("pointermove", onHover);
   canvas.addEventListener("click", onTap);
 
+  /* ---------------- caminar ---------------- */
+
+  // W A S D (o las flechas) para caminar, Shift para apurarse, el mouse para mirar y la E
+  // para usar lo que quedó en la mira. Los choques se miran con rayos cortos hacia donde se
+  // va, a tres alturas y a lo ancho del cuerpo: se frena contra las paredes, los muebles, las
+  // puertas cerradas y el vidrio. Con la corrediza abierta se sale al jardín, y con una
+  // puerta abierta se entra al consultorio.
+  let walking = false;
+  const walker = { position: new THREE.Vector3(), yaw: 0, pitch: 0 };
+  const walkerLook = new THREE.Euler(0, 0, 0, "YXZ");
+  const keys = new Set<string>();
+  /** El viaje de la cámara entre fondo y caminar: sale de donde estaba y llega a donde le toca. */
+  let blend: { from: THREE.Vector3; fromQuat: THREE.Quaternion; fromLens: number; startedAt: number | null } | null = null;
+  const blendQuat = new THREE.Quaternion();
+  let aiming: string | null = null;
+  let lastAim = 0;
+  /** Sentado en la silla de la recepción: al moverse, se para donde indica `standAt`. */
+  const seat = { active: false, standAt: new THREE.Vector3() };
+  let night_: Night | null = null;
+
+  const colliders: THREE.Object3D[] = [];
+  scene.traverse((object) => {
+    if (object instanceof THREE.Mesh) colliders.push(object);
+  });
+  const probe = new THREE.Raycaster();
+  const probeFrom = new THREE.Vector3();
+  const probeDir = new THREE.Vector3();
+
+  function blocked(dx: number, dz: number): boolean {
+    const length = Math.hypot(dx, dz);
+    if (!length) return false;
+    probeDir.set(dx / length, 0, dz / length);
+    probe.far = length + BODY;
+    for (const height of [0.4, 0.85, 1.5]) {
+      for (const side of [-0.8, 0, 0.8]) {
+        probeFrom.set(walker.position.x - probeDir.z * side * BODY, height, walker.position.z + probeDir.x * side * BODY);
+        probe.set(probeFrom, probeDir);
+        if (probe.intersectObjects(colliders, false).length) return true;
+      }
+    }
+    return false;
+  }
+
+  function setAim(label: string | null) {
+    if (label === aiming) return;
+    aiming = label;
+    onAim?.(label);
+  }
+
+  function walkStep(dt: number) {
+    if (night_?.frozen()) return;
+    const held = (...codes: string[]) => codes.some((code) => keys.has(code));
+    walker.yaw += ((held("ArrowLeft") ? 1 : 0) - (held("ArrowRight") ? 1 : 0)) * TURN_SPEED * dt;
+    // Sentado se puede girar; al caminar, primero se para.
+    if (seat.active) {
+      if (!held("KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown")) return;
+      seat.active = false;
+      walker.position.copy(seat.standAt);
+    }
+
+    const ahead = (held("KeyW", "ArrowUp") ? 1 : 0) - (held("KeyS", "ArrowDown") ? 1 : 0);
+    const aside = (held("KeyD") ? 1 : 0) - (held("KeyA") ? 1 : 0);
+    if (!ahead && !aside) return;
+    const sin = Math.sin(walker.yaw);
+    const cos = Math.cos(walker.yaw);
+    let dx = -sin * ahead + cos * aside;
+    let dz = -cos * ahead - sin * aside;
+    const step = ((held("ShiftLeft", "ShiftRight") ? 1.8 : 1) * WALK_SPEED * dt) / Math.hypot(dx, dz);
+    dx *= step;
+    dz *= step;
+    // Cada eje por separado: contra una pared se desliza en vez de quedar pegado.
+    if (!blocked(dx, 0)) walker.position.x += dx;
+    if (!blocked(0, dz)) walker.position.z += dz;
+  }
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (!walking || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (night_?.key(event.code)) {
+      if (event.code !== "Escape") event.preventDefault();
+      return;
+    }
+    if (MOVE_KEYS.has(event.code)) {
+      keys.add(event.code);
+      if (event.code.startsWith("Arrow")) event.preventDefault();
+    } else if (event.code === "KeyE" && !event.repeat && !blend) {
+      touchableAt(0, 0, REACH)?.();
+    }
+  };
+  const onKeyUp = (event: KeyboardEvent) => keys.delete(event.code);
+  const onBlur = () => keys.clear();
+  const onLook = (event: MouseEvent) => {
+    if (!walking || blend || document.pointerLockElement !== canvas || night_?.frozen()) return;
+    walker.yaw -= event.movementX * 0.0022;
+    walker.pitch = THREE.MathUtils.clamp(walker.pitch - event.movementY * 0.0022, -1.2, 1.2);
+  };
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
+  window.addEventListener("blur", onBlur);
+  document.addEventListener("mousemove", onLook);
+
   /* ---------------- tamaño ---------------- */
 
-  function resize(cssWidth: number, cssHeight: number) {
-    if (!cssWidth || !cssHeight) return;
-    renderer.setSize(cssWidth, cssHeight, false);
-    composer.setSize(cssWidth, cssHeight);
+  const size = { width: 0, height: 0 };
+  /**
+   * Dónde cae el punto de fuga, como fracción del ancho: 0.5 es al medio. Se guarda aparte
+   * porque al pasar a caminar se desliza hasta el centro en vez de saltar.
+   */
+  let lens = 0.5;
 
-    if (!centered && cssWidth >= 900) {
+  function lensTarget() {
+    return !walking && !centered && size.width >= 900 ? VANISHING_X : 0.5;
+  }
+
+  function applyLens() {
+    const { width: cssWidth, height: cssHeight } = size;
+    if (!cssWidth || !cssHeight) return;
+    if (lens > 0.501) {
       // Se corre la lente, como en las fotos de arquitectura: se dibuja la parte izquierda
       // de una imagen más ancha, así el punto de fuga cae a la derecha de la tarjeta y las
       // verticales siguen derechas. Girar la cámara las habría torcido.
-      const fullWidth = cssWidth * VANISHING_X * 2;
-      camera.fov = 58;
+      const fullWidth = cssWidth * lens * 2;
+      camera.fov = THREE.MathUtils.lerp(60, 58, (lens - 0.5) / (VANISHING_X - 0.5));
       camera.aspect = fullWidth / cssHeight;
       camera.setViewOffset(fullWidth, cssHeight, 0, 0, cssWidth, cssHeight);
     } else {
@@ -1098,6 +1330,75 @@ export function createEntrance(
       camera.fov = camera.aspect < 1 ? 72 : 60;
     }
     camera.updateProjectionMatrix();
+  }
+
+  function setLens(value: number) {
+    if (Math.abs(value - lens) < 1e-4) return;
+    lens = value;
+    applyLens();
+  }
+
+  function resize(cssWidth: number, cssHeight: number) {
+    if (!cssWidth || !cssHeight) return;
+    renderer.setSize(cssWidth, cssHeight, false);
+    composer.setSize(cssWidth, cssHeight);
+    size.width = cssWidth;
+    size.height = cssHeight;
+    if (!blend) lens = lensTarget();
+    applyLens();
+  }
+
+  /* ---------------- la noche de terror ---------------- */
+
+  if (horror) {
+    const context: NightContext = {
+      scene,
+      camera,
+      layout: {
+        left: LEFT,
+        hallLeft: HALL_LEFT,
+        right: RIGHT,
+        openingZ: OPENING_Z,
+        backZ: BACK_Z,
+        gardenBackZ: GARDEN_BACK_Z,
+        hallH: HALL_H,
+        corridorH: CORRIDOR_H,
+        doorTop: DOOR_TOP,
+        glassLeft: GLASS_LEFT,
+        nicheZ: NICHE.z,
+        roomBackX,
+      },
+      doors: swingingDoors,
+      doorZ: DOORS.map((door) => door.z),
+      garden: gardenDoor,
+      slider,
+      fixedPane,
+      nichePlants,
+      chair: officeChair,
+      monitor,
+      lever,
+      breaker,
+      walker,
+      seat,
+      glow: lampGlow,
+      flicker: flickering,
+      ambient: [sun, sky, fill],
+      sky: { top: skyTop, horizon: skyHorizon },
+      setView(view) {
+        pixelPass.camera = view ?? camera;
+      },
+      releasePointer() {
+        if (document.pointerLockElement === canvas) document.exitPointerLock();
+      },
+      relock() {
+        const lock = canvas.requestPointerLock?.() as unknown as Promise<void> | undefined;
+        lock?.catch?.(() => {});
+      },
+      onState(state) {
+        onNight?.(state);
+      },
+    };
+    night_ = createNight(context, nightLevel);
   }
 
   /* ---------------- cada cuadro ---------------- */
@@ -1119,13 +1420,40 @@ export function createEntrance(
       parallax.y += (pointer.y - parallax.y) * follow;
     }
 
-    const drift = still ? 0 : 1;
-    camera.position.set(
-      REST.x + Math.sin(t * 0.13) * 0.06 * drift + parallax.x * 0.3,
-      REST.y + Math.sin(t * 0.19) * 0.02 * drift - parallax.y * 0.12,
-      THREE.MathUtils.lerp(START_Z, REST.z, walkIn ? eased : 1)
-    );
-    camera.lookAt(LOOK.x + parallax.x * 0.5, LOOK.y - parallax.y * 0.2, LOOK.z);
+    if (walking) {
+      if (!blend) walkStep(dt);
+      camera.position.copy(walker.position);
+      camera.quaternion.setFromEuler(walkerLook.set(walker.pitch, walker.yaw, 0));
+    } else {
+      const drift = still ? 0 : 1;
+      camera.position.set(
+        REST.x + Math.sin(t * 0.13) * 0.06 * drift + parallax.x * 0.3,
+        REST.y + Math.sin(t * 0.19) * 0.02 * drift - parallax.y * 0.12,
+        THREE.MathUtils.lerp(START_Z, REST.z, walkIn ? eased : 1)
+      );
+      camera.lookAt(LOOK.x + parallax.x * 0.5, LOOK.y - parallax.y * 0.2, LOOK.z);
+    }
+
+    // En el viaje entre fondo y caminar, la cámara va de donde estaba a donde le toca y la
+    // lente se corre al mismo tiempo: el hall se desliza al centro mientras se da el paso.
+    if (blend) {
+      if (blend.startedAt === null) blend.startedAt = t;
+      const k = Math.min(1, (t - blend.startedAt) / BLEND_S);
+      const smooth = k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2;
+      blendQuat.copy(camera.quaternion);
+      camera.position.lerpVectors(blend.from, camera.position, smooth);
+      camera.quaternion.slerpQuaternions(blend.fromQuat, blendQuat, smooth);
+      setLens(THREE.MathUtils.lerp(blend.fromLens, lensTarget(), smooth));
+      if (k >= 1) blend = null;
+    } else {
+      setLens(lensTarget());
+    }
+
+    if (walking && !blend && t - lastAim > 0.1) {
+      lastAim = t;
+      const node = night_?.frozen() ? null : touchNodeAt(0, 0, REACH);
+      setAim(node ? ((node.userData.label as string | undefined) ?? "") : null);
+    }
 
     clock = t;
     let animating = false;
@@ -1154,8 +1482,9 @@ export function createEntrance(
       if (cloud.group.position.x > 90) cloud.group.position.x = -90;
     }
 
+    night_?.update(dt);
     composer.render(dt);
-    return animating || walk < 1 || Math.abs(pointer.x - parallax.x) + Math.abs(pointer.y - parallax.y) > 0.004;
+    return walking || blend !== null || animating || walk < 1 || Math.abs(pointer.x - parallax.x) + Math.abs(pointer.y - parallax.y) > 0.004;
   }
 
   return {
@@ -1169,7 +1498,35 @@ export function createEntrance(
       last = null;
       update(4, 0, true);
     },
+    nightCommand(name, value) {
+      night_?.command(name, value);
+    },
+    setWalk(on, instant = false) {
+      if (on === walking) return;
+      walking = on;
+      keys.clear();
+      if (on) {
+        // Un paso más adentro que el fondo, ya pasando el vano, derecho al jardín. En la
+        // noche de terror se arranca sentado en la recepción, donde lo dejó el juego.
+        if (!seat.active) {
+          walker.position.set(REST.x, EYE, 2.2);
+          walker.yaw = 0;
+          walker.pitch = 0.03;
+        }
+        canvas.style.cursor = "";
+      } else {
+        if (document.pointerLockElement === canvas) document.exitPointerLock();
+        setAim(null);
+      }
+      blend = instant ? null : { from: camera.position.clone(), fromQuat: camera.quaternion.clone(), fromLens: lens, startedAt: null };
+    },
     dispose() {
+      night_?.dispose();
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("mousemove", onLook);
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
       if (finePointer) window.removeEventListener("pointermove", onPointer);
       canvas.removeEventListener("pointermove", onHover);
       canvas.removeEventListener("click", onTap);
