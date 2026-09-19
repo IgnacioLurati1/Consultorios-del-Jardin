@@ -1,0 +1,153 @@
+/* ============================================================
+   Adornos de las fechas especiales.
+   La guirnalda (HolidayDecor.tsx) cuelga arriba de la portada,
+   del ingreso, del registro y de los paneles. En la portada,
+   además, un adorno chico al lado de cada título de sección y
+   el borde de arriba del pie, colgados de [data-holiday].
+   ============================================================ */
+
+/* La guirnalda se ubica contra la portada entera: de ahí saca el borde de arriba y el
+   ancho. */
+.home {
+  position: relative;
+}
+
+/* ---------- la guirnalda ---------- */
+
+.holiday-garland {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Por encima de las fotos del hero, que son una capa fija. Nada de esto se toca. */
+  z-index: 3;
+  /* En el celular el dibujo es más ancho que la pantalla antes de achicarse (ver abajo):
+     que eso no abra un scroll de costado. */
+  overflow: hidden;
+  pointer-events: none;
+  /* Se apoya sobre fotos y fondos: sin una sombra abajo, el verde oscuro del pino se
+     pierde contra el pasillo. */
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.38));
+  animation: holiday-garland-in 1s ease 0.25s backwards;
+}
+
+/* El alto del SVG está en píxeles de verdad (el patrón no se estira, se repite), así
+   que para achicarla se escala entera y se compensa el ancho para que igual llegue hasta
+   el otro borde. */
+.holiday-garland {
+  --garland-scale: 1;
+}
+
+.holiday-garland.is-compact {
+  --garland-scale: 0.66;
+}
+
+.holiday-garland svg {
+  display: block;
+  width: calc(100% / var(--garland-scale));
+  transform: scale(var(--garland-scale));
+  transform-origin: top left;
+}
+
+/* En los paneles: una fila del ancho de la pantalla de la que cuelga. Tiene algo de alto
+   para correr el título lo justo y que las bolas no le queden encima. */
+.holiday-garland-row {
+  position: relative;
+  height: 40px;
+}
+
+/* En el ingreso y el registro va detrás de la tarjeta y delante del hall en 3D, que
+   están en la misma capa aislada. Si la pantalla es baja y se cruzan, manda la
+   tarjeta. En el paseo y en la noche no va: ahí la pantalla es el juego. */
+.entrance-host > .holiday-garland {
+  z-index: -1;
+}
+
+.entrance-host.is-walking > .holiday-garland,
+.entrance-host.is-night > .holiday-garland {
+  display: none;
+}
+
+/* Aparece sola. Solo opacidad: la escala del celular está más abajo y las dos cosas no
+   pueden pelearse por el mismo transform. */
+@keyframes holiday-garland-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* En el celular, más chica en todos lados. */
+@media (max-width: 620px) {
+  .holiday-garland {
+    --garland-scale: 0.7;
+  }
+
+  .holiday-garland.is-compact {
+    --garland-scale: 0.56;
+  }
+}
+
+/* ---------- el adorno al lado de cada título ---------- */
+
+.home[data-holiday] .home-section-title::after {
+  content: "";
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  margin-left: 0.32em;
+  vertical-align: 0.02em;
+  background: center / contain no-repeat;
+}
+
+.home[data-holiday="navidad"] .home-section-title::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><path d='M10 1 L11.9 7.5 L18.6 9.6 L11.9 11.7 L10 18.6 L8.1 11.7 L1.4 9.6 L8.1 7.5 Z' fill='%23c8892a'/><circle cx='16.6' cy='16.2' r='2.3' fill='%23b3372b'/></svg>");
+}
+
+.home[data-holiday="carnaval"] .home-section-title::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><rect x='1.6' y='6.4' width='5.6' height='5.6' rx='1' fill='%23e0563f' transform='rotate(-18 4.4 9.2)'/><rect x='8.2' y='1.6' width='5.2' height='5.2' rx='1' fill='%232fb4a6' transform='rotate(24 10.8 4.2)'/><rect x='10.4' y='10' width='6' height='6' rx='1' fill='%23e0a227' transform='rotate(-12 13.4 13)'/></svg>");
+}
+
+.home[data-holiday="pascua"] .home-section-title::after {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><path d='M10 1.6 C13.6 1.6 16 7 16 11 C16 15.2 13.3 18.4 10 18.4 C6.7 18.4 4 15.2 4 11 C4 7 6.4 1.6 10 1.6 Z' fill='%237cc0a8'/><path d='M4.5 9.4 q5.5 2.8 11 0' fill='none' stroke='%23ffffff' stroke-width='1.7' opacity='.8'/><path d='M4.4 13.4 q5.6 2.6 11.2 0' fill='none' stroke='%23ffffff' stroke-width='1.5' opacity='.6'/></svg>");
+}
+
+/* ---------- el borde de arriba del pie ---------- */
+
+.home-footer {
+  position: relative;
+}
+
+.home[data-holiday] .home-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* El dibujo es de 34 de alto y se agranda un tercio: al natural quedaba como una
+     puntilla. Sigue entrando en el aire de arriba del pie. */
+  height: 44px;
+  pointer-events: none;
+  background-repeat: repeat-x;
+  background-position: top center;
+  background-size: auto 100%;
+}
+
+.home[data-holiday="navidad"] .home-footer::before {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='34'><path d='M0 2 Q55 12 110 2' fill='none' stroke='%235aa86e' stroke-width='7' stroke-linecap='round' stroke-dasharray='1.5 9'/><path d='M0 2 Q55 12 110 2' fill='none' stroke='%233f8f57' stroke-width='3.4' stroke-linecap='round'/><path d='M55 10 v5' stroke='%23d8a13a' stroke-width='1.2'/><circle cx='55' cy='21' r='6' fill='%23b3372b'/><circle cx='53' cy='19.2' r='1.5' fill='%23ffffff' opacity='.42'/><circle cx='22' cy='13' r='2.7' fill='%23d8a13a'/><circle cx='88' cy='13' r='2.7' fill='%23fefae0'/></svg>");
+}
+
+.home[data-holiday="carnaval"] .home-footer::before {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='34'><path d='M0 3 Q60 11 120 3' fill='none' stroke='%23e7dcc2' stroke-width='1.6' opacity='.75'/><path d='M16 6 h20 l-10 20 z' fill='%23e0563f'/><path d='M76 6 h20 l-10 20 z' fill='%232fb4a6'/><circle cx='56' cy='14' r='2.8' fill='%23f2b134'/><circle cx='112' cy='11' r='2.4' fill='%23d8558f'/></svg>");
+}
+
+.home[data-holiday="pascua"] .home-footer::before {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='34'><path d='M0 3 Q60 13 120 3' fill='none' stroke='%238a6a4a' stroke-width='2.6'/><path d='M30 9 v2.5' stroke='%238a6a4a' stroke-width='1'/><path d='M30 11 C34.4 11 36.7 15.4 36.7 18.6 C36.7 22.1 33.7 24.7 30 24.7 C26.3 24.7 23.3 22.1 23.3 18.6 C23.3 15.4 25.6 11 30 11 Z' fill='%23f4a58f'/><path d='M24.6 18 q5.4 2.4 10.8 0' fill='none' stroke='%23ffffff' stroke-width='1.5' opacity='.7'/><path d='M84 11 v2.5' stroke='%238a6a4a' stroke-width='1'/><path d='M84 13 C88.4 13 90.7 17.4 90.7 20.6 C90.7 24.1 87.7 26.7 84 26.7 C80.3 26.7 77.3 24.1 77.3 20.6 C77.3 17.4 79.6 13 84 13 Z' fill='%239fd3bf'/><circle cx='81' cy='19.6' r='1.6' fill='%23ffffff' opacity='.75'/><circle cx='86.5' cy='22.4' r='1.6' fill='%23ffffff' opacity='.75'/><path d='M57 9 q6 -4 10 0 q-4 4 -10 0' fill='%237fae5a'/></svg>");
+}
+
+/* ---------- sin animación ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .holiday-garland {
+    animation: none;
+  }
+}

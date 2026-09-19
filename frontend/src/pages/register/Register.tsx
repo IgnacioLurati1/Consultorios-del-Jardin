@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FaEnvelopeOpenText, FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { SteppedForm, type FormStep } from "../../components/steppedForm/SteppedForm.tsx";
+import { HolidayGarland } from "../../components/decor/HolidayDecor.tsx";
 import { EntranceBackdrop } from "../../components/entrance/EntranceBackdrop.tsx";
 import api from "../../axios";
 import { useLogo } from "../../lib/useLogo";
@@ -179,6 +180,7 @@ export function Register() {
       <>
         <div className="pw-page entrance-host">
           <EntranceBackdrop />
+          <HolidayGarland compact />
           <div className="pw-card">
             <div className="pw-result">
               <span className="pw-result-icon">
@@ -215,7 +217,12 @@ export function Register() {
         serverError={serverError}
         onSubmit={handleSubmit}
         footerNote={<>¿Cuenta existente? <Link to="/Login">Iniciar sesión</Link></>}
-        backdrop={<EntranceBackdrop />}
+        backdrop={
+          <>
+            <EntranceBackdrop />
+            <HolidayGarland compact />
+          </>
+        }
       />
       <Toasts />
     </>

@@ -1,3 +1,4 @@
+import { HolidayGarland } from "../../../components/decor/HolidayDecor";
 import { FaCalendarAlt, FaClipboardList, FaUserInjured } from "react-icons/fa";
 import {
   FaArrowRight,
@@ -257,105 +258,172 @@ export function ProfessionalHome() {
   const unpaidShown = unpaid?.length ?? 0;
 
   return (
-    <div className="adm-page">
-      {/* Arriba de todo, antes del saludo: si el consultorio tiene algo que decir, se
-          lee antes de ponerse a trabajar y no después de haber hecho las cosas mal. */}
-      <AnnouncementBanner />
+    <>
+      <HolidayGarland row />
+      <div className="adm-page">
+        {/* Arriba de todo, antes del saludo: si el consultorio tiene algo que decir, se
+            lee antes de ponerse a trabajar y no después de haber hecho las cosas mal. */}
+        <AnnouncementBanner />
 
-      <header className="adm-header">
-        <div className="adm-header-titles">
-          {loading ? (
-            <>
-              <SkeletonLine width="320px" height={28} />
-              <SkeletonLine width="180px" height={16} />
-            </>
-          ) : (
-            <>
-              <h1 className="adm-title">
-                Hola, {professional?.name} {professional?.surname}
-              </h1>
-              <p className="adm-subtitle">{professional?.speciality || "Panel del profesional"}</p>
-            </>
-          )}
-        </div>
-
-        {/* La guía del panel. Se abre sola la primera vez; después, desde acá. */}
-        <Hint text="Cómo funciona el panel">
-          <button type="button" className="prof-help" onClick={guide.openGuide} aria-label="Cómo funciona el panel">
-            <FaRegCircleQuestion aria-hidden="true" />
-          </button>
-        </Hint>
-      </header>
-
-      {/* Las cuatro se quedan siempre, también en la vista simplificada: son las puertas
-          a todo lo demás, y esconder una sería esconder una pantalla entera. */}
-      <section className="adm-card-grid">
-        {entries.map((entry) => {
-          const Icon = entry.icon;
-          return (
-            <Link className="adm-card" to={entry.link} key={entry.title}>
-              <span className="adm-card-icon">
-                <Icon />
-              </span>
-              <span className="adm-card-title">{entry.title}</span>
-              {/* El título de la tarjeta ya dice a dónde lleva; esto lo desarrolla. */}
-              {!simple && <span className="adm-card-desc">{entry.description}</span>}
-            </Link>
-          );
-        })}
-      </section>
-
-      {/*
-        Los tres bloques que siguen no se dibujan con la vista simplificada.
-        ------------------------------------------------------------------
-        Son la agenda del día, los pedidos que esperan respuesta y lo que quedó sin cobrar.
-        Ninguno se pierde: los tres se miran enteros desde la pantalla de turnos, que está
-        en la primera tarjeta de arriba. Lo que se gana es un panel que entra en la
-        pantalla de una, en vez de tres listas una abajo de la otra.
-      */}
-      {!simpleView && (
-      <section className="prof-today">
-        <div className="prof-today-head">
-          <div>
-            <h2 className="prof-today-title">Hoy</h2>
-            <p className="prof-today-date">{dayLabel}</p>
+        <header className="adm-header">
+          <div className="adm-header-titles">
+            {loading ? (
+              <>
+                <SkeletonLine width="320px" height={28} />
+                <SkeletonLine width="180px" height={16} />
+              </>
+            ) : (
+              <>
+                <h1 className="adm-title">
+                  Hola, {professional?.name} {professional?.surname}
+                </h1>
+                <p className="adm-subtitle">{professional?.speciality || "Panel del profesional"}</p>
+              </>
+            )}
           </div>
-          <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
-            Ver toda la agenda
-            <FaArrowRight />
-          </Link>
-        </div>
 
-        <div className="adm-panel">
-          {today === null ? (
-            <div className="prof-today-loading">
-              <SkeletonLine height={18} />
-              <SkeletonLine width="70%" height={18} />
-              <SkeletonLine width="45%" height={18} />
+          {/* La guía del panel. Se abre sola la primera vez; después, desde acá. */}
+          <Hint text="Cómo funciona el panel">
+            <button type="button" className="prof-help" onClick={guide.openGuide} aria-label="Cómo funciona el panel">
+              <FaRegCircleQuestion aria-hidden="true" />
+            </button>
+          </Hint>
+        </header>
+
+        {/* Las cuatro se quedan siempre, también en la vista simplificada: son las puertas
+            a todo lo demás, y esconder una sería esconder una pantalla entera. */}
+        <section className="adm-card-grid">
+          {entries.map((entry) => {
+            const Icon = entry.icon;
+            return (
+              <Link className="adm-card" to={entry.link} key={entry.title}>
+                <span className="adm-card-icon">
+                  <Icon />
+                </span>
+                <span className="adm-card-title">{entry.title}</span>
+                {/* El título de la tarjeta ya dice a dónde lleva; esto lo desarrolla. */}
+                {!simple && <span className="adm-card-desc">{entry.description}</span>}
+              </Link>
+            );
+          })}
+        </section>
+
+        {/*
+          Los tres bloques que siguen no se dibujan con la vista simplificada.
+          ------------------------------------------------------------------
+          Son la agenda del día, los pedidos que esperan respuesta y lo que quedó sin cobrar.
+          Ninguno se pierde: los tres se miran enteros desde la pantalla de turnos, que está
+          en la primera tarjeta de arriba. Lo que se gana es un panel que entra en la
+          pantalla de una, en vez de tres listas una abajo de la otra.
+        */}
+        {!simpleView && (
+        <section className="prof-today">
+          <div className="prof-today-head">
+            <div>
+              <h2 className="prof-today-title">Hoy</h2>
+              <p className="prof-today-date">{dayLabel}</p>
             </div>
-          ) : today.length === 0 ? (
-            <div className="adm-empty">Sin turnos para hoy.</div>
-          ) : (
-            <ul className="prof-today-list">
-              {today.map((appointment) => {
-                // La baja sobre la hora se nombra por lo que es. "Cancelado" a secas la
-                // deja igual que una que avisó con una semana, que es lo contrario de lo
-                // que hay que ver acá.
-                const late = isCancelled(appointment.state) && cancellationNotice(appointment)?.short;
-                const state = late
-                  ? { label: "Dio de baja sobre la hora", className: "adm-badge adm-badge-red" }
-                  : describeState(appointment.state);
+            <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
+              Ver toda la agenda
+              <FaArrowRight />
+            </Link>
+          </div>
 
-                return (
+          <div className="adm-panel">
+            {today === null ? (
+              <div className="prof-today-loading">
+                <SkeletonLine height={18} />
+                <SkeletonLine width="70%" height={18} />
+                <SkeletonLine width="45%" height={18} />
+              </div>
+            ) : today.length === 0 ? (
+              <div className="adm-empty">Sin turnos para hoy.</div>
+            ) : (
+              <ul className="prof-today-list">
+                {today.map((appointment) => {
+                  // La baja sobre la hora se nombra por lo que es. "Cancelado" a secas la
+                  // deja igual que una que avisó con una semana, que es lo contrario de lo
+                  // que hay que ver acá.
+                  const late = isCancelled(appointment.state) && cancellationNotice(appointment)?.short;
+                  const state = late
+                    ? { label: "Dio de baja sobre la hora", className: "adm-badge adm-badge-red" }
+                    : describeState(appointment.state);
+
+                  return (
+                    <li key={appointment.numAppointment}>
+                      <button
+                        type="button"
+                        className={`prof-today-item tone-${late ? "red" : stateTone(appointment.state)}${
+                          late ? " cancelled-late" : ""
+                        }`}
+                        onClick={() => open(appointment)}
+                        {...quickActions(appointment)}
+                      >
+                        <span className="prof-today-hour">
+                          <FaRegClock aria-hidden="true" />
+                          {shortHour(appointment.initialHour)}
+                        </span>
+                        <span className="prof-today-person">
+                          {appointment.patient ? (
+                            `${appointment.patient.surname}, ${appointment.patient.name}`
+                          ) : (
+                            <span className="prof-today-free">Sin paciente asignado</span>
+                          )}
+                        </span>
+                        <span className="prof-today-room">{appointment.room?.description}</span>
+                        {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
+                        {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
+                          <span className="appt-tag-confirmed">Confirmó</span>
+                        )}
+                        <span className={state.className}>{state.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+        )}
+
+        {/* Debajo de la agenda del día y con la misma caja. Es lo que hay que contestar,
+            y va después de lo que hay que hacer hoy: primero se mira con qué se arranca la
+            jornada, después se despacha lo que quedó esperando.
+
+            Sin pedidos pendientes la sección no se dibuja. Es una bandeja de entrada, no
+            una agenda: el estado normal es que esté vacía, y una caja que dice "no hay
+            nada" todos los días deja de leerse igual. */}
+        {!simpleView && pendingCount > 0 && (
+          <section className="prof-today prof-pending">
+            <div className="prof-today-head">
+              <div>
+                <h2 className="prof-today-title">Pendientes de confirmación</h2>
+                <p className="prof-today-date">
+                  {pendingCount === 1 ? "Un turno pendiente de respuesta" : `${pendingCount} turnos pendientes de respuesta`}
+                </p>
+              </div>
+              <div className="prof-pending-actions adm-btn-row">
+                <button type="button" className="adm-btn adm-btn-primary" disabled={accepting} onClick={acceptAll}>
+                  <FaCheck />
+                  {pendingCount === 1 ? "Confirmar el turno" : "Confirmar turnos"}
+                </button>
+                <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
+                  Ver toda la agenda
+                  <FaArrowRight />
+                </Link>
+              </div>
+            </div>
+
+            <div className="adm-panel">
+              <ul className="prof-today-list">
+                {pendingSlice.map((appointment) => (
                   <li key={appointment.numAppointment}>
                     <button
-                      type="button"
-                      className={`prof-today-item tone-${late ? "red" : stateTone(appointment.state)}${
-                        late ? " cancelled-late" : ""
-                      }`}
-                      onClick={() => open(appointment)}
-                      {...quickActions(appointment)}
-                    >
+                        type="button"
+                        className="prof-today-item"
+                        onClick={() => open(appointment)}
+                        {...quickActions(appointment)}
+                      >
                       <span className="prof-today-hour">
                         <FaRegClock aria-hidden="true" />
                         {shortHour(appointment.initialHour)}
@@ -366,292 +434,228 @@ export function ProfessionalHome() {
                         ) : (
                           <span className="prof-today-free">Sin paciente asignado</span>
                         )}
+                        {/* Un pendiente puede ser de cualquier día, así que la fecha va en la
+                            fila. En la agenda de hoy sobraría. */}
+                        <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
                       </span>
                       <span className="prof-today-room">{appointment.room?.description}</span>
                       {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
-                      {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
-                        <span className="appt-tag-confirmed">Confirmó</span>
-                      )}
-                      <span className={state.className}>{state.label}</span>
+                      <span className={describeState(appointment.state).className}>
+                        {describeState(appointment.state).label}
+                      </span>
                     </button>
                   </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </section>
-      )}
+                ))}
+              </ul>
 
-      {/* Debajo de la agenda del día y con la misma caja. Es lo que hay que contestar,
-          y va después de lo que hay que hacer hoy: primero se mira con qué se arranca la
-          jornada, después se despacha lo que quedó esperando.
-
-          Sin pedidos pendientes la sección no se dibuja. Es una bandeja de entrada, no
-          una agenda: el estado normal es que esté vacía, y una caja que dice "no hay
-          nada" todos los días deja de leerse igual. */}
-      {!simpleView && pendingCount > 0 && (
-        <section className="prof-today prof-pending">
-          <div className="prof-today-head">
-            <div>
-              <h2 className="prof-today-title">Pendientes de confirmación</h2>
-              <p className="prof-today-date">
-                {pendingCount === 1 ? "Un turno pendiente de respuesta" : `${pendingCount} turnos pendientes de respuesta`}
-              </p>
-            </div>
-            <div className="prof-pending-actions adm-btn-row">
-              <button type="button" className="adm-btn adm-btn-primary" disabled={accepting} onClick={acceptAll}>
-                <FaCheck />
-                {pendingCount === 1 ? "Confirmar el turno" : "Confirmar turnos"}
-              </button>
-              <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
-                Ver toda la agenda
-                <FaArrowRight />
-              </Link>
-            </div>
-          </div>
-
-          <div className="adm-panel">
-            <ul className="prof-today-list">
-              {pendingSlice.map((appointment) => (
-                <li key={appointment.numAppointment}>
+              {pendingPages > 1 && (
+                <div className="prof-pager">
                   <button
-                      type="button"
-                      className="prof-today-item"
-                      onClick={() => open(appointment)}
-                      {...quickActions(appointment)}
-                    >
-                    <span className="prof-today-hour">
-                      <FaRegClock aria-hidden="true" />
-                      {shortHour(appointment.initialHour)}
-                    </span>
-                    <span className="prof-today-person">
-                      {appointment.patient ? (
-                        `${appointment.patient.surname}, ${appointment.patient.name}`
-                      ) : (
-                        <span className="prof-today-free">Sin paciente asignado</span>
-                      )}
-                      {/* Un pendiente puede ser de cualquier día, así que la fecha va en la
-                          fila. En la agenda de hoy sobraría. */}
-                      <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
-                    </span>
-                    <span className="prof-today-room">{appointment.room?.description}</span>
-                    {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
-                    <span className={describeState(appointment.state).className}>
-                      {describeState(appointment.state).label}
-                    </span>
+                    type="button"
+                    className="adm-btn adm-btn-ghost adm-btn-sm"
+                    disabled={page === 0}
+                    onClick={() => setPendingPage(page - 1)}
+                  >
+                    <FaChevronLeft />
+                    Anterior
                   </button>
-                </li>
-              ))}
-            </ul>
-
-            {pendingPages > 1 && (
-              <div className="prof-pager">
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-ghost adm-btn-sm"
-                  disabled={page === 0}
-                  onClick={() => setPendingPage(page - 1)}
-                >
-                  <FaChevronLeft />
-                  Anterior
-                </button>
-                <span className="prof-pager-page">
-                  Página {page + 1} de {pendingPages}
-                </span>
-                <button
-                  type="button"
-                  className="adm-btn adm-btn-ghost adm-btn-sm"
-                  disabled={page >= pendingPages - 1}
-                  onClick={() => setPendingPage(page + 1)}
-                >
-                  Siguiente
-                  <FaChevronRight />
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-
-      {/* La lista de espera, con la misma caja que el día. Es gente que ya pidió algo y
-          todavía no lo tiene, así que va junto a los pedidos y antes de la plata. Como los
-          pedidos, sin nadie no se dibuja, y tampoco con la vista simplificada: se sigue
-          viendo entera desde los números. */}
-      {!simpleView && waitlist && waitlist.length > 0 && (
-        <section className="prof-today prof-waitlist">
-          <div className="prof-today-head">
-            <div>
-              <h2 className="prof-today-title">Lista de espera</h2>
-              <p className="prof-today-date">
-                {waitlist.length === 1
-                  ? "Una persona espera que se libere un horario"
-                  : `${waitlist.length} personas esperan que se libere un horario`}
-              </p>
+                  <span className="prof-pager-page">
+                    Página {page + 1} de {pendingPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn-ghost adm-btn-sm"
+                    disabled={page >= pendingPages - 1}
+                    onClick={() => setPendingPage(page + 1)}
+                  >
+                    Siguiente
+                    <FaChevronRight />
+                  </button>
+                </div>
+              )}
             </div>
-            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setWaitlistOpen(true)}>
-              Ver la lista
-              <FaArrowRight />
-            </button>
-          </div>
+          </section>
+        )}
 
-          <div className="adm-panel">
-            <ul className="prof-today-list">
-              {waitlist.map((person) => (
-                <li key={person.id}>
-                  <button type="button" className="prof-today-item" onClick={() => setWaitlistOpen(true)}>
-                    <span className="prof-today-hour">
-                      <FaRegClock aria-hidden="true" />
-                      {person.fromHour} a {person.toHour}
-                    </span>
-                    <span className="prof-today-person">
-                      {person.patient.surname}, {person.patient.name}
-                      <span className="prof-pending-day">{describeDaysTitle(person.days)}</span>
-                    </span>
-                    <span className="prof-today-room">
-                      {person.noticesSent === 0
-                        ? "Todavía sin avisos"
-                        : person.noticesSent === 1
-                          ? "Un aviso"
-                          : `${person.noticesSent} avisos`}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
 
-      {/* Debajo de los pedidos y con la misma caja: es la otra cosa que quedó abierta,
-          pero de otra clase. Un pedido espera una respuesta hoy; una consulta sin cobrar
-          espera una conversación, y por eso esta caja arranca plegada y solo muestra el
-          número. Los dos colores del listado son los del cobro: rojo lo que no se pagó,
-          ámbar lo que se pagó a medias. */}
-      {!simpleView && unpaidCount > 0 && (
-        <section className="prof-today prof-unpaid">
-          <div className="prof-today-head">
-            <button
-              type="button"
-              className="prof-unpaid-toggle"
-              aria-expanded={unpaidOpen}
-              onClick={() => setUnpaidOpen(!unpaidOpen)}
-            >
-              <span className="prof-unpaid-text">
-                <span className="prof-today-title">Sin cobrar</span>
-                <span className="prof-today-date">
-                  {unpaidCount === 1 ? "Un turno atendido sin cobrar" : `${unpaidCount} turnos atendidos sin cobrar`}
-                  {owed > 0 ? ` · faltan $${owed}` : ""}
-                  {unpaidShown < unpaidCount ? ` · acá se ven los ${unpaidShown} más recientes` : ""}
+        {/* La lista de espera, con la misma caja que el día. Es gente que ya pidió algo y
+            todavía no lo tiene, así que va junto a los pedidos y antes de la plata. Como los
+            pedidos, sin nadie no se dibuja, y tampoco con la vista simplificada: se sigue
+            viendo entera desde los números. */}
+        {!simpleView && waitlist && waitlist.length > 0 && (
+          <section className="prof-today prof-waitlist">
+            <div className="prof-today-head">
+              <div>
+                <h2 className="prof-today-title">Lista de espera</h2>
+                <p className="prof-today-date">
+                  {waitlist.length === 1
+                    ? "Una persona espera que se libere un horario"
+                    : `${waitlist.length} personas esperan que se libere un horario`}
+                </p>
+              </div>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setWaitlistOpen(true)}>
+                Ver la lista
+                <FaArrowRight />
+              </button>
+            </div>
+
+            <div className="adm-panel">
+              <ul className="prof-today-list">
+                {waitlist.map((person) => (
+                  <li key={person.id}>
+                    <button type="button" className="prof-today-item" onClick={() => setWaitlistOpen(true)}>
+                      <span className="prof-today-hour">
+                        <FaRegClock aria-hidden="true" />
+                        {person.fromHour} a {person.toHour}
+                      </span>
+                      <span className="prof-today-person">
+                        {person.patient.surname}, {person.patient.name}
+                        <span className="prof-pending-day">{describeDaysTitle(person.days)}</span>
+                      </span>
+                      <span className="prof-today-room">
+                        {person.noticesSent === 0
+                          ? "Todavía sin avisos"
+                          : person.noticesSent === 1
+                            ? "Un aviso"
+                            : `${person.noticesSent} avisos`}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
+
+        {/* Debajo de los pedidos y con la misma caja: es la otra cosa que quedó abierta,
+            pero de otra clase. Un pedido espera una respuesta hoy; una consulta sin cobrar
+            espera una conversación, y por eso esta caja arranca plegada y solo muestra el
+            número. Los dos colores del listado son los del cobro: rojo lo que no se pagó,
+            ámbar lo que se pagó a medias. */}
+        {!simpleView && unpaidCount > 0 && (
+          <section className="prof-today prof-unpaid">
+            <div className="prof-today-head">
+              <button
+                type="button"
+                className="prof-unpaid-toggle"
+                aria-expanded={unpaidOpen}
+                onClick={() => setUnpaidOpen(!unpaidOpen)}
+              >
+                <span className="prof-unpaid-text">
+                  <span className="prof-today-title">Sin cobrar</span>
+                  <span className="prof-today-date">
+                    {unpaidCount === 1 ? "Un turno atendido sin cobrar" : `${unpaidCount} turnos atendidos sin cobrar`}
+                    {owed > 0 ? ` · faltan $${owed}` : ""}
+                    {unpaidShown < unpaidCount ? ` · acá se ven los ${unpaidShown} más recientes` : ""}
+                  </span>
                 </span>
-              </span>
-              <FaChevronDown className={`prof-unpaid-caret ${unpaidOpen ? "open" : ""}`} aria-hidden="true" />
-            </button>
+                <FaChevronDown className={`prof-unpaid-caret ${unpaidOpen ? "open" : ""}`} aria-hidden="true" />
+              </button>
 
-            {/* Va afuera del que despliega la caja: un botón adentro de otro no es válido,
-                y además son dos acciones distintas que conviene no confundir de un toque. */}
-            <button
-              type="button"
-              className="adm-btn adm-btn-primary"
-              disabled={settling}
-              onClick={() => setConfirmingSettle(true)}
-            >
-              <FaMoneyBillWave />
-              {unpaidCount === 1 ? "Considerar cobrado" : "Considerar todos cobrados"}
-            </button>
-          </div>
+              {/* Va afuera del que despliega la caja: un botón adentro de otro no es válido,
+                  y además son dos acciones distintas que conviene no confundir de un toque. */}
+              <button
+                type="button"
+                className="adm-btn adm-btn-primary"
+                disabled={settling}
+                onClick={() => setConfirmingSettle(true)}
+              >
+                <FaMoneyBillWave />
+                {unpaidCount === 1 ? "Considerar cobrado" : "Considerar todos cobrados"}
+              </button>
+            </div>
 
-          <div className={`adm-collapsible ${unpaidOpen ? "open" : ""}`}>
-            <div>
-              <div className="adm-panel" inert={!unpaidOpen}>
-                <ul className="prof-today-list">
-                  {unpaid?.map((appointment) => {
-                    const payment = describePayment(appointment);
+            <div className={`adm-collapsible ${unpaidOpen ? "open" : ""}`}>
+              <div>
+                <div className="adm-panel" inert={!unpaidOpen}>
+                  <ul className="prof-today-list">
+                    {unpaid?.map((appointment) => {
+                      const payment = describePayment(appointment);
 
-                    return (
-                      <li key={appointment.numAppointment}>
-                        <button
-                      type="button"
-                      className="prof-today-item"
-                      onClick={() => open(appointment)}
-                      {...quickActions(appointment)}
-                    >
-                          <span className="prof-today-hour">
-                            <FaRegClock aria-hidden="true" />
-                            {shortHour(appointment.initialHour)}
-                          </span>
-                          <span className="prof-today-person">
-                            {appointment.patient
-                              ? `${appointment.patient.surname}, ${appointment.patient.name}`
-                              : "Sin paciente asignado"}
-                            <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
-                          </span>
-                          {pendingAmount(appointment) > 0 && (
-                            <span className="prof-unpaid-owed">Debe ${pendingAmount(appointment)}</span>
-                          )}
-                          {payment && <span className={payment.className}>{payment.label}</span>}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                      return (
+                        <li key={appointment.numAppointment}>
+                          <button
+                        type="button"
+                        className="prof-today-item"
+                        onClick={() => open(appointment)}
+                        {...quickActions(appointment)}
+                      >
+                            <span className="prof-today-hour">
+                              <FaRegClock aria-hidden="true" />
+                              {shortHour(appointment.initialHour)}
+                            </span>
+                            <span className="prof-today-person">
+                              {appointment.patient
+                                ? `${appointment.patient.surname}, ${appointment.patient.name}`
+                                : "Sin paciente asignado"}
+                              <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
+                            </span>
+                            {pendingAmount(appointment) > 0 && (
+                              <span className="prof-unpaid-owed">Debe ${pendingAmount(appointment)}</span>
+                            )}
+                            {payment && <span className={payment.className}>{payment.label}</span>}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
 
-      <ProfessionalSettings />
+        <ProfessionalSettings />
 
-      {/* Abajo de todo, después de la configuración: se lee una vez y después estorba.
-          Con la vista simplificada no se dibuja: es ayuda de teclado, y quien pidió menos
-          cosas en pantalla no está buscando atajos. */}
-      {!simpleView && <ShortcutsPanel />}
+        {/* Abajo de todo, después de la configuración: se lee una vez y después estorba.
+            Con la vista simplificada no se dibuja: es ayuda de teclado, y quien pidió menos
+            cosas en pantalla no está buscando atajos. */}
+        {!simpleView && <ShortcutsPanel />}
 
-      {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
+        {professional && <AppointmentDetailModal user={professional} {...detailProps} />}
 
-      <CancelAppointmentModal {...cancelProps} />
+        <CancelAppointmentModal {...cancelProps} />
 
-      <WaitlistPeopleModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} onChanged={setWaitlist} />
+        <WaitlistPeopleModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} onChanged={setWaitlist} />
 
-      <ProfessionalGuide open={guide.open} onClose={guide.closeGuide} />
+        <ProfessionalGuide open={guide.open} onClose={guide.closeGuide} />
 
-      {/*
-        Preguntar antes de saldar todo.
-        ------------------------------
-        Confirmar los pedidos de una no lo pregunta, y acá sí, porque no es lo mismo: esto
-        declara plata como cobrada, y para volver atrás hay que abrir los turnos de a uno.
-        El cartel dice el número y el monto porque es lo único que deja darse cuenta de que
-        se apretó el botón equivocado antes de que sea tarde.
-      */}
-      <Modal
-        open={confirmingSettle}
-        onClose={() => setConfirmingSettle(false)}
-        title="¿Darlos todos por cobrados?"
-        size="sm"
-        footer={
-          <>
-            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingSettle(false)}>
-              Volver
-            </button>
-            <button type="button" className="adm-btn adm-btn-primary" onClick={settleAll} disabled={settling}>
-              <FaMoneyBillWave />
-              Sí, darlos por cobrados
-            </button>
-          </>
-        }
-      >
-        <p className="adm-confirm-lead">
-          {unpaidCount === 1 ? "Se marca como cobrado 1 turno" : `Se marcan como cobrados ${unpaidCount} turnos`}
-          {owed > 0 ? `, $${owed}` : ""}.
-        </p>
-        <p className="adm-confirm-note">
-          Incluye todos los turnos atendidos sin saldar. Para revertirlo hay que cambiar cada turno a mano.
-        </p>
-      </Modal>
+        {/*
+          Preguntar antes de saldar todo.
+          ------------------------------
+          Confirmar los pedidos de una no lo pregunta, y acá sí, porque no es lo mismo: esto
+          declara plata como cobrada, y para volver atrás hay que abrir los turnos de a uno.
+          El cartel dice el número y el monto porque es lo único que deja darse cuenta de que
+          se apretó el botón equivocado antes de que sea tarde.
+        */}
+        <Modal
+          open={confirmingSettle}
+          onClose={() => setConfirmingSettle(false)}
+          title="¿Darlos todos por cobrados?"
+          size="sm"
+          footer={
+            <>
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingSettle(false)}>
+                Volver
+              </button>
+              <button type="button" className="adm-btn adm-btn-primary" onClick={settleAll} disabled={settling}>
+                <FaMoneyBillWave />
+                Sí, darlos por cobrados
+              </button>
+            </>
+          }
+        >
+          <p className="adm-confirm-lead">
+            {unpaidCount === 1 ? "Se marca como cobrado 1 turno" : `Se marcan como cobrados ${unpaidCount} turnos`}
+            {owed > 0 ? `, $${owed}` : ""}.
+          </p>
+          <p className="adm-confirm-note">
+            Incluye todos los turnos atendidos sin saldar. Para revertirlo hay que cambiar cada turno a mano.
+          </p>
+        </Modal>
 
-      <Toasts />
-    </div>
+        <Toasts />
+      </div>
+    </>
   );
 }

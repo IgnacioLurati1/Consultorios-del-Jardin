@@ -1,3 +1,4 @@
+import { HolidayGarland } from "../../../components/decor/HolidayDecor";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaCalendarAlt, FaUser, FaCity, FaDoorOpen, FaPlus, FaClipboardList, FaMoneyBillWave } from "react-icons/fa";
@@ -97,48 +98,51 @@ export function AdminHome() {
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   return (
-    <div className="adm-page">
-      <header className="adm-header">
-        <div className="adm-header-titles">
-          <h1 className="adm-title">Panel de administración</h1>
-          <p className="adm-subtitle">Consultorios del Jardín</p>
-        </div>
-      </header>
+    <>
+      <HolidayGarland row />
+      <div className="adm-page">
+        <header className="adm-header">
+          <div className="adm-header-titles">
+            <h1 className="adm-title">Panel de administración</h1>
+            <p className="adm-subtitle">Consultorios del Jardín</p>
+          </div>
+        </header>
 
-      <section className="adm-card-grid adm-card-grid-main adm-stagger">
-        {mainEntries.map((entry) => (
-          <MenuCard key={entry.title} entry={entry} />
-        ))}
-      </section>
+        <section className="adm-card-grid adm-card-grid-main adm-stagger">
+          {mainEntries.map((entry) => (
+            <MenuCard key={entry.title} entry={entry} />
+          ))}
+        </section>
 
-      <WeekSummary />
+        <WeekSummary />
 
-      {/* Entre cómo viene la semana y los datos generales: es lo que se hace después de
-          mirar cómo viene el consultorio y antes de irse a tocar catálogos. */}
-      <AnnouncementComposer />
+        {/* Entre cómo viene la semana y los datos generales: es lo que se hace después de
+            mirar cómo viene el consultorio y antes de irse a tocar catálogos. */}
+        <AnnouncementComposer />
 
-      <button
-        type="button"
-        className={`adm-section-toggle ${catalogOpen ? "open" : ""}`}
-        onClick={() => setCatalogOpen((open) => !open)}
-        aria-expanded={catalogOpen}
-        aria-controls="adm-catalog"
-      >
-        <span className="adm-plus">
-          <FaPlus />
-        </span>
-        {catalogOpen ? "Ocultar datos generales" : "Datos generales"}
-      </button>
+        <button
+          type="button"
+          className={`adm-section-toggle ${catalogOpen ? "open" : ""}`}
+          onClick={() => setCatalogOpen((open) => !open)}
+          aria-expanded={catalogOpen}
+          aria-controls="adm-catalog"
+        >
+          <span className="adm-plus">
+            <FaPlus />
+          </span>
+          {catalogOpen ? "Ocultar datos generales" : "Datos generales"}
+        </button>
 
-      <div id="adm-catalog" className={`adm-collapsible ${catalogOpen ? "open" : ""}`}>
-        <div>
-          <div className="adm-collapsible-inner adm-card-grid adm-stagger">
-            {catalogEntries.map((entry) => (
-              <MenuCard key={entry.title} entry={entry} />
-            ))}
+        <div id="adm-catalog" className={`adm-collapsible ${catalogOpen ? "open" : ""}`}>
+          <div>
+            <div className="adm-collapsible-inner adm-card-grid adm-stagger">
+              {catalogEntries.map((entry) => (
+                <MenuCard key={entry.title} entry={entry} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

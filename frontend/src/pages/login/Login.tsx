@@ -9,6 +9,7 @@ import type { TokenPayload } from "../types.ts";
 import { LoginService } from "./loginServices.ts";
 import { LOCKOUT_KEY } from "../../axios";
 import { useLogo } from "../../lib/useLogo";
+import { HolidayGarland } from "../../components/decor/HolidayDecor";
 import { EntranceBackdrop } from "../../components/entrance/EntranceBackdrop";
 import { backdropOn } from "../../components/entrance/backdropCookie";
 import { useDesktop } from "../../components/entrance/useDesktop";
@@ -128,6 +129,7 @@ export function Login() {
         mode={phase === "walk" || phase === "night" ? phase : undefined}
         onLeave={() => setPhase("back")}
       />
+      <HolidayGarland compact />
 
       {/* noValidate: la validación nativa del navegador bloquearía el submit antes de
           llegar acá y mostraría su propio globito. Los mensajes los damos nosotros. */}

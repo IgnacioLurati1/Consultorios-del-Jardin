@@ -1,4 +1,6 @@
 import { useAuth } from "../../../context/AuthContext";
+import { HolidayGarland } from "../../../components/decor/HolidayDecor";
+import { useHoliday } from "../../../components/decor/useHoliday";
 import { getDecodedToken } from "../../commonServices";
 import { Hero } from "./HomeComponents/Hero";
 import { Specialities } from "./HomeComponents/Specialities";
@@ -30,6 +32,10 @@ function useSession(): Session {
 export function Home() {
   const session = useSession();
 
+  // Si se festeja algo, la portada se adorna. El atributo lo leen los adornos chicos de
+  // decor.css; la guirnalda de arriba se cuelga sola.
+  const holiday = useHoliday();
+
   // Quien ya tiene cuenta viene a hacer algo: sus accesos van antes que las
   // especialidades. Quien llega de afuera necesita el orden inverso.
   //
@@ -38,7 +44,8 @@ export function Home() {
   const guest = session.type === "guest";
 
   return (
-    <div className="home">
+    <div className="home" data-holiday={holiday ?? undefined}>
+      <HolidayGarland />
       <Hero session={session} />
       {guest ? (
         <>
