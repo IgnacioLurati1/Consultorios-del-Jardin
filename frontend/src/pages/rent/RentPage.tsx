@@ -70,7 +70,7 @@ const BADGE: Record<RentRow["status"], string> = {
  * y en cada fila lo que se hace más seguido, que es marcar que alguien pagó hoy. Lo demás
  * (otra fecha, un pago parcial, cambiar la cuota) está un toque más adentro, en ventanas.
  *
- * Los botones del encabezado cambian reglas de todos: calcular con los bloques, aplicar
+ * Los botones del encabezado cambian reglas de todos: calcular con los módulos, aplicar
  * un aumento y los precios de los consultorios. Rigen desde este mes o el que viene, sin
  * importar qué mes se esté mirando.
  */
@@ -270,13 +270,13 @@ export function RentPage() {
       {data && month >= current && withoutAmount > 0 && (
         <p className="ui-alert ui-alert-warn rent-alert">
           {withoutAmount === 1 ? "Un profesional sin cuota." : `${withoutAmount} profesionales sin cuota.`} «Calcular» la arma con
-          los bloques de su agenda, y el lápiz de cada fila la deja fija.
+          los módulos de su agenda, y el lápiz de cada fila la deja fija.
         </p>
       )}
 
       {data && withWarnings > 0 && (
         <p className="ui-alert ui-alert-warn rent-alert">
-          {withWarnings === 1 ? "Una cuota tiene" : `${withWarnings} cuotas tienen`} bloques o franjas sin precio, que no suman. El
+          {withWarnings === 1 ? "Una cuota tiene" : `${withWarnings} cuotas tienen`} módulos o tramos sin precio, que no suman. El
           detalle de cada fila dice cuáles.
         </p>
       )}
@@ -460,7 +460,7 @@ export function RentPage() {
 /** De dónde sale la cuota, en la línea chica de abajo del monto. */
 function kindText(row: RentRow): string {
   if (row.kind === "blocks") {
-    const blocks = row.blocks === 1 ? "1 bloque en el mes" : `${row.blocks ?? 0} bloques en el mes`;
+    const blocks = row.blocks === 1 ? "1 módulo en el mes" : `${row.blocks ?? 0} módulos en el mes`;
     const adjust = row.breakdown?.adjust ? ` · ${formatAdjust(row.breakdown.adjust)}` : "";
     return `${blocks}${adjust}`;
   }

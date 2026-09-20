@@ -10,8 +10,16 @@ function calc(times: number, price: number) {
 }
 
 /**
- * De qué sale una cuota calculada con los bloques: cada bloque y a qué precio. Es lo que
- * se mira cuando un número no cierra.
+ * El horario real del módulo. Es lo que deja ver que un módulo de la mañana cayó a la
+ * tarde. Las cuotas guardadas antes de los módulos no lo tienen y muestran solo el nombre.
+ */
+function span(line: { from?: string; to?: string }): string {
+  return line.from && line.to ? ` de ${line.from} a ${line.to}` : "";
+}
+
+/**
+ * De qué sale una cuota calculada con los módulos: cada tramo, con qué precio se cobra y
+ * en qué horario cayó. Es lo que se mira cuando un número no cierra.
  */
 export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
   return (
@@ -19,9 +27,10 @@ export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
       {breakdown.blocks.length > 0 && (
         <ul className="rent-lines">
           {breakdown.blocks.map((line) => (
-            <li key={`${line.roomId}-${line.day}-${line.block}`}>
+            <li key={`${line.roomId}-${line.day}-${line.block}-${line.from ?? ""}`}>
               <span>
-                {line.room} · {DAY_LABEL[line.day] ?? line.day} · {BLOCK_LABEL[line.block].toLowerCase()}
+                {line.room} · {DAY_LABEL[line.day] ?? line.day} · módulo {BLOCK_LABEL[line.block].toLowerCase()}
+                {span(line)}
               </span>
               <span className="rent-line-calc">
                 {line.price === null ? "sin precio" : calc(line.times, line.price)}
@@ -35,11 +44,14 @@ export function RentBreakdown({ breakdown }: { breakdown: Breakdown }) {
       {(breakdown.days?.length ?? 0) > 0 && (
         <ul className="rent-lines">
           {breakdown.days!.map((line) => (
-            <li key={`${line.roomId}-${line.day}-day`}>
+            <li key={`${line.roomId}-${line.day}-day-${line.from ?? ""}`}>
               <span>
-                {line.room} · {DAY_LABEL[line.day] ?? line.day} · día entero de 9 a 20
+                {line.room} · {DAY_LABEL[line.day] ?? line.day} · día entero
+                {span(line)}
               </span>
-              <span className="rent-line-calc">{calc(line.times, line.price)}</span>
+              <span className="rent-line-calc">
+                {line.price === null ? "sin precio" : calc(line.times, line.price)}
+              </span>
               <strong>{money(line.subtotal)}</strong>
             </li>
           ))}

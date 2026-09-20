@@ -6,7 +6,6 @@ import { money } from "../analytics/analyticsService.ts";
 import { RentBreakdown } from "./RentBreakdown.tsx";
 import {
   applyCalculation,
-  BLOCK_LABEL,
   capitalize,
   errorText,
   DAY_LABEL,
@@ -31,12 +30,12 @@ interface CalculateModalProps {
 const extraKey = (email: string, line: OutsideLine) => `${email}|${line.day}|${line.initialHour}`;
 
 /**
- * "Calcular": la cuota de cada profesional habilitado sale de los bloques que usa en su
- * agenda y del precio de cada bloque de cada consultorio.
+ * "Calcular": la cuota de cada profesional habilitado sale de lo que dura cada tramo de su
+ * agenda y del precio de cada módulo de cada consultorio.
  *
  * Primero se ve cuánto le toca a cada uno y recién después se aplica: pisa las cuotas de
  * todos los elegidos, así que no puede ser un botón que actúa sin mostrar nada. Acá también
- * se le pone valor a mano a lo que cae fuera de los bloques, que el cálculo no sabe cobrar.
+ * se le pone valor a mano a los tramos que no arman un módulo, que el cálculo no sabe cobrar.
  */
 export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: CalculateModalProps) {
   const current = monthKeyOf();
@@ -103,7 +102,9 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
   const rows = preview?.rows ?? [];
   const chosen = rows.filter((row) => selected.has(row.email));
   const total = chosen.reduce((sum, row) => sum + amountOf(row), 0);
-  const unpriced = rows.some((row) => row.breakdown.blocks.some((line) => line.price === null));
+  const unpriced = rows.some(
+    (row) => [...row.breakdown.blocks, ...(row.breakdown.days ?? [])].some((line) => line.price === null)
+  );
 
   async function apply() {
     const entries = chosen.flatMap((row) =>
@@ -141,7 +142,7 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
       open={open}
       onClose={onClose}
       size="lg"
-      title="Calcular con los bloques"
+      title="Calcular con los módulos"
       subtitle="Cuotas según la agenda y el precio de cada consultorio"
       footer={
         <>
@@ -174,14 +175,14 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
         </div>
 
         <p className="adm-confirm-note">
-          Cada profesional paga entero cada bloque que usa, con el precio del mes, tenga el mes cuatro o cinco semanas. Quien
-          usa el consultorio de 9 a 20 de corrido paga el día, si tiene precio. Lo que queda fuera de los bloques lleva un valor
-          a mano, también por mes.
+          Cada tramo de corrido se paga por lo que dura. Cuatro horas es el módulo de la mañana, seis el de la tarde y más de
+          seis el día entero, caigan a la hora que caigan. El precio es por mes, tenga el mes cuatro o cinco semanas. Un tramo
+          de otra duración lleva un valor a mano, también por mes.
         </p>
 
         {unpriced && (
           <p className="ui-alert ui-alert-warn rent-inline-alert">
-            Hay bloques sin precio y no suman.
+            Hay módulos sin precio y no suman.
             <button type="button" className="rent-link" onClick={onOpenPrices}>
               Cargar precios
             </button>
@@ -204,8 +205,9 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
           <ul className="rent-calc-list">
             {rows.map((row) => {
               const amount = amountOf(row);
-              const shared = row.breakdown.blocks.filter((line) => (line.sharedWith?.length ?? 0) > 0);
-              const sharedDays = (row.breakdown.days ?? []).filter((line) => (line.sharedWith?.length ?? 0) > 0);
+              const shared = [...row.breakdown.blocks, ...(row.breakdown.days ?? [])].filter(
+                (line) => (line.sharedWith?.length ?? 0) > 0
+              );
 
               return (
                 <li key={row.email} className={`rent-calc-item ${selected.has(row.email) ? "" : "off"}`}>
@@ -216,7 +218,7 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
                         {row.surname}, {row.name}
                       </strong>
                       <span className="rent-sub">
-                        {row.blocks === 1 ? "1 bloque en el mes" : `${row.blocks} bloques en el mes`}
+                        {row.blocks === 1 ? "1 módulo en el mes" : `${row.blocks} módulos en el mes`}
                         {row.speciality ? ` · ${row.speciality}` : ""}
                       </span>
                     </span>
@@ -253,16 +255,10 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
                   )}
 
                   {shared.map((line) => (
-                    <p key={`${line.roomId}-${line.day}-${line.block}`} className="rent-sub">
-                      Comparte la {BLOCK_LABEL[line.block].toLowerCase()} del {DAY_LABEL[line.day] ?? line.day} en {line.room} con{" "}
-                      {line.sharedWith!.join(" y ")}. Cada uno paga el bloque entero.
-                    </p>
-                  ))}
-
-                  {sharedDays.map((line) => (
-                    <p key={`${line.roomId}-${line.day}-day`} className="rent-sub">
-                      Comparte {line.room} el {DAY_LABEL[line.day] ?? line.day} con {line.sharedWith!.join(" y ")}. Cada uno paga
-                      lo suyo entero.
+                    <p key={`${line.roomId}-${line.day}-${line.from ?? ""}`} className="rent-sub">
+                      Comparte {line.room} el {DAY_LABEL[line.day] ?? line.day}
+                      {line.from && line.to ? ` de ${line.from} a ${line.to}` : ""} con {line.sharedWith!.join(" y ")}. Cada uno
+                      paga su módulo entero.
                     </p>
                   ))}
 

@@ -242,7 +242,7 @@ export function AmountModal({ row, data, onClose, onSaved }: AmountModalProps) {
           {past
             ? `Corrige solo ${data.label}. Los demás meses quedan como están.`
             : `Rige desde ${data.label} y se mantiene igual los meses siguientes, hasta el próximo cambio.`}
-          {!past && row.kind === "blocks" ? " Deja de calcularse con los bloques de la agenda." : ""}
+          {!past && row.kind === "blocks" ? " Deja de calcularse con los módulos de la agenda." : ""}
         </p>
 
         {row.paidAmount > 0 && (

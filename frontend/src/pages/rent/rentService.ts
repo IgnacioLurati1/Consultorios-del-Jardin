@@ -9,7 +9,7 @@ import api from "../../axios";
  */
 
 export type BlockKey = "morning" | "afternoon";
-/** Lo que tiene precio: los dos bloques y el día entero, de 9 a 20 de corrido. */
+/** Lo que tiene precio: el módulo de cuatro horas, el de seis y el día entero. */
 export type PriceKey = BlockKey | "day";
 export type PaymentStatus = "paid" | "partial" | "unpaid" | "none";
 export type RentKind = "fixed" | "blocks";
@@ -19,6 +19,8 @@ export interface Block {
   label: string;
   from: string;
   to: string;
+  /** Cuánto dura el módulo que se cobra con este precio. Falta si el servidor es viejo. */
+  hours?: string;
 }
 
 export interface BlockLine {
@@ -26,6 +28,9 @@ export interface BlockLine {
   room: string;
   day: string;
   block: BlockKey;
+  /** El horario real del módulo. Las cuotas guardadas antes de los módulos no lo tienen. */
+  from?: string;
+  to?: string;
   times: number;
   price: number | null;
   subtotal: number;
@@ -33,13 +38,15 @@ export interface BlockLine {
   sharedWith?: string[];
 }
 
-/** Un día entero de 9 a 20 de corrido, cobrado con el precio del día. */
+/** Un tramo de más de seis horas de corrido, cobrado con el precio del día. */
 export interface DayLine {
   roomId: number;
   room: string;
   day: string;
+  from?: string;
+  to?: string;
   times: number;
-  price: number;
+  price: number | null;
   subtotal: number;
   /** Solo en la previa de "Calcular": quién más usa el consultorio ese día. */
   sharedWith?: string[];

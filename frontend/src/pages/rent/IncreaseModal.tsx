@@ -23,8 +23,8 @@ interface IncreaseModalProps {
 /**
  * Un aumento en porcentaje, para todos o para los elegidos, desde este mes o el que viene.
  *
- * Con todos elegidos se puede subir también el precio de los bloques: así la cuota de
- * quien calcula por bloques sube con los precios, y el que se sume después entra con el
+ * Con todos elegidos se puede subir también el precio de los módulos: así la cuota de
+ * quien calcula por módulos sube con los precios, y el que se sume después entra con el
  * precio nuevo. Con algunos, los precios quedan quietos (subirían también los de los
  * demás) y el aumento va a la cuota de cada elegido.
  */
@@ -194,7 +194,7 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
                       {row.surname}, {row.name}
                     </strong>
                     <span className="rent-sub">
-                      {row.kind === "blocks" ? "Por bloques" : row.kind === "fixed" ? "Cuota fija" : "Sin cuota, queda igual"}
+                      {row.kind === "blocks" ? "Por módulos" : row.kind === "fixed" ? "Cuota fija" : "Sin cuota, queda igual"}
                     </span>
                   </span>
                   <span className="rent-calc-amounts">
@@ -221,7 +221,7 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
           <label className="rent-switch-row">
             <span>
               Subir también los precios de los consultorios
-              <small>Las cuotas por bloques suben con los precios, y quien se sume después ya entra con el precio nuevo.</small>
+              <small>Las cuotas por módulos suben con los precios, y quien se sume después ya entra con el precio nuevo.</small>
             </span>
             <input type="checkbox" className="adm-switch" checked={prices} onChange={(event) => setPrices(event.target.checked)} />
           </label>

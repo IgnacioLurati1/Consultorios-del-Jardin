@@ -24,17 +24,17 @@ interface RoomPricesModalProps {
 
 const keyOf = (idRoom: number, block: PriceKey) => `${idRoom}|${block}`;
 
-/** "09:00" a "13:00" → "9 a 13". */
+/** Cuánto dura el módulo. Un servidor todavía sin módulos manda solo la franja. */
 function hours(block: Block): string {
   const hour = (value: string) => {
     const [h, m] = value.split(":").map(Number);
     return m ? `${h}:${String(m).padStart(2, "0")}` : String(h);
   };
-  return `${hour(block.from)} a ${hour(block.to)}`;
+  return block.hours ?? `de ${hour(block.from)} a ${hour(block.to)}`;
 }
 
 /**
- * El precio de cada bloque de cada consultorio.
+ * El precio de cada módulo de cada consultorio.
  *
  * Rige desde este mes o desde el que viene. Programarlo para el que viene deja la cuota de
  * este mes como estaba, que es lo que se quiere cuando el aumento se avisa con tiempo.
@@ -181,7 +181,7 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
                   <th>Consultorio</th>
                   {data.blocks.map((block) => (
                     <th key={block.key}>
-                      {block.label} <span className="rent-th-sub">de {hours(block)}</span>
+                      {block.label} <span className="rent-th-sub">{hours(block)}</span>
                     </th>
                   ))}
                 </tr>
