@@ -1,28 +1,29 @@
 /**
  * Las reglas del alquiler, sin base de datos de por medio.
  *
- * Están aparte del servicio para poder probarlas solas: qué bloques ocupa un horario,
+ * Están aparte del servicio para poder probarlas solas: qué módulo ocupa un horario,
  * cuánto sale una cuota y si se pagó a tiempo. El
  * servicio junta los datos y le pregunta a esto; esto no sabe de dónde salieron.
  *
  * Cómo se cobra, tal como lo definió el consultorio:
  *
- * - El alquiler es por consultorio y por bloque. Cada consultorio tiene dos bloques, la
- *   mañana de 9 a 13 y la tarde de 14 a 20, y cada bloque de cada consultorio tiene su
- *   propio precio.
- * - Se paga el bloque entero. Quien atiende los lunes de 9 a 11 en un consultorio usa la
- *   mañana de ese consultorio los lunes, y paga esa mañana completa.
- * - Los precios son por mes, no por semana. La mañana de los lunes cuesta lo mismo en un
+ * - El alquiler es por consultorio y por módulo, y el módulo sale de cuánto dura el
+ *   horario. Cuatro horas es el módulo de la mañana, seis el de la tarde y más de seis el
+ *   día entero. Cada consultorio tiene su precio para cada uno.
+ * - Manda la duración, no la franja. Cuatro horas de 14 a 18 son el módulo de la mañana
+ *   igual, y en el detalle se ve el horario real en el que cayó.
+ * - Los horarios pegados de un mismo día en un mismo consultorio se suman. De 9 a 11 y de
+ *   11 a 13 son un tramo de cuatro horas; con un hueco en el medio son dos tramos, y cada
+ *   uno paga por lo que dura.
+ * - Un tramo que no dura cuatro horas, ni seis, ni más de seis, no tiene precio: el
+ *   administrador le pone un valor a mano, y hasta entonces la cuota sale sin esa parte y
+ *   con el aviso de que falta.
+ * - Los precios son por mes, no por semana. El módulo de los lunes cuesta lo mismo en un
  *   mes con cuatro lunes que en uno con cinco. Lo mismo el día entero y el valor a mano.
  * - Las vacaciones no descuentan nada. El horario es del profesional aunque no venga, y
  *   si no lo paga lo pierde.
- * - Lo que queda fuera de los dos bloques (de 13 a 14, antes de las 9, después de las 20)
- *   no tiene precio: el administrador le pone un valor a mano, y hasta entonces la cuota
- *   sale sin esa parte y con el aviso de que falta.
- * - También se alquila el día entero, de 9 a 20 de corrido, con su propio precio. Solo
- *   cuenta si el consultorio se usa sin cortes de 9 a 20 (la hora de 13 a 14 incluida):
- *   con un hueco en el medio son bloques. El día reemplaza a la mañana, a la tarde y al
- *   valor a mano de 13 a 14. Un consultorio sin precio del día se cobra por bloques.
+ * - La mañana de 9 a 13 y la tarde de 14 a 20 siguen siendo las franjas de la grilla: es
+ *   lo que se mira para saber qué consultorios quedan libres.
  */
 
 export type BlockKey = "morning" | "afternoon";
@@ -35,27 +36,30 @@ export interface Block {
   label: string;
   from: string;
   to: string;
+  /** Cuánto dura el módulo que se cobra con este precio. Es lo que decide cuál se aplica. */
+  hours: string;
 }
 
 export const BLOCKS: Block[] = [
-  { key: "morning", label: "Mañana", from: "09:00", to: "13:00" },
-  { key: "afternoon", label: "Tarde", from: "14:00", to: "20:00" },
+  { key: "morning", label: "Mañana", from: "09:00", to: "13:00", hours: "4 horas" },
+  { key: "afternoon", label: "Tarde", from: "14:00", to: "20:00", hours: "6 horas" },
 ];
 
 export const BLOCK_KEYS: BlockKey[] = BLOCKS.map((block) => block.key);
 
 /**
- * El día entero. No es un bloque más de la grilla: se superpone con los dos, así que
+ * El día entero. No es una franja más de la grilla: se superpone con las dos, así que
  * no entra en BLOCKS, que es lo que se usa para ver qué ocupa un horario.
  */
-export const DAY: { key: "day"; label: string; from: string; to: string } = {
+export const DAY: { key: "day"; label: string; from: string; to: string; hours: string } = {
   key: "day",
   label: "Día",
   from: "09:00",
   to: "20:00",
+  hours: "más de 6 horas",
 };
 
-/** Lo que se muestra y se carga en los precios: mañana, tarde y día. */
+/** Lo que se muestra y se carga en los precios: los tres módulos. */
 export const PRICED = [...BLOCKS, DAY];
 
 export const PRICE_KEYS: PriceKey[] = PRICED.map((item) => item.key);
@@ -133,6 +137,59 @@ export function outsideParts(initialHour: string, finalHour: string): { from: st
 }
 
 /* ============================================================
+   Los módulos
+   ============================================================ */
+
+/** Un tramo de corrido de un día en un consultorio, con lo que dura. */
+export interface Stretch {
+  from: string;
+  to: string;
+  minutes: number;
+}
+
+/**
+ * Los tramos de corrido que arman unos horarios del mismo día y consultorio.
+ *
+ * Los pegados se unen: de 9 a 11 y de 11 a 13 son un solo tramo de cuatro horas. Con un
+ * hueco en el medio son dos tramos, y cada uno se cobra por lo que dura.
+ */
+export function stretchesOf(slots: { initialHour: string; finalHour: string }[]): Stretch[] {
+  const sorted = slots
+    .map((slot): [number, number] => [toMinutes(slot.initialHour), toMinutes(slot.finalHour)])
+    .sort((a, b) => a[0] - b[0]);
+
+  const merged: [number, number][] = [];
+  for (const [from, to] of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && from <= last[1]) last[1] = Math.max(last[1], to);
+    else merged.push([from, to]);
+  }
+
+  return merged.map(([from, to]) => ({ from: toHour(from), to: toHour(to), minutes: to - from }));
+}
+
+/**
+ * Con qué precio se cobra un tramo, por lo que dura.
+ *
+ * Cuatro horas es el módulo de la mañana y seis el de la tarde, caigan a la hora que
+ * caigan: son los dos precios del consultorio, no las franjas de la grilla. Más de seis
+ * horas es el día entero. Cualquier otra duración no tiene módulo y va a valor a mano.
+ */
+export function moduleOf(minutes: number): PriceKey | null {
+  if (minutes > 6 * 60) return "day";
+  if (minutes === 6 * 60) return "afternoon";
+  if (minutes === 4 * 60) return "morning";
+  return null;
+}
+
+/** Cómo se nombra cada precio que falta. */
+const PRICE_OF: Record<PriceKey, string> = {
+  morning: "de la mañana",
+  afternoon: "de la tarde",
+  day: "del día",
+};
+
+/* ============================================================
    Meses
    ============================================================ */
 
@@ -194,19 +251,27 @@ export interface BlockLine {
   room: string;
   day: string;
   block: BlockKey;
+  /**
+   * El horario real del tramo. Es lo que deja ver que un módulo de la mañana cayó a la
+   * tarde. Las cuotas guardadas antes de los módulos no lo tienen.
+   */
+  from?: string;
+  to?: string;
   /** Cuántas veces se cobra en el mes. Siempre una. */
   times: number;
   price: number | null;
   subtotal: number;
 }
 
-/** Un día entero de 9 a 20 en un consultorio, cobrado con el precio del día. */
+/** Un tramo de más de seis horas en un consultorio, cobrado con el precio del día. */
 export interface DayLine {
   roomId: number;
   room: string;
   day: string;
+  from?: string;
+  to?: string;
   times: number;
-  price: number;
+  price: number | null;
   subtotal: number;
 }
 
@@ -242,30 +307,15 @@ export interface ChargeBreakdown {
 }
 
 /**
- * Si los horarios de un mismo consultorio y un mismo día cubren de 9 a 20 sin cortes.
- * Horarios pegados (de 9 a 13 y de 13 a 20) también son de corrido.
- */
-export function coversWholeDay(slots: { initialHour: string; finalHour: string }[]): boolean {
-  const sorted = [...slots].sort((a, b) => toMinutes(a.initialHour) - toMinutes(b.initialHour));
-  let cursor = toMinutes(DAY.from);
-
-  for (const slot of sorted) {
-    if (toMinutes(slot.initialHour) > cursor) break;
-    cursor = Math.max(cursor, toMinutes(slot.finalHour));
-  }
-
-  return cursor >= toMinutes(DAY.to);
-}
-
-/**
  * La cuota de un mes a partir de la agenda.
  *
- * Un mismo bloque se cobra una sola vez por día aunque el profesional tenga dos horarios
- * adentro (de 9 a 10 y de 11 a 12 en el mismo consultorio siguen siendo una mañana).
+ * Cada consultorio y cada día van por su lado. Los horarios pegados se unen en un tramo, y
+ * cada tramo se cobra por lo que dura: cuatro horas el módulo de la mañana, seis el de la
+ * tarde, más de seis el día entero. El horario real queda en la línea, así que se ve
+ * cuando un módulo de la mañana cayó a la tarde.
  *
- * Si ese día ocupa el consultorio de 9 a 20 de corrido y el consultorio tiene precio del
- * día, se cobra el día en lugar de los bloques. Lo que quede antes de las 9 o después de
- * las 20 sigue siendo fuera de bloque.
+ * Un tramo de otra duración no tiene precio: sale como valor a mano, con el aviso de que
+ * falta hasta que el administrador lo carga.
  */
 export function computeCharge(
   slots: ScheduleSlot[],
@@ -274,12 +324,15 @@ export function computeCharge(
   month: string,
   adjust = 0
 ): ChargeBreakdown {
-  const blocks = new Map<string, BlockLine>();
+  const blocks: BlockLine[] = [];
   const days: DayLine[] = [];
   const outside: OutsideLine[] = [];
   const missing: string[] = [];
 
-  // Qué días de qué consultorio van enteros.
+  // Un aviso por precio que falta y no uno por día: si el módulo de la mañana de un
+  // consultorio no tiene precio, falta para todos los días a la vez.
+  const unpriced = new Set<string>();
+
   const grouped = new Map<string, ScheduleSlot[]>();
   for (const slot of slots) {
     const id = `${slot.roomId}|${slot.day}`;
@@ -287,72 +340,42 @@ export function computeCharge(
     grouped.get(id)!.push(slot);
   }
 
-  const wholeDays = new Set<string>();
-  for (const [id, group] of grouped) {
-    const first = group[0];
-    const price = prices.get(first.roomId)?.day ?? null;
-    if (price === null || !coversWholeDay(group)) continue;
+  for (const group of grouped.values()) {
+    const { roomId, room, day } = group[0];
 
-    wholeDays.add(id);
-    const times = TIMES_PER_MONTH;
-    days.push({ roomId: first.roomId, room: first.room, day: first.day, times, price, subtotal: price * times });
-  }
+    for (const { from, to, minutes } of stretchesOf(group)) {
+      const times = TIMES_PER_MONTH;
+      const key = moduleOf(minutes);
 
-  for (const slot of slots) {
-    const times = TIMES_PER_MONTH;
-    const whole = wholeDays.has(`${slot.roomId}|${slot.day}`);
+      if (key === null) {
+        const price = extras.get(extraKey(day, from)) ?? null;
+        outside.push({
+          roomId,
+          room,
+          day,
+          initialHour: from,
+          finalHour: to,
+          parts: [{ from, to }],
+          times,
+          price,
+          subtotal: (price ?? 0) * times,
+        });
 
-    for (const key of whole ? [] : blocksOf(slot.initialHour, slot.finalHour)) {
-      const id = `${slot.roomId}|${slot.day}|${key}`;
-      if (blocks.has(id)) continue;
-
-      const price = prices.get(slot.roomId)?.[key] ?? null;
-      blocks.set(id, {
-        roomId: slot.roomId,
-        room: slot.room,
-        day: slot.day,
-        block: key,
-        times,
-        price,
-        subtotal: (price ?? 0) * times,
-      });
-    }
-
-    // Con el día entero, de 13 a 14 ya está pago: queda solo lo de antes o después.
-    const parts = outsideParts(slot.initialHour, slot.finalHour).filter(
-      (part) => !whole || part.to <= DAY.from || part.from >= DAY.to
-    );
-    if (parts.length > 0) {
-      const price = extras.get(extraKey(slot.day, slot.initialHour)) ?? null;
-      outside.push({
-        roomId: slot.roomId,
-        room: slot.room,
-        day: slot.day,
-        initialHour: slot.initialHour.slice(0, 5),
-        finalHour: slot.finalHour.slice(0, 5),
-        parts,
-        times,
-        price,
-        subtotal: (price ?? 0) * times,
-      });
-
-      if (price === null) {
-        const franjas = parts.map((part) => `de ${part.from} a ${part.to}`).join(" y ");
-        missing.push(`Falta el valor del ${DAY_LABEL[slot.day] ?? slot.day} ${franjas}`);
+        if (price === null) missing.push(`Falta el valor del ${DAY_LABEL[day] ?? day} de ${from} a ${to}`);
+        continue;
       }
+
+      const price = prices.get(roomId)?.[key] ?? null;
+      const line = { roomId, room, day, from, to, times, price, subtotal: (price ?? 0) * times };
+
+      if (key === "day") days.push(line);
+      else blocks.push({ ...line, block: key });
+
+      if (price === null) unpriced.add(`Falta el precio ${PRICE_OF[key]} de ${room}`);
     }
   }
 
-  const lines = Array.from(blocks.values()).sort(byRoomDayBlock);
-
-  // Un aviso por bloque sin precio y no uno por día: si la mañana de un consultorio no
-  // tiene precio, falta para todos los días a la vez.
-  const unpriced = new Set<string>();
-  for (const line of lines) {
-    if (line.price !== null) continue;
-    const label = BLOCKS.find((block) => block.key === line.block)!.label.toLowerCase();
-    unpriced.add(`Falta el precio de la ${label} de ${line.room}`);
-  }
+  const lines = blocks.sort(byRoomDayBlock);
 
   const base =
     lines.reduce((sum, line) => sum + line.subtotal, 0) +
@@ -372,11 +395,14 @@ export function computeCharge(
 
 const DAY_ORDER = (day: string) => (DAY_INDEX[day] ?? 7) === 0 ? 7 : DAY_INDEX[day] ?? 8;
 
-function byRoomDayBlock(a: { room: string; day: string; block?: string }, b: { room: string; day: string; block?: string }) {
+function byRoomDayBlock(
+  a: { room: string; day: string; from?: string; initialHour?: string },
+  b: { room: string; day: string; from?: string; initialHour?: string }
+) {
   return (
     a.room.localeCompare(b.room, "es", { numeric: true }) ||
     DAY_ORDER(a.day) - DAY_ORDER(b.day) ||
-    String(a.block ?? "").localeCompare(String(b.block ?? ""))
+    String(a.from ?? a.initialHour ?? "").localeCompare(String(b.from ?? b.initialHour ?? ""))
   );
 }
 

@@ -8,9 +8,11 @@ import {
   extraKey,
   freeBlocks,
   isLate,
+  moduleOf,
   outsideParts,
   paymentStatus,
   shiftMonth,
+  stretchesOf,
   usesOf,
   type RoomPrices,
   type ScheduleSlot,
@@ -50,8 +52,8 @@ describe("alquiler - bloques de un horario", () => {
 describe("alquiler - meses", () => {
   it("un mes con cinco semanas cuesta lo mismo que uno con cuatro", () => {
     const prices: RoomPrices = new Map([[1, { morning: 1000 }]]);
-    const lunes = computeCharge([slot("lunes", "09:00", "10:00")], prices, new Map(), SEPT);
-    const martes = computeCharge([slot("martes", "09:00", "10:00")], prices, new Map(), SEPT);
+    const lunes = computeCharge([slot("lunes", "09:00", "13:00")], prices, new Map(), SEPT);
+    const martes = computeCharge([slot("martes", "09:00", "13:00")], prices, new Map(), SEPT);
 
     expect(lunes.amount).toBe(1000);
     expect(martes.amount).toBe(1000);
@@ -63,58 +65,57 @@ describe("alquiler - meses", () => {
   });
 });
 
-describe("alquiler - la cuota por bloques", () => {
-  const prices: RoomPrices = new Map([
-    [1, { morning: 1000, afternoon: 1200 }],
-    [2, { morning: 1500, afternoon: 2000 }],
-  ]);
-
-  it("cobra cada bloque entero, una vez por día aunque haya dos horarios adentro", () => {
-    const charge = computeCharge([slot("lunes", "09:00", "10:00"), slot("lunes", "11:00", "12:00")], prices, new Map(), SEPT);
-
-    expect(charge.blocks).toHaveLength(1);
-    expect(charge.amount).toBe(1000); // la mañana de los lunes, por mes
-    expect(charge.missing).toEqual([]);
+describe("alquiler - tramos de corrido", () => {
+  it("los horarios pegados son un solo tramo", () => {
+    expect(stretchesOf([slot("lunes", "09:00", "11:00"), slot("lunes", "11:00", "13:00")])).toEqual([
+      { from: "09:00", to: "13:00", minutes: 240 },
+    ]);
   });
 
-  it("lo que cae de 13 a 14 queda sin cobrar y avisa que falta el valor", () => {
-    const charge = computeCharge([slot("martes", "12:00", "15:00", 2)], prices, new Map(), SEPT);
-
-    // Mañana a $1500 y tarde a $2000.
-    expect(charge.amount).toBe(3500);
-    expect(charge.outside).toHaveLength(1);
-    expect(charge.missing).toEqual(["Falta el valor del martes de 13:00 a 14:00"]);
+  it("con un hueco en el medio son dos tramos", () => {
+    expect(stretchesOf([slot("lunes", "09:00", "13:00"), slot("lunes", "14:00", "20:00")])).toEqual([
+      { from: "09:00", to: "13:00", minutes: 240 },
+      { from: "14:00", to: "20:00", minutes: 360 },
+    ]);
   });
 
-  it("con el valor a mano, la franja se cobra una vez por mes", () => {
-    const extras = new Map([[extraKey("martes", "12:00"), 300]]);
-    const charge = computeCharge([slot("martes", "12:00", "15:00", 2)], prices, extras, SEPT);
-
-    expect(charge.amount).toBe(3500 + 300);
-    expect(charge.missing).toEqual([]);
-  });
-
-  it("el ajuste propio sube la cuota entera", () => {
-    const charge = computeCharge([slot("lunes", "09:00", "10:00")], prices, new Map(), SEPT, 1000);
-    expect(charge.amount).toBe(1100);
-  });
-
-  it("un bloque sin precio no suma y queda anotado", () => {
-    const charge = computeCharge([slot("lunes", "09:00", "10:00", 3)], prices, new Map(), SEPT);
-
-    expect(charge.amount).toBe(0);
-    expect(charge.missing).toEqual(["Falta el precio de la mañana de Consultorio 3"]);
-  });
-
-  it("dos aumentos del diez son un veintiuno", () => {
-    expect(compoundAdjust(1000, 10)).toBe(2100);
+  it("el módulo sale de lo que dura", () => {
+    expect(moduleOf(4 * 60)).toBe("morning");
+    expect(moduleOf(6 * 60)).toBe("afternoon");
+    expect(moduleOf(6 * 60 + 30)).toBe("day");
+    expect(moduleOf(11 * 60)).toBe("day");
+    expect(moduleOf(2 * 60)).toBeNull();
+    expect(moduleOf(5 * 60)).toBeNull();
   });
 });
 
-describe("alquiler - el día entero", () => {
-  const prices: RoomPrices = new Map([[1, { morning: 1000, afternoon: 1200, day: 2000 }]]);
+describe("alquiler - la cuota por módulos", () => {
+  const prices: RoomPrices = new Map([
+    [1, { morning: 1000, afternoon: 1200, day: 2000 }],
+    [2, { morning: 1500, afternoon: 2000 }],
+  ]);
 
-  it("de 9 a 20 de corrido se cobra el día, con la hora de 13 a 14 incluida", () => {
+  it("cuatro horas son el módulo de la mañana aunque caigan a la tarde", () => {
+    const manana = computeCharge([slot("lunes", "09:00", "13:00")], prices, new Map(), SEPT);
+    const tarde = computeCharge([slot("lunes", "14:00", "18:00")], prices, new Map(), SEPT);
+
+    expect(manana.amount).toBe(1000);
+    expect(tarde.amount).toBe(1000);
+    expect(tarde.blocks[0].block).toBe("morning");
+    // El horario real queda en la línea: así se ve que cayó a la tarde.
+    expect(tarde.blocks[0].from).toBe("14:00");
+    expect(tarde.blocks[0].to).toBe("18:00");
+  });
+
+  it("seis horas son el módulo de la tarde aunque caigan a la mañana", () => {
+    const charge = computeCharge([slot("lunes", "08:00", "14:00")], prices, new Map(), SEPT);
+
+    expect(charge.blocks[0].block).toBe("afternoon");
+    expect(charge.amount).toBe(1200);
+    expect(charge.outside).toEqual([]);
+  });
+
+  it("más de seis horas son el día entero", () => {
     const charge = computeCharge([slot("lunes", "09:00", "20:00")], prices, new Map(), SEPT);
 
     expect(charge.blocks).toEqual([]);
@@ -124,59 +125,73 @@ describe("alquiler - el día entero", () => {
     expect(charge.missing).toEqual([]);
   });
 
-  it("horarios pegados también son de corrido", () => {
-    const charge = computeCharge(
-      [slot("lunes", "14:00", "20:00"), slot("lunes", "09:00", "12:00"), slot("lunes", "12:00", "14:00")],
-      prices,
-      new Map(),
-      SEPT
-    );
+  it("los horarios pegados se suman y arman un módulo", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "11:00"), slot("lunes", "11:00", "13:00")], prices, new Map(), SEPT);
 
-    expect(charge.days).toHaveLength(1);
-    expect(charge.amount).toBe(2000);
+    expect(charge.blocks).toHaveLength(1);
+    expect(charge.amount).toBe(1000);
+    expect(charge.missing).toEqual([]);
   });
 
-  it("con un corte en el medio son bloques", () => {
+  it("con un corte en el medio cada tramo paga lo suyo", () => {
     const charge = computeCharge([slot("lunes", "09:00", "13:00"), slot("lunes", "14:00", "20:00")], prices, new Map(), SEPT);
 
     expect(charge.days).toEqual([]);
     expect(charge.amount).toBe(1000 + 1200);
   });
 
-  it("si no llega a las 20 son bloques", () => {
-    const charge = computeCharge([slot("lunes", "09:00", "19:00")], prices, new Map(), SEPT);
+  it("un tramo de otra duración va a valor a mano", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "11:00")], prices, new Map(), SEPT);
 
-    expect(charge.days).toEqual([]);
-    expect(charge.missing).toEqual(["Falta el valor del lunes de 13:00 a 14:00"]);
+    expect(charge.blocks).toEqual([]);
+    expect(charge.amount).toBe(0);
+    expect(charge.outside).toHaveLength(1);
+    expect(charge.missing).toEqual(["Falta el valor del lunes de 09:00 a 11:00"]);
   });
 
-  it("sin precio del día se cobra por bloques como siempre", () => {
-    const sinDia: RoomPrices = new Map([[1, { morning: 1000, afternoon: 1200 }]]);
-    const charge = computeCharge([slot("lunes", "09:00", "20:00")], sinDia, new Map(), SEPT);
+  it("con el valor a mano, el tramo se cobra una vez por mes", () => {
+    const extras = new Map([[extraKey("lunes", "09:00"), 300]]);
+    const charge = computeCharge([slot("lunes", "09:00", "11:00")], prices, extras, SEPT);
 
-    expect(charge.days).toEqual([]);
-    expect(charge.blocks).toHaveLength(2);
+    expect(charge.amount).toBe(300);
+    expect(charge.missing).toEqual([]);
   });
 
-  it("lo que pasa de las 20 sigue siendo fuera de bloque", () => {
-    const charge = computeCharge([slot("lunes", "09:00", "21:00")], prices, new Map(), SEPT);
+  it("un módulo sin precio no suma y queda anotado", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "13:00", 3)], prices, new Map(), SEPT);
+
+    expect(charge.amount).toBe(0);
+    expect(charge.missing).toEqual(["Falta el precio de la mañana de Consultorio 3"]);
+  });
+
+  it("sin precio del día, el día entero queda anotado", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "20:00", 2)], prices, new Map(), SEPT);
 
     expect(charge.days).toHaveLength(1);
-    expect(charge.outside[0].parts).toEqual([{ from: "20:00", to: "21:00" }]);
-    expect(charge.missing).toEqual(["Falta el valor del lunes de 20:00 a 21:00"]);
+    expect(charge.amount).toBe(0);
+    expect(charge.missing).toEqual(["Falta el precio del día de Consultorio 2"]);
+  });
+
+  it("el ajuste propio sube la cuota entera", () => {
+    const charge = computeCharge([slot("lunes", "09:00", "13:00")], prices, new Map(), SEPT, 1000);
+    expect(charge.amount).toBe(1100);
+  });
+
+  it("dos aumentos del diez son un veintiuno", () => {
+    expect(compoundAdjust(1000, 10)).toBe(2100);
   });
 
   it("cada día va por su lado y por consultorio", () => {
     const charge = computeCharge(
-      [slot("lunes", "09:00", "20:00"), slot("martes", "09:00", "13:00"), slot("lunes", "09:00", "10:00", 2)],
-      new Map([...prices, [2, { morning: 1500, day: 3000 }]]),
+      [slot("lunes", "09:00", "20:00"), slot("martes", "09:00", "13:00"), slot("lunes", "09:00", "13:00", 2)],
+      prices,
       new Map(),
       SEPT
     );
 
     expect(charge.days.map((line) => `${line.roomId}|${line.day}`)).toEqual(["1|lunes"]);
     expect(charge.amount).toBe(2000 + 1000 + 1500);
-    expect(usesOf(charge)).toBe(2 + 1 + 1); // el día cuenta como sus dos bloques
+    expect(usesOf(charge)).toBe(2 + 1 + 1); // el día cuenta como sus dos franjas
   });
 });
 

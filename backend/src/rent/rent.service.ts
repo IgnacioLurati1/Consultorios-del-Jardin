@@ -26,6 +26,7 @@ import {
   PRICED,
   raise,
   shiftMonth,
+  toMinutes,
   usesOf,
   type PriceKey,
   type ChargeBreakdown,
@@ -550,8 +551,8 @@ export class RentService {
   /**
    * Lo que saldría cada cuota calculada con los bloques, sin guardar nada.
    *
-   * Es la previa del botón "Calcular": deja ver cuánto le toca a cada uno, qué franjas
-   * fuera de bloque necesitan un valor y quiénes comparten un bloque, antes de pisar las
+   * Es la previa del botón "Calcular": deja ver cuánto le toca a cada uno, qué tramos sin
+   * módulo necesitan un valor a mano y quiénes comparten un horario, antes de pisar las
    * cuotas de todos.
    */
   async calculationPreview(fromMonth: unknown) {
@@ -572,21 +573,32 @@ export class RentService {
       breakdown: computeCharge(ctx.slots.get(person.email) ?? [], prices, ctx.extras.get(person.email) ?? new Map(), fromMonth),
     }));
 
-    // Quién más usa cada bloque. Cada uno paga el bloque entero, así que un bloque
-    // compartido se cobra dos veces: está bien que se vea antes de aplicar. Un día entero
-    // ocupa la mañana y la tarde.
-    const owners = new Map<string, string[]>();
-    const own = (key: string, name: string) => {
-      if (!owners.has(key)) owners.set(key, []);
-      if (!owners.get(key)!.includes(name)) owners.get(key)!.push(name);
-    };
+    // Quién más usa el consultorio a la misma hora. Cada uno paga su módulo entero, así que
+    // un horario compartido se cobra dos veces: está bien que se vea antes de aplicar. Se
+    // mira el horario y no el módulo, porque dos módulos de la mañana pueden caer en ratos
+    // distintos del día.
+    const uses: { roomId: number; day: string; from: number; to: number; name: string }[] = [];
     for (const { person, breakdown } of rows) {
       const name = `${person.name} ${person.surname}`;
-      for (const line of breakdown.blocks) own(`${line.roomId}|${line.day}|${line.block}`, name);
-      for (const line of breakdown.days) {
-        for (const block of BLOCKS) own(`${line.roomId}|${line.day}|${block.key}`, name);
+      for (const line of [...breakdown.blocks, ...breakdown.days]) {
+        uses.push({
+          roomId: line.roomId,
+          day: line.day,
+          from: toMinutes(line.from ?? "00:00"),
+          to: toMinutes(line.to ?? "00:00"),
+          name,
+        });
       }
     }
+
+    const sharedWith = (line: { roomId: number; day: string; from?: string; to?: string }, me: string) => {
+      const from = toMinutes(line.from ?? "00:00");
+      const to = toMinutes(line.to ?? "00:00");
+      const others = uses.filter(
+        (use) => use.name !== me && use.roomId === line.roomId && use.day === line.day && use.from < to && use.to > from
+      );
+      return [...new Set(others.map((use) => use.name))];
+    };
 
     return {
       fromMonth,
@@ -604,16 +616,8 @@ export class RentService {
           blocks: usesOf(breakdown),
           breakdown: {
             ...breakdown,
-            blocks: breakdown.blocks.map((line) => ({
-              ...line,
-              sharedWith: (owners.get(`${line.roomId}|${line.day}|${line.block}`) ?? []).filter((name) => name !== me),
-            })),
-            days: breakdown.days.map((line) => ({
-              ...line,
-              sharedWith: [
-                ...new Set(BLOCKS.flatMap((block) => owners.get(`${line.roomId}|${line.day}|${block.key}`) ?? [])),
-              ].filter((name) => name !== me),
-            })),
+            blocks: breakdown.blocks.map((line) => ({ ...line, sharedWith: sharedWith(line, me) })),
+            days: breakdown.days.map((line) => ({ ...line, sharedWith: sharedWith(line, me) })),
           },
         };
       }),
