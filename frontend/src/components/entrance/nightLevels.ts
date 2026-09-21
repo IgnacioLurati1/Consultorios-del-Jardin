@@ -6,7 +6,8 @@
  */
 
 export interface NightState {
-  phase: "intro" | "play" | "scare" | "dead" | "won";
+  /** `brief` es el cartel de cómo se juega, antes de arrancar. `ending`, lo que pasa después de la última noche en vez del cartel de las 6. */
+  phase: "brief" | "intro" | "play" | "scare" | "dead" | "won" | "ending";
   /** Qué noche es, desde 0. */
   night: number;
   /** 0 son las 12, 6 son las 6 de la mañana. */
@@ -25,10 +26,33 @@ export interface NightState {
   dread: boolean;
   /** Está diciendo que es él. */
   itsMe: boolean;
+  /** La luz que se lleva encima, de 1 a 0. Se carga en el baño. */
+  light: number;
+  /** Se está cargando en ese momento. */
+  filling: boolean;
+  /** Se acabó la luz: oscuridad, la canción y el final. */
+  lightsOut: boolean;
+  /**
+   * El final de la última noche: 1 mientras habla, 2 mientras se arrodillan y 3 cuando ya
+   * es todo negro y toca volver al menú. Al terminar la tercera noche también pasa por 1,
+   * con una sola frase. 0 en cualquier otro momento.
+   */
+  ending: number;
+  /** Cuántas frases del final ya dijo, contando las de LAST_WORDS y después las de CLOSING_WORDS. */
+  said: number;
 }
 
+/** Al terminar esta, habla por primera vez: una sola frase, en la oscuridad. */
+export const WATCHING_NIGHT = 2;
+export const WATCHING_WORDS = ["Te estoy observando..."];
+
+/** Lo que dice al final de la última noche, una frase por vez. */
+export const LAST_WORDS = ["Me abandonaste...", "Pero no importa.", "Yo no te abandonaré.", "Nunca..."];
+/** Y lo que dice después, detrás de los cuatro ya arrodillados. */
+export const CLOSING_WORDS = ["Algún día sabrás quiénes somos...", "Algún día..."];
+
 /**
- * Las cinco noches. Lo que cambia de una a otra:
+ * Las siete noches. Lo que cambia de una a otra:
  * - `appear`: cuánto más seguido que en la primera aparecen.
  * - `stage`: los segundos que pasan en cada estado una vez afuera.
  * - `cooldown`: lo que tardan en poder volver después de irse.
@@ -38,15 +62,25 @@ export interface NightState {
  * - `doll`: los segundos con los que arranca la muñeca, y `dollGain` lo que suma cada
  *   segundo de mirarla.
  * - `faults`: cuántos cortes de luz sueltos hay en la noche.
- * - `blood`: las dos últimas son otra cosa. El hall está lleno de sangre, todo tira a rojo
- *   y no dan respiro.
+ *
+ * Todas aflojaron un poco cuando entró la luz que se lleva encima: ahora hay que dejar el
+ * escritorio cada tanto para cargarla en el baño, y eso ya es bastante castigo.
+ * - `blood`: la cuarta y la quinta son otra cosa. El hall está lleno de sangre, todo tira
+ *   a rojo y no dan respiro.
+ * - `abandoned`: la sexta y la séptima pasan después de que el consultorio cerró. Todo está
+ *   clausurado, sucio y gastado, y son apenas más difíciles que las de sangre.
  */
 export const NIGHTS = [
-  { name: "Tranquila", appear: 1, stage: 5, cooldown: 25, grace: 30, doctor: 5, woman: 10, tree: 10, doll: 30, dollGain: 2, faults: 1, blood: false },
-  { name: "Inquieta", appear: 1.35, stage: 5, cooldown: 25, grace: 30, doctor: 4.5, woman: 9, tree: 9, doll: 27, dollGain: 2, faults: 2, blood: false },
-  { name: "Pesada", appear: 1.75, stage: 5, cooldown: 22, grace: 30, doctor: 4, woman: 8, tree: 8, doll: 24, dollGain: 2, faults: 2, blood: false },
-  { name: "Sangre", appear: 3.2, stage: 4, cooldown: 14, grace: 18, doctor: 3, woman: 6, tree: 6, doll: 18, dollGain: 1.8, faults: 4, blood: true },
-  { name: "La última", appear: 4.3, stage: 3, cooldown: 9, grace: 12, doctor: 2.5, woman: 5, tree: 5, doll: 15, dollGain: 1.6, faults: 5, blood: true },
+  { name: "Tranquila", appear: 0.8, stage: 6, cooldown: 32, grace: 40, doctor: 7, woman: 13, tree: 13, doll: 36, dollGain: 2.4, faults: 1, blood: false },
+  { name: "Inquieta", appear: 1.1, stage: 6, cooldown: 30, grace: 36, doctor: 6, woman: 12, tree: 12, doll: 32, dollGain: 2.4, faults: 1, blood: false },
+  { name: "Pesada", appear: 1.45, stage: 5.5, cooldown: 27, grace: 34, doctor: 5.5, woman: 11, tree: 11, doll: 29, dollGain: 2.2, faults: 2, blood: false },
+  { name: "Sangre", appear: 2.5, stage: 4.5, cooldown: 18, grace: 24, doctor: 4, woman: 8, tree: 8, doll: 23, dollGain: 2, faults: 3, blood: true },
+  { name: "El cierre", appear: 3.4, stage: 4, cooldown: 13, grace: 18, doctor: 3.5, woman: 7, tree: 7, doll: 19, dollGain: 1.8, faults: 4, blood: true },
+  { name: "Clausurado", appear: 2.8, stage: 4.3, cooldown: 16, grace: 22, doctor: 3.8, woman: 7.5, tree: 7.5, doll: 21, dollGain: 1.9, faults: 3, blood: false, abandoned: true },
+  { name: "Nunca", appear: 3.7, stage: 3.7, cooldown: 12, grace: 16, doctor: 3.2, woman: 6.5, tree: 6.5, doll: 18, dollGain: 1.7, faults: 4, blood: false, abandoned: true },
 ];
+
+/** Después de esta, el diario: el consultorio cerró. Las que siguen son en el lugar clausurado. */
+export const CLOSING_NIGHT = 4;
 
 export const CAMERA_NAMES = ["Consultorio naranja", "Consultorio turquesa", "Consultorio verde", "Jardín"];

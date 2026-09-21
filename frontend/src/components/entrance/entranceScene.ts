@@ -142,6 +142,17 @@ const DOOR_TOP = 2.75;
  */
 const NICHE = { z: (PARTITION_Z + BACK_Z) / 2, width: 1.5, sill: 0.95, lintel: 2.05 };
 
+/**
+ * El baño, en el cuarto de la entrada: contra la pared derecha, pegado a la del vano y bien
+ * lejos del escritorio. `back` es la pared de la puerta, la que da a la recepción, y
+ * `front` la del fondo, hacia la calle. Solo se arma en la noche de terror, que es la única
+ * que necesita un lugar donde meterse; de día el hall es el de la foto.
+ */
+const BATH = { left: 1.2, back: OPENING_Z + 0.22, front: OPENING_Z + 3.7, height: 3.1, doorX: 2.14, doorWidth: 1.05, doorH: 2.85 };
+
+/** Dónde termina el balconcito de arriba de la escalera, del lado del hall. */
+const BALCONY_FRONT = 0.2;
+
 /** Cuántos píxeles de pantalla mide cada píxel del dibujo: apenas pixelado. */
 const PIXEL_SIZE = 2;
 
@@ -340,7 +351,7 @@ export interface Entrance {
   /** Pasa a caminar o vuelve a ser fondo. Con `instant`, sin el viaje de la cámara. */
   setWalk(on: boolean, instant?: boolean): void;
   /** Las órdenes de la pantalla de la noche de terror: cambiar de cámara o bajarlas. */
-  nightCommand(name: "cam" | "close", value?: number): void;
+  nightCommand(name: "cam" | "close" | "start", value?: number): void;
   dispose(): void;
 }
 
@@ -389,8 +400,10 @@ export function createEntrance(
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const night = nightTheme || horror;
-  // Las dos últimas noches de terror son rojas: la niebla, el cielo y todas las luces.
+  // La cuarta y la quinta noche de terror son rojas: la niebla, el cielo y todas las luces.
   const blood = horror && (NIGHTS[nightLevel]?.blood ?? false);
+  // La sexta y la séptima, con el consultorio ya cerrado: polvo, una niebla sucia y verdosa.
+  const abandoned = horror && (NIGHTS[nightLevel]?.abandoned ?? false);
   const outside = OUTSIDE[season];
   const rand = seeded(20240);
   const disposables: { dispose(): void }[] = [];
@@ -406,7 +419,7 @@ export function createEntrance(
   const studio = new RoomEnvironment();
   scene.environment = keep(pmrem.fromScene(studio, 0.04).texture);
   scene.environmentIntensity = horror ? 0.02 : night ? 0.12 : 0.45;
-  if (horror) scene.fog = new THREE.FogExp2(blood ? "#1c0304" : "#05070b", blood ? 0.07 : 0.05);
+  if (horror) scene.fog = new THREE.FogExp2(blood ? "#1c0304" : abandoned ? "#0c0e09" : "#05070b", blood ? 0.07 : abandoned ? 0.065 : 0.05);
   studio.dispose();
   pmrem.dispose();
 
@@ -542,13 +555,16 @@ export function createEntrance(
 
   /* ---------------- la entrada, donde está parada la cámara ---------------- */
 
-  const roomDepth = ROOM_Z - OPENING_Z;
-  const roomMid = (ROOM_Z + OPENING_Z) / 2;
+  // En la noche, la pared del fondo de la entrada viene hasta donde termina el baño: si no,
+  // detrás de él quedaba un hueco sin nada.
+  const roomZ = horror ? BATH.front + 0.07 : ROOM_Z;
+  const roomDepth = roomZ - OPENING_Z;
+  const roomMid = (roomZ + OPENING_Z) / 2;
   const midX = (LEFT + RIGHT) / 2;
   block(wall, [0.2, ROOM_H, roomDepth], [LEFT - 0.1, ROOM_H / 2, roomMid]);
   block(wall, [0.2, ROOM_H, roomDepth], [RIGHT + 0.1, ROOM_H / 2, roomMid]);
   block(wall, [width + 0.4, 0.2, roomDepth], [midX, ROOM_H + 0.1, roomMid]);
-  block(wall, [width + 0.4, ROOM_H, 0.2], [midX, ROOM_H / 2, ROOM_Z + 0.1]);
+  block(wall, [width + 0.4, ROOM_H, 0.2], [midX, ROOM_H / 2, roomZ + 0.1]);
 
   // El vano, con su marco oscuro.
   const pier = 0.3;
@@ -698,7 +714,7 @@ export function createEntrance(
   /* ---------------- el hall ---------------- */
 
   block(wall, [0.2, HALL_H, hallDepth], [RIGHT + 0.1, HALL_H / 2, hallMid]);
-  baseboard([0.02, 0.08, hallDepth + roomDepth], [RIGHT - 0.01, 0.04, (ROOM_Z + BACK_Z) / 2]);
+  baseboard([0.02, 0.08, hallDepth + roomDepth], [RIGHT - 0.01, 0.04, (roomZ + BACK_Z) / 2]);
 
   // El fondo: la puerta de vidrio del jardín entre dos paños de pared, solo hasta la altura
   // de la puerta. Más arriba no hay pared: ahí apoya el techo de vidrio que baja en diagonal.
@@ -774,6 +790,31 @@ export function createEntrance(
   block(metal, [0.03, 0.03, stringerLength], [stairX - 0.53, stairMidY + 0.95, stairMidZ]).rotation.x = -slope;
   for (let i = 1; i < steps; i += 2) block(metal, [0.015, 0.9, 0.015], [stairX - 0.53, 0.2 + i * rise + 0.47, firstZ + i * run]);
   block(wall, [1.25, 0.25, 2.4], [RIGHT - 0.625, 0.2 + steps * rise + 0.1, 0.3]);
+  const landingTop = 0.2 + steps * rise + 0.225;
+  // En la noche, el descanso sigue como un balconcito angosto a lo largo de toda la pared
+  // del vano, con su baranda. Desde ahí mira algo, una vez por noche (ver nightGame).
+  if (horror) {
+    const balconyRight = RIGHT - 1.25;
+    const balconyFront = BALCONY_FRONT;
+    const balconyDepth = OPENING_Z - 0.15 - balconyFront;
+    const balconyMidZ = balconyFront + balconyDepth / 2;
+    block(wall, [balconyRight - HALL_LEFT, 0.25, balconyDepth], [(HALL_LEFT + balconyRight) / 2, landingTop - 0.125, balconyMidZ]);
+    block(frame, [balconyRight - HALL_LEFT + 0.02, 0.08, 0.04], [(HALL_LEFT + balconyRight) / 2, landingTop - 0.21, balconyFront - 0.01]);
+    // La baranda: por el frente del balcón y por el costado del descanso, hasta la escalera.
+    const railH = 0.95;
+    const railLength = balconyRight - HALL_LEFT;
+    block(metal, [railLength, 0.035, 0.035], [(HALL_LEFT + balconyRight) / 2, landingTop + railH, balconyFront + 0.03]);
+    block(metal, [railLength, 0.02, 0.02], [(HALL_LEFT + balconyRight) / 2, landingTop + railH / 2, balconyFront + 0.03]);
+    for (let x = HALL_LEFT + 0.1; x <= balconyRight + 0.01; x += 0.45) block(metal, [0.02, railH, 0.02], [x, landingTop + railH / 2, balconyFront + 0.03]);
+    const sideLength = balconyFront + 0.9;
+    block(metal, [0.035, 0.035, sideLength], [balconyRight + 0.02, landingTop + railH, (balconyFront - 0.9) / 2]);
+    for (let z = -0.85; z < balconyFront; z += 0.45) block(metal, [0.02, railH, 0.02], [balconyRight + 0.02, landingTop + railH / 2, z]);
+  }
+  // Debajo de los primeros escalones no hay altura para pasar, pero entre escalón y escalón
+  // los rayos de los choques pasaban: una caja escondida que igual frena. Escondida del todo:
+  // una que solo no pintaba color dejaba los bordes marcados por el pixelado.
+  const underStair = hitBox([0.8, 1.7, 2.45], [RIGHT - 0.4, 0.85, firstZ - 0.15 + 2.45 / 2], scene);
+  underStair.userData.collides = true;
 
   /* la recepción, abajo de la escalera */
   const deskX = RIGHT - 1.15;
@@ -875,6 +916,84 @@ export function createEntrance(
     egg.receiveShadow = true;
   }
 
+  /* ---------------- el baño del hall ---------------- */
+
+  /**
+   * Un baño en el cuarto de la entrada, contra la pared derecha y pegado a la del vano. La
+   * puerta da a la recepción, de frente a quien está sentado: girar la silla es verla, al
+   * fondo del hall. Adentro hay un inodoro, una bacha con espejo y, al final de todo, el
+   * cargador de la luz que se lleva encima. Es el único lugar del edificio donde uno se
+   * puede encerrar, pero la puerta se abre sola cada tanto (ver nightGame).
+   */
+  const bathDoor = { hinge: add(new THREE.Group()), open: 0, target: 0, closeAt: Infinity };
+  const bathCharger = add(new THREE.Group());
+  if (horror) {
+    const tile = standard("#b9beba", { roughness: 0.28, metalness: 0.05 });
+    const porcelain = standard("#e6e3dc", { roughness: 0.22 });
+    const mirrorGlass = standard("#0d1317", { roughness: 0.06, metalness: 0.9 });
+    const bathWidth = RIGHT - BATH.left;
+    const bathDepth = BATH.front - BATH.back;
+    const bathX = (BATH.left + RIGHT) / 2;
+    const bathZ = (BATH.front + BATH.back) / 2;
+    const half = BATH.doorWidth / 2;
+    const doorLeft = BATH.doorX - half;
+    const doorRight = BATH.doorX + half;
+
+    // La pared larga, la del fondo y el techo; la de la recepción, partida alrededor de la puerta.
+    block(wall, [0.14, BATH.height, bathDepth], [BATH.left, BATH.height / 2, bathZ]);
+    block(wall, [bathWidth, BATH.height, 0.14], [bathX, BATH.height / 2, BATH.front]);
+    block(wall, [doorLeft - BATH.left, BATH.height, 0.14], [(BATH.left + doorLeft) / 2, BATH.height / 2, BATH.back]);
+    block(wall, [RIGHT - doorRight, BATH.height, 0.14], [(RIGHT + doorRight) / 2, BATH.height / 2, BATH.back]);
+    block(wall, [BATH.doorWidth, BATH.height - BATH.doorH, 0.14], [BATH.doorX, (BATH.height + BATH.doorH) / 2, BATH.back]);
+    block(wall, [bathWidth + 0.2, 0.14, bathDepth + 0.28], [bathX, BATH.height + 0.07, bathZ]);
+    block(frame, [0.06, BATH.doorH + 0.06, 0.09], [doorLeft - 0.03, (BATH.doorH + 0.06) / 2, BATH.back - 0.09]);
+    block(frame, [0.06, BATH.doorH + 0.06, 0.09], [doorRight + 0.03, (BATH.doorH + 0.06) / 2, BATH.back - 0.09]);
+    block(frame, [BATH.doorWidth + 0.12, 0.06, 0.09], [BATH.doorX, BATH.doorH + 0.03, BATH.back - 0.09]);
+    baseboard([0.02, 0.08, bathDepth + 0.14], [BATH.left - 0.08, 0.04, bathZ]);
+    baseboard([bathWidth, 0.08, 0.02], [bathX, 0.04, BATH.back - 0.08]);
+
+    // Azulejos hasta la mitad y piso claro: sin ellos es una caja de revoque y no un baño.
+    const skirt = 1.6;
+    block(tile, [0.02, skirt, bathDepth - 0.14], [BATH.left + 0.08, skirt / 2, bathZ]);
+    block(tile, [0.02, skirt, bathDepth - 0.14], [RIGHT - 0.01, skirt / 2, bathZ]);
+    block(tile, [bathWidth - 0.14, skirt, 0.02], [bathX, skirt / 2, BATH.front - 0.08]);
+    block(tile, [bathWidth - 0.2, 0.02, bathDepth - 0.2], [bathX, 0.012, bathZ]).castShadow = false;
+
+    // El inodoro contra la pared larga y la bacha con el espejo contra la derecha.
+    const toiletZ = BATH.back + 2.1;
+    const sinkZ = BATH.back + 1.2;
+    block(porcelain, [0.16, 0.56, 0.42], [BATH.left + 0.18, 0.48, toiletZ]);
+    block(porcelain, [0.52, 0.4, 0.36], [BATH.left + 0.42, 0.2, toiletZ]);
+    block(porcelain, [0.48, 0.04, 0.38], [BATH.left + 0.44, 0.42, toiletZ]);
+    block(porcelain, [0.44, 0.15, 0.5], [RIGHT - 0.24, 0.82, sinkZ]);
+    rod(metal, 0.015, 0.16, [RIGHT - 0.38, 0.96, sinkZ]);
+    block(frame, [0.02, 0.78, 0.56], [RIGHT - 0.055, 1.56, sinkZ]);
+    block(mirrorGlass, [0.03, 0.72, 0.5], [RIGHT - 0.07, 1.56, sinkZ]);
+
+    // El cargador, en la pared del fondo: cargar la luz es meterse hasta el final del baño.
+    bathCharger.position.set(BATH.doorX, 1.25, BATH.front - 0.11);
+    bathCharger.rotation.y = Math.PI;
+    block(standard("#4a4e52", { roughness: 0.5, metalness: 0.5 }), [0.36, 0.48, 0.1], [0, 0, 0], bathCharger);
+    block(frame, [0.26, 0.32, 0.02], [0, 0.02, 0.055], bathCharger);
+    // La lucecita verde no depende de la luz del edificio: en el apagón es lo que se busca.
+    block(keep(new THREE.MeshBasicMaterial({ color: "#5ef08a" })), [0.03, 0.03, 0.02], [0.13, 0.19, 0.055], bathCharger);
+    hitBox([0.62, 0.8, 0.3], [0, 0, 0.14], bathCharger);
+
+    // La hoja, con la bisagra del lado de la pared larga: abierta gira hacia la recepción y
+    // queda del lado de allá, sin taparle la vista a quien está sentado.
+    bathDoor.hinge.position.set(doorLeft, 0, BATH.back - 0.05);
+    block(standard("#6e4e38", { roughness: 0.6 }), [BATH.doorWidth, BATH.doorH, 0.05], [half, BATH.doorH / 2, 0], bathDoor.hinge);
+    block(metal, [0.14, 0.03, 0.07], [BATH.doorWidth - 0.14, 1.02, -0.05], bathDoor.hinge);
+
+    // Sus dos tubos, que titilan como los del pasillo.
+    for (const z of [bathZ + 0.9, bathZ - 0.9]) {
+      spot(bathX, BATH.height - 0.005, z);
+      const bathLight = add(new THREE.PointLight(blood ? "#ff5a48" : "#b9c6dd", 1.5, 0, 2));
+      bathLight.position.set(bathX, BATH.height - 0.35, z);
+      flickering.push(bathLight);
+    }
+  }
+
   /* plantas en maceta: hojas largas que salen de la base */
   const bladeGeometry = keep(new THREE.ConeGeometry(0.05, 1, 5));
   bladeGeometry.translate(0, 0.5, 0);
@@ -902,7 +1021,7 @@ export function createEntrance(
   pottedPlant(GLASS_LEFT + 0.35, BACK_Z + 0.45, 1.3, "#3f7d45", 0.24);
   pottedPlant(RIGHT - 0.4, -7.3, 1.1, "#4a8a4c");
   pottedPlant(LEFT + 0.35, BACK_Z + 0.4, 0.9, "#3f7d45");
-  pottedPlant(LEFT + 0.3, ROOM_Z - 0.6, 1.0, "#467f48");
+  pottedPlant(LEFT + 0.3, roomZ - 0.6, 1.0, "#467f48");
   // Las tres del boquete de la pared del pasillo, iguales, sobre el alféizar.
   const nichePlants = [-0.5, 0, 0.5].map((dz) => pottedPlant(HALL_LEFT + 0.02, NICHE.z + dz, 0.42, "#4a8a4c", 0.09, NICHE.sill + 0.04));
 
@@ -1221,9 +1340,16 @@ export function createEntrance(
   const seat = { active: false, standAt: new THREE.Vector3() };
   let night_: Night | null = null;
 
+  // Las cajas invisibles de las cosas que se tocan no frenan a nadie: son más grandes que
+  // lo que envuelven a propósito, y el tablero, sobre la pared del baño, dejaba un muro
+  // invisible en medio del hall. Lo que hay detrás de cada una ya frena.
+  // La silla tampoco: al pararse se sale de ella, y con el respaldo detrás, el escritorio
+  // delante y la escalera encima, quien se paraba quedaba encajado sin poder moverse.
   const colliders: THREE.Object3D[] = [];
+  const seated = new Set<THREE.Object3D>();
+  officeChair.traverse((object) => seated.add(object));
   scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) colliders.push(object);
+    if (object instanceof THREE.Mesh && (object.visible || object.userData.collides) && !seated.has(object)) colliders.push(object);
   });
   const probe = new THREE.Raycaster();
   const probeFrom = new THREE.Vector3();
@@ -1278,7 +1404,7 @@ export function createEntrance(
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (!walking || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
-    if (night_?.key(event.code)) {
+    if (night_?.key(event.code, event.altKey)) {
       if (event.code !== "Escape") event.preventDefault();
       return;
     }
@@ -1365,7 +1491,7 @@ export function createEntrance(
         openingZ: OPENING_Z,
         backZ: BACK_Z,
         gardenBackZ: GARDEN_BACK_Z,
-        roomZ: ROOM_Z,
+        roomZ,
         hallH: HALL_H,
         corridorH: CORRIDOR_H,
         doorTop: DOOR_TOP,
@@ -1375,6 +1501,15 @@ export function createEntrance(
       },
       doors: swingingDoors,
       doorZ: DOORS.map((door) => door.z),
+      bath: {
+        door: bathDoor,
+        charger: bathCharger,
+        doorAt: { x: BATH.doorX, z: BATH.back },
+        // Un paso afuera del vano, del lado de la recepción.
+        outside: { x: BATH.doorX, z: BATH.back - 0.7 },
+        box: { x0: BATH.left, x1: RIGHT, z0: BATH.back, z1: BATH.front },
+      },
+      balcony: { y: landingTop, x0: HALL_LEFT, x1: RIGHT - 1.25, z: BALCONY_FRONT },
       garden: gardenDoor,
       slider,
       fixedPane,
@@ -1469,6 +1604,11 @@ export function createEntrance(
       door.hinge.rotation.y = door.open * 1.2;
       if (Math.abs(door.target - door.open) > 0.002) animating = true;
     }
+
+    // La del baño abre hacia la recepción, y rápido: el que sale de ahí la abre de una patada.
+    bathDoor.open += (bathDoor.target - bathDoor.open) * Math.min(1, dt * 6);
+    bathDoor.hinge.rotation.y = bathDoor.open * 1.35;
+    if (Math.abs(bathDoor.target - bathDoor.open) > 0.002) animating = true;
 
     gardenDoor.open += (gardenDoor.target - gardenDoor.open) * Math.min(1, dt * 2.5);
     slider.position.x = sliderClosedX + gardenDoor.open * (leafWidth - 0.1);

@@ -55,6 +55,24 @@ export interface NightSound {
   itsMe(): void;
   /** El Retorcido: huesos que crujen y se acomodan, y un gemido grave que no respira. */
   twisted(place?: Place): void;
+  /** Cargando la luz en el baño: un zumbido que sube y no termina de estar bien. */
+  charge(): void;
+  /** Sin luz: una canción de cuna que se va quedando sin cuerda. Dura ocho segundos. */
+  nursery(): void;
+  /** Un segundo de algo que no debería estar: un golpe y un chillido rasposo que se corta. */
+  jolt(place?: Place): void;
+  /** La sombra del balcón que se va: un soplido que se da vuelta y un golpe hueco. */
+  vanish(place?: Place): void;
+  /** La del diario: un vals de cajita, alegre de más y apenas desafinado. Unos cuarenta segundos. */
+  newspaper(): void;
+  /** Una frase de la voz del final: un murmullo grave, sin palabras, de lo que dura la frase. */
+  murmur(seconds: number): void;
+  /** El final: un coro grave en menor, campanas lentas y un golpe por cada uno que se arrodilla. */
+  finale(): void;
+  /** Un golpe grave, como algo pesado que se apoya en el piso. */
+  kneel(): void;
+  /** Todo se apaga de a poco: la lluvia, el viento y el zumbido. */
+  fadeOut(seconds: number): void;
   toll(times: number): void;
   crackle(): void;
   click(): void;
@@ -84,6 +102,15 @@ const SILENT: NightSound = {
   dread() {},
   itsMe() {},
   twisted() {},
+  charge() {},
+  nursery() {},
+  jolt() {},
+  vanish() {},
+  newspaper() {},
+  murmur() {},
+  finale() {},
+  kneel() {},
+  fadeOut() {},
   toll() {},
   crackle() {},
   click() {},
@@ -93,6 +120,28 @@ const SILENT: NightSound = {
 
 /** La melodía de la cajita, en notas MIDI: una canción de cuna en menor. */
 const LULLABY = [76, 79, 81, 79, 76, 72, 74, 76, 74, 71, 72, 74, 72, 69, 71, 68];
+
+/**
+ * La de cuando se acaba la luz: una rueda de chicos en menor, con la sensible arriba. Se va
+ * quedando sin cuerda a medida que avanza, y no llega a terminar.
+ */
+const NURSERY = [69, 72, 76, 72, 69, 68, 69, 71, 72, 71, 69, 67, 69, 64, 65, 64];
+
+/**
+ * El vals del diario, en notas MIDI y de a tres tiempos: una melodía de feria en mayor que
+ * no termina de resolver. Cero es un silencio.
+ */
+const WALTZ = [72, 76, 79, 84, 0, 83, 81, 0, 77, 79, 0, 76, 74, 0, 71, 72, 0, 0, 72, 76, 79, 84, 0, 86, 85, 0, 81, 79, 0, 75, 74, 0, 71, 72, 0, 0];
+/** El bajo, uno por compás. */
+const WALTZ_BASS = [48, 43, 45, 40, 41, 43, 48, 48, 48, 43, 49, 45, 41, 43, 48, 48];
+
+/** Los acordes del final, de a cuatro notas: menor, bajando de a medio tono. */
+const FINALE = [
+  [45, 52, 57, 60],
+  [44, 51, 56, 59],
+  [41, 48, 53, 57],
+  [40, 47, 52, 56],
+];
 
 export function createNightSound(): NightSound {
   const ac = nightAudio();
@@ -399,12 +448,15 @@ export function createNightSound(): NightSound {
   let nextNote = 0;
   let noteIndex = 0;
   let outside = false;
+  /** Después de fadeOut: el edificio queda en silencio y ya no vuelve nada de lo de fondo. */
+  let faded = false;
 
   function randomPlace(): Place {
     return { pan: Math.random() * 2 - 1, near: 0.15 + Math.random() * 0.35 };
   }
 
   function tick() {
+    if (faded) return;
     const t = now();
     // Las gotas grandes sobre el techo de vidrio.
     while (nextDrop < t + 0.1) {
@@ -457,6 +509,7 @@ export function createNightSound(): NightSound {
     tick,
 
     setTension(level) {
+      if (faded) return;
       tension = Math.max(0, Math.min(1, level));
       const t = now();
       droneGain.gain.setTargetAtTime(0.05 + tension * 0.07, t, 1.5);
@@ -785,6 +838,218 @@ export function createNightSound(): NightSound {
       envelope(mg, moanAt, 0.55, 0.5, 0.9, 0.8);
       once(moan, moanAt, 2.4);
       once(shake, moanAt, 2.4);
+    },
+
+    charge() {
+      const t = now();
+      thump(t, 0.5, 70);
+      const o = osc("sawtooth", 140);
+      o.frequency.setValueAtTime(140, t);
+      o.frequency.exponentialRampToValueAtTime(520, t + 2.8);
+      const g = gain();
+      chain(o, filter("lowpass", 900, 6), g, exit(HERE, 0.2));
+      envelope(g, t, 0.06, 0.2, 2.2, 0.5);
+      once(o, t, 3.1);
+    },
+
+    nursery() {
+      const t = now();
+      // Un grave que no se va en toda la canción y que la vuelve otra cosa.
+      const bed = osc("sine", 41.2);
+      const bg = gain();
+      chain(bed, bg, master);
+      envelope(bg, t, 0.16, 1.5, 4.5, 2);
+      once(bed, t, 8.5);
+      // La melodía, en campanitas: cada nota un poco más lenta y más baja que la anterior.
+      let at = t + 0.35;
+      NURSERY.forEach((note, i) => {
+        const worn = i / (NURSERY.length - 1);
+        const frequency = 440 * 2 ** ((note - 69) / 12) * (1 - worn * 0.045);
+        for (const [ratio, level] of [
+          [1, 0.13],
+          [2.01, 0.05],
+          [4.03, 0.018],
+          [6.4, 0.009],
+        ]) {
+          const o = osc("sine", frequency * ratio);
+          const g = gain();
+          chain(o, g, exit({ pan: Math.sin(i * 1.1) * 0.35, near: 0.6 }, 0.7));
+          envelope(g, at, level, 0.004, 0, 1.1);
+          once(o, at, 1.3);
+        }
+        at += 0.4 + worn * 0.22;
+      });
+    },
+
+    jolt(place) {
+      const t = now();
+      thump(t, 1.1, 48);
+      const shaper = ac.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(((i / (curve.length - 1)) * 2 - 1) * 9);
+      shaper.curve = curve;
+      const g = gain();
+      chain(shaper, filter("bandpass", 1700, 2), g, exit(place, 0.4));
+      envelope(g, t, 0.6, 0.005, 0.55, 0.12);
+      for (const base of [180, 187, 395]) {
+        const o = osc("sawtooth", base);
+        o.frequency.exponentialRampToValueAtTime(base * 2.6, t + 0.7);
+        const wobble = osc("square", 31 + Math.random() * 9);
+        const depth = gain(base * 0.4);
+        chain(wobble, depth, o.frequency);
+        o.connect(shaper);
+        once(o, t, 0.8);
+        once(wobble, t, 0.8);
+      }
+      const hiss = source(noise);
+      const hg = gain();
+      chain(hiss, filter("highpass", 2500), hg, exit(place, 0.4));
+      envelope(hg, t, 0.25, 0.003, 0.5, 0.1);
+      once(hiss, t, 0.75);
+    },
+
+    vanish(place) {
+      const t = now();
+      // Un soplido al revés: crece y se corta de golpe, como algo que se traga el aire.
+      const air = source(noise);
+      const band = filter("bandpass", 500, 3);
+      band.frequency.setValueAtTime(300, t);
+      band.frequency.exponentialRampToValueAtTime(2400, t + 0.9);
+      const g = gain();
+      chain(air, band, g, exit(place, 0.8));
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t + 0.9);
+      g.gain.setValueAtTime(0.0001, t + 0.92);
+      once(air, t, 1);
+      const low = osc("sine", 90);
+      low.frequency.setValueAtTime(90, t);
+      low.frequency.exponentialRampToValueAtTime(30, t + 0.9);
+      const lg = gain();
+      chain(low, lg, exit(place, 0.6));
+      envelope(lg, t, 0.3, 0.8, 0, 0.05);
+      once(low, t, 1);
+      thump(t + 0.93, 0.9, 40);
+    },
+
+    newspaper() {
+      const t = now() + 0.3;
+      const beat = 0.34;
+      const note = (midi: number, at: number, level: number, pan: number, decay: number) => {
+        // Un poco más bajo de lo que debería, y cada vez un poco más: la cajita está gastada.
+        const frequency = 440 * 2 ** ((midi - 69) / 12) * (1 - (at - t) * 0.0004);
+        for (const [ratio, amount] of [
+          [1, level],
+          [3.01, level * 0.25],
+          [5.2, level * 0.08],
+        ]) {
+          const o = osc("sine", frequency * ratio);
+          const g = gain();
+          chain(o, g, exit({ pan, near: 0.8 }, 0.35));
+          envelope(g, at, amount, 0.003, 0, decay);
+          once(o, at, decay + 0.1);
+        }
+      };
+      const round = WALTZ.length * beat;
+      for (let r = 0; r < 3; r++) {
+        const start = t + r * round;
+        WALTZ.forEach((midi, i) => {
+          if (midi) note(midi, start + i * beat, 0.07, 0.25, 0.9);
+        });
+        // El bajo en el primer tiempo y el acorde en los otros dos, como un organito.
+        const barLength = round / WALTZ_BASS.length;
+        WALTZ_BASS.forEach((midi, b) => {
+          const at = start + b * barLength;
+          note(midi, at, 0.06, -0.25, 0.7);
+          note(midi + 16, at + barLength / 3, 0.022, -0.1, 0.35);
+          note(midi + 19, at + (barLength * 2) / 3, 0.022, -0.1, 0.35);
+        });
+      }
+    },
+
+    murmur(seconds) {
+      const t = now();
+      const shaper = ac.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(((i / (curve.length - 1)) * 2 - 1) * 3);
+      shaper.curve = curve;
+      const voice = osc("sawtooth", 58);
+      voice.frequency.setValueAtTime(64, t);
+      voice.frequency.linearRampToValueAtTime(49, t + seconds);
+      const f1 = filter("bandpass", 380, 5);
+      const f2 = filter("bandpass", 1100, 7);
+      // Las "sílabas": los formantes se mueven a saltos, como si dijera algo con la boca cerrada.
+      for (let at = 0; at < seconds; at += 0.16 + Math.random() * 0.14) {
+        f1.frequency.setTargetAtTime(280 + Math.random() * 300, t + at, 0.04);
+        f2.frequency.setTargetAtTime(800 + Math.random() * 1200, t + at, 0.04);
+      }
+      const g = gain();
+      chain(voice, shaper);
+      shaper.connect(f1);
+      shaper.connect(f2);
+      f1.connect(g);
+      f2.connect(g);
+      g.connect(exit(HERE, 0.8));
+      envelope(g, t, 0.4, 0.15, Math.max(0.1, seconds - 0.6), 0.45);
+      once(voice, t, seconds + 0.1);
+    },
+
+    finale() {
+      const t = now() + 0.2;
+      const chord = 3.6;
+      FINALE.forEach((notes, i) => {
+        const at = t + i * chord;
+        for (const midi of notes) {
+          const frequency = 440 * 2 ** ((midi - 69) / 12);
+          // Un coro: tres voces apenas desafinadas por nota, con la vocal "o" de los formantes.
+          const g = gain();
+          chain(g, filter("bandpass", 500, 1.5), filter("lowpass", 1800), exit({ pan: (midi % 5) / 5 - 0.4, near: 0.7 }, 0.9));
+          envelope(g, at, 0.05, 1.2, chord - 1.6, 1.6);
+          for (const detune of [-7, 0, 6]) {
+            const o = osc("sawtooth", frequency);
+            o.detune.value = detune;
+            o.connect(g);
+            once(o, at, chord + 1.2);
+          }
+        }
+        // Una campana grave al empezar cada acorde.
+        for (const [ratio, level, decay] of [
+          [1, 0.2, 4],
+          [2.76, 0.07, 2.5],
+          [5.4, 0.035, 1.5],
+        ]) {
+          const o = osc("sine", 440 * 2 ** ((notes[0] - 12 - 69) / 12) * ratio);
+          const g = gain();
+          chain(o, g, exit({ pan: 0, near: 0.6 }, 1));
+          envelope(g, at, level, 0.005, 0, decay);
+          once(o, at, decay + 0.2);
+        }
+      });
+      const bed = osc("sine", 36.7);
+      const bg = gain();
+      chain(bed, bg, master);
+      envelope(bg, t, 0.18, 2, FINALE.length * chord - 2, 3);
+      once(bed, t, FINALE.length * chord + 3.5);
+    },
+
+    kneel() {
+      const t = now();
+      thump(t, 1.2, 36);
+      const dust = source(brown);
+      const g = gain();
+      chain(dust, filter("lowpass", 500), g, exit(HERE, 0.8));
+      envelope(g, t, 0.35, 0.01, 0.1, 0.6);
+      once(dust, t, 0.9);
+    },
+
+    fadeOut(seconds) {
+      faded = true;
+      heartbeat = 0;
+      box = null;
+      const t = now();
+      for (const level of [rainHigh, rainLow, windGain, droneGain, subGain, ringGain, humGain]) {
+        level.gain.cancelScheduledValues(t);
+        level.gain.setTargetAtTime(0, t, seconds / 3);
+      }
     },
 
     /** Un reloj de péndulo lejano: una campana grave con parciales desafinados. */

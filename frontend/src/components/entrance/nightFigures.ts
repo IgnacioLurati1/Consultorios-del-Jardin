@@ -18,8 +18,11 @@ import * as flesh from "./nightFlesh";
  * Los brazos y la cabeza van en pivotes para que cada pose se lea distinta.
  */
 
-/** `lurk` es solo del Doctor: asomado por la puerta entreabierta. Los demás se paran. */
-export type Pose = "emerge" | "wait" | "stand" | "peek" | "sit" | "reach" | "lurk";
+/**
+ * `lurk` es de los que se asoman por la puerta, y `run` del Retorcido: los que no las tienen
+ * se paran. `kneel` es la del final, arrodillados y con la cabeza gacha.
+ */
+export type Pose = "emerge" | "wait" | "stand" | "peek" | "sit" | "reach" | "lurk" | "run" | "kneel";
 
 export interface Figure {
   group: THREE.Group;
@@ -99,7 +102,7 @@ function figure(
   rig: Rig,
   headY: number,
   reach: number,
-  poses: Record<Exclude<Pose, "lurk">, (rig: Rig) => void> & Partial<Record<"lurk", (rig: Rig) => void>>,
+  poses: Record<Exclude<Pose, "lurk" | "run" | "kneel">, (rig: Rig) => void> & Partial<Record<"lurk" | "run" | "kneel", (rig: Rig) => void>>,
   scream: (rig: Rig, on: boolean) => void,
   eyes: (on: boolean) => void = () => {},
   tick?: (time: number) => void
@@ -132,7 +135,7 @@ function figure(
     },
     pose(name) {
       reset();
-      (poses[name] ?? poses.stand)(rig);
+      (poses[name] ?? (name === "kneel" ? kneel : poses.stand))(rig);
     },
     scream(on) {
       scream(rig, on);
@@ -144,6 +147,18 @@ function figure(
       root.rotation.set(0, 0, 0);
     },
   };
+}
+
+/**
+ * Arrodillado, para cualquiera: el cuerpo se hunde hasta las rodillas, se inclina hacia
+ * adelante y la cabeza cae. Las piernas quedan bajo el piso, como en `emerge`.
+ */
+function kneel(rig: Rig) {
+  rig.body.position.y = -0.5;
+  rig.body.rotation.x = 0.38;
+  rig.head.rotation.set(0.55, 0, 0);
+  rig.arms[0].rotation.set(-0.35, 0, -0.08);
+  rig.arms[1].rotation.set(-0.35, 0, 0.08);
 }
 
 const armPoses = {
@@ -681,7 +696,9 @@ export function makeDoctor(scene: THREE.Scene, keep: Keep): Figure {
       glow.geometry,
       keep(new THREE.MeshBasicMaterial({ color: "#ff7a1a", transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }))
     );
-    halo.scale.set(1.7, 1.7, 1);
+    // La geometría es una esfera de radio uno: la escala va sobre la del ojo. Con 1,7 a secas
+    // el halo era una bola naranja de casi dos metros.
+    halo.scale.copy(glow.scale).multiply(new THREE.Vector3(1.7, 1.7, 1));
     halo.position.z = 0.025;
     halo.visible = false;
     socket.add(halo);
@@ -2393,8 +2410,8 @@ export function makeTwisted(scene: THREE.Scene, keep: Keep): Figure {
   }
   piece(face, flesh.fuse(hair), mane);
 
-  // Más alto que cualquier persona: toca casi el dintel de la puerta de calle.
-  root.scale.setScalar(1.2);
+  // Alto, pero no tanto: más grande, la cabeza atravesaba el dintel del baño.
+  root.scale.setScalar(0.98);
   scene.add(root);
   const rig: Rig = { root, body, head, arms, legs, torso };
   const still = (r: Rig) => {
@@ -2406,11 +2423,20 @@ export function makeTwisted(scene: THREE.Scene, keep: Keep): Figure {
     r.arms[1].rotation.set(0.15, 0, 0.55);
     brokenElbow.rotation.set(0.3, 0, -2.35);
   };
+  /** Corriendo: doblado hacia adelante, los brazos tirados atrás y las piernas abiertas. */
+  const running = (r: Rig) => {
+    r.legs![0].rotation.set(-1, 0, -0.2);
+    r.legs![1].rotation.set(0.35, 0, 0.18);
+    r.arms[0].rotation.set(1.1, 0, -0.5);
+    r.arms[1].rotation.set(0.9, 0, 0.45);
+    brokenElbow.rotation.set(0.3, 0, -1.2);
+    r.body.rotation.x = 0.22;
+  };
   return figure(
     rig,
     2.1,
     0.9,
-    { emerge: still, wait: still, stand: still, peek: still, sit: still, reach: still },
+    { emerge: still, wait: still, stand: still, peek: still, sit: still, reach: still, run: running },
     (_r, on) => {
       mouth.scale.set(on ? 3 : 1, on ? 1.3 : 1, 1);
       jaw.rotation.z = on ? -1.1 : -0.5;
@@ -2419,10 +2445,118 @@ export function makeTwisted(scene: THREE.Scene, keep: Keep): Figure {
       glows.forEach((glow, i) => glow.scale.copy(glowBase[i]).multiplyScalar(on ? 1.8 : 1));
     },
     (time) => {
+      // Corriendo, zancadas largas y el cuerpo que sube y baja. Lo prende quien lo hace correr.
+      if (root.userData.running) {
+        const stride = time * 13;
+        const swing = Math.sin(stride);
+        legs[0].rotation.x = -0.4 + swing * 0.95;
+        legs[1].rotation.x = -0.4 - swing * 0.95;
+        arms[0].rotation.x = 1 - swing * 0.75;
+        arms[1].rotation.x = 0.8 + swing * 0.75;
+        body.position.y = Math.abs(swing) * 0.08;
+        body.rotation.z = swing * 0.06;
+        face.rotation.x = 0;
+        face.position.z = 0;
+        return;
+      }
+      body.position.y = 0;
+      body.rotation.z = 0;
       // No se mueve. Solo, cada tanto, un temblor que no termina de ser un movimiento.
       const shiver = Math.max(0, Math.sin(time * 0.37) - 0.95) * 20;
       face.rotation.x = shiver * 0.04 * Math.sin(time * 41);
       face.position.z = shiver * 0.004 * Math.sin(time * 33);
     }
   );
+}
+
+/* ---------------- la sombra del balcón ---------------- */
+
+export interface Shadow {
+  group: THREE.Group;
+  /** Entre los dos ojos: lo que tiene que quedar a la vista para que cuente como visto. */
+  eyes: THREE.Object3D;
+  place(x: number, y: number, z: number): void;
+  face(x: number, z: number): void;
+  tick(time: number): void;
+  hide(): void;
+}
+
+/**
+ * Alguien agachado detrás de la baranda del balcón, negro del todo, con los dedos largos
+ * colgando del pasamanos y dos ojos violetas que no dependen de ninguna luz. No hace nada:
+ * mira. Es de un material que no recibe luz, así que ni el relámpago lo alumbra.
+ */
+export function makeShadow(scene: THREE.Scene, keep: Keep): Shadow {
+  const root = new THREE.Group();
+  root.userData.passThrough = true;
+  const black = keep(new THREE.MeshBasicMaterial({ color: "#000000" }));
+  const violet = keep(new THREE.MeshBasicMaterial({ color: "#c77dff", fog: false }));
+  const box = keep(new THREE.BoxGeometry(1, 1, 1));
+  const ball = keep(new THREE.SphereGeometry(0.5, 12, 8));
+  const part = (geometry: THREE.BufferGeometry, material: THREE.Material, parent: THREE.Object3D, at: number[], size: number[], rotation: number[] = [0, 0, 0]) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(at[0], at[1], at[2]);
+    mesh.scale.set(size[0], size[1], size[2]);
+    mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+    parent.add(mesh);
+    return mesh;
+  };
+
+  // Agachado: la espalda encorvada, las rodillas a los costados y los hombros adelante.
+  const body = new THREE.Group();
+  root.add(body);
+  part(ball, black, body, [0, 0.45, -0.05], [0.5, 0.62, 0.42], [0.5, 0, 0]);
+  part(ball, black, body, [0, 0.7, 0.08], [0.46, 0.34, 0.36]);
+  for (const side of [-1, 1]) {
+    part(box, black, body, [side * 0.22, 0.3, 0.12], [0.12, 0.55, 0.12], [-0.9, 0, side * 0.3]);
+    part(box, black, body, [side * 0.2, 0.12, -0.05], [0.12, 0.3, 0.12], [0.5, 0, 0]);
+  }
+  // Los brazos, largos y finos, subiendo hasta la baranda, con los dedos colgando del otro lado.
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Group();
+    arm.position.set(side * 0.22, 0.78, 0.12);
+    arm.rotation.set(-0.35, 0, side * -0.18);
+    body.add(arm);
+    part(box, black, arm, [0, 0.02, 0.2], [0.05, 0.05, 0.42]);
+    const hand = new THREE.Group();
+    hand.position.set(0, 0.05, 0.42);
+    arm.add(hand);
+    for (let f = 0; f < 4; f++) part(box, black, hand, [(f - 1.5) * 0.028, -0.09, 0.03], [0.014, 0.2, 0.014], [0.2, 0, (f - 1.5) * 0.06]);
+  }
+  const head = new THREE.Group();
+  head.position.set(0, 0.92, 0.14);
+  body.add(head);
+  part(ball, black, head, [0, 0, 0], [0.26, 0.3, 0.27]);
+  const eyes = new THREE.Object3D();
+  eyes.position.set(0, 0.02, 0.13);
+  head.add(eyes);
+  for (const side of [-1, 1]) part(ball, violet, head, [side * 0.06, 0.02, 0.125], [0.05, 0.028, 0.02], [0, 0, side * -0.2]);
+  // Una luz violeta chiquita, pegada a la cara: alumbra la baranda y el borde de la cabeza.
+  const glow = new THREE.PointLight("#b35cff", 0.8, 2.2, 1.6);
+  glow.position.set(0, 0.02, 0.35);
+  head.add(glow);
+
+  // Chico: agachado entre el piso del balcón y el techo de vidrio no hay más de un metro.
+  root.scale.setScalar(0.9);
+  root.position.y = HIDDEN_Y;
+  scene.add(root);
+  return {
+    group: root,
+    eyes,
+    place(x, y, z) {
+      root.position.set(x, y, z);
+    },
+    face(x, z) {
+      root.rotation.y = Math.atan2(x - root.position.x, z - root.position.z);
+    },
+    tick(time) {
+      // Casi quieto: la cabeza se inclina muy despacio, como quien estudia algo.
+      head.rotation.z = Math.sin(time * 0.4) * 0.25;
+      head.rotation.x = -0.15 + Math.sin(time * 0.23) * 0.06;
+      glow.intensity = 0.65 + Math.sin(time * 2.1) * 0.15;
+    },
+    hide() {
+      root.position.set(0, HIDDEN_Y, 0);
+    },
+  };
 }
