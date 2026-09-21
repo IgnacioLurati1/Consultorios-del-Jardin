@@ -253,18 +253,6 @@ export function applyCalculation(body: {
   return api.post<Envelope<{ updated: number }>>("/rent/calculate", body).then(data).catch(unwrap);
 }
 
-export function applyIncrease(body: {
-  percent: number;
-  fromMonth: string;
-  emails: string[];
-  prices: boolean;
-}): Promise<{ raised: number; skipped: string[]; prices: number }> {
-  return api
-    .post<Envelope<{ raised: number; skipped: string[]; prices: number }>>("/rent/increase", body)
-    .then(data)
-    .catch(unwrap);
-}
-
 export function findFreeBlocks(month: string): Promise<FreeBlocksReport> {
   return api.get<Envelope<FreeBlocksReport>>("/rent/potential/free-blocks", { params: { month } }).then(data).catch(unwrap);
 }

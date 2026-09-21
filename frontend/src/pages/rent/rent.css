@@ -316,6 +316,23 @@
   vertical-align: top;
 }
 
+.rent-raise-table tr.off td {
+  opacity: 0.55;
+}
+
+.rent-raise-table s.rent-sub {
+  display: block;
+  margin-top: 4px;
+}
+
+.rent-input.is-edited {
+  border-color: var(--adm-green);
+}
+
+.rent-input:disabled {
+  background: transparent;
+}
+
 .rent-th-sub {
   font-weight: 500;
   text-transform: none;
