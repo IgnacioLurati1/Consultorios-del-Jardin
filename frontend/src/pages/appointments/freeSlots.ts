@@ -46,15 +46,19 @@ export interface DaySlot {
  * Divide cada módulo del día en turnos del largo que definió el profesional.
  *
  * Sólo entran los que caben enteros adentro del módulo: media hora suelta al final de un
- * módulo de cuarenta minutos no es un turno que se pueda dar. Si el día es hoy, deja
- * afuera los que ya arrancaron, porque el backend los rechazaría igual.
+ * módulo de cuarenta minutos no es un turno que se pueda dar.
+ *
+ * Con `fromNow`, si el día es hoy deja afuera los que ya arrancaron: es lo que quiere la
+ * agenda para ofrecer huecos. El alta del profesional no lo usa, porque ahí sí se carga
+ * el turno de alguien que ya está en el consultorio (el backend lo acepta, y la app del
+ * celular ya lo ofrecía). Sin eso, a las tres de la tarde un módulo de 14 a 20 con turnos
+ * de 45 minutos arrancaba en el de las 15:30.
  */
-export function buildDaySlots(schedules: Schedule[], isoDate: string): DaySlot[] {
+export function buildDaySlots(schedules: Schedule[], isoDate: string, { fromNow = false } = {}): DaySlot[] {
   if (!isoDate) return [];
 
   const day = dayNameOf(isoDate);
-  const isToday = isoDate === toISODate(new Date());
-  const from = isToday ? nowHHMM() : "";
+  const from = fromNow && isoDate === toISODate(new Date()) ? nowHHMM() : "";
   const slots: DaySlot[] = [];
 
   for (const schedule of schedules.filter((s) => s.day === day)) {
@@ -81,11 +85,6 @@ export function buildDaySlots(schedules: Schedule[], isoDate: string): DaySlot[]
   return slots.sort((a, b) => a.initialHour.localeCompare(b.initialHour));
 }
 
-/** Si el profesional atiende ese día, aunque ya no queden turnos por delante. */
-export function worksOn(schedules: Schedule[], isoDate: string): boolean {
-  return !!isoDate && schedules.some((s) => s.day === dayNameOf(isoDate));
-}
-
 /**
  * Los huecos de un día: las franjas de la grilla donde todavía no hay nada.
  *
@@ -107,7 +106,7 @@ export function freeDaySlots(schedules: Schedule[], isoDate: string, appointment
       finalHour: shortHour(appointment.finalHour),
     }));
 
-  return buildDaySlots(schedules, isoDate).filter(
+  return buildDaySlots(schedules, isoDate, { fromNow: true }).filter(
     (slot) => !ocupadas.some((taken) => slot.initialHour < taken.finalHour && slot.finalHour > taken.initialHour)
   );
 }

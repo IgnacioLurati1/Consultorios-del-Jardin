@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FaArrowUpRightFromSquare, FaCalendarCheck, FaBolt } from "react-icons/fa6";
 import type { Person, RecurrenceFrequency, Room, Schedule } from "../../types.ts";
 import { toISODate } from "../appointmentTypes.ts";
-import { buildDaySlots, worksOn } from "../freeSlots.ts";
+import { buildDaySlots } from "../freeSlots.ts";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { PatientPicker } from "../../../components/patientPicker/PatientPicker.tsx";
 import { RepeatFields } from "./RepeatFields.tsx";
@@ -75,9 +75,6 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
   const slots = useMemo(() => buildDaySlots(schedules, form.date), [schedules, form.date]);
   const selectedSlot = slots.find((slot) => slot.key === slotKey);
-  // Se distingue "hoy ya arrancaron todos" de "ese día no atendés": el mensaje cambia.
-  const isToday = form.date === toISODate(new Date());
-  const alreadyStarted = isToday && worksOn(schedules, form.date);
 
   function validate(): string | null {
     if (!form.date) return "Falta la fecha";
@@ -181,7 +178,7 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             <span>Turno disponible</span>
             <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)} disabled={slots.length === 0}>
               <option value="">
-                {slots.length ? "Seleccionar horario…" : alreadyStarted ? "Sin turnos restantes hoy" : "Sin atención ese día"}
+                {slots.length ? "Seleccionar horario…" : "Sin atención ese día"}
               </option>
               {slots.map((slot) => (
                 <option key={slot.key} value={slot.key}>
@@ -191,8 +188,6 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             </select>
             {slots.length > 0 ? (
               <small>La duración la define cada módulo de la grilla.</small>
-            ) : alreadyStarted ? (
-              <small>Los turnos de hoy ya comenzaron. Queda la opción de otro día o de un turno especial.</small>
             ) : (
               <small>Sin horarios de atención ese día. Queda la opción de un turno especial o de ajustar la grilla.</small>
             )}
