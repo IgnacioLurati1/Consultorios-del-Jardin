@@ -156,6 +156,20 @@ const BALCONY_FRONT = 0.2;
 /** Cuántos píxeles de pantalla mide cada píxel del dibujo: apenas pixelado. */
 const PIXEL_SIZE = 2;
 
+/**
+ * Cuánto se le afloja al dibujo en una compu que no llega: 0 es completo; 1 dibuja directo,
+ * sin el pase pixelado (y sin sus bordes) y con sombras más chicas; 2 además agranda el
+ * píxel. Se aprende mirando cuánto tardan los cuadros y queda para las escenas que se armen
+ * después en la misma visita, así cambiar de estación o empezar otra noche no vuelve a
+ * arrancar trabado.
+ */
+let learnedQuality = 0;
+const MAX_QUALITY_DROP = 2;
+/** Con los cuadros más lentos que esto, en promedio, se afloja un escalón: menos de 40 por segundo. */
+const SLOW_FRAME_S = 1 / 40;
+/** Cuántos cuadros seguidos se miran antes de decidir. */
+const SLOW_SAMPLE = 90;
+
 /* ---------------- la cámara ---------------- */
 
 /** Donde queda parada: bajo el marco del vano, a la altura de los ojos, como en la foto. */
@@ -386,7 +400,8 @@ export function createEntrance(
 ): Entrance | null {
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+    // En las notebooks con dos placas, sin pedirlo el navegador suele usar la integrada.
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
   } catch {
     return null;
   }
@@ -396,8 +411,13 @@ export function createEntrance(
   // El mapeo "neutro" respeta los colores tal como se eligieron: con el de cine, la madera
   // y las puertas salían lavadas.
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.shadowMap.enabled = true;
+  // En la noche de terror la luna entra tan tenue que su sombra no se distingue, y
+  // calcularla era de lo más caro de cada cuadro.
+  renderer.shadowMap.enabled = !horror;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  // El pase pixelado dibuja la escena dos veces por cuadro, y cada una volvía a calcular las
+  // sombras. Se calculan una sola vez, antes de dibujar (ver draw).
+  renderer.shadowMap.autoUpdate = false;
 
   const night = nightTheme || horror;
   // La cuarta y la quinta noche de terror son rojas: la niebla, el cielo y todas las luces.
@@ -452,6 +472,9 @@ export function createEntrance(
       depthWrite: false,
       // De los dos lados: caminando, el vidrio frena también a quien vuelve del jardín.
       side: THREE.DoubleSide,
+      // Transparente y de dos caras, three.js lo dibuja dos veces y rearma el material en
+      // cada una, en cada cuadro. Siendo un plano, en una sola pasada se ve igual.
+      forceSinglePass: true,
     })
   );
   const lampGlow = keep(new THREE.MeshBasicMaterial({ color: "#fff1d6" }));
@@ -1204,7 +1227,7 @@ export function createEntrance(
   sun.target.position.set(0.6, 0, -3);
   add(sun.target);
   sun.castShadow = true;
-  const shadowSize = window.innerWidth < 700 ? 1024 : 2048;
+  const shadowSize = window.innerWidth < 700 || learnedQuality > 0 ? 1024 : 2048;
   sun.shadow.mapSize.set(shadowSize, shadowSize);
   Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 13, bottom: -13, near: 1, far: 45 });
   sun.shadow.camera.updateProjectionMatrix();
@@ -1245,6 +1268,30 @@ export function createEntrance(
   pixelPass.normalEdgeStrength = 0.15;
   composer.addPass(pixelPass);
   composer.addPass(new OutputPass());
+
+  let quality = learnedQuality;
+  /** La cámara desde la que se dibuja: la de siempre, o la que elija la noche. */
+  let view: THREE.Camera = camera;
+
+  function draw(dt: number) {
+    renderer.shadowMap.needsUpdate = true;
+    if (quality === 0) composer.render(dt);
+    else renderer.render(scene, view);
+  }
+
+  /** Afloja un escalón: con el lienzo más chico, el CSS lo agranda sin suavizar y sigue pixelado. */
+  function lowerQuality() {
+    quality = Math.min(MAX_QUALITY_DROP, quality + 1);
+    learnedQuality = Math.max(learnedQuality, quality);
+    if (sun.shadow.mapSize.x > 1024) {
+      sun.shadow.mapSize.set(1024, 1024);
+      sun.shadow.map?.dispose();
+      sun.shadow.map = null;
+    }
+    applySize();
+  }
+
+  const slow = { frames: 0, time: 0 };
 
   /* ---------------- el mouse ---------------- */
 
@@ -1468,12 +1515,23 @@ export function createEntrance(
     applyLens();
   }
 
+  function applySize() {
+    const { width, height } = size;
+    if (!width || !height) return;
+    if (quality === 0) {
+      renderer.setSize(width, height, false);
+      composer.setSize(width, height);
+    } else {
+      const pixel = quality >= 2 ? PIXEL_SIZE + 1 : PIXEL_SIZE;
+      renderer.setSize(Math.max(1, Math.floor(width / pixel)), Math.max(1, Math.floor(height / pixel)), false);
+    }
+  }
+
   function resize(cssWidth: number, cssHeight: number) {
     if (!cssWidth || !cssHeight) return;
-    renderer.setSize(cssWidth, cssHeight, false);
-    composer.setSize(cssWidth, cssHeight);
     size.width = cssWidth;
     size.height = cssHeight;
+    applySize();
     if (!blend) lens = lensTarget();
     applyLens();
   }
@@ -1524,8 +1582,9 @@ export function createEntrance(
       flicker: flickering,
       ambient: [sun, sky, fill],
       sky: { top: skyTop, horizon: skyHorizon },
-      setView(view) {
-        pixelPass.camera = view ?? camera;
+      setView(next) {
+        view = next ?? camera;
+        pixelPass.camera = view;
       },
       releasePointer() {
         if (document.pointerLockElement === canvas) document.exitPointerLock();
@@ -1545,6 +1604,7 @@ export function createEntrance(
 
   let startedAt: number | null = null;
   let last: number | null = null;
+  let wasBusy = false;
 
   function update(t: number, dt: number, still: boolean): boolean {
     if (startedAt === null) startedAt = t;
@@ -1628,8 +1688,24 @@ export function createEntrance(
     }
 
     night_?.update(dt);
-    composer.render(dt);
-    return walking || blend !== null || animating || walk < 1 || Math.abs(pointer.x - parallax.x) + Math.abs(pointer.y - parallax.y) > 0.004;
+    draw(dt);
+    const busy = walking || blend !== null || animating || walk < 1 || Math.abs(pointer.x - parallax.x) + Math.abs(pointer.y - parallax.y) > 0.004;
+
+    // Solo cuentan los cuadros dibujados uno detrás del otro: quieto se dibuja a treinta
+    // adrede. Los primeros segundos no, que es cuando se arman los materiales y cualquiera
+    // se traba. Un salto largo después (la pestaña que volvió) llega recortado a una décima
+    // y pesa poco en el promedio.
+    if (!still && busy && wasBusy && dt > 0 && t - startedAt > 2 && quality < MAX_QUALITY_DROP) {
+      slow.frames++;
+      slow.time += dt;
+      if (slow.frames >= SLOW_SAMPLE) {
+        if (slow.time / slow.frames > SLOW_FRAME_S) lowerQuality();
+        slow.frames = 0;
+        slow.time = 0;
+      }
+    }
+    wasBusy = busy && !still;
+    return busy;
   }
 
   return {

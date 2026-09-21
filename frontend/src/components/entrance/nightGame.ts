@@ -1903,6 +1903,9 @@ function paintAbandoned(
         depthWrite: false,
         roughness: 0.8,
         side: THREE.DoubleSide,
+        // Transparente y de dos caras, three.js lo dibuja dos veces y rearma el material en
+        // cada una: con decenas de papeles y hojas por el piso, eso solo trababa la noche.
+        forceSinglePass: true,
         polygonOffset: true,
         polygonOffsetFactor: -2,
         ...extra,
