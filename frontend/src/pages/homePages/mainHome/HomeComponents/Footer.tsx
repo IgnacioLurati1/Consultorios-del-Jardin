@@ -24,6 +24,12 @@ export function Footer() {
             {/* De la misma lista que usa el pedido de turno: si se suma una especialidad,
                 aparece acá sin tocar el pie. */}
             <p className="home-footer-claim">{SPECIALITIES.join(" · ")}</p>
+            <p className="home-footer-credit">
+              Powered by{" "}
+              <a href="https://www.instagram.com/nacho_lurati/" target="_blank" rel="noreferrer">
+                El Luta
+              </a>
+            </p>
           </div>
         </div>
 

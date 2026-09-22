@@ -1026,6 +1026,25 @@
   color: rgba(254, 250, 224, 0.45);
 }
 
+.home-footer-credit {
+  margin: 14px 0 0;
+  font-size: 0.9rem;
+  color: rgba(254, 250, 224, 0.62);
+}
+
+.home-footer-credit a {
+  color: var(--home-cream);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.home-footer-credit a:hover {
+  color: var(--home-cream);
+  border-color: var(--home-green-light);
+}
+
 /* ---------- foco visible, en los dos fondos ---------- */
 
 .home a:focus-visible,
