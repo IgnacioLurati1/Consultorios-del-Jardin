@@ -1,9 +1,11 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import { Person } from "../people/people.entity.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
+import { policies } from "../installation/installation.service.js";
+import { markFor } from "../shared/policies.js";
 
 /** El instante exacto en que terminó un turno: su día más su hora de fin. */
 function endOf(appointment: Appointment): Date {
@@ -34,7 +36,14 @@ async function closeFinishedAppointments(): Promise<void> {
 
   return RequestContext.create(em, async () => {
     try {
-      const professionals = await em.find(Person, { type: "professional", autoMark: { $ne: null } });
+      // Con el cierre impuesto por el consultorio entran todos; si no, los que lo prendieron.
+      const rules = await policies();
+      if (rules.markMode === "never") return;
+
+      const professionals = await em.find(
+        Person,
+        rules.markMode === "each" ? { type: "professional", autoMark: { $ne: null } } : { type: "professional" }
+      );
       if (professionals.length === 0) return;
 
       const now = new Date();
@@ -44,9 +53,12 @@ async function closeFinishedAppointments(): Promise<void> {
       let closed = 0;
 
       for (const professional of professionals) {
+        const plan = markFor(rules, professional);
+        if (!plan) continue;
+
         // Nada anterior a haber prendido el switch: la agenda vieja sin cerrar se marca
         // a mano o se queda como está, pero no la reescribe una preferencia de hoy.
-        const since = professional.autoMarkSince ?? new Date();
+        const since = plan.since;
 
         // Los turnos de días anteriores están vencidos para las dos opciones. El día de
         // hoy solo entra si se cierra turno por turno: "al final del día" quiere decir
@@ -58,7 +70,7 @@ async function closeFinishedAppointments(): Promise<void> {
           date: { $lt: today, $gte: startOfDay(since) },
         });
 
-        if (professional.autoMarkWhen === "appointment") {
+        if (plan.when === "appointment") {
           const finishedToday = await em.find(Appointment, {
             professional: { email: professional.email },
             state: "accepted",
@@ -76,7 +88,7 @@ async function closeFinishedAppointments(): Promise<void> {
         // conviven turnos de la mañana (anteriores) y de la tarde (posteriores).
         const due = candidates.filter((appointment) => endOf(appointment) > since);
 
-        for (const appointment of due) appointment.state = professional.autoMark!;
+        for (const appointment of due) appointment.state = plan.state;
 
         closed += due.length;
       }
@@ -92,11 +104,13 @@ async function closeFinishedAppointments(): Promise<void> {
 }
 
 export async function startAttendanceJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de cierre automático de turnos inicializado (cada 5 minutos)`);
-
-  await closeFinishedAppointments();
-
-  cron.schedule("*/5 * * * *", async () => {
-    await closeFinishedAppointments();
+  await scheduleJob({
+    name: "cierre",
+    cron: "*/5 * * * *",
+    everyMinutes: 5,
+    label: "Tarea de cierre automatico de turnos programada (cada 5 minutos)",
+    run: async () => {
+      await closeFinishedAppointments();
+    },
   });
 }

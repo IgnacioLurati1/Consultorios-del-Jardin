@@ -9,6 +9,7 @@ import { Appointment } from "../appointments/appointments.entity.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, featureCards, note, paragraph, sectionHead, title } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
+import { capital } from "../shared/capital.js";
 import type { ClientChannel } from "../config/clients.js";
 import { startOfDay } from "../shared/dates.js";
 import { SettingsService } from "../settings/settings.service.js";
@@ -19,6 +20,15 @@ import { deletionDateFor, purgeAccount } from "./accountCleanup.js";
 import { bouncedEmails, hasBounced } from "./mailBounces.js";
 import { checkBounceSoon } from "../jobs/mailBounce.job.js";
 import { movePatientEmail } from "./patientEmail.js";
+import { signAccessToken, signRefreshToken } from "../config/tokens.js";
+import { config, officeWords, policies } from "../installation/installation.service.js";
+import { canonicalSpeciality, normalizeSpeciality, specialityKey } from "../shared/specialities.js";
+import { RULE_MESSAGES, requireRule } from "../installation/rules.js";
+
+/** Cómo se llama el consultorio, para los textos de los mails de cuenta. */
+async function officeName(): Promise<string> {
+  return (await config()).name;
+}
 
 dotenv.config();
 
@@ -209,6 +219,7 @@ export class PeopleService {
   }
 
   async createPerson(data: RequiredEntityData<Person>, hashed = false, options: { invite?: boolean } = {}) {
+    if (data.speciality) data.speciality = await this.specialityFromList(String(data.speciality));
     if (data.phoneNumber)
       data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
 
@@ -261,6 +272,8 @@ export class PeopleService {
     /** Profesional que lo está cargando. Se guarda para saber quién lo dio de alta. */
     createdBy: string;
   }) {
+    await requireRule((p) => p.proPatients, RULE_MESSAGES.proPatients);
+
     const phoneNumber = data.phoneNumber ? this.normalizePhoneNumber(data.phoneNumber) : "";
 
     if (!data.name?.trim() || !data.surname?.trim()) throw badRequest("El nombre y el apellido son obligatorios");
@@ -286,7 +299,8 @@ export class PeopleService {
     if (existing) {
       if (!existing.anonymous)
         throw conflict("Ese email ya pertenece a una cuenta registrada. Buscá a la persona en la lista en vez de cargarla de nuevo");
-      if (existing.createdBy === data.createdBy) throw conflict("Ya cargaste un paciente con ese email");
+      if (existing.createdBy === data.createdBy)
+        throw conflict(`Ya cargaste ${(await officeWords()).un("paciente")} con ese email`);
 
       // Lo cargó otro profesional. No se puede cargar de nuevo, porque el email es la clave,
       // y frenarlo con un error dejaba al segundo sin forma de darle turno. Sin decir nada,
@@ -348,19 +362,21 @@ export class PeopleService {
     const base = process.env.BASE_URL ?? "";
     const professional = await em.findOne(Person, { email: professionalEmail });
     const who = professional ? `${professional.name ?? ""} ${professional.surname ?? ""}`.trim() : "";
+    const w = await officeWords();
+    const subject = `Te registraron como ${w.paciente}`;
 
     const html = [
-      title("Te registraron como paciente"),
+      title(subject),
       paragraph(
-        `${who ? `<strong>${escapeHtml(who)}</strong>` : "Un profesional"} te registró como paciente en ` +
-          "Consultorios del Jardín. Los turnos y recordatorios llegan a este correo."
+        `${who ? `<strong>${escapeHtml(who)}</strong>` : w.Un("profesional")} te registró como ${w.paciente} en ` +
+          `${await officeName()}. ${w.Los("turno")} y recordatorios llegan a este correo.`
       ),
-      paragraph("Si querés, podés crear tu cuenta con este mismo correo para ver y pedir tus turnos."),
+      paragraph(`Si querés, podés crear tu cuenta con este mismo correo para ver y pedir tus ${w.turnos}.`),
       button("Crear mi cuenta", `${base}/Register`),
       note("Si no corresponde, ignorá este mensaje."),
     ].join("");
 
-    await this.mailService.sendMail(await this.mailService.createMessage(person.email, "Te registraron como paciente", html));
+    await this.mailService.sendMail(await this.mailService.createMessage(person.email, subject, html));
   }
 
   /**
@@ -377,19 +393,27 @@ export class PeopleService {
     const base = process.env.BASE_URL ?? "";
     const name = person.name ? `, ${escapeHtml(person.name)}` : "";
     const professional = person.type === "professional";
+    const w = await officeWords();
+
+    // El recordatorio sale la víspera o unas horas antes, según el consultorio: el mail no
+    // puede prometer "el día anterior" si no es así.
+    const reminder =
+      (await config()).reminderHoursBefore === null
+        ? `El día anterior ${w.al("turno")} te escribimos un recordatorio`
+        : `Antes ${w.del("turno")} te escribimos un recordatorio`;
 
     const htmlContent = professional
       ? [
           title(`Bienvenido/a${name}`),
-          paragraph("Tu cuenta de profesional ya está lista y tu agenda te está esperando."),
+          paragraph(`Tu cuenta de ${w.profesional} ya está lista y tu agenda te está esperando.`),
           sectionHead("Tu espacio", "Todo lo tuyo, a un toque"),
           featureCards([
-            { title: "Turnos", text: "Tu agenda en grilla o en lista, con el estado y el paciente de cada turno." },
-            { title: "Horarios", text: "Los módulos que atendés, en qué consultorio y cuánto dura cada turno." },
-            { title: "Pacientes", text: "Con cuenta y sin cuenta, con su historial y tus observaciones." },
-            { title: "Números", text: "Facturación, pacientes y carga de la agenda." },
+            { title: w.Turnos, text: `Tu agenda en grilla o en lista, con el estado y ${w.el("paciente")} de cada ${w.turno}.` },
+            { title: "Horarios", text: `Los módulos que atendés, en qué ${w.sala} y cuánto dura cada ${w.turno}.` },
+            { title: w.Pacientes, text: "Con cuenta y sin cuenta, con su historial y tus observaciones." },
+            { title: "Números", text: `Facturación, ${w.pacientes} y carga de la agenda.` },
             { title: "Los pedidos", text: "Confirmás o rechazás lo que piden. O dejás que se confirmen solos." },
-            { title: "Pedir un turno", text: "También te podés atender vos, como cualquier paciente." },
+            { title: `Pedir ${w.un("turno")}`, text: `También te podés atender vos, como cualquier ${w.paciente}.` },
           ]),
           button("Entrar a mi panel", `${base}/ProfessionalHome`),
           note("Todo esto está también en la aplicación del celular, con la misma cuenta."),
@@ -399,34 +423,29 @@ export class PeopleService {
           paragraph("Tu cuenta ya está lista. La agenda está disponible a cualquier hora, sin llamar ni esperar a que abran."),
           sectionHead("Tu espacio", "Todo lo tuyo, a un toque"),
           featureCards([
-            { title: "Pedir un turno", text: "Elegí especialidad, profesional y horario." },
-            { title: "Mis turnos", text: "Los que tenés agendados y los que ya pasaron." },
+            { title: `Pedir ${w.un("turno")}`, text: `Elegí ${w.especialidad}, ${w.profesional} y horario.` },
+            { title: `Mis ${w.turnos}`, text: `${w.o("turno") === "a" ? "Las" : "Los"} que tenés agendad${w.os("turno")} y ${w.o("turno") === "a" ? "las" : "los"} que ya pasaron.` },
             { title: "Cancelar", text: "Desde la misma pantalla, hasta el día anterior." },
             { title: "Mis datos", text: "Tu teléfono, tu mail y tu contraseña." },
           ]),
-          button("Pedir mi primer turno", `${base}/Appointment`),
-          note(
-            "El día anterior al turno te escribimos un recordatorio, así no se te pasa. Todo esto está también en la " +
-              "aplicación del celular, con la misma cuenta."
-          ),
+          button(`Pedir mi ${w.primer("turno")}`, `${base}/Appointment`),
+          note(`${reminder}, así no se te pasa. Todo esto está también en la aplicación del celular, con la misma cuenta.`),
         ];
 
     const message = await this.mailService.createMessage(
       person.email,
-      "Bienvenido/a a Consultorios del Jardín",
+      `Bienvenido/a a ${await officeName()}`,
       [...htmlContent, note("Si no fuiste vos quien creó esta cuenta, ignorá este mensaje y no vamos a volver a escribirte.")].join("")
     );
     await this.mailService.sendMail(message);
   }
 
   async createPersonTokens(personEmail: string, personType: string) {
-    const token = jwt.sign({ email: personEmail, type: personType }, process.env.JWT_SECRET as jwt.Secret, {
-      expiresIn: "15m",
-    });
-
-    const refreshToken = jwt.sign({ email: personEmail, type: personType }, process.env.REFRESH_SECRET as jwt.Secret, {
-      expiresIn: "30d",
-    });
+    // Los dos salen firmados con la instalación y la puerta adentro (ver config/tokens):
+    // un token de este consultorio no entra en otro, y el de la aplicación no abre la
+    // consola de instalaciones.
+    const token = signAccessToken(personEmail, personType);
+    const refreshToken = signRefreshToken(personEmail, personType);
 
     return { token, refreshToken };
   }
@@ -472,7 +491,7 @@ export class PeopleService {
   async toggleBookable(email: string): Promise<Person> {
     const person = await em.findOneOrFail(Person, { email });
 
-    if (person.type !== "professional") throw badRequest("Esto es solo para profesionales");
+    if (person.type !== "professional") throw badRequest(`Esto es solo para ${(await officeWords()).profesionales}`);
 
     person.bookable = !person.bookable;
     await em.flush();
@@ -486,7 +505,7 @@ export class PeopleService {
   async toggleWaitlist(email: string): Promise<Person> {
     const person = await em.findOneOrFail(Person, { email });
 
-    if (person.type !== "professional") throw badRequest("Esto es solo para profesionales");
+    if (person.type !== "professional") throw badRequest(`Esto es solo para ${(await officeWords()).profesionales}`);
 
     person.waitlistEnabled = !person.waitlistEnabled;
     await em.flush();
@@ -495,6 +514,11 @@ export class PeopleService {
 
   async updatePerson(data: Partial<Person>, email: string) {
     const person = await em.findOneOrFail(Person, { email });
+
+    // Solo se controla la que cambia: la ficha se guarda entera, y una especialidad vieja
+    // que ya no está en la lista no puede trabar el cambio de un teléfono.
+    if (data.speciality && specialityKey(String(data.speciality)) !== specialityKey(person.speciality ?? ""))
+      data.speciality = await this.specialityFromList(String(data.speciality));
 
     if (data.phoneNumber) data.phoneNumber = this.normalizePhoneNumber(data.phoneNumber);
     this.validateCommonFields(data);
@@ -505,6 +529,22 @@ export class PeopleService {
     em.assign(person, { ...data });
     await em.flush();
     return person;
+  }
+
+  /**
+   * La especialidad como figura en la lista del consultorio.
+   *
+   * "psicologia" se guarda "Psicología": así el pedido de turno la encuentra al filtrar.
+   * Una que no está en la lista no se acepta, porque nadie podría encontrar a ese
+   * profesional buscándola. Sin lista cargada, se guarda escrita como corresponde.
+   */
+  private async specialityFromList(value: string): Promise<string> {
+    const { services } = await config();
+    if (!services.length) return normalizeSpeciality(value);
+    const found = canonicalSpeciality(value, services);
+    if (found) return found;
+    const w = await officeWords();
+    throw badRequest(`Esa ${w.especialidad} no está en la lista ${w.del("lugar")}`);
   }
 
   async changePassword(token: any, newPassword: string) {
@@ -555,15 +595,19 @@ export class PeopleService {
     const person = await em.findOne(Person, { email });
     if (!person) throw notFound("No encontramos a esa persona");
 
+    const w = await officeWords();
     if (!person.anonymous || person.type !== "client")
-      throw forbidden("Solo se puede borrar un paciente sin cuenta");
-    if (person.createdBy !== professionalEmail) throw forbidden("Ese paciente lo cargó otro profesional");
+      throw forbidden(`Solo se puede borrar ${w.un("paciente")} sin cuenta`);
+    if (person.createdBy !== professionalEmail)
+      throw forbidden(`${capital(w.ese("paciente"))} ${w.lo("paciente")} cargó ${w.otro("profesional")}`);
 
     // El profesional puede deshacer un alta y puede borrar la ficha que quedó mal, que es
     // la del correo que rebotó. Una ficha sana con turnos es historial del consultorio, y
     // esa baja la decide la administración.
     if ((await em.count(Appointment, { patient: { email } })) > 0 && !(await hasBounced(em, email)))
-      throw forbidden("El paciente ya tiene turnos, consultar a un administrador si desea borrarlo definitivamente");
+      throw forbidden(
+        `${w.El("paciente")} ya tiene ${w.turnos}, consultar a un administrador si desea borrar${w.lo("paciente")} definitivamente`
+      );
 
     await this.assertNoAppointments(email, options.force);
     await purgeAccount(em, email);
@@ -587,8 +631,9 @@ export class PeopleService {
     const turnos = await em.count(Appointment, { patient: { email } });
     if (turnos === 0) return;
 
+    const w = await officeWords();
     throw conflict(
-      `El paciente tiene ${turnos === 1 ? "un turno cargado" : `${turnos} turnos cargados`}`,
+      `${w.El("paciente")} tiene ${turnos === 1 ? `${w.un("turno")} cargad${w.o("turno")}` : `${turnos} ${w.turnos} cargad${w.os("turno")}`}`,
       "HAS_APPOINTMENTS"
     );
   }
@@ -606,12 +651,14 @@ export class PeopleService {
     const person = await em.findOne(Person, { email });
     if (!person) throw notFound("No encontramos a esa persona");
 
+    const w = await officeWords();
     if (person.type !== "client" || !person.anonymous)
-      throw forbidden("Solo se corrige el correo de un paciente sin cuenta");
+      throw forbidden(`Solo se corrige el correo de ${w.un("paciente")} sin cuenta`);
 
     const isAdmin = actor.type === "admin";
     const isLoader = actor.type === "professional" && person.createdBy === actor.email;
-    if (!isAdmin && !isLoader) throw forbidden("Ese paciente lo cargó otro profesional");
+    if (!isAdmin && !isLoader)
+      throw forbidden(`${capital(w.ese("paciente"))} ${w.lo("paciente")} cargó ${w.otro("profesional")}`);
 
     const wanted = await assertDeliverableEmail(newEmail);
 
@@ -637,7 +684,7 @@ export class PeopleService {
     const person = await em.findOneOrFail(Person, { email });
 
     if (person.type !== "client")
-      throw forbidden("Solo se eliminan pacientes, el resto se deshabilita");
+      throw forbidden(`Solo se eliminan ${(await officeWords()).pacientes}, el resto se deshabilita`);
 
     await this.assertNoAppointments(email, options.force);
     await purgeAccount(em, email);
@@ -687,6 +734,15 @@ export class PeopleService {
 
     if (!(await this.isEmailAvailable(email))) throw conflict("Ya hay una cuenta registrada con ese email");
 
+    // Con el registro cerrado solo crea su cuenta quien ya cargó un profesional. Al resto
+    // se le contesta lo mismo que a un mail ya tomado (ver requestSignup): decirle otra
+    // cosa contaría quién está cargado en el consultorio y quién no. La pantalla de
+    // registro ya avisa que la cuenta se pide al consultorio.
+    if (!(await policies()).openSignup) {
+      const loaded = await em.findOne(Person, { email, anonymous: true });
+      if (!loaded) throw conflict("Ya hay una cuenta registrada con ese email");
+    }
+
     const token = jwt.sign(
       {
         purpose: "signup",
@@ -707,7 +763,7 @@ export class PeopleService {
     const htmlContent = [
       title("Confirmá tu dirección"),
       paragraph(
-        "Alguien pidió una cuenta en Consultorios del Jardín con este mail. Tocá el botón y la cuenta queda creada."
+        `Alguien pidió una cuenta en ${await officeName()} con este mail. Tocá el botón y la cuenta queda creada.`
       ),
       button("Crear mi cuenta", url),
       note(
@@ -777,7 +833,7 @@ export class PeopleService {
       title("Cambiá tu contraseña"),
       paragraph(
         byAdmin
-          ? "La administración de Consultorios del Jardín te pide que cambies tu contraseña. Tocá el botón y elegí una nueva."
+          ? `La administración de ${await officeName()} te pide que cambies tu contraseña. Tocá el botón y elegí una nueva.`
           : "Pediste una contraseña nueva para tu cuenta. Tocá el botón y elegí una."
       ),
       button("Elegir contraseña nueva", url),
@@ -824,7 +880,7 @@ export class PeopleService {
     const htmlContent = [
       title(`Bienvenido/a${name}`),
       paragraph(
-        "Ya tenés tu cuenta de profesional en Consultorios del Jardín. Para empezar a usarla, elegí tu contraseña."
+        `Ya tenés tu cuenta de ${(await officeWords()).profesional} en ${await officeName()}. Para empezar a usarla, elegí tu contraseña.`
       ),
       button("Crear mi contraseña", url),
       note(
@@ -839,7 +895,7 @@ export class PeopleService {
 
     const message = await this.mailService.createMessage(
       person.email,
-      "Creá tu contraseña de Consultorios del Jardín",
+      `Creá tu contraseña de ${await officeName()}`,
       htmlContent
     );
     return this.mailService.sendMail(message);

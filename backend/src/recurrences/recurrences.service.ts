@@ -8,17 +8,31 @@ import { assertPatientEnabled } from "../appointments/appointments.engine.js";
 import { PeopleService } from "../people/people.service.js";
 import { badRequest, conflict, notFound } from "../shared/errors.js";
 import { addDays, startOfDay } from "../shared/dates.js";
+import { cachedWords, config, officeWords, policies } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
+import { RULE_MESSAGES, requireRule } from "../installation/rules.js";
+import { bookingHorizonEnd } from "../appointments/slotGrid.js";
 
 const em = orm.em;
 
 /**
  * Hasta dónde adelante se dejan creados los turnos de una repetición.
  *
- * Son cuatro semanas a propósito: el paciente solo puede sacar turno dentro de los
- * próximos catorce días, así que cualquier franja que él llegue a ver ya está ocupada
- * por el turno repetido. No hace falta ningún chequeo extra en el pedido de turno.
+ * Tiene que ir siempre por delante del horizonte de reserva: así cualquier franja que un
+ * paciente llegue a ver ya está ocupada por el turno repetido, y no hace falta ningún
+ * chequeo extra en el pedido de turno. Son cuatro semanas como mínimo, que es lo que había,
+ * y una semana más que el horizonte de reserva si alguien lo agranda.
+ *
+ * El comentario de antes decía "catorce días" para justificar el veintiocho, y el número
+ * ya no era ese. Ahora se calcula del mismo horizonte que usa la reserva.
  */
-const HORIZON_DAYS = 28;
+const MIN_HORIZON_DAYS = 28;
+
+async function horizonDays(today: Date): Promise<number> {
+  const bookable = bookingHorizonEnd(today, (await config()).bookingWeeksAhead);
+  const untilBookable = Math.ceil((bookable.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.max(MIN_HORIZON_DAYS, untilBookable + 7);
+}
 
 const FREQUENCIES: RecurrenceFrequency[] = ["weekly", "biweekly"];
 
@@ -41,7 +55,10 @@ function parseEndDate(value: Date | string | null | undefined, startDate: Date):
 
   const parsed = startOfDay(value);
   if (Number.isNaN(parsed.getTime())) throw badRequest("La fecha de fin no es válida");
-  if (parsed < startDate) throw badRequest("La fecha de fin tiene que ser posterior al primer turno");
+  if (parsed < startDate) {
+    const w = cachedWords();
+    throw badRequest(`La fecha de fin tiene que ser posterior ${w.o("turno") === "a" ? "a la" : "al"} ${w.primer("turno")}`);
+  }
 
   return parsed;
 }
@@ -62,6 +79,7 @@ export class RecurrenceService {
     /** Hasta cuándo repetir. Sin esto la repetición no tiene fecha de corte. */
     endDate?: Date | string | null
   ) {
+    await requireRule((p) => p.proRecurring, RULE_MESSAGES.proRecurring);
     if (!FREQUENCIES.includes(frequency)) throw badRequest("La repetición tiene que ser semanal o quincenal");
 
     const appointment = await em.findOne(
@@ -74,13 +92,15 @@ export class RecurrenceService {
       { populate: ["room", "patient", "professional", "recurrence"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe, ya fue cancelado o no es tuyo");
+    const w = await officeWords();
+    if (!appointment)
+      throw notFound(`${capital(w.ese("turno"))} no existe, ya fue cancelad${w.o("turno")} o no es tuy${w.o("turno")}`);
 
     // Frenar una repetición no le borra el puntero al turno: la configuración queda como
     // registro de lo que pasó y los turnos que generó siguen apuntándole. Así que lo que
     // impide volver a repetir no es que haya una, sino que esa siga andando. Sin este
     // matiz, un turno que se repitió una vez no se podía volver a repetir nunca.
-    if (appointment.recurrence?.active) throw conflict("Ese turno ya se está repitiendo");
+    if (appointment.recurrence?.active) throw conflict(`${capital(w.ese("turno"))} ya se está repitiendo`);
 
     const recurrence = em.create(Recurrence, {
       professional: appointment.professional,
@@ -122,7 +142,7 @@ export class RecurrenceService {
     // El horizonte se cuenta desde el turno que la originó mientras ese turno esté en el
     // futuro, y desde hoy una vez que pasó. Así una repetición que arranca dentro de tres
     // semanas igual nace con sus cuatro turnos, y después se va corriendo sola.
-    const horizon = addDays(start > today ? start : today, HORIZON_DAYS);
+    const horizon = addDays(start > today ? start : today, await horizonDays(today));
     // La fecha de corte manda sobre el horizonte: nunca se genera más allá de ella.
     const end = recurrence.endDate ? startOfDay(recurrence.endDate) : null;
     const target = end && end < horizon ? end : horizon;
@@ -207,6 +227,10 @@ export class RecurrenceService {
 
   /** Pone al día todas las repeticiones activas. Lo usa el job de cada día. */
   async generatePending(): Promise<{ recurrences: number; created: number }> {
+    // Con los repetibles apagados no se generan turnos nuevos. Las repeticiones quedan
+    // guardadas: si se vuelven a prender, siguen desde donde iban.
+    if (!(await policies()).proRecurring) return { recurrences: 0, created: 0 };
+
     const recurrences = await em.find(Recurrence, { active: true }, { populate: ["professional", "patient", "room"] });
 
     let created = 0;
@@ -290,6 +314,7 @@ export class RecurrenceService {
       endDate?: Date | string | null;
     }
   ) {
+    await requireRule((p) => p.proRecurring, RULE_MESSAGES.proRecurring);
     const recurrence = await this.findOwn(idRecurrence, professionalEmail);
 
     // Una repetición que se apagó sola al llegar a su fecha de corte se puede reabrir
@@ -304,13 +329,16 @@ export class RecurrenceService {
     }
 
     if (data.value !== undefined && data.value !== null) {
-      if (data.value < 0) throw badRequest("El valor del turno no puede ser negativo");
+      if (data.value < 0) throw badRequest(`El valor ${(await officeWords()).del("turno")} no puede ser negativo`);
       recurrence.value = data.value;
     }
 
     if (data.idRoom !== undefined) {
       const room = await this.roomService.findRoomById(data.idRoom);
-      if (!room.active) throw badRequest("El consultorio que elegiste está dado de baja");
+      if (!room.active) {
+        const w = await officeWords();
+        throw badRequest(`${w.El("sala")} que elegiste está dad${w.o("sala")} de baja`);
+      }
       recurrence.room = room;
     }
 

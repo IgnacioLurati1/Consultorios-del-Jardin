@@ -1,7 +1,7 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import { REFRESH_TOKEN_HEADER } from "./clients.js";
+import { verifyAccessToken, verifyRefreshToken } from "./tokens.js";
 
 /**
  * En desarrollo los topes se multiplican por veinte.
@@ -78,10 +78,11 @@ function generalKey(req: Request): string {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET as jwt.Secret) as { email?: string };
+      const decoded = verifyAccessToken(token);
       if (decoded?.email) return `cuenta ${decoded.email}`;
     } catch {
-      // Vencido o roto: cuenta por dirección.
+      // Vencido, roto o de otra puerta: cuenta por dirección. El de la consola cae acá, y
+      // está bien: esas rutas tienen sus propios limitadores, más chicos.
     }
   }
 
@@ -132,7 +133,7 @@ function refreshKey(req: Request): string {
 
   if (typeof token === "string" && token.length > 0) {
     try {
-      const decoded = jwt.verify(token, process.env.REFRESH_SECRET as jwt.Secret) as { email?: string };
+      const decoded = verifyRefreshToken(token);
       if (decoded?.email) return `cuenta ${decoded.email}`;
     } catch {
       // Vencido o roto: cuenta por dirección y el handler contesta lo de siempre.
@@ -201,4 +202,65 @@ const attendanceLimiter = rateLimit({
   message: { message: 'Demasiados intentos con este link. Esperá un rato y volvé a abrirlo.' },
 });
 
-export { generalLimiter, authLimiter, refreshLimiter, lookupLimiter, contactLimiter, importLimiter, attendanceLimiter };
+// Entrar a la consola de instalaciones. Es la puerta que termina en "creá un
+// administrador", así que es la más caro de dejar probar: cinco intentos cada quince
+// minutos y por dirección. Sin RELAX, tampoco en desarrollo —son cinco intentos, no cinco
+// requests, y de acá no cuelga ninguna pantalla que haga varias seguidas—.
+const consoleLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  handler: announce("el limitador de la consola", 15 * 60 * 1000),
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiados intentos. Esperá un rato." },
+});
+
+// Crear un administrador. Se hace una vez por instalación, dos si algo salió mal, así que
+// tres por hora sobra y cualquier cosa por encima de eso no es un uso normal.
+const consoleWriteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  handler: announce("el limitador de escritura de la consola", 60 * 60 * 1000),
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiadas altas seguidas. Esperá un rato." },
+});
+
+// Subir una foto a la portada. Cada una se lee entera y se vuelve a escribir en dos
+// tamaños, que es de lo más pesado que hace el servidor. Treinta por hora alcanzan para
+// armar una portada y una galería enteras, con margen para equivocarse.
+const imageUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  handler: announce("el limitador de fotos", 60 * 60 * 1000),
+  max: 30 * RELAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiadas fotos seguidas. Conviene esperar un rato." },
+});
+
+// La ruta de salud, que se lee sin sesión. La tarea de control pasa cada media hora y la
+// consola una vez por minuto como mucho; veinte por minuto y por dirección dejan margen
+// para recargar a mano y cortan a quien la use para cargar la base. La medición además se
+// reutiliza unos segundos (ver health/health.service).
+const healthLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  handler: announce("el limitador de la ruta de salud", 60 * 1000),
+  max: 20 * RELAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiadas consultas. Esperá un minuto." },
+});
+
+export {
+  healthLimiter,
+  generalLimiter,
+  imageUploadLimiter,
+  authLimiter,
+  refreshLimiter,
+  lookupLimiter,
+  contactLimiter,
+  importLimiter,
+  attendanceLimiter,
+  consoleLoginLimiter,
+  consoleWriteLimiter,
+};

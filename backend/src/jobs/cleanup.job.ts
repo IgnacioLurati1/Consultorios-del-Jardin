@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { purgeDisabledAccounts } from "../people/accountCleanup.js";
@@ -33,11 +33,13 @@ async function limpiar(): Promise<void> {
 }
 
 export async function startAccountCleanupJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de baja de cuentas deshabilitadas inicializado (una vez por semana)`);
-
-  await limpiar();
-
-  cron.schedule("45 4 * * 1", async () => {
-    await limpiar();
+  await scheduleJob({
+    name: "cuentas",
+    cron: "45 4 * * 1",
+    everyMinutes: 10080,
+    label: "Tarea de baja de cuentas deshabilitadas programada (una vez por semana)",
+    run: async () => {
+      await limpiar();
+    },
   });
 }

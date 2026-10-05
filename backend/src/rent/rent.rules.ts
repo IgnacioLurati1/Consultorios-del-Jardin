@@ -40,18 +40,23 @@ export interface Block {
   hours: string;
 }
 
-export const BLOCKS: Block[] = [
+/**
+ * Los dos módulos. Arrancan con los de Consultorios del Jardín, y cada instalación los
+ * cambia desde la consola (ver `configureRentModules`): por eso son `let`, y quien los
+ * importa ve siempre los de ahora.
+ */
+export let BLOCKS: Block[] = [
   { key: "morning", label: "Mañana", from: "09:00", to: "13:00", hours: "4 horas" },
   { key: "afternoon", label: "Tarde", from: "14:00", to: "20:00", hours: "6 horas" },
 ];
 
-export const BLOCK_KEYS: BlockKey[] = BLOCKS.map((block) => block.key);
+export const BLOCK_KEYS: BlockKey[] = ["morning", "afternoon"];
 
 /**
  * El día entero. No es una franja más de la grilla: se superpone con las dos, así que
  * no entra en BLOCKS, que es lo que se usa para ver qué ocupa un horario.
  */
-export const DAY: { key: "day"; label: string; from: string; to: string; hours: string } = {
+export let DAY: { key: "day"; label: string; from: string; to: string; hours: string } = {
   key: "day",
   label: "Día",
   from: "09:00",
@@ -60,9 +65,50 @@ export const DAY: { key: "day"; label: string; from: string; to: string; hours: 
 };
 
 /** Lo que se muestra y se carga en los precios: los tres módulos. */
-export const PRICED = [...BLOCKS, DAY];
+export let PRICED = [...BLOCKS, DAY];
 
-export const PRICE_KEYS: PriceKey[] = PRICED.map((item) => item.key);
+export const PRICE_KEYS: PriceKey[] = ["morning", "afternoon", "day"];
+
+function durationOf(block: { from: string; to: string }): number {
+  return toMinutes(block.to) - toMinutes(block.from);
+}
+
+/** "4 horas", "4 horas y media", "4 horas 15 minutos". */
+function hoursText(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const whole = `${hours} ${hours === 1 ? "hora" : "horas"}`;
+  if (rest === 0) return whole;
+  if (rest === 30) return `${whole} y media`;
+  return `${whole} ${rest} minutos`;
+}
+
+/**
+ * Cambia los dos módulos por los de esta instalación.
+ *
+ * Llegan como "09:00-13:00", ya validados (ver shared/policies): la mañana termina antes
+ * de que empiece la tarde y los dos duran distinto, que es lo que hace falta para saber
+ * con qué precio va cada tramo. El día entero va de la primera hora a la última.
+ */
+export function configureRentModules(morning: string, afternoon: string): void {
+  const [mFrom, mTo] = morning.split("-");
+  const [aFrom, aTo] = afternoon.split("-");
+  const first = { from: mFrom, to: mTo };
+  const second = { from: aFrom, to: aTo };
+
+  BLOCKS = [
+    { key: "morning", label: "Mañana", ...first, hours: hoursText(durationOf(first)) },
+    { key: "afternoon", label: "Tarde", ...second, hours: hoursText(durationOf(second)) },
+  ];
+  DAY = {
+    key: "day",
+    label: "Día",
+    from: mFrom,
+    to: aTo,
+    hours: `más de ${hoursText(Math.max(durationOf(first), durationOf(second)))}`,
+  };
+  PRICED = [...BLOCKS, DAY];
+}
 
 /** Los días en que abre el consultorio. Son los que se revisan buscando bloques libres. */
 export const OPEN_DAYS = ["lunes", "martes", "miercoles", "jueves", "viernes"];
@@ -176,9 +222,12 @@ export function stretchesOf(slots: { initialHour: string; finalHour: string }[])
  * horas es el día entero. Cualquier otra duración no tiene módulo y va a valor a mano.
  */
 export function moduleOf(minutes: number): PriceKey | null {
-  if (minutes > 6 * 60) return "day";
-  if (minutes === 6 * 60) return "afternoon";
-  if (minutes === 4 * 60) return "morning";
+  const morning = durationOf(BLOCKS[0]);
+  const afternoon = durationOf(BLOCKS[1]);
+
+  if (minutes > Math.max(morning, afternoon)) return "day";
+  if (minutes === afternoon) return "afternoon";
+  if (minutes === morning) return "morning";
   return null;
 }
 

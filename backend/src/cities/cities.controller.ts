@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { CityService } from "./cities.service.js";
 import { wrap } from "@mikro-orm/core";
 import { sendError } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
 
 const cityService = new CityService();
 
@@ -79,7 +80,8 @@ export async function toggleCityState(req: Request, res: Response) {
   try {
     const idCity = Number(req.params.idCity);
     const city = await cityService.toggleCityState(idCity);
-    res.status(200).json({ message: "Estado de la localidad y consultorios actualizado", data: city });
+    const w = await officeWords();
+    res.status(200).json({ message: `Estado de la localidad y ${w.lugares} actualizado`, data: city });
   } catch (error: any) {
     sendError(res, error);
   }

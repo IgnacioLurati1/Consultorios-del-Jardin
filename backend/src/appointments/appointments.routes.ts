@@ -1,6 +1,10 @@
 import { Router } from "express";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import { officeWords } from "../installation/installation.service.js";
 import {
+  createAdminAppointment,
+  updateAdminAppointment,
+  cancelAdminAppointment,
   getAppointment,
   getMyPatients,
   getPatientAppointments,
@@ -29,6 +33,13 @@ import {
 } from "./appointments.controller.js";
 
 export const appointmentRouter = Router();
+
+// Un número de turno que no es un número no llega a ninguna ruta: sin esto, cada una lo
+// pasaba como NaN a la base y la respuesta era un 500 en vez de decir qué estaba mal.
+appointmentRouter.param("numAppointment", async (_req, res, next, value) => {
+  if (/^\d+$/.test(String(value))) return next();
+  res.status(400).json({ message: `Ese número de ${(await officeWords()).turno} no es válido` });
+});
 
 /**
  * @swagger
@@ -538,6 +549,12 @@ appointmentRouter.post("/getAppointments", sanitizeAppointmentInput, getAvailabl
  *         description: Error del servidor
  */
 appointmentRouter.post("/professional", sanitizeAppointmentInput, createProfessionalAppointment);
+
+// La recepción: la administración sobre la agenda de cualquier profesional. Ver la regla
+// adminBooking en shared/policies.
+appointmentRouter.post("/admin", sanitizeAppointmentInput, createAdminAppointment);
+appointmentRouter.patch("/:numAppointment/admin", sanitizeAppointmentInput, updateAdminAppointment);
+appointmentRouter.patch("/:numAppointment/admin-cancel", cancelAdminAppointment);
 
 /**
  * @swagger

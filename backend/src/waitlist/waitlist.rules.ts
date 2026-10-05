@@ -44,17 +44,19 @@ export interface WaitlistRequest {
 /**
  * Lo que manda la pantalla, validado.
  *
- * El domingo queda afuera porque el consultorio no atiende: la agenda de turnos libres
- * ni siquiera lo recorre, así que anotarse para un domingo es esperar algo que no va a
- * pasar.
+ * El domingo queda afuera si el consultorio no atiende: la agenda de turnos libres ni
+ * siquiera lo recorre, así que anotarse para un domingo es esperar algo que no va a pasar.
+ * Si atiende (`opensSunday` en la configuración), entra como cualquier otro día.
  */
-export function parseWaitlistRequest(body: any): WaitlistRequest {
+export function parseWaitlistRequest(body: any, opensSunday = false): WaitlistRequest {
   const raw: unknown[] = Array.isArray(body?.days) ? body.days : [];
   const days = [...new Set(raw.map(Number))].filter(Number.isInteger).sort((a, b) => a - b);
 
   if (days.length === 0) throw badRequest("Elegí al menos un día de la semana");
   if (days.length > WAITLIST_LIMITS.maxDays) throw badRequest(`Podés elegir hasta ${WAITLIST_LIMITS.maxDays} días`);
-  if (days.some((day) => day < 1 || day > 6)) throw badRequest("Los días tienen que ser de lunes a sábado");
+  const firstDay = opensSunday ? 0 : 1;
+  if (days.some((day) => day < firstDay || day > 6))
+    throw badRequest(opensSunday ? "Los días tienen que ser de domingo a sábado" : "Los días tienen que ser de lunes a sábado");
 
   const fromHour = String(body?.fromHour ?? "");
   const toHour = String(body?.toHour ?? "");
@@ -113,9 +115,18 @@ export function hoursUntil(slot: { date: Date | string; initialHour: string }, a
   return (start.getTime() - at.getTime()) / 3_600_000;
 }
 
-/** Si la baja llegó con más de un día de anticipación, que es cuando todavía sirve avisar. */
-export function freedInTime(slot: { date: Date | string; initialHour: string }, at = new Date()): boolean {
-  return hoursUntil(slot, at) > SHORT_NOTICE_HOURS;
+/**
+ * Si la baja llegó con tiempo, que es cuando todavía sirve avisar.
+ *
+ * El umbral es el de la baja tardía de la instalación: lo que para el consultorio es
+ * "avisó tarde" es lo mismo que acá es "ya no se alcanza a ofrecer".
+ */
+export function freedInTime(
+  slot: { date: Date | string; initialHour: string },
+  at = new Date(),
+  thresholdHours = SHORT_NOTICE_HOURS
+): boolean {
+  return hoursUntil(slot, at) > thresholdHours;
 }
 
 /** "lunes", "lunes y miércoles", "lunes, martes y viernes". */

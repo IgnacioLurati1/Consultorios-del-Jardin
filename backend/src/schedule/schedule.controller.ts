@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ScheduleService } from "./schedule.service.js";
 import { sendError } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -53,7 +54,7 @@ async function findByProfesionalLogged(req: RequestWithUser, res: Response) {
   try {
     const email = req.user.email;
     const schedule = await scheduleService.findScheduleByEmail(email);
-    res.status(200).json({ message: "Horarios del profesional encontrado", data: schedule });
+    res.status(200).json({ message: `Horarios ${(await officeWords()).del("profesional")} encontrado`, data: schedule });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -74,7 +75,8 @@ async function findByRoom(req: Request, res: Response) {
   try {
     const idRoom = Number.parseInt(req.params.idRoom);
     const schedules = await scheduleService.findSchedulesByRoom(idRoom);
-    res.status(200).json({ message: "Horarios del consultorio encontrados", data: schedules });
+    const w = await officeWords();
+    res.status(200).json({ message: `Horarios ${w.del("sala")} encontrados`, data: schedules });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -90,7 +92,10 @@ function ownsSchedule(req: RequestWithUser): boolean {
 // cada consultorio. El profesional decide solo cuánto dura cada turno (ver update). La
 // página ya lo respetaba escondiendo los botones; va acá para que ninguna pantalla, ni una
 // versión vieja de la app que siga instalada, pueda saltearlo.
-const ONLY_ADMIN = "Los horarios de atención los maneja la administración del consultorio";
+async function onlyAdmin(): Promise<string> {
+  const w = await officeWords();
+  return `Los horarios de atención los maneja la administración ${w.del("lugar")}`;
+}
 
 function isAdmin(req: RequestWithUser): boolean {
   return req.user?.type === "admin";
@@ -98,7 +103,7 @@ function isAdmin(req: RequestWithUser): boolean {
 
 async function add(req: RequestWithUser, res: Response) {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: ONLY_ADMIN });
+    if (!isAdmin(req)) return res.status(403).json({ message: await onlyAdmin() });
 
     const schedule = await scheduleService.createSchedule(req.body.sanitizedInput);
     res.status(201).json({ message: "Horario creado", data: schedule });
@@ -121,7 +126,8 @@ async function update(req: RequestWithUser, res: Response) {
       req.body.sanitizedInput = { day, initialHour, person: req.user.email };
       if (duration !== undefined) req.body.sanitizedInput.duration = duration;
     }
-    if (!ownsSchedule(req)) return res.status(403).json({ message: "No podés modificar horarios de otro profesional" });
+    if (!ownsSchedule(req))
+      return res.status(403).json({ message: `No podés modificar horarios de ${(await officeWords()).otro("profesional")}` });
 
     const schedule = await scheduleService.updateSchedule(req.body.sanitizedInput);
     res.status(200).json({ message: "Horario actualizado", data: schedule });
@@ -141,7 +147,7 @@ async function remove(req: RequestWithUser, res: Response) {
 
     // Antes solo se frenaba a un profesional borrando horarios ajenos: los propios los
     // podía borrar, y cualquier otra cuenta con sesión, los de cualquiera.
-    if (!isAdmin(req)) return res.status(403).json({ message: ONLY_ADMIN });
+    if (!isAdmin(req)) return res.status(403).json({ message: await onlyAdmin() });
     await scheduleService.removeSchedule(day, initialHour, person);
     res.status(200).json({ message: "Horario eliminado" });
   } catch (error: any) {

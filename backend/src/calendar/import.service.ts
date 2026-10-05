@@ -7,6 +7,9 @@ import { Room } from "../rooms/rooms.entity.js";
 import { Schedule } from "../schedule/schedules.entity.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { parseISODate, startOfDay, toISODate } from "../shared/dates.js";
+import { cachedWords, config, officeWords } from "../installation/installation.service.js";
+import { RULE_MESSAGES, requireRule } from "../installation/rules.js";
+import { isOnGrid } from "../appointments/slotGrid.js";
 import { CalendarEvent, CLINIC_TIMEZONE, OwnAppointmentData, parseCalendars } from "./calendar.parser.js";
 
 /**
@@ -306,16 +309,19 @@ export class CalendarImportService {
    * la previa sea lo que va a pasar y no una estimación parecida.
    */
   async plan(professionalEmail: string, file: Buffer, options: ImportOptions, emT?: EntityManager): Promise<ImportPlan> {
+    await requireRule((p) => p.proCalendar, RULE_MESSAGES.proCalendar);
     const em = emT ?? orm.em.fork();
     const { from, to } = this.range(options);
 
     const professional = await em.findOne(Person, { email: professionalEmail, type: "professional" });
-    if (!professional) throw notFound("No encontramos tu ficha de profesional");
+    const w = await officeWords();
+    if (!professional) throw notFound(`No encontramos tu ficha de ${w.profesional}`);
 
     const schedules = await em.find(Schedule, { person: professional }, { populate: ["room", "room.office"] });
+    const rules = await config();
     if (schedules.length === 0)
       throw badRequest(
-        "Todavía no cargaste tus horarios de atención. El consultorio de cada turno sale de ahí, así que sin eso no hay de dónde sacarlo."
+        `Todavía no cargaste tus horarios de atención. ${w.El("sala")} de cada ${w.turno} sale de ahí, así que sin eso no hay de dónde sacar${w.lo("sala")}.`
       );
 
     // El recorrido de los eventos que se repiten se corta acá: sin un tope, una repetición
@@ -397,7 +403,7 @@ export class CalendarImportService {
         skipped.push({
           summary: this.title(event),
           when: `${event.date} ${event.initialHour}`,
-          reason: `De una vez entran hasta ${MAX_PER_IMPORT} turnos. Importá un tramo más corto.`,
+          reason: `De una vez entran hasta ${MAX_PER_IMPORT} ${w.turnos}. Importá un tramo más corto.`,
         });
         continue;
       }
@@ -447,7 +453,17 @@ export class CalendarImportService {
         offGrid:
           !own?.overbooked &&
           (schedule === null ||
-            (minutesOf(event.initialHour) - minutesOf(schedule.initialHour)) % schedule.duration !== 0 ||
+            !isOnGrid(
+              minutesOf(event.initialHour),
+              { start: minutesOf(schedule.initialHour), end: minutesOf(schedule.finalHour), duration: schedule.duration },
+              (schedule.room as any)?.office?.openingTime
+                ? {
+                    opens: minutesOf((schedule.room as any).office.openingTime),
+                    closes: minutesOf((schedule.room as any).office.closingTime),
+                  }
+                : null,
+              rules
+            ) ||
             minutesOf(event.finalHour) - minutesOf(event.initialHour) !== schedule.duration),
         // Solo cuando el consultorio lo elegimos nosotros. Si el archivo dice en qué sala
         // fue, no hay nada que avisar aunque hoy no haya horario a esa hora.
@@ -542,7 +558,10 @@ export class CalendarImportService {
     item: PlannedAppointment
   ): Appointment {
     const room = context.rooms.get(item.idRoom);
-    if (!room) throw badRequest("El consultorio de ese turno ya no existe");
+    if (!room) {
+      const w = cachedWords();
+      throw badRequest(`${w.El("sala")} de ${w.ese("turno")} ya no existe`);
+    }
 
     return em.create(Appointment, {
       date: startOfDay(item.date),
@@ -647,10 +666,11 @@ export class CalendarImportService {
       room = usable.room;
       schedule = usable;
     } else {
+      const w = cachedWords();
       const reason =
         covering.length === 0
           ? `No atendés los ${DAY_LABELS[weekday]} a las ${event.initialHour}.`
-          : `El consultorio ${covering[0].room.description} está dado de baja.`;
+          : `${w.El("sala")} ${covering[0].room.description} está dad${w.o("sala")} de baja.`;
 
       if (!fallback) return reason;
 
@@ -665,7 +685,7 @@ export class CalendarImportService {
       (slot) => event.initialHour < slot.finalHour && event.finalHour > slot.initialHour
     );
 
-    if (overlaps) return "Ya tenías un turno a esa hora.";
+    if (overlaps) return `Ya tenías ${cachedWords().un("turno")} a esa hora.`;
 
     return { room, schedule };
   }

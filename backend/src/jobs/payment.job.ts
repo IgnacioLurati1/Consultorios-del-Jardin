@@ -1,9 +1,11 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { Appointment } from "../appointments/appointments.entity.js";
 import { Person } from "../people/people.entity.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
+import { policies } from "../installation/installation.service.js";
+import { payFor } from "../shared/policies.js";
 
 /** El instante exacto en que terminó un turno: su día más su hora de fin. */
 function endOf(appointment: Appointment): Date {
@@ -36,7 +38,14 @@ async function payFinishedAppointments(): Promise<void> {
 
   return RequestContext.create(em, async () => {
     try {
-      const professionals = await em.find(Person, { type: "professional", autoPay: true });
+      // Con el cobro impuesto por el consultorio entran todos; si no, los que lo prendieron.
+      const rules = await policies();
+      if (rules.payMode === "never") return;
+
+      const professionals = await em.find(
+        Person,
+        rules.payMode === "each" ? { type: "professional", autoPay: true } : { type: "professional" }
+      );
       if (professionals.length === 0) return;
 
       const now = new Date();
@@ -46,7 +55,9 @@ async function payFinishedAppointments(): Promise<void> {
       let paid = 0;
 
       for (const professional of professionals) {
-        const since = professional.autoPaySince ?? new Date();
+        const plan = payFor(rules, professional);
+        if (!plan) continue;
+        const since = plan.since;
 
         // Los de días anteriores están vencidos para las dos opciones. El día de hoy solo
         // entra si se cobra turno por turno: "al final del día" quiere decir que hoy
@@ -59,7 +70,7 @@ async function payFinishedAppointments(): Promise<void> {
           date: { $lt: today, $gte: startOfDay(since) },
         });
 
-        if (professional.autoPayWhen === "appointment") {
+        if (plan.when === "appointment") {
           const finishedToday = await em.find(Appointment, {
             professional: { email: professional.email },
             state: "assisted",
@@ -95,11 +106,13 @@ async function payFinishedAppointments(): Promise<void> {
 }
 
 export async function startPaymentJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de cobro automático de turnos inicializado (cada 5 minutos)`);
-
-  await payFinishedAppointments();
-
-  cron.schedule("*/5 * * * *", async () => {
-    await payFinishedAppointments();
+  await scheduleJob({
+    name: "cobro",
+    cron: "*/5 * * * *",
+    everyMinutes: 5,
+    label: "Tarea de cobro automatico de turnos programada (cada 5 minutos)",
+    run: async () => {
+      await payFinishedAppointments();
+    },
   });
 }

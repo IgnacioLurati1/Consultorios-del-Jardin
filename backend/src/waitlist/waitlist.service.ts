@@ -11,8 +11,13 @@ import { NotificationService } from "../notifications/notifications.service.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, factsCard, note, paragraph, title } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
+import { capital } from "../shared/capital.js";
 import { addDays, longDate, monthKey, startOfDay, startOfWeek, toISODate } from "../shared/dates.js";
 import { WAITLIST_LIMITS, fits, freedInTime, parseDays, parseWaitlistRequest } from "./waitlist.rules.js";
+import { config, officeWords } from "../installation/installation.service.js";
+import { RULE_MESSAGES } from "../installation/rules.js";
+import { withinBookingHorizon } from "../appointments/slotGrid.js";
+import { LIVE_APPOINTMENT_STATES } from "../shared/appointmentStates.js";
 
 const em = orm.em;
 
@@ -23,7 +28,7 @@ const em = orm.em;
  * turnos importa este para avisar cuando se libera un horario, y si este importara aquel
  * los dos módulos quedarían esperándose al arrancar.
  */
-const LIVE_STATES = ["pending", "accepted", "assisted", "missed"];
+const LIVE_STATES = LIVE_APPOINTMENT_STATES;
 
 /** Cómo se llama cada día en la tabla de horarios, que los guarda sin tilde. */
 const SCHEDULE_DAYS = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
@@ -105,7 +110,10 @@ export class WaitlistService {
 
   private async findProfessional(email: string): Promise<Person> {
     const professional = await em.findOne(Person, { email });
-    if (!professional || professional.type !== "professional") throw notFound("Ese profesional no existe");
+    if (!professional || professional.type !== "professional") {
+      const w = await officeWords();
+      throw notFound(`${capital(w.ese("profesional"))} no existe`);
+    }
     return professional;
   }
 
@@ -161,11 +169,21 @@ export class WaitlistService {
     if (user.type === "admin") throw forbidden("La cuenta de administrador no se anota en listas de espera");
     if (user.email === professionalEmail) throw badRequest("No te podés anotar en tu propia lista de espera");
 
-    const request = parseWaitlistRequest(body);
-    const professional = await this.findProfessional(professionalEmail);
+    // La lista de espera es para avisar de un lugar que la persona después reserva sola:
+    // sin lista en el consultorio, o sin reserva de los pacientes, no tiene sentido.
+    const settings = await config();
+    if (!settings.waitlistEnabled) throw conflict("La lista de espera no está disponible", "WAITLIST_DISABLED");
+    if (!settings.policies.patientBooking)
+      throw conflict(RULE_MESSAGES.patientBooking(await officeWords()), "WAITLIST_DISABLED");
 
-    if (!professional.active || !professional.bookable) throw badRequest("Ese profesional no está tomando turnos. Elegí otro");
-    if (professional.waitlistEnabled === false) throw conflict("Este profesional no trabaja con lista de espera", "WAITLIST_DISABLED");
+    const request = parseWaitlistRequest(body, settings.opensSunday);
+    const professional = await this.findProfessional(professionalEmail);
+    const w = await officeWords();
+
+    if (!professional.active || !professional.bookable)
+      throw badRequest(`${capital(w.ese("profesional"))} no está tomando ${w.turnos}. Elegí ${w.o("profesional") === "a" ? "otra" : "otro"}`);
+    if (professional.waitlistEnabled === false)
+      throw conflict(`${capital(w.este("profesional"))} no trabaja con lista de espera`, "WAITLIST_DISABLED");
 
     const patient = await em.findOne(Person, { email: user.email });
     if (!patient || !patient.active) throw forbidden("Tu cuenta no está habilitada");
@@ -197,7 +215,7 @@ export class WaitlistService {
     const mine = await this.activeOf(patient.email);
 
     if (mine.some((item) => item.professional.email === professional.email))
-      throw conflict("Ya estás en la lista de espera de este profesional");
+      throw conflict(`Ya estás en la lista de espera de ${w.este("profesional")}`);
 
     if (mine.length >= WAITLIST_LIMITS.maxActive)
       throw conflict(
@@ -205,7 +223,7 @@ export class WaitlistService {
       );
 
     if ((await this.waitingFor(professional.email)) >= WAITLIST_LIMITS.maxPerProfessional)
-      throw conflict("La lista de espera de este profesional está completa. Probá de nuevo en unos días");
+      throw conflict(`La lista de espera de ${w.este("profesional")} está completa. Probá de nuevo en unos días`);
 
     // Una vencida con este mismo profesional sigue en la tabla hasta la limpieza de la
     // noche, y la clave única no dejaría crear la nueva.
@@ -288,7 +306,10 @@ export class WaitlistService {
       { populate: ["professional", "patient"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    if (!appointment) {
+      const w = await officeWords();
+      throw notFound(`${capital(w.ese("turno"))} no existe o no es tuy${w.o("turno")}`);
+    }
     if (!LIVE_STATES.includes(appointment.state)) return { count: 0 };
     if (!(await this.offerable(appointment))) return { count: 0 };
 
@@ -439,15 +460,19 @@ export class WaitlistService {
   /** Si el horario de este turno se le puede ofrecer a otro. Ver el comentario de la clase. */
   private async offerable(appointment: Appointment, now = new Date()): Promise<boolean> {
     if (appointment.overbooked) return false;
-    if (!freedInTime(appointment, now)) return false;
+    const rules = await config();
+    if (!rules.waitlistEnabled || !rules.policies.patientBooking) return false;
+    if (!freedInTime(appointment, now, rules.shortNoticeHours)) return false;
 
     const professional = appointment.professional as Person;
     if (!professional?.active || professional.bookable === false || professional.waitlistEnabled === false) return false;
 
-    // Se puede pedir turno esta semana y la que viene. Más allá, el aviso mandaría a una
-    // agenda que todavía no muestra ese día.
+    // Hasta donde se puede pedir turno, que es el mismo límite que controla la reserva.
+    // Más allá, el aviso mandaría a una agenda que todavía no muestra ese día. Era "el
+    // lunes de esta semana más trece", que con el horizonte por omisión da el mismo día
+    // (lo fija slotGrid.test).
     const day = startOfDay(appointment.date);
-    if (day > addDays(startOfWeek(now), 13)) return false;
+    if (!withinBookingHorizon(day, now, rules.bookingWeeksAhead)) return false;
 
     const iso = toISODate(day);
     const start = hhmm(appointment.initialHour);
@@ -517,6 +542,7 @@ export class WaitlistService {
     const end = hhmm(appointment.finalHour);
     const when = `${longDate(appointment.date)} a las ${start}`;
     const last = entry.noticesSent + 1 >= WAITLIST_LIMITS.maxNotices;
+    const w = await officeWords();
 
     await this.notifications.notify(entry.patient.email, {
       eventKey: `espera:${entry.id}:t${appointment.numAppointment}`,
@@ -530,18 +556,18 @@ export class WaitlistService {
 
     const html = [
       title("Se liberó un horario"),
-      paragraph(`Estás en la lista de espera de <strong>${escapeHtml(name)}</strong> y se liberó un turno que te sirve.`),
+      paragraph(`Estás en la lista de espera de <strong>${escapeHtml(name)}</strong> y se liberó ${w.un("turno")} que te sirve.`),
       factsCard("El horario", [
         { label: "Fecha", value: longDate(appointment.date) },
         // Sin la hora de fin ni el consultorio, como en todos los mails al paciente: ver appointmentFacts.
         { label: "Hora", value: start },
-        { label: "Profesional", value: name },
+        { label: w.Profesional, value: name },
       ]),
       paragraph("Les avisamos a todas las personas que esperan este horario, así que se lo queda el primero que lo reserva."),
       button("Reservarlo", url),
       note(
         last
-          ? `Con este aviso ya te mandamos los ${WAITLIST_LIMITS.maxNotices} que corresponden, así que saliste de la lista de espera. Si todavía buscás turno, podés volver a anotarte.`
+          ? `Con este aviso ya te mandamos los ${WAITLIST_LIMITS.maxNotices} que corresponden, así que saliste de la lista de espera. Si todavía buscás ${w.turno}, podés volver a anotarte.`
           : `Seguís en la lista hasta el ${longDate(entry.expiresAt)}, o hasta recibir ${WAITLIST_LIMITS.maxNotices} avisos.`
       ),
     ].join("");
@@ -561,7 +587,8 @@ export class WaitlistService {
   /** El aviso de que salió de la lista porque sacó turno. Ver `onBooked`. */
   private async notifyLeftByBooking(patientEmail: string, entry: WaitlistEntry, appointment: BookedAppointment): Promise<void> {
     const professional = appointment.professional;
-    const name = `${professional.name ?? ""} ${professional.surname ?? ""}`.trim() || "el profesional";
+    const w = await officeWords();
+    const name = `${professional.name ?? ""} ${professional.surname ?? ""}`.trim() || w.el("profesional");
     const start = hhmm(appointment.initialHour);
     // Un pedido que el profesional todavía no confirmó no es un turno hecho, y el mail no
     // puede decir que lo es.
@@ -570,7 +597,7 @@ export class WaitlistService {
     await this.notifications.notify(patientEmail, {
       eventKey: `espera-fuera:${entry.id}`,
       title: "Saliste de una lista de espera",
-      body: `Como ${pending ? "pediste" : "sacaste"} turno con ${name}, ya no te vamos a avisar de sus horarios libres.`,
+      body: `Como ${pending ? "pediste" : "sacaste"} ${w.turno} con ${name}, ya no te vamos a avisar de sus horarios libres.`,
       tone: "info",
       target: "booking",
     });
@@ -578,18 +605,18 @@ export class WaitlistService {
     const html = [
       title("Saliste de la lista de espera"),
       paragraph(
-        `${pending ? "Pediste" : "Sacaste"} un turno con <strong>${escapeHtml(name)}</strong>, así que te sacamos de su lista de espera. ` +
+        `${pending ? "Pediste" : "Sacaste"} ${w.un("turno")} con <strong>${escapeHtml(name)}</strong>, así que te sacamos de su lista de espera. ` +
           "Ya no te vamos a mandar avisos de sus horarios libres."
       ),
-      factsCard(pending ? "Tu pedido" : "Tu turno", [
+      factsCard(pending ? "Tu pedido" : `Tu ${w.turno}`, [
         { label: "Fecha", value: longDate(appointment.date) },
         { label: "Hora de inicio", value: start },
         { label: "Hora de fin", value: hhmm(appointment.finalHour) },
-        { label: "Profesional", value: name },
+        { label: w.Profesional, value: name },
       ]),
       note(
         pending
-          ? "Si el profesional no confirma el pedido o preferís esperar otro horario, podés volver a anotarte desde sus horarios."
+          ? `Si ${w.el("profesional")} no confirma el pedido o preferís esperar otro horario, podés volver a anotarte desde sus horarios.`
           : "Si preferís esperar otro horario, podés volver a anotarte desde sus horarios."
       ),
     ].join("");

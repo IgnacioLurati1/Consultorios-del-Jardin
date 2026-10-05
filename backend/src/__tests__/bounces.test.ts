@@ -21,6 +21,12 @@ vi.mock("../notifications/notifications.service.js", () => ({
   },
 }));
 
+// La configuración de la instalación se lee de la base, y acá no hay base. Ver
+// helpers/installationDefaults.
+vi.mock("../installation/installation.service.js", async () =>
+  (await import("./helpers/installationDefaults.js")).installationServiceMock()
+);
+
 vi.mock("../config/mailer.js", () => ({
   default: class {
     createMessage = vi.fn(async (to: string) => ({ to }));

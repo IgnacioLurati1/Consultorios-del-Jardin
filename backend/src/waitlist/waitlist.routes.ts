@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { WaitlistService } from "./waitlist.service.js";
 import { badRequest, sendError } from "../shared/errors.js";
+import { cachedWords, officeWords } from "../installation/installation.service.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -12,7 +13,7 @@ const waitlistService = new WaitlistService();
 
 function onlyProfessional(req: RequestWithUser, res: Response): boolean {
   if (req.user.type === "professional") return true;
-  res.status(403).json({ message: "Esta vista es solo para profesionales" });
+  res.status(403).json({ message: `Esta vista es solo para ${cachedWords().profesionales}` });
   return false;
 }
 
@@ -74,7 +75,7 @@ waitlistRouter.get("/matches/:numAppointment", async (req: RequestWithUser, res:
     if (!onlyProfessional(req, res)) return;
 
     const num = Number(req.params.numAppointment);
-    if (!Number.isInteger(num) || num <= 0) throw badRequest("El número de turno no es válido");
+    if (!Number.isInteger(num) || num <= 0) throw badRequest(`El número de ${(await officeWords()).turno} no es válido`);
 
     res.status(200).json({ data: await waitlistService.matchesFor(num, req.user.email) });
   } catch (error: any) {

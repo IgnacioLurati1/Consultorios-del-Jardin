@@ -5,9 +5,12 @@ import { Appointment } from "../appointments/appointments.entity.js";
 import { Person } from "../people/people.entity.js";
 import { AssistantUsage } from "../assistant/assistant.entity.js";
 import { toolLabels } from "../assistant/assistant.tools.js";
+import { config, officeWords } from "../installation/installation.service.js";
 import { RentService } from "../rent/rent.service.js";
 import { badRequest, notFound } from "../shared/errors.js";
+import { capital } from "../shared/capital.js";
 import { addDays, addMonths, dayName, endOfMonth, monthKey, monthLabel, startOfDay, startOfMonth, toISODate } from "../shared/dates.js";
+import { LIVE_APPOINTMENT_STATES, isCancelledState } from "../shared/appointmentStates.js";
 
 const em = orm.em;
 
@@ -34,8 +37,8 @@ interface Row {
 }
 
 /** Cancelar escribe un ISO timestamp en `state`, así que un estado que no está acá es cancelado. */
-const LIVE_STATES = ["pending", "accepted", "assisted", "missed"];
-const isCancelled = (state: string) => !LIVE_STATES.includes(state);
+const LIVE_STATES = LIVE_APPOINTMENT_STATES;
+const isCancelled = isCancelledState;
 
 /**
  * Métricas de un recorte de turnos. Todas salen de las mismas filas, así que "asistidos +
@@ -162,14 +165,17 @@ function summarize(rows: Row[]): Metrics {
  * además lo que ya hacían la lista de "sin cobrar" y la marca de deuda en los pacientes,
  * así que sin esto el mismo turno salía en un lado y no en el otro. Aparece con los turnos
  * importados de un calendario, que entran sin paciente.
+ *
+ * La ausencia cuenta como deuda solo si el consultorio cobra las ausencias, igual que en
+ * `debtFilter`: si no, el panel y los números dirían montos distintos.
  */
-function debtOf(rows: Row[]): { people: number; appointments: number; amount: number } {
+function debtOf(rows: Row[], chargesMissed: boolean): { people: number; appointments: number; amount: number } {
   const people = new Set<string>();
   let appointments = 0;
   let amount = 0;
 
   for (const row of rows) {
-    if (row.state !== "assisted") continue;
+    if (row.state !== "assisted" && !(chargesMissed && row.state === "missed")) continue;
     if (row.paymentState !== "unpaid" && row.paymentState !== "partial") continue;
     if (!row.patientEmail) continue;
 
@@ -295,8 +301,9 @@ export class AnalyticsService {
 
   private async assertProfessional(email: string): Promise<Person> {
     const person = await em.findOne(Person, { email });
-    if (!person) throw notFound("Ese profesional no existe");
-    if (person.type !== "professional") throw badRequest("Esa persona no es un profesional");
+    const w = await officeWords();
+    if (!person) throw notFound(`${capital(w.ese("profesional"))} no existe`);
+    if (person.type !== "professional") throw badRequest(`Esa persona no es ${w.un("profesional")}`);
     return person;
   }
 
@@ -311,6 +318,7 @@ export class AnalyticsService {
    */
   async forProfessional(professionalEmail: string, { billing = true }: { billing?: boolean } = {}) {
     const professional = await this.assertProfessional(professionalEmail);
+    const { chargesMissed } = await config();
 
     const months = closedMonths();
     const currentFrom = startOfMonth(new Date());
@@ -352,7 +360,7 @@ export class AnalyticsService {
           ...summarize(subset),
           ...loadByDay(subset),
           denials: deniedIn(month.key),
-          debt: debtOf(subset),
+          debt: debtOf(subset, chargesMissed),
           waitlist: {
             enabled: waitlist.enabled,
             current: waitlist.current,
@@ -395,7 +403,8 @@ export class AnalyticsService {
       months: report.months.map(withoutBilling),
       // Lo que sí ve el admin es cómo le paga el alquiler al consultorio: esa plata es
       // del consultorio, no del profesional.
-      rent: await this.rent.professionalSummary(professionalEmail),
+      // Sin alquileres en la instalación no va: la pantalla dibuja la sección solo si llega.
+      rent: (await config()).policies.rentModule ? await this.rent.professionalSummary(professionalEmail) : undefined,
     };
   }
 
@@ -464,7 +473,9 @@ export class AnalyticsService {
     // El alquiler sale de las cuotas y no de los turnos: es lo que le pagan los
     // profesionales al consultorio. Una sola consulta para todos los meses que se muestran.
     const recent = recentMonths();
-    const rent = await this.rent.officeSummary([...new Set([...months, ...recent].map((month) => month.key))]);
+    const rent = (await config()).policies.rentModule
+      ? await this.rent.officeSummary([...new Set([...months, ...recent].map((month) => month.key))])
+      : new Map<string, undefined>();
 
     return {
       headcount,
@@ -625,6 +636,7 @@ export class AnalyticsService {
    * gente del asistente, que no siempre es lo que uno supone cuando lo programa.
    */
   async assistantUsage() {
+    const w = await officeWords();
     const monthFrom = startOfMonth(new Date());
     // El plan gratuito de Groq se mide por día y se reinicia a la medianoche: el número
     // que dice si hoy se llega es el del día, no el del mes.
@@ -660,7 +672,7 @@ export class AnalyticsService {
           counts.set(name, (counts.get(name) ?? 0) + 1);
         }
       }
-      const labels = toolLabels();
+      const labels = toolLabels(w);
       return Array.from(counts.entries())
         .map(([name, count]) => ({ name, label: labels[name] ?? name, count }))
         .sort((a, b) => b.count - a.count);

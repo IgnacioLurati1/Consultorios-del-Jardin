@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { AttendanceService } from "./attendance.service.js";
 import { sendError } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
 
 /**
  * Sin sesión a propósito: es el link del mail del día anterior. Lo que lo protege es la
@@ -51,7 +52,8 @@ attendanceRouter.get("/:token", async (req: Request, res: Response) => {
 attendanceRouter.post("/:token", async (req: Request, res: Response) => {
   try {
     const data = await attendanceService.answer(req.params.token, req.body?.answer);
-    res.status(200).json({ message: data.status === "cancelled" ? "Turno cancelado" : "Gracias por avisar", data });
+    const w = await officeWords();
+    res.status(200).json({ message: data.status === "cancelled" ? `${w.Turno} cancelad${w.o("turno")}` : "Gracias por avisar", data });
   } catch (error: any) {
     sendError(res, error);
   }

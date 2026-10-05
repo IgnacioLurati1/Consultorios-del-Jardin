@@ -1,7 +1,8 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { RentService } from "../rent/rent.service.js";
+import { policies } from "../installation/installation.service.js";
 
 /**
  * Deja creadas las cuotas de alquiler del mes.
@@ -16,6 +17,9 @@ async function prepare(): Promise<void> {
 
   return RequestContext.create(em, async () => {
     try {
+      // Sin alquileres en esta instalación no hay cuotas que preparar.
+      if (!(await policies()).rentModule) return;
+
       const created = await new RentService().ensureMonth();
       if (created > 0) console.log(`[${new Date().toISOString()}] ${created} cuotas de alquiler creadas para el mes`);
     } catch (error) {
@@ -25,11 +29,13 @@ async function prepare(): Promise<void> {
 }
 
 export async function startRentJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de cuotas de alquiler inicializado (una vez por día)`);
-
-  await prepare();
-
-  cron.schedule("20 0 * * *", async () => {
-    await prepare();
+  await scheduleJob({
+    name: "alquileres",
+    cron: "20 0 * * *",
+    everyMinutes: 1440,
+    label: "Tarea de cuotas de alquiler programada (una vez por dia)",
+    run: async () => {
+      await prepare();
+    },
   });
 }

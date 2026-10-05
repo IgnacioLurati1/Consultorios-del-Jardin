@@ -1,5 +1,6 @@
 import { Person } from "./people.entity.js";
 import { badRequest } from "../shared/errors.js";
+import { words, type Words } from "../shared/vocabulary.js";
 
 /** Un aviso por mail que la persona puede apagar. */
 export interface MailKind {
@@ -21,25 +22,27 @@ export interface MailKind {
  * no se pueden apagar: no son novedades del día a día, son el único camino para volver a
  * entrar o para enterarse de que algo pasó con la cuenta.
  */
-export const PROFESSIONAL_MAILS: MailKind[] = [
-  {
-    key: "new-booking",
-    label: "Te sacaron un turno",
-    description: "Cuando un paciente saca un turno con vos.",
-  },
-  {
-    key: "slot-freed",
-    label: "Se te liberó un horario",
-    description: "Cuando un paciente cancela un turno que ya estaba confirmado.",
-  },
-  {
-    key: "request-withdrawn",
-    label: "Se dio de baja un pedido",
-    description: "Cuando un paciente da de baja un pedido que todavía no habías contestado.",
-  },
-];
+export function professionalMails(w: Words = words()): MailKind[] {
+  return [
+    {
+      key: "new-booking",
+      label: `Te sacaron ${w.un("turno")}`,
+      description: `Cuando ${w.un("paciente")} saca ${w.un("turno")} con vos.`,
+    },
+    {
+      key: "slot-freed",
+      label: "Se te liberó un horario",
+      description: `Cuando ${w.un("paciente")} cancela ${w.un("turno")} que ya estaba confirmad${w.o("turno")}.`,
+    },
+    {
+      key: "request-withdrawn",
+      label: "Se dio de baja un pedido",
+      description: `Cuando ${w.un("paciente")} da de baja un pedido que todavía no habías contestado.`,
+    },
+  ];
+}
 
-const KNOWN = new Map(PROFESSIONAL_MAILS.map((mail) => [mail.key, mail]));
+const KNOWN = new Set(professionalMails().map((mail) => mail.key));
 
 /**
  * Se guardan los apagados y no los prendidos.
@@ -77,6 +80,6 @@ export function setMailPreference(person: Person, key: string, enabled: boolean)
 }
 
 /** El catálogo con el estado de cada aviso, para dibujar los switches. */
-export function professionalMailSettings(person: Person) {
-  return PROFESSIONAL_MAILS.map((mail) => ({ ...mail, enabled: wantsMail(person, mail.key) }));
+export function professionalMailSettings(person: Person, w: Words = words()) {
+  return professionalMails(w).map((mail) => ({ ...mail, enabled: wantsMail(person, mail.key) }));
 }

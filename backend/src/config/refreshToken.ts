@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { isPersonActive } from "./middlewares.js";
+import { signAccessToken, verifyRefreshToken } from "./tokens.js";
 import { clientChannel, REFRESH_TOKEN_HEADER } from "./clients.js";
 import { PeopleService } from "../people/people.service.js";
 
@@ -40,8 +40,14 @@ export default function refreshToken(req: AuthRequest, res: Response) {
     return res.status(401).json({ message: "Token inexistente" });
   }
 
-  jwt.verify(refreshToken, process.env.REFRESH_SECRET as jwt.Secret, async (err, decoded: any) => {
-    if (err) return res.status(403).json({ message: "Refresh token inválido" });
+  void (async () => {
+    let decoded: { email: string; type: string };
+
+    try {
+      decoded = verifyRefreshToken(refreshToken);
+    } catch {
+      return res.status(403).json({ message: "Refresh token inválido" });
+    }
 
     // Un usuario deshabilitado no puede renovar su sesión (el refresh token dura 30 días)
     try {
@@ -57,8 +63,8 @@ export default function refreshToken(req: AuthRequest, res: Response) {
     const channel = clientChannel(req);
     if (channel) void peopleService.recordAccess(decoded.email, channel);
 
-    const token = jwt.sign({ email: decoded.email, type: decoded.type }, process.env.JWT_SECRET as jwt.Secret, { expiresIn: "15m" });
+    const token = signAccessToken(decoded.email, decoded.type);
 
     return res.json({ token: token });
-  });
+  })();
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { sendError, badRequest } from "../shared/errors.js";
+import { cachedWords, officeWords } from "../installation/installation.service.js";
 import { CalendarImportService, ImportOptions, PaymentChoice, StateChoice } from "./import.service.js";
 import { CalendarExportService, ExportOptions } from "./export.service.js";
 
@@ -25,8 +26,10 @@ function optionsFrom(body: any): ImportOptions {
   const state = String(body.state ?? "past-assisted") as StateChoice;
   const payment = String(body.payment ?? "past-paid") as PaymentChoice;
 
-  if (!STATE_CHOICES.includes(state)) throw badRequest("Elegí cómo quedan los turnos importados");
-  if (!PAYMENT_CHOICES.includes(payment)) throw badRequest("Elegí cómo queda el cobro de los turnos importados");
+  const w = cachedWords();
+  if (!STATE_CHOICES.includes(state)) throw badRequest(`Elegí cómo quedan ${w.los("turno")} importad${w.os("turno")}`);
+  if (!PAYMENT_CHOICES.includes(payment))
+    throw badRequest(`Elegí cómo queda el cobro de ${w.los("turno")} importad${w.os("turno")}`);
 
   return {
     from: String(body.from ?? ""),
@@ -53,8 +56,10 @@ function fileFrom(req: RequestWithUser): Buffer {
  */
 async function previewImport(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional")
-      return res.status(403).json({ message: "Los turnos se importan a la agenda de un profesional" });
+    if (req.user.type !== "professional") {
+      const w = await officeWords();
+      return res.status(403).json({ message: `${w.Los("turno")} se importan a la agenda de ${w.un("profesional")}` });
+    }
 
     const plan = await importService.plan(req.user.email, fileFrom(req), optionsFrom(req.body));
 
@@ -66,12 +71,13 @@ async function previewImport(req: RequestWithUser, res: Response) {
 
 async function runImport(req: RequestWithUser, res: Response) {
   try {
+    const w = await officeWords();
     if (req.user.type !== "professional")
-      return res.status(403).json({ message: "Los turnos se importan a la agenda de un profesional" });
+      return res.status(403).json({ message: `${w.Los("turno")} se importan a la agenda de ${w.un("profesional")}` });
 
     const result = await importService.run(req.user.email, fileFrom(req), optionsFrom(req.body));
 
-    res.status(201).json({ message: `Se importaron ${result.created} turnos`, data: result });
+    res.status(201).json({ message: `Se importaron ${result.created} ${w.turnos}`, data: result });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -90,7 +96,7 @@ async function runImport(req: RequestWithUser, res: Response) {
 async function exportCalendar(req: RequestWithUser, res: Response) {
   try {
     if (req.user.type !== "professional")
-      return res.status(403).json({ message: "La agenda que se exporta es la de un profesional" });
+      return res.status(403).json({ message: `La agenda que se exporta es la de ${(await officeWords()).un("profesional")}` });
 
     const options: ExportOptions = {
       from: String(req.query.from ?? ""),

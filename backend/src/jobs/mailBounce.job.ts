@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { hasBounced, syncBounces } from "../people/mailBounces.js";
@@ -65,11 +65,13 @@ export function checkBounceSoon(email: string, delays = SOON_MS): void {
 }
 
 export async function startMailBounceJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de correos rebotados inicializado (una vez por hora)`);
-
-  await revisar();
-
-  cron.schedule("25 * * * *", async () => {
-    await revisar();
+  await scheduleJob({
+    name: "rebotes",
+    cron: "25 * * * *",
+    everyMinutes: 60,
+    label: "Tarea de correos rebotados programada (cada hora)",
+    run: async () => {
+      await revisar();
+    },
   });
 }

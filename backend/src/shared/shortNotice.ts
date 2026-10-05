@@ -10,7 +10,13 @@
 
 import { startOfDay } from "./dates.js";
 
-/** Debajo de esto el horario ya no se alcanza a ofrecer, y por eso se marca aparte. */
+/**
+ * Debajo de esto el horario ya no se alcanza a ofrecer, y por eso se marca aparte.
+ *
+ * Es el valor por omisión. El de cada consultorio vive en la configuración de la
+ * instalación (`shortNoticeHours`) y es el que pasan los que llaman; este queda para las
+ * funciones puras, que no leen la base, y para las pruebas.
+ */
 export const SHORT_NOTICE_HOURS = 24;
 
 /**
@@ -38,13 +44,16 @@ export function hoursOfNotice(date: Date | string, initialHour: string, cancelle
  * lado de su propia agenda no es algo para revisar después— o el turno es anterior a que
  * se guardara este dato.
  */
-export function noticeOf(appointment: {
-  date: Date | string;
-  initialHour: string;
-  patientCancelledAt?: Date | null;
-}): { hours: number | null; short: boolean } {
+export function noticeOf(
+  appointment: {
+    date: Date | string;
+    initialHour: string;
+    patientCancelledAt?: Date | null;
+  },
+  thresholdHours = SHORT_NOTICE_HOURS
+): { hours: number | null; short: boolean } {
   if (!appointment.patientCancelledAt) return { hours: null, short: false };
 
   const hours = hoursOfNotice(appointment.date, appointment.initialHour, appointment.patientCancelledAt);
-  return { hours, short: hours < SHORT_NOTICE_HOURS };
+  return { hours, short: hours < thresholdHours };
 }

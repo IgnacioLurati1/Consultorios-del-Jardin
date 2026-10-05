@@ -10,7 +10,10 @@ import { RentCharge } from "./rentCharge.entity.js";
 import { badRequest, notFound } from "../shared/errors.js";
 import { monthLabel, parseISODate, toISODate, toLocalDate } from "../shared/dates.js";
 import { buildXlsx } from "../shared/xlsx.js";
+import { officeWords, policies } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
 import {
+  configureRentModules,
   BLOCKS,
   clampDueDay,
   compoundAdjust,
@@ -158,12 +161,24 @@ function isDuplicate(error: any): boolean {
   return error?.code === "ER_DUP_ENTRY" || (typeof error?.message === "string" && error.message.includes("Duplicate entry"));
 }
 
+/**
+ * Pone los módulos de esta instalación antes de calcular nada.
+ *
+ * Va en `settings` y en `context`, que son por donde pasa toda cuenta: la configuración
+ * se lee de memoria la mayoría de las veces, así que no cuesta una consulta por vez.
+ */
+async function syncModules(): Promise<void> {
+  const rules = await policies();
+  configureRentModules(rules.rentMorning, rules.rentAfternoon);
+}
+
 export class RentService {
   /* ============================================================
      Lectura de datos
      ============================================================ */
 
   async settings(): Promise<RentSettings> {
+    await syncModules();
     const found = await em.findOne(RentSettings, { id: 1 });
     if (found) return found;
 
@@ -186,11 +201,15 @@ export class RentService {
 
   private async professional(email: string): Promise<Person> {
     const person = await em.findOne(Person, { email });
-    if (!person || person.type !== "professional") throw notFound("Ese profesional no existe");
+    if (!person || person.type !== "professional") {
+      const w = await officeWords();
+      throw notFound(`${capital(w.ese("profesional"))} no existe`);
+    }
     return person;
   }
 
   private async context(emails?: string[]): Promise<Context> {
+    await syncModules();
     const onlyThese = emails ? { $in: emails } : undefined;
 
     const rateRows = await em.find(RentRate, onlyThese ? { professional: { email: onlyThese } } : {}, {
@@ -646,7 +665,9 @@ export class RentService {
 
     const emails = Array.isArray(data.emails) ? [...new Set(data.emails.map(String))] : [];
     if (emails.length === 0) throw badRequest("Falta elegir a quién calcularle la cuota");
-    for (const email of emails) if (!eligible.has(email)) throw badRequest("Solo se calcula a profesionales habilitados y con horarios");
+    const w = await officeWords();
+    for (const email of emails)
+      if (!eligible.has(email)) throw badRequest(`Solo se calcula a ${w.profesionales} habilitad${w.os("profesional")} y con horarios`);
 
     const extras = Array.isArray(data.extras) ? data.extras : [];
     for (const raw of extras) {
@@ -703,11 +724,12 @@ export class RentService {
 
     const emails = Array.isArray(data.emails) ? [...new Set(data.emails.map(String))] : [];
     if (emails.length === 0) throw badRequest("Falta elegir a quién aplicarle el aumento");
-    for (const email of emails) if (!byEmail.has(email)) throw badRequest("Solo se aplica a profesionales habilitados");
+    const w = await officeWords();
+    for (const email of emails) if (!byEmail.has(email)) throw badRequest(`Solo se aplica a ${w.profesionales} habilitad${w.os("profesional")}`);
 
     const everyone = professionals.every((person) => emails.includes(person.email));
     const prices = data.prices === true;
-    if (prices && !everyone) throw badRequest("Los precios de los consultorios suben solo con un aumento para todos");
+    if (prices && !everyone) throw badRequest(`Los precios de ${w.los("sala")} suben solo con un aumento para todos`);
 
     const ctx = await this.context(emails);
     const skipped: string[] = [];
@@ -811,7 +833,10 @@ export class RentService {
 
     for (const change of changes) {
       const room = rooms.get(Number(change?.idRoom));
-      if (!room) throw notFound("Uno de los consultorios ya no existe");
+      if (!room) {
+        const w = await officeWords();
+        throw notFound(`${w.o("sala") === "a" ? "Una" : "Uno"} de ${w.los("sala")} ya no existe`);
+      }
       if (!PRICE_KEYS.includes(change?.block)) throw badRequest("Ese bloque no existe");
 
       const price = change.price === null || change.price === "" ? null : money(change.price, "El precio");

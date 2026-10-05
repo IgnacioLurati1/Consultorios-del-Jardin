@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { RoomService } from "./rooms.service.js";
 import { wrap } from "@mikro-orm/core";
 import { sendError } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
 
 const roomService = new RoomService();
 
@@ -24,7 +26,8 @@ function sanitizeRoomInput(req: Request, res: Response, next: NextFunction) {
 async function findAll(req: Request, res: Response) {
   try {
     let rooms = await roomService.findAllRooms();
-    res.status(200).json({ message: "Consultorios encontrados", data: rooms });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Salas} encontrad${w.os("sala")}`, data: rooms });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -33,7 +36,8 @@ async function findAll(req: Request, res: Response) {
 async function findAllActive(req: Request, res: Response) {
   try {
     let rooms = await roomService.findAllActiveRooms();
-    res.status(200).json({ message: "Consultorios activos encontrados", data: rooms });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Salas} activ${w.os("sala")} encontrad${w.os("sala")}`, data: rooms });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -43,7 +47,8 @@ async function findOne(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idRoom);
     const room = await roomService.findRoomById(id);
-    res.status(200).json({ message: "Consultorio encontrado", data: room });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Sala} encontrad${w.o("sala")}`, data: room });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -54,7 +59,8 @@ async function findRoomsByOfficeAndProfessional(req: Request, res: Response) {
     const officeId = Number.parseInt(req.params.officeId);
     const professionalEmail = req.params.email;
     const rooms = await roomService.findRoomsByOfficeAndProfessional(officeId, professionalEmail);
-    res.status(200).json({ message: "Consultorios encontrados para la sucursal y el profesional", data: rooms });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Salas} encontrad${w.os("sala")} para ${w.el("sucursal")} y ${w.el("profesional")}`, data: rooms });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -63,10 +69,12 @@ async function findRoomsByOfficeAndProfessional(req: Request, res: Response) {
 async function add(req: Request, res: Response) {
   try {
     const room = await roomService.createRoom(req.body.sanitizedInput);
-    res.status(201).json({ message: "Consultorio creado correctamente", data: wrap(room).toObject() });
+    const w = await officeWords();
+    res.status(201).json({ message: `${w.Sala} cread${w.o("sala")} correctamente`, data: wrap(room).toObject() });
   } catch (error: any) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
-      return res.status(409).json({ message: "Ese consultorio ya existe" });
+      const w = await officeWords();
+      return res.status(409).json({ message: `${capital(w.ese("sala"))} ya existe` });
     }
     sendError(res, error);
   }
@@ -76,10 +84,12 @@ async function update(req: Request, res: Response) {
   try {
     const id = Number.parseInt(req.params.idRoom);
     const updatedRoom = await roomService.updateRoom(id, req.body.sanitizedInput);
-    res.status(200).json({ message: "Consultorio actualizado correctamente", data: wrap(updatedRoom).toObject() });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Sala} actualizad${w.o("sala")} correctamente`, data: wrap(updatedRoom).toObject() });
   } catch (error: any) {
     if (error && (error.code === "ER_DUP_ENTRY" || (error.message && error.message.includes("Duplicate entry")))) {
-      return res.status(409).json({ message: "Ese consultorio ya existe" });
+      const w = await officeWords();
+      return res.status(409).json({ message: `${capital(w.ese("sala"))} ya existe` });
     }
     sendError(res, error);
   }
@@ -89,7 +99,8 @@ async function toggleRoomState(req: Request, res: Response) {
   try {
     const id = Number(req.params.idCity);
     const room = await roomService.toggleRoomState(id);
-    res.status(200).json({ message: "Estado del consultorio actualizado", data: room });
+    const w = await officeWords();
+    res.status(200).json({ message: `Estado ${w.del("sala")} actualizado`, data: room });
   } catch (error: any) {
     sendError(res, error);
   }

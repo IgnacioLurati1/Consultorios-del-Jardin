@@ -5,6 +5,10 @@ import { ACTIVE_APPOINTMENT_STATES } from "../appointments/appointments.service.
 import { badRequest, notFound } from "../shared/errors.js";
 import { parseISODate, startOfDay, toISODate } from "../shared/dates.js";
 import { CLINIC_TIMEZONE } from "./calendar.parser.js";
+import { config, officeWords } from "../installation/installation.service.js";
+import { tokenIssuer } from "../config/tokens.js";
+import { RULE_MESSAGES, requireRule } from "../installation/rules.js";
+import type { Words } from "../shared/vocabulary.js";
 
 /**
  * Llevarse la agenda a un calendario de afuera.
@@ -41,12 +45,15 @@ export interface ExportOptions {
 }
 
 /** Cómo se lee cada estado en el calendario de destino. */
-const STATE_LABELS: Record<string, string> = {
-  pending: "A confirmar",
-  accepted: "Confirmado",
-  assisted: "Vino",
-  missed: "No vino",
-};
+function stateLabel(state: string, w: Words): string {
+  const labels: Record<string, string> = {
+    pending: "A confirmar",
+    accepted: `Confirmad${w.o("turno")}`,
+    assisted: "Vino",
+    missed: "No vino",
+  };
+  return labels[state] ?? `Cancelad${w.o("turno")}`;
+}
 
 const PAYMENT_LABELS: Record<string, string> = {
   unpaid: "Sin cobrar",
@@ -115,15 +122,15 @@ function nowUtc(): string {
  * Sin dos puntos: en un calendario esto se lee en un globito chico, y "Estado: Vino" al
  * lado de "Cobro: Cobrado" es una columna de dos puntos que no aporta nada.
  */
-function description(appointment: Appointment): string {
+function description(appointment: Appointment, officeName: string, w: Words): string {
   const lines: string[] = [];
 
   lines.push(
-    `Paciente — ${
+    `${w.Paciente} — ${
       appointment.patient ? `${appointment.patient.surname}, ${appointment.patient.name}` : "sin asignar"
     }`
   );
-  lines.push(`Estado — ${STATE_LABELS[appointment.state] ?? "Cancelado"}`);
+  lines.push(`Estado — ${stateLabel(appointment.state, w)}`);
 
   if (appointment.value != null) lines.push(`Valor — $${appointment.value}`);
 
@@ -137,7 +144,7 @@ function description(appointment: Appointment): string {
 
   if (appointment.observations) lines.push("", appointment.observations);
 
-  lines.push("", "Exportado de Consultorios del Jardín.");
+  lines.push("", `Exportado de ${officeName}.`);
 
   return lines.join("\n");
 }
@@ -176,10 +183,22 @@ function ownProperties(appointment: Appointment, withPatientName: boolean): stri
   return lines;
 }
 
+/**
+ * El dominio de los identificadores de los eventos.
+ *
+ * Distingue los turnos de una instalación de los de otra en el mismo calendario. El de
+ * Consultorios del Jardín queda como estaba: cambiarlo haría que volver a exportar
+ * duplique en Google todos los eventos que ya se llevaron.
+ */
+function calendarDomain(): string {
+  const issuer = tokenIssuer();
+  return !issuer || issuer === "jardin" ? "consultoriosdeljardin" : issuer;
+}
+
 /** Cómo se llama el evento en el calendario de destino. */
-function summary(appointment: Appointment, withPatientName: boolean): string {
-  if (!appointment.patient) return "Turno sin paciente";
-  if (!withPatientName) return "Turno";
+function summary(appointment: Appointment, withPatientName: boolean, w: Words): string {
+  if (!appointment.patient) return `${w.Turno} sin ${w.paciente}`;
+  if (!withPatientName) return w.Turno;
 
   return `${appointment.patient.surname}, ${appointment.patient.name}`;
 }
@@ -192,6 +211,7 @@ export class CalendarExportService {
    * bajó una agenda o un archivo vacío, y un `.ics` no se puede mirar por arriba.
    */
   async build(professionalEmail: string, options: ExportOptions): Promise<{ ics: string; appointments: number }> {
+    await requireRule((p) => p.proCalendar, RULE_MESSAGES.proCalendar);
     const from = parseISODate(options.from ?? "");
     const to = parseISODate(options.to ?? "");
 
@@ -199,9 +219,11 @@ export class CalendarExportService {
     if (from > to) throw badRequest("La fecha de inicio tiene que ser anterior a la de fin");
 
     const em = orm.em.fork();
+    const officeName = (await config()).name;
+    const w = await officeWords();
 
     const professional = await em.findOne(Person, { email: professionalEmail, type: "professional" });
-    if (!professional) throw notFound("No encontramos tu ficha de profesional");
+    if (!professional) throw notFound(`No encontramos tu ficha de ${w.profesional}`);
 
     const appointments = await em.find(
       Appointment,
@@ -216,7 +238,7 @@ export class CalendarExportService {
     const lines: string[] = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Consultorios del Jardin//Agenda//ES",
+      `PRODID:-//${officeName.normalize("NFD").replace(/[\u0300-\u036f]/g, "")}//Agenda//ES`,
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
       // Qué versión de los datos propios lleva el archivo. Sirve el día que cambie lo que
@@ -246,12 +268,12 @@ export class CalendarExportService {
         "BEGIN:VEVENT",
         // Siempre el mismo para el mismo turno: es lo que hace que volver a subir el
         // archivo actualice el evento en vez de crear otro al lado.
-        `UID:turno-${appointment.numAppointment}@consultoriosdeljardin`,
+        `UID:turno-${appointment.numAppointment}@${calendarDomain()}`,
         `DTSTAMP:${dtstamp}`,
         `DTSTART;TZID=${CLINIC_TIMEZONE}:${stamp(appointment.date, appointment.initialHour)}`,
         `DTEND;TZID=${CLINIC_TIMEZONE}:${stamp(appointment.date, appointment.finalHour)}`,
-        fold(`SUMMARY:${escape(summary(appointment, options.withPatientName))}`),
-        fold(`DESCRIPTION:${escape(description(appointment))}`),
+        fold(`SUMMARY:${escape(summary(appointment, options.withPatientName, w))}`),
+        fold(`DESCRIPTION:${escape(description(appointment, officeName, w))}`),
         fold(
           `LOCATION:${escape(
             [appointment.room?.description, appointment.room?.office?.description].filter(Boolean).join(" — ")

@@ -8,6 +8,8 @@ import { sendError } from "../shared/errors.js";
 import { clientChannel } from "../config/clients.js";
 import { describeLockout } from "../config/middlewares.js";
 import { canSeePatient } from "./patientVisibility.js";
+import { officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
 
 dotenv.config();
 
@@ -125,7 +127,7 @@ async function findAllPerTypeActive(req: RequestWithUser, res: Response) {
     // paciente se llevaba el documento y el teléfono de todos los demás. Los profesionales
     // los necesitan para dar turnos; los pacientes no, en ninguna pantalla.
     if (req.params.peopleType === "client" && req.user?.type === "client")
-      return res.status(403).json({ message: "No podés ver la lista de pacientes" });
+      return res.status(403).json({ message: `No podés ver la lista de ${(await officeWords()).pacientes}` });
 
     const people = await peopleService.findAllPerTypeActive(req.params.peopleType, req.user);
     const safeData = people.map((person) => ({ ...person, password: undefined }));
@@ -150,7 +152,8 @@ async function findProfesionalByOffice(req: Request, res: Response) {
     const officeId = Number.parseInt(req.params.officeId);
     const people = await peopleService.findProfesionalByOffice(officeId, req.params.speciality);
     const safeData = people.map((person) => ({ ...person, password: undefined }));
-    res.status(200).json({ message: "Personas profesionales encontradas en el consultorio", data: safeData });
+    const w = await officeWords();
+    res.status(200).json({ message: `Personas ${w.profesionales} encontradas en ${w.el("lugar")}`, data: safeData });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -307,7 +310,11 @@ async function addProfessional(req: RequestWithUser, res: Response) {
 
     const person = await peopleService.createPerson(input, false, { invite: true });
     const safeData = { ...person, password: undefined };
-    res.status(201).json({ message: "Profesional registrado. Le mandamos un mail para que cree su contraseña", data: safeData });
+    const w = await officeWords();
+    res.status(201).json({
+      message: `${w.Profesional} registrad${w.o("profesional")}. Le mandamos un mail para que cree su contraseña`,
+      data: safeData,
+    });
   } catch (error: any) {
     sendError(res, error, { duplicate: "Ya hay una cuenta registrada con ese email" });
   }
@@ -344,7 +351,8 @@ function sendWelcomeProblem(res: Response, error: any) {
 async function professionalPasswords(req: Request, res: Response) {
   try {
     const data = await peopleService.professionalPasswords();
-    return res.status(200).json({ message: "Contraseñas de los profesionales", data });
+    const w = await officeWords();
+    return res.status(200).json({ message: `Contraseñas de ${w.los("profesional")}`, data });
   } catch (error: any) {
     return sendError(res, error);
   }
@@ -421,7 +429,8 @@ async function addAnonymousPatient(req: RequestWithUser, res: Response) {
     // quien carga es lo mismo que un alta, y así se contesta. La pantalla lo usa solo para no
     // ofrecer deshacer un alta que no hizo.
     const safeData = { ...person, password: undefined };
-    res.status(alreadyLoaded ? 200 : 201).json({ message: "Paciente creado con éxito!", data: safeData, alreadyLoaded });
+    const w = await officeWords();
+    res.status(alreadyLoaded ? 200 : 201).json({ message: `${w.Paciente} cread${w.o("paciente")} con éxito!`, data: safeData, alreadyLoaded });
   } catch (error: any) {
     sendError(res, error, { duplicate: "Ya existe una persona con ese email" });
   }
@@ -435,7 +444,8 @@ async function removeAnonymousPatient(req: RequestWithUser, res: Response) {
 
     // `force` es el sí a la segunda pregunta, la que dice que se van también los turnos.
     await peopleService.deleteAnonymousPatient(req.params.email, req.user.email, { force: req.query.force === "1" });
-    res.status(200).json({ message: "Paciente borrado" });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Paciente} borrad${w.o("paciente")}` });
   } catch (error: any) {
     sendError(res, error, { missing: "No encontramos a esa persona" });
   }
@@ -458,7 +468,8 @@ async function changePatientEmail(req: RequestWithUser, res: Response) {
 async function remove(req: Request, res: Response) {
   try {
     await peopleService.deletePerson(req.params.email, { force: req.query.force === "1" });
-    res.status(200).json({ message: "Paciente eliminado" });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Paciente} eliminad${w.o("paciente")}` });
   } catch (error: any) {
     sendError(res, error, { missing: "No encontramos a esa persona" });
   }
@@ -530,14 +541,16 @@ async function toggleState(req: RequestWithUser, res: Response) {
 async function toggleBookable(req: Request, res: Response) {
   try {
     const person = await peopleService.toggleBookable(req.params.email);
+    const w = await officeWords();
     res.status(200).json({
       message: person.bookable
-        ? "El profesional vuelve a aparecer cuando se busca turno"
-        : "El profesional deja de aparecer cuando se busca turno",
+        ? `${w.El("profesional")} vuelve a aparecer cuando se busca ${w.turno}`
+        : `${w.El("profesional")} deja de aparecer cuando se busca ${w.turno}`,
       data: { bookable: person.bookable },
     });
   } catch (error: any) {
-    sendError(res, error, { missing: "Ese profesional no existe" });
+    const w = await officeWords();
+    sendError(res, error, { missing: `${capital(w.ese("profesional"))} no existe` });
   }
 }
 
@@ -552,16 +565,18 @@ async function toggleWaitlist(req: Request, res: Response) {
     const person = await peopleService.toggleWaitlist(req.params.email);
     const closed = person.waitlistEnabled ? 0 : await new WaitlistService().closeForProfessional(person.email);
 
+    const w = await officeWords();
     res.status(200).json({
       message: person.waitlistEnabled
-        ? "El profesional vuelve a trabajar con lista de espera"
+        ? `${w.El("profesional")} vuelve a trabajar con lista de espera`
         : closed > 0
           ? `Se apagó la lista de espera. Les avisamos a las ${closed} personas que estaban`
           : "Se apagó la lista de espera",
       data: { waitlistEnabled: person.waitlistEnabled },
     });
   } catch (error: any) {
-    sendError(res, error, { missing: "Ese profesional no existe" });
+    const w = await officeWords();
+    sendError(res, error, { missing: `${capital(w.ese("profesional"))} no existe` });
   }
 }
 

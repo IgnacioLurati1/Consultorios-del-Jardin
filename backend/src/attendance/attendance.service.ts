@@ -4,6 +4,8 @@ import { ACTIVE_APPOINTMENT_STATES, AppointmentService } from "../appointments/a
 import { AppError, badRequest, conflict, notFound } from "../shared/errors.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
 import { readAttendance } from "./attendance.token.js";
+import { officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
 
 const em = orm.em;
 
@@ -33,7 +35,8 @@ export class AttendanceService {
   private async load(token: string): Promise<Appointment> {
     const read = readAttendance(token);
     if (!read) throw notFound("Este link no es válido. Puede que se haya cortado al copiarlo del mail");
-    if (read.expired) throw new AppError("El turno ya empezó, así que este link dejó de servir", 410);
+    const w = await officeWords();
+    if (read.expired) throw new AppError(`${w.El("turno")} ya empezó, así que este link dejó de servir`, 410);
 
     const appointment = await em.findOne(
       Appointment,
@@ -41,7 +44,7 @@ export class AttendanceService {
       { populate: ["professional", "patient", "room"] }
     );
 
-    if (!appointment || !appointment.patient) throw notFound("Ese turno ya no existe");
+    if (!appointment || !appointment.patient) throw notFound(`${capital(w.ese("turno"))} ya no existe`);
     return appointment;
   }
 
@@ -73,11 +76,14 @@ export class AttendanceService {
 
     const appointment = await this.load(token);
 
-    if (!ACTIVE_APPOINTMENT_STATES.includes(appointment.state)) throw conflict("Este turno ya estaba cancelado");
-    if (appointment.state === "assisted" || appointment.state === "missed") throw conflict("Este turno ya pasó");
+    const w = await officeWords();
+    if (!ACTIVE_APPOINTMENT_STATES.includes(appointment.state))
+      throw conflict(`${capital(w.este("turno"))} ya estaba cancelad${w.o("turno")}`);
+    if (appointment.state === "assisted" || appointment.state === "missed") throw conflict(`${capital(w.este("turno"))} ya pasó`);
 
     if (answer === "yes") {
-      if (appointment.state !== "accepted") throw conflict("Este turno todavía no está confirmado por el profesional");
+      if (appointment.state !== "accepted")
+        throw conflict(`${capital(w.este("turno"))} todavía no está confirmad${w.o("turno")} por ${w.el("profesional")}`);
 
       // Contestar dos veces no cambia la hora: la que vale es la primera.
       if (!appointment.attendanceConfirmedAt) {

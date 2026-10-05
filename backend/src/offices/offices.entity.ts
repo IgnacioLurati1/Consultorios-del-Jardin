@@ -28,6 +28,14 @@ export class Office {
   @Property({ nullable: false, unique: false })
   description!: string
 
+  /**
+   * Calle y número de la sucursal. Con una sola sucursal no hace falta: la dirección es la
+   * del consultorio (ver Installation). Con varias, es la que va en el recordatorio y en la
+   * portada de cada una.
+   */
+  @Property({ nullable: true, length: 160 })
+  address?: string | null = null
+
   @Property({nullable: false})
   active!: boolean
 

@@ -6,6 +6,8 @@ import { Room } from "../rooms/rooms.entity.js";
 import { Office } from "../offices/offices.entity.js";
 import { EntityManager } from "@mikro-orm/mysql";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
 
 const em = orm.em;
 export class ScheduleService {
@@ -67,7 +69,7 @@ export class ScheduleService {
     const selectedRoom = await em.findOne(Room, { idRoom: RoomId }, { populate: ["office"] });
 
     if (!selectedRoom || !selectedRoom.office) {
-      throw notFound("No encontramos la sucursal de ese consultorio");
+      throw notFound(`No encontramos ${(await officeWords()).el("sucursal")} de ${(await officeWords()).ese("sala")}`);
     }
 
     const { openingTime, closingTime } = selectedRoom.office;
@@ -108,7 +110,10 @@ export class ScheduleService {
 
     // Sin este chequeo salia el NotFoundError de MikroORM, en ingles y con el criterio
     // de busqueda adentro. El caso real es simple: el profesional no atiende ahi.
-    if (!schedule) throw notFound(`El profesional no atiende los ${day} a las ${initialHour} en ese consultorio`);
+    if (!schedule) {
+      const w = await officeWords();
+      throw notFound(`${w.El("profesional")} no atiende los ${day} a las ${initialHour} en ${w.ese("lugar")}`);
+    }
 
     return schedule;
   }
@@ -126,7 +131,8 @@ export class ScheduleService {
         initialHour: { $lte: initialHour },
         finalHour: { $gt: initialHour },
       },
-      { populate: ["room"] }
+      // La sucursal también: la grilla se puede anclar a la hora en que abre (ver slotGrid).
+      { populate: ["room", "room.office"] }
     );
   }
 
@@ -158,8 +164,9 @@ export class ScheduleService {
     if (!this.isValidHourRange(data.initialHour, data.finalHour))
       throw badRequest("La hora de fin tiene que ser posterior a la de inicio");
 
+    const w = await officeWords();
     if (!this.isValidDuration(data.duration as number))
-      throw badRequest("Los turnos pueden durar 30, 45 o 60 minutos");
+      throw badRequest(`${w.Los("turno")} pueden durar 30, 45 o 60 minutos`);
 
     // Un profesional deshabilitado conserva los horarios que tenía —siguen ocupando la
     // sala, y hay que poder entrar a borrarlos— pero no se le cargan nuevos. Sería
@@ -167,8 +174,11 @@ export class ScheduleService {
     const personEmail = typeof data.person === "string" ? data.person : (data.person as Person)?.email;
     const person = await em.findOne(Person, { email: personEmail });
 
-    if (!person) throw notFound("No encontramos a ese profesional");
-    if (!person.active) throw forbidden("Ese profesional está deshabilitado. Se le pueden borrar horarios, pero no cargarle nuevos");
+    if (!person) throw notFound(`No encontramos a ${w.ese("profesional")}`);
+    if (!person.active)
+      throw forbidden(
+        `${capital(w.ese("profesional"))} está deshabilitad${w.o("profesional")}. Se le pueden borrar horarios, pero no cargarle nuevos`
+      );
 
     //Validaciones de solapamiento y horario laboral en paralelo
     const [overlapping, existingInRoom, workingHours] = await Promise.all([
@@ -178,16 +188,16 @@ export class ScheduleService {
     ]);
 
     if (overlapping) {
-      throw conflict("Ese profesional ya tiene cargado un horario que se pisa con ese");
+      throw conflict(`${capital(w.ese("profesional"))} ya tiene cargado un horario que se pisa con ese`);
     }
 
     if (existingInRoom) {
-      throw conflict("Ese consultorio ya está ocupado en esa franja");
+      throw conflict(`${capital(w.ese("sala"))} ya está ocupad${w.o("sala")} en esa franja`);
     }
 
     if (workingHours.outside) {
       throw badRequest(
-        `La sucursal atiende de ${workingHours.openingTime} a ${workingHours.closingTime}, así que esa franja queda afuera`
+        `${(await officeWords()).El("sucursal")} atiende de ${workingHours.openingTime} a ${workingHours.closingTime}, así que esa franja queda afuera`
       );
     }
 
@@ -207,7 +217,7 @@ export class ScheduleService {
     if (!schedule) throw new Error("Schedule not found");
 
     if (data.duration !== undefined && !this.isValidDuration(data.duration)) {
-      throw badRequest("Los turnos pueden durar 30, 45 o 60 minutos");
+      throw badRequest(`${(await officeWords()).Los("turno")} pueden durar 30, 45 o 60 minutos`);
     }
 
     em.assign(schedule, data);

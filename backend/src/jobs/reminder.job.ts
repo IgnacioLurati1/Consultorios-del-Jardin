@@ -1,7 +1,8 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { AppointmentService } from "../appointments/appointments.service.js";
 import { orm } from "../shared/db/orm.js";
 import { RequestContext } from "@mikro-orm/core";
+import { policies } from "../installation/installation.service.js";
 
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,6 +20,10 @@ async function executeReminderJob(): Promise<void> {
       await appointmentService
         .notifyTomorrowToProfessionals()
         .catch((error) => console.error("Error avisándole a los profesionales de su día de mañana:", error));
+
+      // Con los recordatorios apagados no sale ninguno. El aviso de arriba, al profesional,
+      // sigue: es otro mail y no le promete nada al paciente.
+      if (!(await policies()).reminders) return;
 
       const appointments = await appointmentService.getAppointmentsForReminder();
 
@@ -42,14 +47,13 @@ async function executeReminderJob(): Promise<void> {
 }
 
 export async function startReminderJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de recordatorios inicializado (cada hora)`);
-
-  // Ejecutar inmediatamente al iniciar (para debugging)
-  console.log(`[${new Date().toISOString()}] Ejecución inmediata del job de recordatorios...`);
-  await executeReminderJob();
-
-  // Luego programar para ejecutarse cada hora
-  cron.schedule("0 * * * *", async () => {
-    await executeReminderJob();
+  await scheduleJob({
+    name: "recordatorios",
+    cron: "0 * * * *",
+    everyMinutes: 60,
+    label: "Tarea de recordatorios programada (cada hora)",
+    run: async () => {
+      await executeReminderJob();
+    },
   });
 }

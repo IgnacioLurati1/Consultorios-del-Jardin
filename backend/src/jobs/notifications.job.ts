@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { NotificationService } from "../notifications/notifications.service.js";
@@ -27,11 +27,13 @@ async function limpiar(): Promise<void> {
 }
 
 export async function startNotificationCleanupJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de limpieza de avisos inicializado (una vez por día)`);
-
-  await limpiar();
-
-  cron.schedule("30 4 * * *", async () => {
-    await limpiar();
+  await scheduleJob({
+    name: "avisos",
+    cron: "30 4 * * *",
+    everyMinutes: 1440,
+    label: "Tarea de limpieza de avisos programada (una vez por dia)",
+    run: async () => {
+      await limpiar();
+    },
   });
 }

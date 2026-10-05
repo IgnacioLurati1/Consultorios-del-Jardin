@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RecurrenceService } from "../recurrences/recurrences.service.js";
 import { orm } from "../shared/db/orm.js";
 import { RequestContext } from "@mikro-orm/core";
@@ -25,12 +25,13 @@ async function executeRecurrenceJob(): Promise<void> {
 }
 
 export async function startRecurrenceJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de turnos repetibles inicializado (cada día a las 03:00)`);
-
-  // Una pasada al arrancar, para que un servidor que estuvo apagado se ponga al día.
-  await executeRecurrenceJob();
-
-  cron.schedule("0 3 * * *", async () => {
-    await executeRecurrenceJob();
+  await scheduleJob({
+    name: "recurrencias",
+    cron: "0 3 * * *",
+    everyMinutes: 1440,
+    label: "Tarea de turnos repetidos programada (una vez por dia)",
+    run: async () => {
+      await executeRecurrenceJob();
+    },
   });
 }

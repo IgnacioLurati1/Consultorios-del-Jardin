@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { badRequest, sendError } from "../shared/errors.js";
 import { AssistantService, type ChatTurn } from "./assistant.service.js";
+import { policies } from "../installation/installation.service.js";
+import { RULE_MESSAGES } from "../installation/rules.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -30,6 +32,11 @@ function cleanHistory(raw: any): ChatTurn[] {
 async function sendAssistantMessage(req: RequestWithUser, res: Response) {
   try {
     if (!ROLES.includes(req.user.type)) throw badRequest("Tu cuenta no puede usar el asistente");
+
+    // Para quién está el asistente lo decide la instalación: apagado, o solo para el equipo.
+    const access = (await policies()).assistant;
+    if (access === "off" || (access === "staff" && req.user.type === "client"))
+      return res.status(403).json({ message: RULE_MESSAGES.assistantOff() });
 
     const message = String(req.body?.message ?? "").trim();
     if (!message) throw badRequest("Escribí una consulta");

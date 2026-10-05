@@ -5,6 +5,8 @@ import { orm } from "../shared/db/orm.js";
 import { Person } from "../people/people.entity.js";
 import { SecurityService } from "../security/security.service.js";
 import { classify } from "../security/sensitiveEndpoints.js";
+import { verifyAccessToken } from "./tokens.js";
+import { cachedWords } from "../installation/installation.service.js";
 
 dotenv.config();
 
@@ -30,13 +32,17 @@ export async function isPersonActive(email: string): Promise<boolean> {
  * deshabilitó la administración, y decirle a alguien "usuario deshabilitado" cuando lo
  * que pasó es que le robaron la contraseña le esconde justo lo que tiene que saber.
  */
-export const COMPROMISED_MESSAGE =
-  "Detectamos actividad que no reconocemos en esta cuenta y la cerramos por seguridad. Es posible que alguien más " +
-  "haya conseguido tu contraseña. Para revisar el caso y volver a habilitarla tenés que hablar con un administrador " +
-  "del consultorio.";
+export function compromisedMessage(): string {
+  const w = cachedWords();
+  return (
+    "Detectamos actividad que no reconocemos en esta cuenta y la cerramos por seguridad. Es posible que alguien más " +
+    "haya conseguido tu contraseña. Para revisar el caso y volver a habilitarla tenés que hablar con un administrador " +
+    `${w.del("lugar")}.`
+  );
+}
 
 export function describeLockout(person: Person): { message: string; code: string } {
-  if (person.banKind === "compromise") return { message: COMPROMISED_MESSAGE, code: "ACCOUNT_COMPROMISED" };
+  if (person.banKind === "compromise") return { message: compromisedMessage(), code: "ACCOUNT_COMPROMISED" };
 
   return { message: "Usuario deshabilitado", code: "USER_DISABLED" };
 }
@@ -48,7 +54,10 @@ export async function verifyToken(req: RequestWithUser, res: Response, next: Nex
   let decodedToken: any;
 
   try {
-    decodedToken = jwt.verify(token, process.env.JWT_SECRET as jwt.Secret);
+    // Verifica además de qué instalación salió el token y para qué puerta sirve, así una
+    // sesión de otro consultorio no entra acá ni con la clave de firma en la mano. Ver
+    // config/tokens.
+    decodedToken = verifyAccessToken(token);
     req.user = decodedToken;
   } catch (error) {
     // Sin registro y sin ruido. Que a alguien se le venza la sesión es lo que tiene que
@@ -122,7 +131,7 @@ async function guardSensitiveAccess(req: RequestWithUser, res: Response): Promis
     if (verdict?.locked) {
       // El mismo texto que va a ver en el login. La request que hizo saltar la regla y
       // todas las que vengan después tienen que contar lo mismo.
-      res.status(403).json({ message: COMPROMISED_MESSAGE, code: "ACCOUNT_COMPROMISED" });
+      res.status(403).json({ message: compromisedMessage(), code: "ACCOUNT_COMPROMISED" });
       return true;
     }
   } catch (error) {

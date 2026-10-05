@@ -31,6 +31,12 @@ const { mockEm } = vi.hoisted(() => ({
 
 mockEm.fork.mockReturnValue(mockEm);
 
+// La configuración de la instalación se lee de la base, y acá la base es un doble genérico.
+// Ver helpers/installationDefaults.
+vi.mock("../installation/installation.service.js", async () =>
+  (await import("./helpers/installationDefaults.js")).installationServiceMock()
+);
+
 vi.mock("../shared/db/orm.js", () => ({
   orm: { em: mockEm },
   syncSchema: vi.fn(),
@@ -100,6 +106,8 @@ import { verifyToken } from "../config/middlewares.js";
 import { PeopleService } from "../people/people.service.js";
 import { ScheduleService } from "../schedule/schedule.service.js";
 import { AppointmentService } from "../appointments/appointments.service.js";
+import { DEFAULT_CONFIG } from "./helpers/installationDefaults.js";
+import { DEFAULT_POLICIES } from "../shared/policies.js";
 import { SettingsService } from "../settings/settings.service.js";
 import { SecurityService } from "../security/security.service.js";
 import { NotificationService } from "../notifications/notifications.service.js";
@@ -1719,6 +1727,156 @@ describe("Integracion: los hechos que llegan a la campanita", () => {
     const claves = avisos().map((a) => a.key);
     expect(claves).toContain("t88:cancelado");
     expect(claves).not.toContain("t88:libre");
+  });
+
+  /*
+   * Las reglas del consultorio sobre quién cancela.
+   *
+   * El doble de la configuración devuelve siempre el mismo objeto, así que cambiar sus
+   * reglas en una prueba las cambia para el servicio. Se devuelven al terminar cada una.
+   */
+  describe("con las reglas del consultorio", () => {
+    afterEach(() => {
+      DEFAULT_CONFIG.policies = DEFAULT_POLICIES;
+    });
+
+    it("si los pacientes no cancelan, la baja del paciente se rechaza y la del profesional no", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, patientCancel: false };
+      const turno = turnoAceptado();
+      mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : turno));
+
+      await expect(appointments.cancelAppointment(88, mockClient.email)).rejects.toThrow("hay que avisarle al consultorio");
+      expect(turno.state).toBe("accepted");
+
+      await appointments.cancelAppointment(88, mockProfessional.email);
+      expect(turno.state).not.toBe("accepted");
+    });
+
+    it("con anticipación mínima, la baja de último momento se rechaza y la que llega con tiempo pasa", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, cancelNoticeHours: 48 };
+      const dentroDeUnRato = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      const cerca = turnoAceptado({
+        date: dentroDeUnRato,
+        initialHour: `${String(dentroDeUnRato.getHours()).padStart(2, "0")}:00`,
+      });
+      mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : cerca));
+      await expect(appointments.cancelAppointment(88, mockClient.email)).rejects.toThrow("48 horas de anticipación");
+
+      const lejos = turnoAceptado({ date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), initialHour: "10:00" });
+      mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockProfessional : lejos));
+      await appointments.cancelAppointment(88, mockClient.email);
+      expect(lejos.state).not.toBe("accepted");
+    });
+
+    it("si los profesionales no cancelan, la baja del profesional se rechaza", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, proCancel: false };
+      const turno = turnoAceptado();
+      mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockClient : turno));
+
+      await expect(appointments.cancelAppointment(88, mockProfessional.email)).rejects.toThrow("no se cancelan desde el panel");
+      expect(turno.state).toBe("accepted");
+    });
+
+    it("si los pacientes no piden turno, el pedido se rechaza antes de tocar la agenda", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, patientBooking: false };
+
+      await expect(
+        appointments.createPatientAppointment(mockClient.email, new Date(Date.now() + 86_400_000), "10:00", mockProfessional.email, 1)
+      ).rejects.toThrow("se piden directamente al consultorio");
+      expect(mockEm.flush).not.toHaveBeenCalled();
+    });
+
+    it("si los profesionales no modifican turnos, el cambio se rechaza", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, proEdit: false };
+
+      await expect(appointments.updateAppointment(88, mockProfessional.email, { value: 1000 })).rejects.toThrow("no se modifican");
+    });
+
+    it("sin recepción, la administración no da turnos", async () => {
+      await expect(
+        appointments.createProfessionalAppointment(new Date(), "10:00", "11:00", 1, 0, mockProfessional.email, undefined, false, true)
+      ).rejects.toThrow("la administración no da");
+    });
+
+    it("con recepción, la administración da turnos aunque los profesionales no puedan", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, adminBooking: true, proCreate: false, proOverbook: false };
+
+      // Puede fallar después por los dobles de la base, pero no por la regla.
+      const error = await appointments
+        .createProfessionalAppointment(new Date(), "10:00", "11:00", 1, 0, mockProfessional.email, undefined, true, true)
+        .then(() => null)
+        .catch((e: Error) => e);
+      expect(error?.message ?? "").not.toMatch(/no se cargan a mano|fuera del horario|la administración no da/);
+    });
+
+    it("con recepción, la administración cancela aunque los profesionales no puedan", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, adminBooking: true, proCancel: false };
+      const turno = turnoAceptado();
+      mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockClient : turno));
+
+      await appointments.cancelAsAdmin(88);
+      expect(turno.state).not.toBe("accepted");
+    });
+
+    it("sin recepción, la administración no cancela", async () => {
+      const turno = turnoAceptado();
+      mockEm.findOne.mockImplementation(async (entidad: any) => ((entidad?.name ?? "") === "Person" ? mockClient : turno));
+
+      await expect(appointments.cancelAsAdmin(88)).rejects.toThrow("la administración no da");
+      expect(turno.state).toBe("accepted");
+    });
+
+    it("si los profesionales no dan turnos fuera de horario, el turno especial se rechaza y el común no", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, proOverbook: false };
+
+      await expect(
+        appointments.createProfessionalAppointment(new Date(), "10:00", "11:00", 1, 0, mockProfessional.email, undefined, true)
+      ).rejects.toThrow("fuera del horario");
+    });
+
+    /** Un `res` de mentira que se queda con lo que le mandaron. */
+    function vacationRes() {
+      const captura: any = {};
+      const res: any = {
+        captura,
+        status(code: number) {
+          captura.code = code;
+          return res;
+        },
+        json(body: any) {
+          captura.body = body;
+          return res;
+        },
+      };
+      return res;
+    }
+
+    it("si las vacaciones las carga la administración, el profesional no carga ni borra las suyas", async () => {
+      DEFAULT_CONFIG.policies = { ...DEFAULT_POLICIES, vacations: "admin" };
+      const { addVacation, removeVacation } = await import("../settings/settings.controller.js");
+
+      const alta = vacationRes();
+      await addVacation({ user: { email: mockProfessional.email }, body: { fromDate: "2026-11-02", toDate: "2026-11-06" } } as any, alta);
+      expect(alta.captura.code).toBe(403);
+      expect(alta.captura.body.message).toMatch("las carga la administración");
+
+      const baja = vacationRes();
+      await removeVacation({ user: { email: mockProfessional.email }, params: { id: "3" } } as any, baja);
+      expect(baja.captura.code).toBe(403);
+      expect(mockEm.flush).not.toHaveBeenCalled();
+    });
+
+    it("si las vacaciones las carga cada profesional, la administración no las toca", async () => {
+      const { adminVacationsRouter } = await import("../settings/vacations.admin.js");
+      // La ruta POST /:email, sin pasar por verifyAdmin, que se prueba aparte.
+      const layer = (adminVacationsRouter as any).stack.find((item: any) => item.route?.path === "/:email" && item.route.methods.post);
+      const handler = layer.route.stack[0].handle;
+
+      const res = vacationRes();
+      await handler({ params: { email: mockProfessional.email }, body: { fromDate: "2026-11-02", toDate: "2026-11-06" } }, res);
+      expect(res.captura.code).toBe(403);
+      expect(res.captura.body.message).toMatch("las carga cada profesional");
+    });
   });
 });
 

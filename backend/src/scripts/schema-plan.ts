@@ -1,54 +1,43 @@
-process.env.TZ = "America/Argentina/Buenos_Aires";
+// La zona del consultorio (ver shared/timezone). Va primero para que todo lo que sigue la use.
+process.env.TZ = (process.env.TIMEZONE ?? "").trim() || "America/Argentina/Buenos_Aires";
 
 import "reflect-metadata";
 import { orm } from "../shared/db/orm.js";
+import { planSchema } from "../shared/db/schema.js";
 
 /**
- * Qué le haría el bootstrap a la base, sin tocarla.
- *
- * `updateSchema` compara el modelo con lo que hay y aplica la diferencia. Sobre una base
- * vacía eso es crear tablas; sobre una con datos de verdad puede ser cualquier cosa,
- * incluida una columna que se va con lo que tenía adentro. Antes de correrlo en el
- * servidor hay que leer qué va a hacer, y para eso está esto: pide exactamente el mismo
- * SQL que ejecutaría el bootstrap y lo imprime.
+ * Qué le falta a la base para coincidir con las entidades, sin tocarla.
  *
  * No abre transacción, no escribe y no crea nada. Se puede correr en producción las veces
- * que haga falta.
- *
- * Qué mirar en la salida:
- *
- * - `alter table ... add column` es lo esperable de una función nueva: agrega y no toca
- *   lo que ya está.
- * - `create table` es una tabla nueva, también esperable.
- * - `drop column`, `drop table` o un `modify` sobre una columna con datos es lo que hay
- *   que frenar y mirar de cerca: ahí se pierde información.
- *
- * Sin diferencias no imprime nada de SQL, que quiere decir que la base ya está al día.
+ * que haga falta. Separa lo que se aplica solo en el próximo deploy (lo que agrega) de lo
+ * que necesita una persona y `npm run schema:apply` (lo que reescribe o borra algo que ya
+ * existe). Ver shared/db/schema.
  */
 async function plan(): Promise<void> {
-  const generator = orm.getSchemaGenerator();
-  const sql = (await generator.getUpdateSchemaSQL()).trim();
+  const { additions, rewrites, removals } = await planSchema();
 
-  if (!sql) {
+  if (additions.length + rewrites.length + removals.length === 0) {
     console.log("La base ya coincide con el modelo. No hay nada que aplicar.");
     return;
   }
 
-  const sentencias = sql
-    .split("\n")
-    .map((linea) => linea.trim())
-    .filter(Boolean);
+  if (additions.length) {
+    console.log(`Se aplica solo en el próximo deploy, porque agrega (${additions.length}):\n`);
+    for (const statement of additions) console.log(`   ${statement};`);
+  }
 
-  const peligrosas = sentencias.filter((linea) => /drop\s+(column|table)|\bmodify\b|\bchange\b/i.test(linea));
+  if (rewrites.length) {
+    console.log(`\n⚠  Reescribe columnas que ya tienen datos (${rewrites.length}):\n`);
+    for (const statement of rewrites) console.log(`   ${statement};`);
+  }
 
-  console.log(`El bootstrap va a ejecutar ${sentencias.length} sentencia(s):\n`);
-  console.log(sql);
+  if (removals.length) {
+    console.log(`\n⚠  Borra algo que ya existe (${removals.length}):\n`);
+    for (const statement of removals) console.log(`   ${statement};`);
+  }
 
-  if (peligrosas.length > 0) {
-    console.log(`\n⚠  ${peligrosas.length} de esas borran o cambian algo que ya existe. Revisalas antes de seguir:\n`);
-    for (const linea of peligrosas) console.log(`   ${linea}`);
-  } else {
-    console.log("\nTodo lo de arriba agrega. No hay nada que borre ni cambie columnas existentes.");
+  if (rewrites.length || removals.length) {
+    console.log("\nEso no se aplica solo. Con un respaldo hecho, `npm run schema:apply` lo muestra y pide confirmar.");
   }
 }
 

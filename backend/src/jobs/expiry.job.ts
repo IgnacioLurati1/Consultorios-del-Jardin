@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { AppointmentService } from "../appointments/appointments.service.js";
 import { orm } from "../shared/db/orm.js";
 import { RequestContext } from "@mikro-orm/core";
@@ -30,11 +30,13 @@ async function expirePending(): Promise<void> {
 }
 
 export async function startExpiryJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de vencimiento de pendientes inicializado (cada hora)`);
-
-  await expirePending();
-
-  cron.schedule("15 * * * *", async () => {
-    await expirePending();
+  await scheduleJob({
+    name: "vencimientos",
+    cron: "15 * * * *",
+    everyMinutes: 60,
+    label: "Tarea de vencimiento de pendientes programada (cada hora)",
+    run: async () => {
+      await expirePending();
+    },
   });
 }

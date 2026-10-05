@@ -3,6 +3,8 @@ import { BouncedEmail } from "./bouncedEmail.entity.js";
 import { Person } from "./people.entity.js";
 import { NotificationService } from "../notifications/notifications.service.js";
 import MailService from "../config/mailer.js";
+import { tokenIssuer } from "../config/tokens.js";
+import { officeWords } from "../installation/installation.service.js";
 import { escapeHtml, note, paragraph, title } from "../config/mailTemplate.js";
 
 /**
@@ -38,6 +40,19 @@ const FIRST_RUN_DAYS = 90;
 
 /** Tope de eventos por vuelta. Un consultorio no rebota cien mails en un mes. */
 const PAGE = 100;
+
+/**
+ * Pregunta solamente por los mails que mandó esta instalación.
+ *
+ * El proveedor contesta los eventos de la cuenta entera. Con una cuenta por consultorio
+ * —que es como tiene que ser— esto no cambia nada. Con una cuenta compartida por un error
+ * de configuración, sin este filtro un consultorio marca como caídas las casillas de otro
+ * y les escribe avisos. La etiqueta la pone el envío, en config/mailer.
+ */
+function onlyOurs(): string {
+  const tag = tokenIssuer();
+  return tag ? `&tags=${encodeURIComponent(tag)}` : "";
+}
 
 /**
  * Cómo dice un servidor de correo que esa casilla no existe.
@@ -85,7 +100,9 @@ export async function fetchBounced(now = new Date(), days = LOOKBACK_DAYS): Prom
   if (!key) return null;
 
   const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-  const url = `${BREVO_EVENTS}?limit=${PAGE}&offset=0&event=hardBounces&startDate=${day(from)}&endDate=${day(now)}`;
+  const url =
+    `${BREVO_EVENTS}?limit=${PAGE}&offset=0&event=hardBounces&startDate=${day(from)}&endDate=${day(now)}` +
+    onlyOurs();
 
   try {
     const response = await fetch(url, { headers: { "api-key": key, accept: "application/json" } });
@@ -134,7 +151,8 @@ async function deliveredAfter(email: string, since: Date, now = new Date()): Pro
 
   const url =
     `${BREVO_EVENTS}?limit=1&offset=0&event=delivered&email=${encodeURIComponent(email)}` +
-    `&startDate=${day(from)}&endDate=${day(now)}`;
+    `&startDate=${day(from)}&endDate=${day(now)}` +
+    onlyOurs();
 
   try {
     const response = await fetch(url, { headers: { "api-key": key, accept: "application/json" } });
@@ -198,16 +216,17 @@ async function warn(em: EntityManager, entry: BouncedEmail): Promise<boolean> {
   });
 
   const mail = new MailService();
+  const w = await officeWords();
   const html = [
     title(subject),
     paragraph(
       missing
-        ? `<strong>${escapeHtml(name)}</strong> no recibe el turno ni el recordatorio. La dirección cargada, ` +
+        ? `<strong>${escapeHtml(name)}</strong> no recibe ${w.el("turno")} ni el recordatorio. La dirección cargada, ` +
             `<strong>${escapeHtml(entry.email)}</strong>, no existe.`
-        : `<strong>${escapeHtml(name)}</strong> no recibe el turno ni el recordatorio. La dirección ` +
+        : `<strong>${escapeHtml(name)}</strong> no recibe ${w.el("turno")} ni el recordatorio. La dirección ` +
             `<strong>${escapeHtml(entry.email)}</strong> existe, pero los mensajes vuelven sin entregarse.`
     ),
-    note(missing ? "Se corrige desde su ficha, en la lista de pacientes." : "Conviene avisarle por teléfono y confirmar la dirección."),
+    note(missing ? `Se corrige desde su ficha, en la lista de ${w.pacientes}.` : "Conviene avisarle por teléfono y confirmar la dirección."),
   ].join("");
 
   await mail.sendMail(await mail.createMessage(loader.email, subject, html));

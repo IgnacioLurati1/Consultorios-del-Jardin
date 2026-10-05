@@ -1,6 +1,34 @@
 import { orm } from "./db/orm.js";
 import { Room } from "../rooms/rooms.entity.js";
 
+/** La sucursal de un consultorio, para decir dónde es un turno. */
+export interface BranchInfo {
+  name: string;
+  address: string | null;
+  city: string;
+}
+
+/**
+ * La sucursal donde queda un consultorio, con su dirección.
+ *
+ * Para los mails de una instalación con varias sucursales: con una sola no se pregunta,
+ * porque la dirección es la del consultorio. Nunca falla: sin dato, null.
+ */
+export async function branchOf(room: unknown): Promise<BranchInfo | null> {
+  const idRoom = (room as Room | null)?.idRoom;
+  if (!idRoom) return null;
+
+  try {
+    const found = await orm.em.fork().findOne(Room, { idRoom }, { populate: ["office", "office.city"] });
+    const office = found?.office;
+    if (!office) return null;
+    return { name: office.description, address: office.address ?? null, city: office.city?.nameCity ?? "" };
+  } catch (error) {
+    console.error("No se pudo leer la sucursal del turno:", error);
+    return null;
+  }
+}
+
 /**
  * El consultorio de un turno, por su nombre, para los mails.
  *

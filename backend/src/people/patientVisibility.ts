@@ -3,6 +3,7 @@ import { orm } from "../shared/db/orm.js";
 import type { Person } from "./people.entity.js";
 import { PatientAccess } from "./patientAccess.entity.js";
 import { notFound } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
 
 interface Viewer {
   email: string;
@@ -57,5 +58,5 @@ export async function visiblePatientsFilter(viewer: Viewer): Promise<FilterQuery
  */
 export async function assertCanSeePatient(person: Patient, professionalEmail: string, em?: EntityManager): Promise<void> {
   if (!(await canSeePatient(person, { email: professionalEmail, type: "professional" }, em)))
-    throw notFound("No encontramos a ese paciente");
+    throw notFound(`No encontramos a ${(await officeWords()).ese("paciente")}`);
 }

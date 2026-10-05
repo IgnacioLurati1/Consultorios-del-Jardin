@@ -6,7 +6,8 @@ import { classify, type WatchedAction } from "./sensitiveEndpoints.js";
 import { startOfDay } from "../shared/dates.js";
 import MailService from "../config/mailer.js";
 import { button, escapeHtml, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
-import { SHORT_NOTICE_HOURS, hoursOfNotice } from "../shared/shortNotice.js";
+import { hoursOfNotice } from "../shared/shortNotice.js";
+import { cachedWords, config, officeWords } from "../installation/installation.service.js";
 import { NotificationService } from "../notifications/notifications.service.js";
 
 const em = orm.em;
@@ -229,11 +230,12 @@ export class SecurityService {
 
     // El orden importa: si saltaron las dos, la ráfaga es la más específica y la que
     // describe mejor lo que pasó, pero lo que se borra sigue siendo el día entero.
+    const w = await officeWords();
     const triggered =
       burst > BURST_LIMIT
-        ? { reason: `Sacó ${burst} turnos en menos de un minuto`, since: today >= DAILY_LIMIT ? dayFrom : burstFrom }
+        ? { reason: `Sacó ${burst} ${w.turnos} en menos de un minuto`, since: today >= DAILY_LIMIT ? dayFrom : burstFrom }
         : today >= DAILY_LIMIT
-          ? { reason: `Sacó ${today} turnos en el mismo día`, since: dayFrom }
+          ? { reason: `Sacó ${today} ${w.turnos} en el mismo día`, since: dayFrom }
           : null;
 
     if (!triggered) return null;
@@ -294,10 +296,13 @@ export class SecurityService {
       { populate: ["patient"], fields: ["date", "initialHour", "patientCancelledAt", "patient"] }
     );
 
+    // El umbral es el de la instalación: lo que el consultorio llama "avisó tarde".
+    const shortNoticeHours = (await config()).shortNoticeHours;
+
     for (const appointment of lateRows) {
       const patient = appointment.patient;
       if (!patient || !appointment.patientCancelledAt) continue;
-      if (hoursOfNotice(appointment.date, appointment.initialHour, appointment.patientCancelledAt) >= SHORT_NOTICE_HOURS)
+      if (hoursOfNotice(appointment.date, appointment.initialHour, appointment.patientCancelledAt) >= shortNoticeHours)
         continue;
 
       entryFor(patient).lateCancels += 1;
@@ -358,7 +363,7 @@ export class SecurityService {
         minMissed: SUSPICION_MIN_MISSED,
         ratePercent: Math.round(SUSPICION_RATE * 100),
         minLateCancels: SUSPICION_MIN_LATE_CANCELS,
-        shortNoticeHours: SHORT_NOTICE_HOURS,
+        shortNoticeHours: (await config()).shortNoticeHours,
       },
     };
   }
@@ -449,8 +454,9 @@ export class SecurityService {
       const night = points(startOfDay(now));
 
       if (night >= nightLimit) {
+        const w = await officeWords();
         const reason =
-          "Actividad sobre cuentas y datos ajenos de madrugada, con el consultorio cerrado. Suma " +
+          `Actividad sobre cuentas y datos ajenos de madrugada, con ${w.el("lugar")} cerrad${w.o("lugar")}. Suma ` +
           night +
           " puntos en operaciones distintas desde las 00:00 (el límite para " +
           describeRole(role) +
@@ -720,7 +726,7 @@ export class SecurityService {
             "cambiá la contraseña de tu correo antes que nada."
         ) +
         note(
-          "Para volver a habilitar la cuenta tenés que hablar con un administrador del consultorio. " +
+          `Para volver a habilitar la cuenta tenés que hablar con un administrador ${(await officeWords()).del("lugar")}. ` +
             "No te vamos a pedir nunca la contraseña por mail, ni por este ni por ninguno."
         );
 
@@ -797,8 +803,9 @@ export class SecurityService {
 /** Cómo se nombra un tipo de cuenta dentro de un motivo escrito para una persona. */
 function describeRole(role: string): string {
   if (role === "admin") return "un administrador";
-  if (role === "professional") return "un profesional";
-  if (role === "client") return "un paciente";
+  const w = cachedWords();
+  if (role === "professional") return w.un("profesional");
+  if (role === "client") return w.un("paciente");
   return "esa clase de cuenta";
 }
 

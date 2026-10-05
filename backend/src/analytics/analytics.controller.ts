@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AnalyticsService } from "./analytics.service.js";
 import { sendError } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -11,7 +12,8 @@ const analyticsService = new AnalyticsService();
 /** Sus propios números. El profesional no ve los de nadie más. */
 async function getMyAnalytics(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta vista es solo para profesionales" });
+    if (req.user.type !== "professional")
+      return res.status(403).json({ message: `Esta vista es solo para ${(await officeWords()).profesionales}` });
 
     const data = await analyticsService.forProfessional(req.user.email);
     res.status(200).json({ data });

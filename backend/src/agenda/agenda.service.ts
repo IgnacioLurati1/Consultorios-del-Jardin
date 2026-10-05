@@ -6,12 +6,13 @@ import { Room } from "../rooms/rooms.entity.js";
 import { Schedule } from "../schedule/schedules.entity.js";
 import { badRequest } from "../shared/errors.js";
 import { addDays, dayName, startOfDay, toISODate } from "../shared/dates.js";
+import { LIVE_APPOINTMENT_STATES, isCancelledState } from "../shared/appointmentStates.js";
 
 const em = orm.em;
 
 /** Cancelar escribe un ISO timestamp en `state`: un estado que no está acá es cancelado. */
-const LIVE_STATES = ["pending", "accepted", "assisted", "missed"];
-const isCancelled = (state: string) => !LIVE_STATES.includes(state);
+const LIVE_STATES = LIVE_APPOINTMENT_STATES;
+const isCancelled = isCancelledState;
 
 /** Si no hay sucursales cargadas, la grilla igual tiene que dibujarse con algo. */
 const DEFAULT_OPENING = "08:00";

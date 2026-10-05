@@ -45,11 +45,15 @@ const clientUrl = resolveClientUrl()
 
 /**
  * Sin conexión configurada, MikroORM cae en localhost y el servidor muere con un
- * "connect ECONNREFUSED 127.0.0.1:3306" que no dice qué falta. Desplegado eso no es un
- * descuido recuperable: es que nadie cargó la variable, y conviene decirlo con esas
- * palabras. En local se deja pasar, porque ahí localhost es exactamente lo que se quiere.
+ * "connect ECONNREFUSED 127.0.0.1:3306" que no dice qué falta. Es que nadie cargó la
+ * variable, y conviene decirlo con esas palabras.
+ *
+ * Antes esto solo frenaba el arranque en producción, y fuera de producción se conectaba a
+ * `gardenOfficedb` sin decir nada. Con varias instalaciones del mismo código eso es una
+ * trampa: un clon mal configurado escribe en la base de otro consultorio y lo descubrís
+ * cuando aparecen turnos que no son. Ahora falta la variable y no arranca, siempre.
  */
-if (!clientUrl && process.env.NODE_ENV === 'production') {
+if (!clientUrl) {
     // Los nombres de lo que sí llegó, nunca los valores: alcanzan para ver si la variable
     // está y se llama distinto, o si directamente no está, y no arrastran la contraseña
     // a un registro que queda guardado.
@@ -81,7 +85,7 @@ if (!clientUrl && process.env.NODE_ENV === 'production') {
 export const orm = await MikroORM.init({
     entities: ['dist/**/*.entity.js'],
     entitiesTs: ['src/**/*.entity.ts'],
-    ...(clientUrl ? { clientUrl } : { dbName: 'gardenOfficedb' }),
+    clientUrl,
     driver: MySqlDriver,
     highlighter: new SqlHighlighter(),
     // Cada consulta con sus valores, que en este sistema son nombres, emails y horarios
@@ -96,11 +100,5 @@ export const orm = await MikroORM.init({
     },
 })
 
-export const syncSchema = async () => {
-  const generator = orm.getSchemaGenerator()
-  /*   
-  await generator.dropSchema()
-  await generator.createSchema()
-  */
-  await generator.updateSchema()
-}
+// Los cambios de esquema no van acá: están en ./schema.ts, separados entre lo que agrega
+// (se aplica solo) y lo que borra o reescribe (pide confirmación escrita).

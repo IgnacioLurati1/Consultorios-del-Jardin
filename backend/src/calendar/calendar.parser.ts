@@ -1,3 +1,4 @@
+import { CLINIC_TIMEZONE } from "../shared/timezone.js";
 import ICAL from "ical.js";
 import AdmZip from "adm-zip";
 import { badRequest } from "../shared/errors.js";
@@ -26,7 +27,7 @@ import { badRequest } from "../shared/errors.js";
  * se lee en la pared. Convertir de uno al otro necesita una zona, y si esa zona fuera la
  * del proceso, mover el servidor de región correría todos los turnos importados.
  */
-export const CLINIC_TIMEZONE = "America/Argentina/Buenos_Aires";
+export { CLINIC_TIMEZONE };
 
 /**
  * Techos para no quedarse sin memoria con un archivo enorme.

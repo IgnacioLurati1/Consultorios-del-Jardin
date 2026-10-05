@@ -1,25 +1,45 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("../shared/db/orm.js", () => ({ orm: { em: { fork: () => ({}) } } }));
+
 import { buildAssistantPrompt } from "../assistant/assistant.prompt.js";
 import { toolsFor } from "../assistant/assistant.tools.js";
+import type { OfficeInfo } from "../assistant/assistant.catalog.js";
+import { DEFAULT_POLICIES } from "../shared/policies.js";
 
 // ============================================================
 // El asistente y los alquileres.
 //
 // No sabía que existían: a "¿quién debe alquiler?" contestaba que de eso no sabía, o lo
 // mezclaba con lo cobrado por turnos. Son cosas del admin, igual que la pantalla, y al
-// profesional solo se le indica que eso lo ve la administración.
+// profesional solo se le indica que eso lo ve la administración. Con el módulo de
+// alquileres apagado (regla rentModule), no aparecen para nadie.
 // ============================================================
 
+const JARDIN: OfficeInfo = {
+  name: "Consultorios del Jardín",
+  address: "9 de Julio 3672",
+  hours: "Lunes a viernes, de 9 a 20",
+  mail: "hola@ejemplo.com",
+  instagram: "@consultorios_jardin",
+  specialities: ["Psicología"],
+  tone: "voseo",
+  notes: "",
+};
+
+const SIN_ALQUILERES = { ...DEFAULT_POLICIES, rentModule: false };
+
 const RENT_TOOLS = ["get_rent_month", "get_rent_detail", "get_room_prices", "register_rent_payment"];
-const names = (role: "client" | "professional" | "admin", pending = false) =>
-  toolsFor(role, pending).map((tool) => tool.function!.name);
-const prompt = (role: "client" | "professional" | "admin") => buildAssistantPrompt(role, "Ana", [], "lunes 5/10/2026");
+const names = (role: "client" | "professional" | "admin", pending = false, p = DEFAULT_POLICIES) =>
+  toolsFor(role, pending, [], p).map((tool) => tool.function!.name);
+const prompt = (role: "client" | "professional" | "admin", policies = DEFAULT_POLICIES) =>
+  buildAssistantPrompt(role, "Ana", [], "lunes 5/10/2026", { ...JARDIN, policies });
 
 describe("alquileres en el asistente", () => {
   it("el admin tiene las herramientas y la guía", () => {
     expect(names("admin")).toEqual(expect.arrayContaining(RENT_TOOLS));
     expect(prompt("admin")).toContain("ALQUILERES");
-    expect(prompt("admin")).toContain("Hablás de turnos, profesionales, alquileres,");
+    expect(prompt("admin")).toContain("profesionales, alquileres,");
   });
 
   it("el profesional y el paciente no las tienen, ni la guía", () => {
@@ -44,5 +64,11 @@ describe("alquileres en el asistente", () => {
     for (const tool of rent) {
       expect(Object.keys((tool.function!.parameters as any).properties)).not.toContain("professionalEmail");
     }
+  });
+
+  it("con el módulo de alquileres apagado, ni las herramientas ni la guía", () => {
+    expect(names("admin", false, SIN_ALQUILERES).filter((name) => RENT_TOOLS.includes(name))).toEqual([]);
+    expect(prompt("admin", SIN_ALQUILERES)).not.toContain("ALQUILERES");
+    expect(prompt("professional", SIN_ALQUILERES)).not.toContain("eso lo ve la administración");
   });
 });

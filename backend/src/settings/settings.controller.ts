@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { SettingsService } from "./settings.service.js";
 import { sendError } from "../shared/errors.js";
+import { cachedWords, officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
+import { RULE_MESSAGES, requireRule } from "../installation/rules.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -10,7 +13,8 @@ const settingsService = new SettingsService();
 
 /** Todo lo de este módulo es un profesional configurando lo suyo. */
 export function onlyProfessional(req: RequestWithUser, res: Response, next: NextFunction) {
-  if (req.user?.type !== "professional") return res.status(403).json({ message: "Esta configuración es solo para profesionales" });
+  if (req.user?.type !== "professional")
+    return res.status(403).json({ message: `Esta configuración es solo para ${cachedWords().profesionales}` });
   next();
 }
 
@@ -59,12 +63,13 @@ export async function acceptPending(req: RequestWithUser, res: Response) {
 export async function settleUnpaid(req: RequestWithUser, res: Response) {
   try {
     const { settled, amount } = await settingsService.settleUnpaid(req.user.email);
+    const w = await officeWords();
 
     res.status(200).json({
       message:
         settled === 0
           ? "No tenias nada sin cobrar"
-          : `Diste por cobrados ${settled} turnos${amount > 0 ? `, $${amount}` : ""}`,
+          : `Diste por cobrad${w.os("turno")} ${settled} ${w.turnos}${amount > 0 ? `, $${amount}` : ""}`,
       data: { settled, amount },
     });
   } catch (error: any) {
@@ -74,6 +79,7 @@ export async function settleUnpaid(req: RequestWithUser, res: Response) {
 
 export async function addVacation(req: RequestWithUser, res: Response) {
   try {
+    await requireRule((p) => p.vacations !== "admin", RULE_MESSAGES.proVacations);
     const { fromDate, toDate, reason } = req.body;
     const vacation = await settingsService.addVacation(req.user.email, fromDate, toDate, reason);
 
@@ -88,6 +94,7 @@ export async function removeVacation(req: RequestWithUser, res: Response) {
     const id = Number.parseInt(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ message: "No sabemos qué período borrar" });
 
+    await requireRule((p) => p.vacations !== "admin", RULE_MESSAGES.proVacations);
     await settingsService.removeVacation(req.user.email, id);
     res.status(200).json({ message: "Período borrado" });
   } catch (error: any) {
@@ -99,9 +106,13 @@ export async function deletePatientAppointments(req: RequestWithUser, res: Respo
   try {
     const scope = req.query.scope === "all" ? "all" : "future";
     const result = await settingsService.deletePatientAppointments(req.user.email, req.params.email, scope);
+    const w = await officeWords();
 
     res.status(200).json({
-      message: result.deleted === 0 ? "Ese paciente no tenía turnos para borrar" : `Se borraron ${result.deleted} turnos`,
+      message:
+        result.deleted === 0
+          ? `${capital(w.ese("paciente"))} no tenía ${w.turnos} para borrar`
+          : `Se borraron ${result.deleted} ${w.turnos}`,
       data: result,
     });
   } catch (error: any) {

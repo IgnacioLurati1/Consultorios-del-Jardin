@@ -30,18 +30,14 @@ npm install
 
 ## Variables de entorno
 
-Crear un archivo `.env` en `backend/` con:
+Copiar `backend/.env.example` a `backend/.env` y completarlo. Cada variable está explicada ahí.
 
-```env
-GROQ_API_KEY=
-BREVO_KEY=
-JWT_SECRET=
-DB_HOST=
-DB_PORT=
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-```
+En producción el servidor no arranca si falta una obligatoria, si dos claves de firma son iguales o
+si alguna es más corta de 32 caracteres (`src/config/envCheck.ts`). El error dice qué falta sin
+imprimir ningún valor.
+
+El mismo código corre en más de un consultorio, una instalación por cliente. Ninguna clave se
+comparte entre instalaciones: ver la sección "Una instalación por consultorio" de `.env.example`.
 
 ## Comandos
 
@@ -52,13 +48,20 @@ npm run start:dev    # Modo desarrollo (watch + auto-restart)
 
 El servidor corre en `http://localhost:3000`.
 
-> **Nota:** `syncSchema()` está activo en `app.ts` — sincroniza el esquema de la base de datos automáticamente. Desactivar antes de producción.
+> **El esquema.** Nada del código borra la base sin que una persona lo confirme (ver
+> `backend/src/shared/db/schema.ts`). Lo que agrega (tablas y columnas nuevas) se aplica solo: al
+> arrancar en local y con `npm run deploy:migrate`, que es lo que corre Railway antes de cada
+> despliegue (`preDeployCommand` en `railway.json`). Lo que borra o reescribe una columna que ya
+> existe no se aplica nunca solo: `npm run schema:plan` lo muestra y `npm run schema:apply` lo
+> aplica, con un respaldo hecho y el nombre de la base escrito como confirmación
+> (`npm run schema:apply -- --confirmar=<base>`). `schemaSafety.test.ts` falla si aparece en el
+> código un `dropSchema`, un `updateSchema` fuera de ese módulo o un `drop database`, aunque sea
+> comentado.
 
 ## Documentación
 
 - **[Endpoints API](docs/ENDPOINTS.md)** — Referencia completa de todos los endpoints
 - **[Asistente IA Groq](docs/GROQ_AI.md)** — Detalle de la implementación y próximos pasos
-- **[Reset de la base](backend/docs/reset-db.sql)** — Recrear el esquema desde cero
 
 ## Roles de usuario
 

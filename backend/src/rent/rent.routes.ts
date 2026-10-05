@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { policies } from "../installation/installation.service.js";
+import { RULE_MESSAGES } from "../installation/rules.js";
 import {
   exportMonth,
   getCalculation,
@@ -19,6 +21,16 @@ import {
  * detrás de verifyAdmin (ver app.ts).
  */
 export const rentRouter = Router();
+
+/**
+ * Con los alquileres apagados en esta instalación, la sección no existe.
+ *
+ * La pantalla ya no la muestra; esto es para el pedido que no viene de ella.
+ */
+rentRouter.use(async (_req, res, next) => {
+  if (!(await policies()).rentModule) return res.status(404).json({ message: RULE_MESSAGES.rentOff() });
+  next();
+});
 
 /**
  * @swagger

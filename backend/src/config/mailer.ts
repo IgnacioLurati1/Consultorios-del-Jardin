@@ -1,12 +1,40 @@
 import dotenv from "dotenv";
 import { shell, toPlainText } from "./mailTemplate.js";
+import { config } from "../installation/installation.service.js";
+import { tokenIssuer } from "./tokens.js";
 
 dotenv.config();
 
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
-/** Cómo firma el consultorio sus mails en la bandeja de entrada. */
-const SENDER_NAME = "Consultorios del Jardín";
+/**
+ * Cómo firma el consultorio sus mails en la bandeja de entrada.
+ *
+ * La variable manda si está: el remitente lo verifica el proveedor de correo, y conviene
+ * que lo que figura en la bandeja no cambie porque alguien editó el nombre en el panel. Sin
+ * la variable, el nombre de la configuración de la instalación.
+ */
+async function senderName(): Promise<string> {
+  const fixed = (process.env.MAIL_SENDER_NAME ?? "").trim();
+  if (fixed) return fixed;
+  try {
+    return (await config()).name;
+  } catch {
+    return "Consultorios del Jardín";
+  }
+}
+
+/**
+ * Cada mail sale etiquetado con la instalación que lo mandó.
+ *
+ * La cuenta del proveedor tiene que ser una por cliente, y eso es lo que de verdad separa
+ * un consultorio de otro. La etiqueta es la segunda red: la lectura de rebotes pregunta
+ * por los eventos de la cuenta entera, así que si alguna vez dos instalaciones terminan
+ * compartiendo una clave, al menos cada una mira solo lo suyo. Ver people/mailBounces.
+ */
+function mailTag(): string | null {
+  return tokenIssuer() || null;
+}
 
 /** Un archivo que viaja con el mail, con el contenido en base64 como lo pide Brevo. */
 export interface MailAttachment {
@@ -60,12 +88,13 @@ export default class MailService {
         method: "POST",
         headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({
-          sender: { name: SENDER_NAME, email: msg.from },
+          sender: { name: await senderName(), email: msg.from },
           to: [{ email: to }],
           replyTo: { email: msg.replyTo },
           subject,
           htmlContent: msg.html,
           textContent: msg.text,
+          ...(mailTag() ? { tags: [mailTag() as string] } : {}),
           ...(msg.attachments?.length ? { attachment: msg.attachments } : {}),
         }),
       });
@@ -102,7 +131,23 @@ export default class MailService {
     htmlContent: string,
     options: { replyTo?: string; attachments?: MailAttachment[] } = {}
   ): Promise<MailMessage> {
-    const html = shell(htmlContent, { baseUrl: process.env.BASE_URL, mail: process.env.MAIL });
+    // Los datos del sobre salen de la configuración. Si la base no contesta, el mail sale
+    // igual con los de siempre: un recordatorio que no se manda es peor que un pie viejo.
+    const identity = await config()
+      .then((c) => ({
+        name: c.name,
+        address: c.address,
+        publicHours: c.publicHours,
+        instagram: c.instagram,
+        phone: c.phone,
+        whatsapp: c.whatsapp,
+        services: c.services,
+        brand: c.brandHue !== null && c.brandSaturation !== null ? { hue: c.brandHue, saturation: c.brandSaturation } : null,
+        headerColor: c.elementColors?.mail ?? null,
+      }))
+      .catch(() => undefined);
+
+    const html = shell(htmlContent, { baseUrl: process.env.BASE_URL, mail: process.env.MAIL, identity });
 
     return {
       to,

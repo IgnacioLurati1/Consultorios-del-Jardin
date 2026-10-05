@@ -23,6 +23,12 @@ const { mockEm } = vi.hoisted(() => ({
 
 mockEm.fork.mockReturnValue(mockEm);
 
+// La configuración de la instalación se lee de la base, y acá la base es un doble genérico.
+// Ver helpers/installationDefaults.
+vi.mock("../installation/installation.service.js", async () =>
+  (await import("./helpers/installationDefaults.js")).installationServiceMock()
+);
+
 vi.mock("../shared/db/orm.js", () => ({
   orm: { em: mockEm },
   syncSchema: vi.fn(),

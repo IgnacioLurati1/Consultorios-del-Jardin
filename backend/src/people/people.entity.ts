@@ -1,4 +1,5 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
+import { BeforeCreate, BeforeUpdate, Entity, PrimaryKey, Property } from "@mikro-orm/core";
+import { properName } from "../shared/names.js";
 
 @Entity()
 export class Person {
@@ -16,6 +17,20 @@ export class Person {
 
   @Property({ nullable: false, unique: false })
   surname!: string;
+
+  /**
+   * Las mayúsculas del nombre y el apellido, cada vez que se guarda la persona.
+   *
+   * Va acá y no en cada alta porque las personas entran por muchos lados (registro, alta
+   * de un profesional, paciente sin cuenta, edición del perfil, la consola) y alcanza con
+   * que uno se olvide para que vuelvan los nombres en minúscula. Ver shared/names.
+   */
+  @BeforeCreate()
+  @BeforeUpdate()
+  normalizeNames(): void {
+    if (this.name) this.name = properName(this.name);
+    if (this.surname) this.surname = properName(this.surname);
+  }
 
   @Property({ nullable: false, unique: false })
   phoneNumber!: string;

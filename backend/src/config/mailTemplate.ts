@@ -1,3 +1,5 @@
+import { MAX_LIGHT, readableBackground } from "../shared/elementColors.js";
+
 /**
  * Cómo se ven los mails del consultorio.
  *
@@ -28,11 +30,73 @@ const SANS = "'Segoe UI', Helvetica, Arial, sans-serif";
 /** En la web los títulos van en Fraunces; en el correo no hay webfonts, así que serif. */
 const SERIF = "Georgia, 'Times New Roman', serif";
 
-const OFFICE = {
+/**
+ * Los datos del consultorio que van en el sobre.
+ *
+ * Llegan de la configuración de la instalación (ver config/mailer, que los pasa). Estos de
+ * acá son los de siempre, para cuando se arma un mail sin configuración a mano, como en una
+ * prueba.
+ */
+export interface MailIdentity {
+  name: string;
+  address: string;
+  publicHours: string;
+  instagram: string;
+  /** El teléfono y el WhatsApp que se publican. Vacíos o sin cargar, no salen. */
+  phone?: string;
+  whatsapp?: string;
+  services: string[];
+  /** El color de la marca. Sin él, el verde de siempre. */
+  brand: { hue: number; saturation: number } | null;
+  /** El color propio de la cabecera, si el consultorio eligió uno. Ver shared/elementColors. */
+  headerColor?: string | null;
+}
+
+export const DEFAULT_MAIL_IDENTITY: MailIdentity = {
+  name: "Consultorios del Jardín",
   address: "9 de Julio 3672",
-  hours: "Lunes a viernes, de 9 a 20",
+  publicHours: "Lunes a viernes, de 9 a 20",
   instagram: "consultorios_jardin",
+  services: ["Psicología", "Psicopedagogía", "Psiquiatría", "Nutrición", "Fonoaudiología"],
+  brand: null,
 };
+
+function hslToHex(hue: number, saturation: number, lightness: number): string {
+  const s = Math.max(0, Math.min(100, saturation)) / 100;
+  const l = Math.max(0, Math.min(100, lightness)) / 100;
+  const k = (n: number) => (n + hue / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const hex = (x: number) =>
+    Math.round(x * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`;
+}
+
+/**
+ * Pasa el mail al color de la marca.
+ *
+ * Se hace sobre el HTML terminado y no en cada pieza porque el verde no está solo en las
+ * piezas de este archivo: varios mails escriben `color:#2f5e46` a mano en un link. Así
+ * entra todo de una vez, y sin marca el mail sale idéntico al de siempre.
+ *
+ * La crema del pie y los colores de aviso no cambian: no son de la marca, son de lo que
+ * dicen.
+ */
+function rebrand(html: string, brand: MailIdentity["brand"]): string {
+  if (!brand) return html;
+
+  const { hue, saturation } = brand;
+  const swaps: Array<[string, string]> = [
+    [C.green, hslToHex(hue, saturation, 35)],
+    [C.greenDark, hslToHex(hue, saturation, 28)],
+    [C.greenSoft, hslToHex(hue, saturation * 0.7, 93)],
+    ["#cfe3d6", hslToHex(hue, saturation * 0.6, 85)],
+  ];
+
+  return swaps.reduce((out, [from, to]) => out.split(from).join(to).split(from.toUpperCase()).join(to), html);
+}
 
 /** Todo lo que escribió una persona pasa por acá antes de entrar al HTML. */
 export function escapeHtml(value: string): string {
@@ -233,16 +297,38 @@ export function warning(html: string): string {
  * El pie no es decoración. Quien recibe un recordatorio de turno necesita la dirección
  * y el horario ahí mismo, sin volver a la página.
  */
-export function shell(content: string, office: { baseUrl?: string; mail?: string } = {}): string {
+export function shell(
+  content: string,
+  office: { baseUrl?: string; mail?: string; identity?: MailIdentity } = {}
+): string {
   const site = office.baseUrl || "#";
   const mail = office.mail ?? "";
+  const who = office.identity ?? DEFAULT_MAIL_IDENTITY;
+  const name = escapeHtml(who.name);
+  const instagram = who.instagram.replace(/^@/, "");
 
-  return `<!DOCTYPE html>
+  const phone = (who.phone ?? "").trim();
+  const whatsapp = (who.whatsapp ?? "").replace(/\D/g, "");
+
+  // El renglón de contacto del pie, con lo que haya: un consultorio sin Instagram no
+  // muestra un link roto.
+  const contact = [
+    phone ? `<a href="tel:${escapeHtml(phone.replace(/[^\d+]/g, ""))}" style="color:${C.greenDark}">${escapeHtml(phone)}</a>` : "",
+    whatsapp ? `<a href="https://wa.me/${whatsapp}" style="color:${C.greenDark}">WhatsApp</a>` : "",
+    mail ? `<a href="mailto:${escapeHtml(mail)}" style="color:${C.greenDark}">${escapeHtml(mail)}</a>` : "",
+    instagram
+      ? `<a href="https://instagram.com/${encodeURIComponent(instagram)}" style="color:${C.greenDark}">@${escapeHtml(instagram)}</a>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return rebrand(`<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Consultorios del Jardín</title>
+  <title>${name}</title>
 </head>
 <body style="margin:0;padding:0;background:${C.paper};-webkit-font-smoothing:antialiased">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${C.paper}">
@@ -252,9 +338,15 @@ export function shell(content: string, office: { baseUrl?: string; mail?: string
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:560px;max-width:100%;background:#ffffff;border:1px solid ${C.border};border-radius:14px;overflow:hidden;font-family:${SANS}">
 
           <tr>
-            <td style="padding:24px 30px;background:${C.green}">
-              <p style="margin:0;font-family:${SERIF};font-size:21px;color:${C.cream};letter-spacing:0.01em">Consultorios del Jardín</p>
-              <p style="margin:4px 0 0;font-size:12px;color:#cfe3d6;letter-spacing:0.08em;text-transform:uppercase">Psicopedagogía · Psicología · Psiquiatría · Nutrición · Fonoaudiología</p>
+            <td style="padding:24px 30px;background:${who.headerColor ? readableBackground(who.headerColor, MAX_LIGHT.mail) : C.green}">
+              <p style="margin:0;font-family:${SERIF};font-size:21px;color:${C.cream};letter-spacing:0.01em">${name}</p>
+              ${
+                who.services.length
+                  ? `<p style="margin:4px 0 0;font-size:12px;color:#cfe3d6;letter-spacing:0.08em;text-transform:uppercase">${who.services
+                      .map(escapeHtml)
+                      .join(" · ")}</p>`
+                  : ""
+              }
             </td>
           </tr>
 
@@ -267,12 +359,10 @@ export function shell(content: string, office: { baseUrl?: string; mail?: string
           <tr>
             <td style="padding:20px 30px 24px;background:${C.cream};border-top:1px solid #efe7c4">
               <p style="margin:0 0 6px;font-size:13px;line-height:1.7;color:${C.greenDark}">
-                <strong>${OFFICE.address}</strong><br>
-                ${OFFICE.hours}
+                <strong>${escapeHtml(who.address)}</strong><br>
+                ${escapeHtml(who.publicHours)}
               </p>
-              <p style="margin:0;font-size:13px;line-height:1.7;color:${C.greenDark}">
-                <a href="mailto:${mail}" style="color:${C.greenDark}">${mail}</a> · <a href="https://instagram.com/${OFFICE.instagram}" style="color:${C.greenDark}">@${OFFICE.instagram}</a>
-              </p>
+              ${contact ? `<p style="margin:0;font-size:13px;line-height:1.7;color:${C.greenDark}">${contact}</p>` : ""}
               <p style="margin:12px 0 0;font-size:12px;color:#8a8461">
                 Este mensaje se envió automáticamente desde <a href="${site}" style="color:#8a8461">la página del consultorio</a>.
               </p>
@@ -285,7 +375,7 @@ export function shell(content: string, office: { baseUrl?: string; mail?: string
     </tr>
   </table>
 </body>
-</html>`;
+</html>`, who.brand);
 }
 
 /**

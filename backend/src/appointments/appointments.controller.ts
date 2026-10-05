@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { AppointmentService } from "./appointments.service.js";
 import { badRequest, sendError } from "../shared/errors.js";
+import { officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
 
 interface RequestWithUser extends Request {
   user?: any;
@@ -90,7 +92,7 @@ async function getPersonalMedicalHistory(req: RequestWithUser, res: Response) {
 
 async function getPatientMedicalHistory(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const medicalHistory = await appointmentService.getPatientMedicalHistory(req.user.email, req.params.patientEmail);
     res.status(200).json({ data: medicalHistory });
@@ -103,7 +105,7 @@ async function getProfessionalAppointments(req: RequestWithUser, res: Response) 
   // Email is obtained from the authenticated user token
   // Additionally, it populates the room and diagnostics data for each appointment
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
     const page = pageFrom(req.params.page);
     const appointments = await appointmentService.findProfessionalAppointmentsByEmail(req.user.email, page, wantsCancelled(req));
     res.status(200).json({ data: appointments });
@@ -116,7 +118,7 @@ async function getProfessionalAppointments(req: RequestWithUser, res: Response) 
 // y sin poder modificar nada.
 async function getAppointmentsByProfessional(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para la administración" });
 
     const page = pageFrom(req.params.page);
     // ?kind=overbooked | normal | all (por defecto, todos)
@@ -150,7 +152,7 @@ async function getAppointmentDiagnostics(req: RequestWithUser, res: Response) {
   // This method retrieves all diagnostics for a given appointment, professional only
 
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const diagnostic = await appointmentService.getAppointmentDiagnostics(numAppointment, req.user.email);
@@ -163,7 +165,7 @@ async function getAppointmentDiagnostics(req: RequestWithUser, res: Response) {
 // Turnos del profesional logueado dentro de un rango de fechas (grilla semanal)
 async function getProfessionalAppointmentsInRange(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const { from, to } = req.query as { from?: string; to?: string };
     if (!from || !to) return res.status(400).json({ message: "Faltan los parámetros from y to" });
@@ -188,7 +190,7 @@ async function getProfessionalAppointmentsInRange(req: RequestWithUser, res: Res
 
 async function getPendingAppointments(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const appointments = await appointmentService.findPendingProfessionalAppointmentsByEmail(req.user.email);
     res.status(200).json({ data: appointments });
@@ -200,7 +202,7 @@ async function getPendingAppointments(req: RequestWithUser, res: Response) {
 /** Los turnos que ya se dieron y todavía no se cobraron del todo. */
 async function getUnpaidAppointments(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const appointments = await appointmentService.findUnpaidAppointments(req.user.email);
 
@@ -209,7 +211,7 @@ async function getUnpaidAppointments(req: RequestWithUser, res: Response) {
     // en una caja del panel. El número del encabezado tiene que ser el de verdad.
     const total = await appointmentService.debtSummary(req.user.email);
 
-    res.status(200).json({ message: "Turnos sin cobrar", data: appointments, total });
+    res.status(200).json({ message: `${(await officeWords()).Turnos} sin cobrar`, data: appointments, total });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -229,14 +231,16 @@ async function createPatientAppointment(req: RequestWithUser, res: Response) {
      * cuando el pedido no viene de la pantalla.
      */
     if (req.user.type === "admin") {
+      const w = await officeWords();
       return res.status(403).json({
-        message: "La cuenta de administrador no saca turnos. Para pedir uno hace falta entrar con una cuenta de paciente",
+        message: `La cuenta de administrador no saca ${w.turnos}. Para pedir ${w.o("turno") === "a" ? "una" : "uno"} hace falta entrar con una cuenta de ${w.paciente}`,
       });
     }
 
     const { date, initialHour, professionalEmail, office } = req.body.sanitizedInput;
     const appointment = await appointmentService.createPatientAppointment(req.user.email, date, initialHour, professionalEmail, office);
-    res.status(201).json({ message: "Turno creado con éxito", data: appointment });
+    const w = await officeWords();
+    res.status(201).json({ message: `${w.Turno} cread${w.o("turno")} con éxito`, data: appointment });
   } catch (error: any) {
     sendError(res, error, { duplicate: "Ese horario ya está ocupado. Elegí otro" });
   }
@@ -246,7 +250,7 @@ async function createPatientAppointment(req: RequestWithUser, res: Response) {
 
 async function updateAppointment(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const { date, initialHour, room, value, finalHour } = req.body.sanitizedInput;
@@ -258,11 +262,13 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
       finalHour,
     });
 
-    res.status(200).json({ message: "Turno actualizado con éxito" });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Turno} actualizad${w.o("turno")} con éxito` });
   } catch (error: any) {
+    const w = await officeWords();
     sendError(res, error, {
-      duplicate: "Ya tenés otro turno en esa fecha y horario",
-      missing: "Ese turno no existe, ya fue cancelado o no es tuyo",
+      duplicate: `Ya tenés ${w.otro("turno")} en esa fecha y horario`,
+      missing: `${capital(w.ese("turno"))} no existe, ya fue cancelad${w.o("turno")} o no es tuy${w.o("turno")}`,
     });
   }
 }
@@ -271,12 +277,13 @@ async function updateAppointment(req: RequestWithUser, res: Response) {
 // This delete only allows deleting appointments that have not been cancelled or confirmed yet
 async function deleteAppointment(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const appointment = await appointmentService.deleteAppointment(numAppointment, req.user.email);
 
-    res.status(200).json({ message: "Turno eliminado con éxito" });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Turno} eliminad${w.o("turno")} con éxito` });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -284,7 +291,7 @@ async function deleteAppointment(req: RequestWithUser, res: Response) {
 
 async function addObservation(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const patientEmail = req.body.sanitizedInput.patientEmail;
@@ -298,12 +305,13 @@ async function addObservation(req: RequestWithUser, res: Response) {
 
 async function acceptAppointment(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const appointment = await appointmentService.acceptAppointment(numAppointment, req.user.email);
 
-    res.status(200).json({ message: "Turno aceptado exitosamente" });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Turno} aceptad${w.o("turno")} exitosamente` });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -311,7 +319,7 @@ async function acceptAppointment(req: RequestWithUser, res: Response) {
 
 async function updateDiagnostic(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const { observations, state, patientEmail } = req.body.sanitizedInput;
@@ -330,7 +338,7 @@ async function updateDiagnostic(req: RequestWithUser, res: Response) {
  */
 async function updatePayment(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const { paymentState, paidAmount } = req.body;
@@ -350,10 +358,11 @@ async function updatePayment(req: RequestWithUser, res: Response) {
 async function getMyPatients(req: RequestWithUser, res: Response) {
   try {
     if (req.user.type !== "professional")
-      return res.status(403).json({ message: "Esta lista es solo para profesionales" });
+      return res.status(403).json({ message: `Esta lista es solo para ${(await officeWords()).profesionales}` });
 
     const patients = await appointmentService.findMyPatients(req.user.email);
-    res.status(200).json({ message: "Pacientes encontrados", data: patients });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Pacientes} encontrad${w.os("paciente")}`, data: patients });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -362,10 +371,12 @@ async function getMyPatients(req: RequestWithUser, res: Response) {
 async function getAppointment(req: RequestWithUser, res: Response) {
   try {
     const numAppointment = Number.parseInt(req.params.numAppointment);
-    if (Number.isNaN(numAppointment)) return res.status(400).json({ message: "Ese número de turno no es válido" });
+    if (Number.isNaN(numAppointment))
+      return res.status(400).json({ message: `Ese número de ${(await officeWords()).turno} no es válido` });
 
     const appointment = await appointmentService.findAppointment(numAppointment, req.user.email, req.user.type);
-    res.status(200).json({ message: "Turno encontrado", data: appointment });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Turno} encontrad${w.o("turno")}`, data: appointment });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -378,7 +389,8 @@ async function cancelAppointment(req: RequestWithUser, res: Response) {
       notifyWaitlist: req.body?.notifyWaitlist === true,
     });
 
-    res.status(200).json({ message: "Turno cancelado con éxito" });
+    const w = await officeWords();
+    res.status(200).json({ message: `${w.Turno} cancelad${w.o("turno")} con éxito` });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -386,7 +398,7 @@ async function cancelAppointment(req: RequestWithUser, res: Response) {
 
 async function createProfessionalAppointment(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const { date, initialHour, finalHour, room, value, patientEmail, overbooked } = req.body.sanitizedInput;
     const professionalEmail = req.user.email;
@@ -400,7 +412,8 @@ async function createProfessionalAppointment(req: RequestWithUser, res: Response
       patientEmail,
       overbooked === true
     );
-    res.status(201).json({ message: "Turno creado con éxito", data: appointment });
+    const w = await officeWords();
+    res.status(201).json({ message: `${w.Turno} cread${w.o("turno")} con éxito`, data: appointment });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -408,14 +421,15 @@ async function createProfessionalAppointment(req: RequestWithUser, res: Response
 
 async function addPatientToAppointment(req: RequestWithUser, res: Response) {
   try {
-    if (req.user.type !== "professional") return res.status(403).json({ message: "Esta acción es solo para profesionales" });
+    if (req.user.type !== "professional") return res.status(403).json({ message: `Esta acción es solo para ${(await officeWords()).profesionales}` });
 
     const numAppointment = Number.parseInt(req.params.numAppointment);
     const patientEmail = req.body.sanitizedInput.patientEmail;
 
     await appointmentService.addPatientToAppointment(numAppointment, patientEmail, req.user.email);
 
-    res.status(201).json({ message: "Paciente añadido con éxito!" });
+    const w = await officeWords();
+    res.status(201).json({ message: `${w.Paciente} añadid${w.o("paciente")} con éxito!` });
   } catch (error: any) {
     sendError(res, error);
   }
@@ -425,13 +439,70 @@ async function getAvailableAppointmentsForPatient(req: RequestWithUser, res: Res
   try {
     const { office, professionalEmail } = req.body.sanitizedInput;
     const appointments = await appointmentService.getAvailableAppointmensForPatient(office, professionalEmail, req.user.email);
-    res.status(200).json({ message: "Turnos posibles", data: appointments });
+    res.status(200).json({ message: `${(await officeWords()).Turnos} posibles`, data: appointments });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
+/* ============================================================
+   La recepción: la administración sobre la agenda de cualquier profesional.
+   Cada una pide la regla en el servicio; acá solo se controla que sea un administrador.
+   ============================================================ */
+
+async function createAdminAppointment(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para la administración" });
+
+    const { date, initialHour, finalHour, room, value, patientEmail, overbooked, professionalEmail } = req.body.sanitizedInput;
+    if (!professionalEmail) return res.status(400).json({ message: `Falta ${(await officeWords()).el("profesional")}` });
+
+    const appointment = await appointmentService.createProfessionalAppointment(
+      date,
+      initialHour,
+      finalHour,
+      room,
+      value,
+      professionalEmail,
+      patientEmail,
+      overbooked === true,
+      true
+    );
+    res.status(201).json({ message: `${(await officeWords()).Turno} cread${(await officeWords()).o("turno")} con éxito`, data: appointment });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
+async function updateAdminAppointment(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para la administración" });
+
+    const { date, initialHour, room, value, finalHour } = req.body.sanitizedInput;
+    await appointmentService.updateAsAdmin(Number.parseInt(req.params.numAppointment), { date, initialHour, room, value, finalHour });
+    res.status(200).json({ message: `${(await officeWords()).Turno} actualizad${(await officeWords()).o("turno")} con éxito` });
+  } catch (error: any) {
+    sendError(res, error);
+  }
+}
+
+async function cancelAdminAppointment(req: RequestWithUser, res: Response) {
+  try {
+    if (req.user.type !== "admin") return res.status(403).json({ message: "Esta acción es solo para la administración" });
+
+    await appointmentService.cancelAsAdmin(Number.parseInt(req.params.numAppointment), {
+      notifyWaitlist: req.body?.notifyWaitlist === true,
+    });
+    res.status(200).json({ message: `${(await officeWords()).Turno} cancelad${(await officeWords()).o("turno")} con éxito` });
   } catch (error: any) {
     sendError(res, error);
   }
 }
 
 export {
+  createAdminAppointment,
+  updateAdminAppointment,
+  cancelAdminAppointment,
   getAppointment,
   getMyPatients,
   getPatientAppointments,

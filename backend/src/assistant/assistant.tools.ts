@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
 import { pagesFor, type Role } from "./assistant.catalog.js";
+import { words, type Words } from "../shared/vocabulary.js";
+import { DEFAULT_POLICIES, type Policies } from "../shared/policies.js";
 
 /**
  * Las herramientas del asistente, con los roles que pueden usar cada una.
@@ -12,24 +14,33 @@ import { pagesFor, type Role } from "./assistant.catalog.js";
  */
 export interface AssistantTool {
   roles: Role[];
-  /** Cómo se llama en castellano. Es lo que se muestra en el panel de uso. */
-  label: string;
+  /**
+   * Cómo se llama en castellano. Es lo que se muestra en el panel de uso, con las palabras
+   * del rubro de esta instalación.
+   */
+  label: (w: Words) => string;
   /** Escribe en la base. Estas piden confirmación antes de ejecutarse. */
   writes?: boolean;
   definition: Groq.Chat.ChatCompletionTool;
 }
 
+function labelOf(label: string | ((w: Words) => string)): (w: Words) => string {
+  if (typeof label !== "string") return label;
+  const text = label;
+  return () => text;
+}
+
 const tool = (
   roles: Role[],
   name: string,
-  label: string,
+  label: string | ((w: Words) => string),
   description: string,
   properties: Record<string, unknown> = {},
   required: string[] = [],
   writes = false
 ): AssistantTool => ({
   roles,
-  label,
+  label: labelOf(label),
   writes,
   definition: {
     type: "function",
@@ -49,7 +60,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ALL,
     "get_office_info",
-    "Datos del consultorio",
+    (w) => `Datos ${w.del("lugar")}`,
     "Información general del consultorio: dirección, horario de atención, mail, Instagram y las especialidades que se atienden.",
   ),
 
@@ -68,7 +79,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ALL,
     "get_professionals",
-    "Buscar profesionales",
+    (w) => `Buscar ${w.profesionales}`,
     "Lista de profesionales que atienden, con su especialidad y las sucursales donde atiende cada uno.",
     {
       speciality: {
@@ -84,7 +95,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ALL,
     "get_my_appointments",
-    "Ver turnos propios",
+    (w) => `Ver ${w.turnos} propi${w.os("turno")}`,
     "Los turnos propios de quien está conversando. Si es paciente, sus turnos; si es profesional, su agenda. Devuelve primero los que están por venir.",
     {
       includePast: { type: "boolean", description: "Incluir también los turnos ya pasados. Por defecto false." },
@@ -108,7 +119,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["client"],
     "book_appointment",
-    "Sacar un turno",
+    (w) => `Sacar ${w.un("turno")}`,
     "Prepara un turno para quien está conversando. NO lo saca: devuelve el resumen de lo que se va a hacer para que se lo muestres y le preguntes si confirma.",
     {
       professionalEmail: { type: "string", description: "Email del profesional." },
@@ -125,7 +136,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["client", "professional"],
     "cancel_appointment",
-    "Cancelar un turno",
+    (w) => `Cancelar ${w.un("turno")}`,
     "Prepara la cancelación de un turno propio. NO lo cancela: devuelve cuál es el turno para que se lo muestres y le preguntes si confirma.",
     { numAppointment: { type: "number", description: NUMERO_INTERNO } },
     ["numAppointment"],
@@ -137,7 +148,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["professional"],
     "accept_appointment",
-    "Confirmar un turno",
+    (w) => `Confirmar ${w.un("turno")}`,
     "Prepara la confirmación de un turno que un paciente pidió y está pendiente. NO lo confirma todavía: devuelve el turno para que se lo muestres y le preguntes si está de acuerdo.",
     { numAppointment: { type: "number", description: NUMERO_INTERNO } },
     ["numAppointment"],
@@ -147,7 +158,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["professional"],
     "reject_appointment",
-    "Rechazar un turno",
+    (w) => `Rechazar ${w.un("turno")}`,
     "Prepara el rechazo de un turno pendiente. NO lo rechaza todavía: devuelve el turno para que se lo muestres y le preguntes si confirma. Al rechazarlo, el paciente recibe un mail avisándole.",
     { numAppointment: { type: "number", description: NUMERO_INTERNO } },
     ["numAppointment"],
@@ -157,7 +168,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["professional"],
     "get_my_analytics",
-    "Números del profesional",
+    (w) => `Números ${w.del("profesional")}`,
     "Estadísticas propias del profesional: turnos, asistencia, cancelaciones, turnos especiales (sobreturnos), pacientes distintos y facturación, del mes en curso y del acumulado."
   ),
 
@@ -166,14 +177,14 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
   tool(
     ["admin"],
     "get_office_analytics",
-    "Números del consultorio",
+    (w) => `Números ${w.del("lugar")}`,
     "Estadísticas de todo el consultorio: turnos, asistencia, facturación, pacientes y cantidad de profesionales, del mes en curso y del acumulado."
   ),
 
   tool(
     ["admin"],
     "get_professional_analytics",
-    "Números de un profesional",
+    (w) => `Números de ${w.un("profesional")}`,
     "Estadísticas de un profesional en particular: turnos, asistencias, ausencias y turnos especiales (sobreturnos). No incluye lo que factura, que es dato suyo; si te lo preguntan, decilo así y ofrecé el total del consultorio.",
     { professionalEmail: { type: "string", description: "Email del profesional." } },
     ["professionalEmail"]
@@ -186,10 +197,11 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
     "Cuánto se usó este asistente y cuántos tokens gastó, con el ranking de las funciones más pedidas. Nombrá las funciones por su etiqueta en castellano, nunca por el nombre técnico."
   ),
 
+
   tool(
     ["admin"],
     "get_overbooking_this_week",
-    "Turnos especiales de la semana",
+    (w) => `${w.Turnos} especiales de la semana`,
     "Qué profesionales están dando turnos especiales (sobreturnos) esta semana y cuántos, con el detalle de cada uno.",
     {
       weeksAgo: {
@@ -269,17 +281,59 @@ const CONFIRM_TOOL = tool(
   "Ejecuta la acción que quedó pendiente de confirmación. Llamala únicamente cuando la persona ya dijo que sí."
 );
 
-/** `pending` es si hay una acción esperando el sí: sin eso, confirm_action no existe. */
-export function toolsFor(role: Role, pending = false): Groq.Chat.ChatCompletionTool[] {
-  const tools = ASSISTANT_TOOLS.filter((item) => item.roles.includes(role));
+/**
+ * Las herramientas de un rol.
+ *
+ * `pending` es si hay una acción esperando el sí: sin eso, confirm_action no existe.
+ * `specialities` son las del consultorio, para que el filtro de profesionales nombre las
+ * que existen acá y no las de otro.
+ */
+/**
+ * Si una herramienta va para este rol con las reglas del consultorio.
+ *
+ * Lo que la regla no permite no se le ofrece al modelo: si no, la llama, el servicio
+ * dice que no, y la persona lee un "no se puede" que nadie le había ofrecido.
+ */
+export function toolAllowed(name: string, role: Role, p: Policies): boolean {
+  if (name.startsWith("get_rent") || name === "get_room_prices" || name === "register_rent_payment") return p.rentModule;
+  if (role === "client" && (name === "get_available_slots" || name === "book_appointment")) return p.patientBooking;
+  if (name === "cancel_appointment") return role === "client" ? p.patientCancel : p.proCancel;
+  return true;
+}
+
+export function toolsFor(
+  role: Role,
+  pending = false,
+  specialities: string[] = [],
+  p: Policies = DEFAULT_POLICIES
+): Groq.Chat.ChatCompletionTool[] {
+  const tools = ASSISTANT_TOOLS.filter((item) => item.roles.includes(role) && toolAllowed(item.definition.function!.name, role, p));
   if (pending && CONFIRM_TOOL.roles.includes(role)) tools.push(CONFIRM_TOOL);
-  return tools.map((item) => item.definition);
+  return tools.map((item) => withSpecialities(item.definition, specialities));
+}
+
+/** La definición de get_professionals con las especialidades de este consultorio. */
+function withSpecialities(definition: Groq.Chat.ChatCompletionTool, specialities: string[]): Groq.Chat.ChatCompletionTool {
+  const props: any = (definition.function?.parameters as any)?.properties;
+  if (definition.function?.name !== "get_professionals" || !props?.speciality) return definition;
+
+  const list = specialities.length ? `: ${specialities.join(", ")}` : "";
+  return {
+    ...definition,
+    function: {
+      ...definition.function,
+      parameters: {
+        ...(definition.function.parameters as any),
+        properties: { ...props, speciality: { ...props.speciality, description: `Especialidad para filtrar${list}. Opcional.` } },
+      },
+    },
+  };
 }
 
 /** Nombre en castellano de cada herramienta, para mostrar el uso sin jerga. */
-export function toolLabels(): Record<string, string> {
-  const labels: Record<string, string> = { [CONFIRM_TOOL.definition.function!.name]: CONFIRM_TOOL.label };
-  for (const item of ASSISTANT_TOOLS) labels[item.definition.function!.name] = item.label;
+export function toolLabels(w: Words = words()): Record<string, string> {
+  const labels: Record<string, string> = { [CONFIRM_TOOL.definition.function!.name]: CONFIRM_TOOL.label(w) };
+  for (const item of ASSISTANT_TOOLS) labels[item.definition.function!.name] = item.label(w);
   return labels;
 }
 
@@ -288,8 +342,8 @@ export function findTool(name: string): AssistantTool | undefined {
 }
 
 /** Las pantallas que puede ofrecer este rol, listadas para el prompt. */
-export function pageMenu(role: Role): string {
-  return pagesFor(role)
+export function pageMenu(role: Role, p: Policies = DEFAULT_POLICIES): string {
+  return pagesFor(role, p)
     .map((page) => `  - ${page.key}: ${page.description}`)
     .join("\n");
 }

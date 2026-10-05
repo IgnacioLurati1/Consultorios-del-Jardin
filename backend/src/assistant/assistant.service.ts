@@ -9,10 +9,13 @@ import { Appointment } from "../appointments/appointments.entity.js";
 import { AssistantUsage } from "./assistant.entity.js";
 import { orm } from "../shared/db/orm.js";
 import { startOfDay, toISODate, toLocalDate } from "../shared/dates.js";
-import { findPage, OFFICE_INFO, type Role } from "./assistant.catalog.js";
+import { findPage, officeInfo, type Role } from "./assistant.catalog.js";
 import { cleanReply, dropLinkEcho, rescueLeakedPages, type AssistantLink } from "./assistant.text.js";
-import { findTool, toolsFor } from "./assistant.tools.js";
+import { findTool, toolAllowed, toolsFor } from "./assistant.tools.js";
+import { policies } from "../installation/installation.service.js";
+import { CLINIC_TIMEZONE } from "../shared/timezone.js";
 import { buildAssistantPrompt, type AppointmentLine } from "./assistant.prompt.js";
+import { LIVE_APPOINTMENT_STATES } from "../shared/appointmentStates.js";
 import { RentService, type RentRow } from "../rent/rent.service.js";
 import { BLOCKS, monthKeyOf, type PaymentStatus } from "../rent/rent.rules.js";
 
@@ -78,7 +81,7 @@ const ACTION_SECRET = crypto.randomBytes(32).toString("hex");
 const ACTION_TTL_MS = 10 * 60 * 1000;
 
 /** Cancelar escribe un ISO timestamp en `state`, así que lo que no está acá es cancelado. */
-const LIVE_STATES = ["pending", "accepted", "assisted", "missed"];
+const LIVE_STATES = LIVE_APPOINTMENT_STATES;
 
 const STATE_LABELS: Record<string, string> = {
   pending: "pendiente de confirmación",
@@ -379,6 +382,7 @@ export class AssistantService {
     // El modelo recibe solo las herramientas de su rol, pero esto se vuelve a chequear
     // acá: es lo único que sigue valiendo si la conversación logra confundirlo.
     if (!tool.roles.includes(user.role)) throw new Error("Esa acción no corresponde a tu tipo de cuenta");
+    if (!toolAllowed(name, user.role, await policies())) throw new Error("Esa acción no está disponible");
 
     /**
      * Guarda la acción y devuelve el resumen, sin tocar nada.
@@ -394,10 +398,10 @@ export class AssistantService {
 
     switch (name) {
       case "get_office_info":
-        return OFFICE_INFO;
+        return await officeInfo();
 
       case "open_page": {
-        const page = findPage(args?.page, user.role);
+        const page = findPage(args?.page, user.role, await policies());
         if (!page) throw new Error("Esa pantalla no existe o no está disponible para vos");
         if (!links.some((link) => link.path === page.path)) links.push({ label: page.label, path: page.path });
         return { ok: true, boton: page.label };
@@ -409,6 +413,7 @@ export class AssistantService {
           idInterno: office.idOffice,
           nombre: office.description,
           localidad: office.city?.nameCity ?? null,
+          direccion: office.address ?? undefined,
           abre: hhmm(office.openingHour),
           cierra: hhmm(office.closingHour),
         }));
@@ -696,7 +701,7 @@ export class AssistantService {
         const response = (await groqClient().chat.completions.create({
           ...GROQ_CONFIG,
           messages,
-          tools: toolsFor(role, pending),
+          tools: toolsFor(role, pending, (await officeInfo()).specialities, await policies()),
           tool_choice: "auto",
           parallel_tool_calls: false,
         } as any)) as Groq.Chat.ChatCompletion;
@@ -750,7 +755,7 @@ export class AssistantService {
       day: "numeric",
       month: "long",
       year: "numeric",
-      timeZone: "America/Argentina/Buenos_Aires",
+      timeZone: CLINIC_TIMEZONE,
     });
 
     const messages: Groq.Chat.ChatCompletionMessageParam[] = [
@@ -758,7 +763,14 @@ export class AssistantService {
         role: "system",
         // El resumen y no los argumentos: ver packAction. Un token de antes de ese cambio
         // no lo trae, y ahí se cae a los argumentos como antes.
-        content: buildAssistantPrompt(role, fullName(person) || person.name, mine, today, waiting?.summary ?? waiting?.args ?? null),
+        content: buildAssistantPrompt(
+          role,
+          fullName(person) || person.name,
+          mine,
+          today,
+          await officeInfo(),
+          waiting?.summary ?? waiting?.args ?? null
+        ),
       },
       ...history,
       { role: "user", content: userMessage },

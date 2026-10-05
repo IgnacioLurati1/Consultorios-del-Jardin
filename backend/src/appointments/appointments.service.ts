@@ -9,28 +9,51 @@ import { EntityManager } from "@mikro-orm/mysql";
 import { RoomService } from "../rooms/rooms.service.js";
 import { AppointmentEngine, assertPatientEnabled } from "./appointments.engine.js";
 import MailService from "../config/mailer.js";
-import { button, buttonPair, factsCard, note, paragraph, title, warning } from "../config/mailTemplate.js";
 import { badRequest, conflict, forbidden, notFound } from "../shared/errors.js";
 import { Denial } from "./denials.entity.js";
 import { Person } from "../people/people.entity.js";
-import { addDays, monthKey, parseISODate, sameCalendarDay, startOfDay } from "../shared/dates.js";
+import { addDays, longDate, monthKey, parseISODate, sameCalendarDay, startOfDay } from "../shared/dates.js";
 import { SecurityService } from "../security/security.service.js";
 import { NotificationService } from "../notifications/notifications.service.js";
 import { noticeOf } from "../shared/shortNotice.js";
+import { cachedWords, config, officeWords } from "../installation/installation.service.js";
+import { capital } from "../shared/capital.js";
+import { LIVE_APPOINTMENT_STATES } from "../shared/appointmentStates.js";
+import { words, type Words } from "../shared/vocabulary.js";
+import {
+  acceptedMail,
+  addedMail,
+  canceledMail,
+  createdMail,
+  factsFor,
+  newBookingMail,
+  rejectedMail,
+  reminderMail,
+  slotFreedMail,
+  tomorrowNotice,
+  updatedMail,
+  withdrawnMail,
+  type BuiltMail,
+  type MailData,
+  type ReminderDay,
+} from "./appointmentMails.js";
 import { WaitlistService } from "../waitlist/waitlist.service.js";
 import { attendanceLinks } from "../attendance/attendance.token.js";
-import { roomLabel } from "../shared/roomLabel.js";
+import { branchOf, roomLabel } from "../shared/roomLabel.js";
 import { assertCanSeePatient } from "../people/patientVisibility.js";
+import { RULE_MESSAGES, requireRule, rulesNow } from "../installation/rules.js";
+import { hoursOfNotice } from "../shared/shortNotice.js";
+import { CLINIC_TIMEZONE } from "../shared/timezone.js";
 
 const em = orm.em;
 
 /** "09:00:00" pasa a "09:00". La base guarda los segundos, y en un mail sobran. */
 const hhmm = (hour: unknown) => String(hour ?? "").slice(0, 5);
 
-// Estados "vivos" de un turno. Cancelar escribe un ISO timestamp en `state`
-// (para que el unique index deje volver a sacar turno en la misma franja),
-// así que un estado que no esté en esta lista es un turno cancelado.
-export const ACTIVE_APPOINTMENT_STATES = ["pending", "accepted", "assisted", "missed"];
+// Estados "vivos" de un turno. La lista vive en shared/appointmentStates, que explica por
+// qué cancelar no es uno de ellos; acá se reexporta con el nombre de siempre para no
+// tocar a todos los que ya la importan de este archivo.
+export const ACTIVE_APPOINTMENT_STATES = LIVE_APPOINTMENT_STATES;
 
 /** Los tres estados de cobro que puede tener un turno. */
 export const PAYMENT_STATES = ["unpaid", "partial", "paid"] as const;
@@ -39,18 +62,24 @@ export type PaymentState = (typeof PAYMENT_STATES)[number];
 /**
  * Cuándo un turno cuenta como deuda.
  *
- * Tienen que darse las dos cosas. Que ya se haya dado —"assisted"—, porque un turno de la
- * semana que viene no se debe todavía, y a uno al que el paciente faltó no se le cobra
- * salvo que el consultorio decida lo contrario y lo marque a mano. Y que no esté saldado:
- * sin cobrar, o cobrado a medias.
+ * Tienen que darse las dos cosas. Que ya se haya dado, porque un turno de la semana que
+ * viene no se debe todavía. Y que no esté saldado: sin cobrar, o cobrado a medias.
+ *
+ * "Que ya se haya dado" depende del consultorio. Por omisión es solo "assisted": a un
+ * turno al que el paciente faltó no se le cobra. Con `chargesMissed` prendido en la
+ * configuración, la ausencia también se debe. El cobro automático no la toca en ningún
+ * caso (ver jobs/payment.job): cobrar en la puerta a alguien que no vino no tiene sentido,
+ * así que una ausencia cobrable queda como deuda de verdad.
  *
  * Los turnos anteriores a esta columna tienen `paymentState` en null y quedan afuera por
  * definición: de esos no se sabe si se cobraron, y suponerlo sería inventar.
  */
-export const DEBT_FILTER = {
-  state: "assisted",
-  paymentState: { $in: ["unpaid", "partial"] },
-} as const;
+export function debtFilter(chargesMissed: boolean) {
+  return {
+    state: chargesMissed ? { $in: ["assisted", "missed"] } : "assisted",
+    paymentState: { $in: ["unpaid", "partial"] },
+  } as const;
+}
 
 /** Lo que falta cobrar de un turno. Un pago parcial descuenta lo que ya entró. */
 export function pendingAmount(appointment: Appointment): number {
@@ -144,7 +173,7 @@ export class AppointmentService {
       {
         professional: { email: professionalEmail },
         patient: { $ne: null },
-        state: { $in: ["pending", "accepted", "assisted", "missed"] },
+        state: { $in: ACTIVE_APPOINTMENT_STATES },
       },
       { populate: ["patient"], fields: ["patient"] }
     );
@@ -194,7 +223,7 @@ export class AppointmentService {
     const unpaid = await em.find(Appointment, {
       professional: { email: professionalEmail },
       patient: { $ne: null },
-      ...DEBT_FILTER,
+      ...debtFilter((await config()).chargesMissed),
     });
 
     const debt = new Map<string, { appointments: number; amount: number }>();
@@ -222,7 +251,7 @@ export class AppointmentService {
   async findUnpaidAppointments(professionalEmail: string, limit = 50): Promise<Appointment[]> {
     return em.find(
       Appointment,
-      { professional: { email: professionalEmail }, patient: { $ne: null }, ...DEBT_FILTER },
+      { professional: { email: professionalEmail }, patient: { $ne: null }, ...debtFilter((await config()).chargesMissed) },
       { populate: ["patient", "professional", "room.office"], orderBy: { date: "DESC", initialHour: "DESC" }, limit }
     );
   }
@@ -259,9 +288,10 @@ export class AppointmentService {
       { populate: ["patient"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    const w = await officeWords();
+    if (!appointment) throw notFound(`${capital(w.ese("turno"))} no existe o no es tuy${w.o("turno")}`);
     if (!ACTIVE_APPOINTMENT_STATES.includes(appointment.state))
-      throw badRequest("Ese turno está cancelado. No hay nada que cobrar");
+      throw badRequest(`${capital(w.ese("turno"))} está cancelad${w.o("turno")}. No hay nada que cobrar`);
 
     const state = data.paymentState;
     if (!PAYMENT_STATES.includes(state))
@@ -269,12 +299,12 @@ export class AppointmentService {
 
     if (state === "partial") {
       const value = appointment.value ?? 0;
-      if (value <= 0) throw badRequest("Para registrar un pago parcial el turno tiene que tener un valor cargado");
+      if (value <= 0) throw badRequest(`Para registrar un pago parcial ${w.el("turno")} tiene que tener un valor cargado`);
 
       const amount = Number(data.paidAmount);
       if (!Number.isFinite(amount) || amount <= 0)
         throw badRequest("Escribí cuánto pagó. Tiene que ser un número mayor que cero");
-      if (amount > value) throw badRequest(`El pago no puede superar el valor del turno, que es $${value}`);
+      if (amount > value) throw badRequest(`El pago no puede superar el valor ${w.del("turno")}, que es $${value}`);
       // Pagó todo: es un pago completo y no uno parcial. Guardarlo como parcial deja un
       // turno que figura debiendo cero, y eso después hay que explicarlo en cada pantalla.
       if (amount === value) throw badRequest(`Pagó los $${value} completos. Marcalo como pagado`);
@@ -485,7 +515,10 @@ export class AppointmentService {
       { populate: ["patient", "professional"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe, ya no está pendiente o no es tuyo");
+    if (!appointment) {
+      const w = await officeWords();
+      throw notFound(`${capital(w.ese("turno"))} no existe, ya no está pendiente o no es tuy${w.o("turno")}`);
+    }
 
     if (deniedByProfessional) {
       await this.sendAppointmentRejectedEmails(appointment).catch((err) =>
@@ -579,7 +612,10 @@ export class AppointmentService {
     return new Map(rows.map((row) => [row.month, { denied: row.denied, expired: row.expired }]));
   }
 
-  async updateAppointment(num: number, professionalEmail: string, data: Partial<Appointment>) {
+  async updateAppointment(num: number, professionalEmail: string, data: Partial<Appointment>, byAdmin = false) {
+    if (byAdmin) await requireRule((p) => p.adminBooking, RULE_MESSAGES.adminBooking);
+    else await requireRule((p) => p.proEdit, RULE_MESSAGES.proEdit);
+
     const appointment = await em.findOne(
       Appointment,
       {
@@ -592,7 +628,9 @@ export class AppointmentService {
       { populate: ["patient", "professional"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe, ya fue cancelado o no es tuyo");
+    const w = await officeWords();
+    if (!appointment)
+      throw notFound(`${capital(w.ese("turno"))} no existe, ya fue cancelad${w.o("turno")} o no es tuy${w.o("turno")}`);
 
     // Solo se toca lo que efectivamente vino. Si se le pasa una clave con undefined,
     // em.assign explota ("You must pass a non-undefined value...").
@@ -616,12 +654,12 @@ export class AppointmentService {
      */
     if (changes.date !== undefined) {
       const day = startOfDay(changes.date as unknown as string);
-      if (Number.isNaN(day.getTime())) throw badRequest("La fecha del turno no es válida");
+      if (Number.isNaN(day.getTime())) throw badRequest(`La fecha ${w.del("turno")} no es válida`);
       changes.date = day;
     }
 
     if (changes.value !== undefined && changes.value !== null && changes.value < 0)
-      throw badRequest("El valor del turno no puede ser negativo");
+      throw badRequest(`El valor ${w.del("turno")} no puede ser negativo`);
 
     // Solo se revalidan horarios (y se avisa por mail) si realmente cambió la franja.
     // Cambiarle el valor a un turno no tiene por qué mandarle un mail al paciente.
@@ -647,11 +685,11 @@ export class AppointmentService {
 
       if (appointment.patient) {
         if (await this.checkPatientAppointmentOverlap(initialHour, finalHour, appointment.patient.email, date, undefined, num))
-          throw conflict("El paciente ya tiene otro turno que se superpone con ese horario");
+          throw conflict(`${w.El("paciente")} ya tiene ${w.otro("turno")} que se superpone con ese horario`);
       }
 
       if (await this.checkProfessionalAppointmentOverlap(initialHour, finalHour, professionalEmail, date, undefined, num))
-        throw conflict("Ya tenés otro turno que se superpone con ese horario");
+        throw conflict(`Ya tenés ${w.otro("turno")} que se superpone con ese horario`);
     }
 
     em.assign(appointment, changes);
@@ -682,8 +720,9 @@ export class AppointmentService {
   // Separa los dos motivos por los que una fecha puede no servir, para poder decirle al
   // usuario cual de los dos le paso. Un turno de hoy mas tarde sigue siendo valido.
   private assertBookableDate(date: Date | string) {
-    if (Number.isNaN(startOfDay(date).getTime())) throw badRequest("La fecha del turno no es válida");
-    if (!this.isValidDate(date)) throw badRequest("No se puede sacar un turno en una fecha que ya pasó");
+    const w = cachedWords();
+    if (Number.isNaN(startOfDay(date).getTime())) throw badRequest(`La fecha ${w.del("turno")} no es válida`);
+    if (!this.isValidDate(date)) throw badRequest(`No se puede sacar ${w.un("turno")} en una fecha que ya pasó`);
   }
 
   // Chequeos de horario compartidos por el alta de paciente y la del profesional.
@@ -764,12 +803,14 @@ export class AppointmentService {
       { populate: ["patient"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
-    if (patientEmail && appointment.patient?.email !== patientEmail) throw badRequest("El paciente no corresponde a este turno");
+    const w = await officeWords();
+    if (!appointment) throw notFound(`${capital(w.ese("turno"))} no existe o no es tuy${w.o("turno")}`);
+    if (patientEmail && appointment.patient?.email !== patientEmail)
+      throw badRequest(`${w.El("paciente")} no corresponde a ${w.este("turno")}`);
 
     if (data.state !== undefined) {
       if (!(await this.checkAppointmentStateFormat(data.state)))
-        throw badRequest("Ese estado no es válido. Para cancelar el turno usá el botón de cancelar");
+        throw badRequest(`Ese estado no es válido. Para cancelar ${w.el("turno")} usá el botón de cancelar`);
       appointment.state = data.state;
     }
     if (data.observations !== undefined) {
@@ -779,18 +820,6 @@ export class AppointmentService {
     return this.toDiagnosticView(appointment);
   }
 
-  async checkAppointmentDurationFormat(initialHour: string, scheduleInitialHour: string, duration: number): Promise<boolean> {
-    let [hours, minutes] = initialHour.split(":").map(Number);
-    const initialMinutes = hours * 60 + minutes;
-
-    [hours, minutes] = scheduleInitialHour.split(":").map(Number);
-    const scheduleInitialMinutes = hours * 60 + minutes;
-
-    const k = (initialMinutes - scheduleInitialMinutes) / duration;
-
-    return !(k >= 0 && Number.isInteger(k));
-  }
-
   async addObservation(num: number, professionalEmail: string, observations: string, patientEmail: string) {
     const appointment = await em.findOne(
       Appointment,
@@ -798,8 +827,10 @@ export class AppointmentService {
       { populate: ["patient"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
-    if (patientEmail && appointment.patient?.email !== patientEmail) throw badRequest("El paciente no corresponde a este turno");
+    const w = await officeWords();
+    if (!appointment) throw notFound(`${capital(w.ese("turno"))} no existe o no es tuy${w.o("turno")}`);
+    if (patientEmail && appointment.patient?.email !== patientEmail)
+      throw badRequest(`${w.El("paciente")} no corresponde a ${w.este("turno")}`);
 
     appointment.observations = observations;
     await em.flush();
@@ -817,7 +848,10 @@ export class AppointmentService {
       { populate: ["patient", "professional"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no está pendiente de confirmación o no es tuyo");
+    if (!appointment) {
+      const w = await officeWords();
+      throw notFound(`${capital(w.ese("turno"))} no está pendiente de confirmación o no es tuy${w.o("turno")}`);
+    }
 
     appointment.state = "accepted";
     await em.flush();
@@ -847,7 +881,10 @@ export class AppointmentService {
       populate: ["patient", "professional", "room", "room.office", "recurrence"],
     });
 
-    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    if (!appointment) {
+      const w = await officeWords();
+      throw notFound(`${capital(w.ese("turno"))} no existe o no es tuy${w.o("turno")}`);
+    }
 
     return appointment;
   }
@@ -857,7 +894,31 @@ export class AppointmentService {
    * Cuando cancela el paciente no se pregunta: el aviso sale solo si llegó con tiempo.
    * Una pantalla vieja no lo manda, y en ese caso la baja del profesional no avisa.
    */
-  async cancelAppointment(num: number, email: string, options: { notifyWaitlist?: boolean } = {}) {
+  /**
+   * La recepción, sobre la agenda de cualquier profesional.
+   *
+   * Hace lo mismo que haría el profesional del turno (los mismos controles de horario, los
+   * mismos mails), pero con la regla de la administración en lugar de las del profesional:
+   * en un consultorio con recepción, el profesional no toca la agenda y la recepción sí.
+   */
+  private async professionalOf(num: number): Promise<string> {
+    const appointment = await em.findOne(Appointment, { numAppointment: num }, { populate: ["professional"] });
+    const w = await officeWords();
+    if (!appointment) throw notFound(`No existe ${w.ese("turno")}`);
+    return appointment.professional.email;
+  }
+
+  async updateAsAdmin(num: number, data: Partial<Appointment>) {
+    await requireRule((p) => p.adminBooking, RULE_MESSAGES.adminBooking);
+    return this.updateAppointment(num, await this.professionalOf(num), data, true);
+  }
+
+  async cancelAsAdmin(num: number, options: { notifyWaitlist?: boolean } = {}) {
+    await requireRule((p) => p.adminBooking, RULE_MESSAGES.adminBooking);
+    return this.cancelAppointment(num, await this.professionalOf(num), { ...options, byAdmin: true });
+  }
+
+  async cancelAppointment(num: number, email: string, options: { notifyWaitlist?: boolean; byAdmin?: boolean } = {}) {
     const appointment = await em.findOne(
       Appointment,
       {
@@ -867,7 +928,8 @@ export class AppointmentService {
       { populate: ["patient", "professional"] }
     );
 
-    if (!appointment) throw notFound("Ese turno no existe o no es tuyo");
+    const w = await officeWords();
+    if (!appointment) throw notFound(`${capital(w.ese("turno"))} no existe o no es tuy${w.o("turno")}`);
 
     /*
      * De que lado del turno esta el que lo baja.
@@ -879,8 +941,22 @@ export class AppointmentService {
      */
     const asProfessional = appointment.professional.email === email;
 
-    if (appointment.state === "assisted") throw badRequest("No se puede cancelar un turno que ya figura como asistido");
-    if (appointment.state === "missed") throw badRequest("No se puede cancelar un turno marcado como 'No vino'");
+    // Las reglas del consultorio. Retirar un pedido que todavía no se confirmó queda
+    // siempre permitido, de los dos lados: no hay nada dado que se esté cancelando.
+    if (appointment.state === "accepted") {
+      const { p } = await rulesNow();
+      if (asProfessional && !p.proCancel && !options.byAdmin) throw forbidden(RULE_MESSAGES.proCancel(w), "RULE_OFF");
+      if (!asProfessional && !p.patientCancel) throw forbidden(RULE_MESSAGES.patientCancel(w), "RULE_OFF");
+      if (!asProfessional && p.cancelNoticeHours > 0) {
+        const left = hoursOfNotice(appointment.date, appointment.initialHour, new Date());
+        if (left < p.cancelNoticeHours) throw forbidden(RULE_MESSAGES.cancelNotice(w, p.cancelNoticeHours), "RULE_OFF");
+      }
+    }
+
+    if (appointment.state === "assisted")
+      throw badRequest(`No se puede cancelar ${w.un("turno")} que ya figura como asistid${w.o("turno")}`);
+    if (appointment.state === "missed")
+      throw badRequest(`No se puede cancelar ${w.un("turno")} marcad${w.o("turno")} como 'No vino'`);
 
     if (appointment.state === "pending") {
       // Solo cuenta como rechazo si lo baja el profesional. Que el paciente se arrepienta
@@ -890,7 +966,8 @@ export class AppointmentService {
       return appointment;
     }
 
-    if (appointment.state !== "accepted") throw badRequest("Ese turno ya estaba cancelado");
+    if (appointment.state !== "accepted")
+      throw badRequest(`${capital(w.ese("turno"))} ya estaba cancelad${w.o("turno")}`);
 
     appointment.state = new Date().toISOString();
     // De quién vino la baja no se puede sacar del estado, que guarda la misma fecha
@@ -922,6 +999,8 @@ export class AppointmentService {
     professionalEmail: string,
     officeId: number
   ): Promise<Partial<Appointment>> {
+    await requireRule((p) => p.patientBooking, RULE_MESSAGES.patientBooking);
+
     const refreshed = await em.transactional(async (em) => {
       this.assertValidHour(initialHour, "La hora de inicio");
       this.assertBookableDate(date);
@@ -956,8 +1035,9 @@ export class AppointmentService {
     });
 
     if (abuse) {
+      const w = await officeWords();
       throw forbidden(
-        `Tu cuenta quedó deshabilitada y se dieron de baja los turnos que sacaste recién (${abuse.deleted}). ` +
+        `Tu cuenta quedó deshabilitada y se dieron de baja ${w.los("turno")} que sacaste recién (${abuse.deleted}). ` +
           "Si fue un error, escribinos desde la pantalla de contacto.",
         "USER_DISABLED"
       );
@@ -1004,16 +1084,26 @@ export class AppointmentService {
     value: number,
     professionalEmail: string,
     patientEmail?: string,
-    overbooked = false
+    overbooked = false,
+    /** La recepción: sin las reglas del profesional, con la suya. */
+    byAdmin = false
   ): Promise<Partial<Appointment>> {
+    if (byAdmin) {
+      await requireRule((p) => p.adminBooking, RULE_MESSAGES.adminBooking);
+    } else {
+      await requireRule((p) => p.proCreate, RULE_MESSAGES.proCreate);
+      if (overbooked) await requireRule((p) => p.proOverbook, RULE_MESSAGES.proOverbook);
+    }
+
     const created = await em.transactional(async (em) => {
       this.assertValidHour(initialHour, "La hora de inicio");
       this.assertValidHour(finalHour, "La hora de fin");
       this.assertBookableDate(date);
 
+      const w = await officeWords();
       if (initialHour >= finalHour) throw badRequest("La hora de inicio tiene que ser anterior a la de fin");
-      if (!(value >= 0)) throw badRequest("El valor del turno tiene que ser un número mayor o igual a cero");
-      if (!idRoom) throw badRequest("Tenés que elegir un consultorio para el turno");
+      if (!(value >= 0)) throw badRequest(`El valor ${w.del("turno")} tiene que ser un número mayor o igual a cero`);
+      if (!idRoom) throw badRequest(`Tenés que elegir ${w.un("sala")} para ${w.el("turno")}`);
       const engine = new AppointmentEngine(this.peopleService, this.scheduleService, this.officeService, this.roomService, this, em);
       const appointment = await engine.validateAndCreateProfessionalAppointment(
         date,
@@ -1051,9 +1141,13 @@ export class AppointmentService {
   }
 
   async addPatientToAppointment(numAppointment: number, patientEmail: string, professionalEmail: string) {
+    await requireRule((p) => p.proCreate, RULE_MESSAGES.proCreate);
+
     const appointment = await this.findUniqueProfessionalAppointment(professionalEmail, numAppointment);
 
-    if (appointment.patient) throw conflict("Ese turno ya tiene un paciente asignado");
+    const w = await officeWords();
+    if (appointment.patient)
+      throw conflict(`${capital(w.ese("turno"))} ya tiene ${w.un("paciente")} asignad${w.o("paciente")}`);
 
     // Un paciente sin cuenta de otro profesional no existe para este: ver canSeePatient.
     const patient = await this.peopleService.findPersonByEmail(patientEmail);
@@ -1061,7 +1155,7 @@ export class AppointmentService {
     assertPatientEnabled(patient);
 
     if (await this.checkPatientAppointmentOverlap(appointment.initialHour, appointment.finalHour, patientEmail, appointment.date))
-      throw conflict("El paciente ya tiene otro turno que se superpone con ese horario");
+      throw conflict(`${w.El("paciente")} ya tiene ${w.otro("turno")} que se superpone con ese horario`);
 
     appointment.patient = patient;
 
@@ -1103,52 +1197,53 @@ export class AppointmentService {
   }
 
   /**
-   * Los datos del turno en un mail: fecha, hora, con quién y en qué consultorio. Van
-   * siempre y en este orden, sea cual sea el mail.
-   *
-   * Antes cada mail armaba los suyos y a varios les faltaba algo. El de "Te anotamos en un
-   * turno" mandaba solo el número del turno, que es un dato interno y no le dice nada a
-   * nadie.
-   *
-   * `to` es quién lo recibe. Al paciente se le nombra el profesional y solo la hora de
-   * inicio: con la de fin a la vista, la sesión parece de duración fija, y no lo es. Al
-   * profesional se le nombra el paciente y las dos horas, que es como lee su agenda.
-   *
-   * El consultorio va solo al profesional. Al paciente no le sirve de nada: el nombre es
-   * interno (naranja, verde) y en la puerta lo recibe el profesional.
+   * Las palabras del rubro de este consultorio, para los mails y los avisos. Ver
+   * shared/vocabulary: con las de siempre, todo dice lo que decía.
    */
-  private async appointmentFacts(appointment: Appointment, to: "patient" | "professional" = "patient") {
-    const hours =
-      to === "patient"
-        ? [{ label: "Hora", value: hhmm(appointment.initialHour) }]
-        : [
-            { label: "Hora de inicio", value: hhmm(appointment.initialHour) },
-            { label: "Hora de fin", value: hhmm(appointment.finalHour) },
-          ];
-
-    if (to === "patient") {
-      return [
-        { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
-        ...hours,
-        { label: "Profesional", value: this.professionalName(appointment) },
-      ];
-    }
-
-    return [
-      { label: "Fecha", value: this.formatDateLong(appointment.date as Date) },
-      ...hours,
-      { label: "Paciente", value: this.patientName(appointment) },
-      { label: "Consultorio", value: await roomLabel(appointment.room) },
-    ];
+  private async words(): Promise<Words> {
+    return words((await config()).vocabulary);
   }
 
+  /**
+   * Lo que un mail sabe del turno, ya escrito y en las palabras del consultorio.
+   *
+   * `to` es quién lo recibe: al paciente se le nombra el profesional y solo la hora de
+   * inicio, al profesional el paciente, las dos horas y el consultorio. Ver factsFor.
+   */
+  private async mailData(appointment: Appointment, w: Words, to: "patient" | "professional" = "patient"): Promise<MailData> {
+    // Con varias sucursales el mail dice en cuál es, y el recordatorio usa su dirección.
+    const branch = (await config()).policies.multiBranch ? await branchOf(appointment.room) : null;
+    const branchAddress = branch?.address ? [branch.address, branch.city].filter(Boolean).join(", ") : undefined;
+
+    return {
+      branchAddress,
+      facts: factsFor(w, to, {
+        branch: branch ? branch.name : undefined,
+        date: this.formatDateLong(appointment.date as Date),
+        start: hhmm(appointment.initialHour),
+        end: hhmm(appointment.finalHour),
+        professional: this.professionalName(appointment),
+        patient: this.patientName(appointment),
+        room: to === "professional" ? await roomLabel(appointment.room) : "",
+      }),
+      when: this.whenOf(appointment),
+      agenda: this.agendaOf(appointment),
+      patient: this.patientOf(appointment, w),
+      professional: this.professionalName(appointment),
+      url: (path) => this.appUrl(path),
+      shortNoticeHours: (await config()).shortNoticeHours,
+      canCancel: (await config()).policies.patientCancel,
+      canBook: (await config()).policies.patientBooking,
+    };
+  }
 
   /* ============================================================
      Los avisos de la campanita.
 
      Van pegados al mail, uno al lado del otro, porque son el mismo hecho contado por dos
-     lados: el que se entera por mail y el que se entera al entrar. Escribirlos en el
-     mismo lugar es lo que hace que no haya dos ideas distintas de qué es una novedad.
+     lados: el que se entera por mail y el que se entera al entrar. Los textos de los dos
+     salen de la misma función (ver appointmentMails), así no puede haber dos ideas
+     distintas de qué es una novedad.
 
      Ninguno pregunta por las preferencias de mail. Apagar un mail es pedir que no
      interrumpan el correo; adentro de la aplicación el aviso no interrumpe nada, y es el
@@ -1160,7 +1255,7 @@ export class AppointmentService {
 
   /**
    * "martes 2 de septiembre a las 09:00", que es como se lee un turno en un renglón. Para
-   * los avisos al paciente: sin la hora de fin, por lo mismo que en appointmentFacts.
+   * los avisos al paciente: sin la hora de fin, por lo mismo que en factsFor.
    */
   private whenOf(appointment: Appointment): string {
     return `${this.formatDateLong(appointment.date as Date)} a las ${hhmm(appointment.initialHour)}`;
@@ -1171,30 +1266,29 @@ export class AppointmentService {
     return `${this.formatDateLong(appointment.date as Date)} de ${hhmm(appointment.initialHour)} a ${hhmm(appointment.finalHour)}`;
   }
 
-  private patientOf(appointment: Appointment): string {
+  private patientOf(appointment: Appointment, w: Words): string {
     const patient = appointment.patient as any;
-    return patient?.name ? `${patient.name} ${patient.surname ?? ""}`.trim() : "Un paciente";
+    return patient?.name ? `${patient.name} ${patient.surname ?? ""}`.trim() : w.Un("paciente");
+  }
+
+  /** Manda un mail ya armado. */
+  private async deliver(to: string, mail: BuiltMail): Promise<void> {
+    const message = await this.mailService.createMessage(to, mail.subject, mail.html);
+    await this.mailService.sendMail(message);
   }
 
   private async sendAppointmentCreatedEmail(patientEmail: string, appointment: Appointment) {
+    const w = await this.words();
+    const mail = createdMail(w, await this.mailData(appointment, w));
+
     await this.notificationService.notify(patientEmail, {
       eventKey: `t${appointment.numAppointment}:pedido`,
-      title: "Tenés un turno pendiente",
-      body: `${this.whenOf(appointment)}. Falta que el profesional lo confirme.`,
+      ...mail.notice,
       tone: "info",
       target: "appointments",
     });
 
-    const htmlContent = [
-      title("Pedimos tu turno"),
-      paragraph("Ya tenemos tu pedido. Falta que el profesional lo confirme y te avisamos apenas lo haga."),
-      factsCard("El turno que pediste", await this.appointmentFacts(appointment)),
-      button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-      note("Si lo pediste sin querer, cancelalo desde tus turnos."),
-    ].join("");
-
-    const message = await this.mailService.createMessage(patientEmail, "Pedimos tu turno", htmlContent);
-    await this.mailService.sendMail(message);
+    await this.deliver(patientEmail, mail);
   }
 
   /**
@@ -1208,40 +1302,19 @@ export class AppointmentService {
   private async sendNewBookingToProfessional(appointment: Appointment) {
     if (!appointment.patient) return;
 
-    const pidieron = appointment.state === "pending";
+    const w = await this.words();
+    const pending = appointment.state === "pending";
+    const mail = newBookingMail(w, await this.mailData(appointment, w, "professional"), pending);
+
     await this.notificationService.notify(appointment.professional.email, {
-      eventKey: `t${appointment.numAppointment}:${pidieron ? "pidio" : "saco"}`,
-      title: pidieron ? "Te pidieron un turno" : "Te sacaron un turno",
-      body: `${this.patientOf(appointment)}, ${this.agendaOf(appointment)}.`,
-      tone: pidieron ? "warn" : "info",
+      eventKey: `t${appointment.numAppointment}:${pending ? "pidio" : "saco"}`,
+      ...mail.notice,
+      tone: pending ? "warn" : "info",
       target: "appointments",
     });
 
     if (!wantsMail(appointment.professional, "new-booking")) return;
-
-    // Con la confirmación automática el turno ya nació aceptado. Es la misma novedad pero
-    // no hay nada que contestar, y pedirle que confirme algo ya confirmado lo manda a
-    // buscar un botón que no existe.
-    const pending = appointment.state === "pending";
-
-    const htmlContent = [
-      title(pending ? "Te pidieron un turno" : "Te sacaron un turno"),
-      paragraph(
-        pending
-          ? "Un paciente pidió un horario tuyo. Queda esperando hasta que lo contestes."
-          : "Un paciente sacó un turno y quedó confirmado solo, como lo tenés configurado."
-      ),
-      factsCard("El turno", await this.appointmentFacts(appointment, "professional")),
-      button(pending ? "Ver los pedidos" : "Ver mi agenda", this.appUrl("/AppointmentsList")),
-      ...(pending ? [note("Si no lo contestás, el pedido se da de baja solo cuando pasa la hora del turno.")] : []),
-    ].join("");
-
-    const message = await this.mailService.createMessage(
-      appointment.professional.email,
-      pending ? "Te pidieron un turno" : "Te sacaron un turno",
-      htmlContent
-    );
-    await this.mailService.sendMail(message);
+    await this.deliver(appointment.professional.email, mail);
   }
 
   /**
@@ -1251,128 +1324,83 @@ export class AppointmentService {
    * y sin este aviso lo que ve es un pedido que estaba ayer y hoy no está.
    */
   private async sendRequestWithdrawnToProfessional(appointment: Appointment) {
+    const w = await this.words();
+    const mail = withdrawnMail(w, await this.mailData(appointment, w, "professional"));
+
     await this.notificationService.notify(appointment.professional.email, {
       eventKey: `t${appointment.numAppointment}:pedido-baja`,
-      title: "Se dio de baja un pedido",
-      body: `${this.patientOf(appointment)} dio de baja el pedido de ${this.agendaOf(appointment)}. Ese horario vuelve a estar libre.`,
+      ...mail.notice,
       tone: "info",
       // El pedido se borra de la base: no queda ficha que abrir.
       target: null,
     });
 
     if (!wantsMail(appointment.professional, "request-withdrawn")) return;
-
-    const htmlContent = [
-      title("Se dio de baja un pedido"),
-      paragraph("Un paciente dio de baja un turno que te había pedido y que no habías contestado."),
-      factsCard("El pedido que se cayó", await this.appointmentFacts(appointment, "professional")),
-      paragraph("No tenés que hacer nada. Ese horario vuelve a estar disponible."),
-      button("Ver mi agenda", this.appUrl("/AppointmentsList")),
-    ].join("");
-
-    const message = await this.mailService.createMessage(
-      appointment.professional.email,
-      "Se dio de baja un pedido",
-      htmlContent
-    );
-    await this.mailService.sendMail(message);
+    await this.deliver(appointment.professional.email, mail);
   }
 
   private async sendAppointmentUpdatedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    const w = await this.words();
+    const mail = updatedMail(w, await this.mailData(appointment, w));
+
     await this.notificationService.notify(appointment.patient.email, {
       eventKey: `t${appointment.numAppointment}:movido:${String(appointment.date as any).slice(0, 10)}${String(
         appointment.initialHour ?? ""
       ).slice(0, 5)}`,
-      title: "Te cambiamos el turno de horario",
-      body: `Ahora es ${this.whenOf(appointment)}.`,
+      ...mail.notice,
       tone: "warn",
       target: "appointments",
     });
 
-    const htmlContent = [
-      title("Cambiamos tu turno de horario"),
-      factsCard("Ahora es", await this.appointmentFacts(appointment)),
-      paragraph("Si este horario no te sirve, podés cancelarlo y pedir otro."),
-      button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-    ].join("");
-
-    const message = await this.mailService.createMessage(
-      appointment.patient.email,
-      "Cambiamos tu turno de horario",
-      htmlContent
-    );
-    await this.mailService.sendMail(message);
+    await this.deliver(appointment.patient.email, mail);
   }
 
   private async sendAppointmentRejectedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    const w = await this.words();
+    const mail = rejectedMail(w, await this.mailData(appointment, w));
+
     await this.notificationService.notify(appointment.patient.email, {
       eventKey: `t${appointment.numAppointment}:rechazado`,
-      title: "No pudimos darte ese turno",
-      body: "El profesional no pudo tomar ese horario. Podés elegir otro.",
+      ...mail.notice,
       tone: "warn",
       target: "booking",
     });
 
-    const htmlContent = [
-      title("No pudimos darte ese turno"),
-      paragraph("El profesional no pudo tomar el horario que pediste."),
-      factsCard("El turno que no salió", await this.appointmentFacts(appointment)),
-      paragraph("Hay más horarios disponibles. Elegí otro y lo intentamos de nuevo."),
-      button("Buscar otro horario", this.appUrl("/Appointment")),
-      note(
-        `Si necesitás una fecha en particular, <a href="${this.appUrl(
-          "/contacto"
-        )}" style="color:#2f5e46">escribinos</a> y lo vemos.`
-      ),
-    ].join("");
-
-    const message = await this.mailService.createMessage(
-      appointment.patient.email,
-      "No pudimos darte ese turno",
-      htmlContent
-    );
-    await this.mailService.sendMail(message);
+    await this.deliver(appointment.patient.email, mail);
   }
 
   private async sendAppointmentCanceledEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    const w = await this.words();
+    const mail = canceledMail(w, await this.mailData(appointment, w));
+
     await this.notificationService.notify(appointment.patient.email, {
       eventKey: `t${appointment.numAppointment}:cancelado`,
-      title: "Se canceló tu turno",
-      body: `Era ${this.whenOf(appointment)}.`,
+      ...mail.notice,
       tone: "warn",
       // El turno ya no está: se lo lleva a pedir otro, que es lo que le queda por hacer.
       target: "booking",
     });
 
-    const htmlContent = [
-      title("Se canceló tu turno"),
-      paragraph("Este turno ya no está en la agenda."),
-      factsCard("Turno cancelado", await this.appointmentFacts(appointment)),
-      button("Pedir otro turno", this.appUrl("/Appointment")),
-    ].join("");
-
-    const message = await this.mailService.createMessage(appointment.patient.email, "Se canceló tu turno", htmlContent);
-    await this.mailService.sendMail(message);
+    await this.deliver(appointment.patient.email, mail);
   }
 
   private async sendAppointmentCanceledToProfessional(appointment: Appointment, email: string) {
     // Con cuánta anticipación avisó. Es el mismo corte que marca la ficha del turno y que
-    // cuenta el panel de comportamiento: por debajo de un día el horario ya no se alcanza
-    // a ofrecer, y eso cambia lo que el profesional hace al leerlo.
-    const aviso = noticeOf(appointment);
+    // cuenta el panel de comportamiento: por debajo de la baja tardía el horario ya no se
+    // alcanza a ofrecer, y eso cambia lo que el profesional hace al leerlo.
+    const aviso = noticeOf(appointment, (await config()).shortNoticeHours);
+    const w = await this.words();
+    const mail = slotFreedMail(w, await this.mailData(appointment, w, "professional"), aviso.short);
 
     await this.notificationService.notify(email, {
       eventKey: `t${appointment.numAppointment}:libre`,
-      title: aviso.short ? "Te cancelaron un turno sobre la hora" : "Se te liberó un horario",
-      body: aviso.short
-        ? `${this.patientOf(appointment)} dio de baja el turno de ${this.agendaOf(appointment)}, con menos de un día de aviso.`
-        : `${this.patientOf(appointment)} canceló el turno de ${this.agendaOf(appointment)}.`,
+      ...mail.notice,
       tone: aviso.short ? "warn" : "info",
       target: "appointments",
     });
@@ -1382,16 +1410,7 @@ export class AppointmentService {
     // no en el que cancela: así el que cancela no tiene que acordarse de una preferencia
     // que no es suya.
     if (!wantsMail(appointment.professional, "slot-freed")) return;
-
-    const htmlContent = [
-      title("Se te liberó un horario"),
-      paragraph("Un paciente canceló su turno, así que ese horario vuelve a estar disponible."),
-      factsCard("Horario liberado", await this.appointmentFacts(appointment, "professional")),
-      button("Ver mi agenda", this.appUrl("/ProfessionalHome")),
-    ].join("");
-
-    const message = await this.mailService.createMessage(email, "Se te liberó un horario", htmlContent);
-    await this.mailService.sendMail(message);
+    await this.deliver(email, mail);
   }
 
   /**
@@ -1407,29 +1426,17 @@ export class AppointmentService {
   private async sendAppointmentAcceptedEmails(appointment: Appointment) {
     if (!appointment.patient) return;
 
+    const w = await this.words();
+    const mail = acceptedMail(w, await this.mailData(appointment, w), (await config()).visitAdvice);
+
     await this.notificationService.notify(appointment.patient.email, {
       eventKey: `t${appointment.numAppointment}:confirmado`,
-      title: "Te confirmaron el turno",
-      body: `${this.whenOf(appointment)}. Llegá cinco minutos antes.`,
+      ...mail.notice,
       tone: "good",
       target: "appointments",
     });
 
-    const htmlContent = [
-      title("Tu turno está confirmado"),
-      paragraph("El profesional confirmó el horario. Te esperamos."),
-      factsCard("Tu turno", await this.appointmentFacts(appointment)),
-      paragraph("Llegá cinco minutos antes. El día anterior te mandamos un recordatorio."),
-      button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-      note("¿No vas a poder ir? Cancelalo desde tus turnos así el horario le queda a otra persona."),
-    ].join("");
-
-    const message = await this.mailService.createMessage(
-      appointment.patient.email,
-      "Tu turno está confirmado",
-      htmlContent
-    );
-    await this.mailService.sendMail(message);
+    await this.deliver(appointment.patient.email, mail);
   }
 
   private async sendPatientAddedEmail(patientEmail: string, numAppointment: number) {
@@ -1444,31 +1451,17 @@ export class AppointmentService {
       console.error("No se pudo leer el turno para el aviso al paciente:", error);
     }
 
+    const w = await this.words();
+    const mail = addedMail(w, appointment ? await this.mailData(appointment, w) : null, (path) => this.appUrl(path));
+
     await this.notificationService.notify(patientEmail, {
       eventKey: `t${numAppointment}:alta`,
-      title: "Te anotamos en un turno",
-      body: appointment
-        ? `${this.whenOf(appointment)}, con ${this.professionalName(appointment) || "el consultorio"}.`
-        : "Desde el consultorio te asignaron un turno. Entrá para ver el día y la hora.",
+      ...mail.notice,
       tone: "good",
       target: "appointments",
     });
 
-    const htmlContent = [
-      title("Te anotamos en un turno"),
-      // El turno que carga el profesional nace confirmado: no hay nada que el paciente
-      // tenga que aceptar. Antes decía "confirmá que estás de acuerdo" y lo mandaba a
-      // buscar un botón que no existe.
-      paragraph("Desde el consultorio te asignaron un turno, y ya está confirmado."),
-      // Si el turno no se pudo leer, el mail sale igual y sin los datos: que llegue el aviso
-      // importa más que el detalle, que igual está en la lista de turnos.
-      ...(appointment ? [factsCard("Tu turno", await this.appointmentFacts(appointment))] : []),
-      button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-      warning("Si no esperabas este turno, avisanos. Puede ser un error de carga."),
-    ].join("");
-
-    const message = await this.mailService.createMessage(patientEmail, "Te anotamos en un turno", htmlContent);
-    await this.mailService.sendMail(message);
+    await this.deliver(patientEmail, mail);
   }
 
   /**
@@ -1486,7 +1479,7 @@ export class AppointmentService {
       weekday: "long",
       day: "numeric",
       month: "long",
-      timeZone: "America/Argentina/Buenos_Aires",
+      timeZone: CLINIC_TIMEZONE,
     }).format(noonUtc);
   }
 
@@ -1500,71 +1493,99 @@ export class AppointmentService {
    * dos días de anticipación —y como el turno queda marcado como avisado, esa gente se
    * quedaba después sin el recordatorio de la víspera, que es el que sirve—.
    */
-  async getAppointmentsForReminder(): Promise<Appointment[]> {
-    const tomorrow = addDays(startOfDay(new Date()), 1);
-    const tomorrow2359 = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000 - 1000);
+  /**
+   * Los turnos a los que hay que recordarles ahora.
+   *
+   * Sin horas cargadas en la configuración es el de la víspera, como siempre: todos los
+   * turnos de mañana, sin importar la hora. Con horas, los que arrancan dentro de esas
+   * horas. No son lo mismo —a un turno de mañana a las ocho de la noche la víspera le
+   * escribe desde la medianoche— y por eso la víspera no se expresa con un número.
+   *
+   * La tarea corre una vez por hora, así que con horas el recordatorio sale entre N y N-1
+   * horas antes. Y uno pedido con menos anticipación que eso sale en la próxima vuelta,
+   * mientras el turno no haya empezado.
+   */
+  async getAppointmentsForReminder(now = new Date()): Promise<Appointment[]> {
+    const hoursBefore = (await config()).reminderHoursBefore;
 
-    return await em.find(
+    if (hoursBefore === null) {
+      const tomorrow = addDays(startOfDay(now), 1);
+      const tomorrow2359 = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000 - 1000);
+
+      return await em.find(
+        Appointment,
+        {
+          date: { $gte: tomorrow, $lte: tomorrow2359 },
+          state: "accepted",
+          reminderSent: "not sent",
+          patient: { $ne: null },
+        },
+        { populate: ["patient", "professional"] }
+      );
+    }
+
+    // La fecha y la hora están en dos columnas, así que la base trae los días que pueden
+    // entrar y la cuenta fina se hace acá.
+    const until = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
+    const candidates = await em.find(
       Appointment,
       {
-        date: { $gte: tomorrow, $lte: tomorrow2359 },
+        date: { $gte: startOfDay(now), $lte: startOfDay(until) },
         state: "accepted",
         reminderSent: "not sent",
         patient: { $ne: null },
       },
       { populate: ["patient", "professional"] }
     );
+
+    return candidates.filter((appointment) => {
+      const start = startOfDay(appointment.date);
+      const [hours, minutes] = String(appointment.initialHour).split(":").map(Number);
+      start.setHours(hours, minutes || 0, 0, 0);
+      return start > now && start <= until;
+    });
+  }
+
+  /** "Hoy", "mañana" o la fecha del turno, para el recordatorio. */
+  private reminderDayOf(appointment: Appointment, now = new Date()): ReminderDay {
+    const day = startOfDay(appointment.date).getTime();
+    if (day === startOfDay(now).getTime()) return "today";
+    if (day === addDays(startOfDay(now), 1).getTime()) return "tomorrow";
+    return { date: longDate(appointment.date) };
   }
 
   /**
-   * El recordatorio de la víspera, con la pregunta de si viene.
+   * El recordatorio, con el aviso de la campanita.
    *
-   * Los dos botones abren una página que pide un toque más para confirmar. No contestan
-   * solos al abrirse porque los programas de correo abren los links por su cuenta para
-   * revisarlos, y un "No puedo ir" que se contesta al abrirse cancelaría turnos que nadie
-   * canceló. Si los links no se pudieron firmar, el mail sale como antes, sin la pregunta.
+   * Los dos botones del mail abren una página que pide un toque más para confirmar. No
+   * contestan solos al abrirse porque los programas de correo abren los links por su cuenta
+   * para revisarlos, y un "No puedo ir" que se contesta al abrirse cancelaría turnos que
+   * nadie canceló. Si los links no se pudieron firmar, el mail sale sin la pregunta.
    */
-  private async sendReminderEmail(patientEmail: string, appointment: Appointment) {
-    const links = attendanceLinks(appointment);
-
-    const htmlContent = [
-      // Los botones dicen lo mismo que la página que abren ("Confirmar asistencia" y
-      // "Cancelar turno"), y el mail va en el mismo registro impersonal que la web.
-      title("Turno de mañana"),
-      factsCard("Turno de mañana", await this.appointmentFacts(appointment)),
-      paragraph("En <strong>9 de Julio 3672</strong>. Se recomienda llegar cinco minutos antes."),
-      ...(links
-        ? [
-            paragraph("La respuesta le avisa al profesional con tiempo."),
-            buttonPair({ label: "Confirmar asistencia", href: links.yes }, { label: "Cancelar turno", href: links.no }),
-            note(
-              `Al cancelar, el horario queda disponible para otra persona. El turno también figura en <a href="${this.appUrl(
-                "/AppointmentsList"
-              )}" style="color:#2f5e46">Mis turnos</a>.`
-            ),
-          ]
-        : [
-            button("Ver mis turnos", this.appUrl("/AppointmentsList")),
-            note("Para cancelar, conviene hacerlo hoy. Así el horario queda disponible para otra persona."),
-          ]),
-    ].join("");
-
-    const message = await this.mailService.createMessage(patientEmail, "Mañana tenés turno", htmlContent);
-    await this.mailService.sendMail(message);
-  }
-
   async sendReminderEmails(appointment: Appointment): Promise<void> {
     if (!appointment.patient) return;
 
+    const rules = await config();
+    const w = words(rules.vocabulary);
+    const data = await this.mailData(appointment, w);
+    const mail = reminderMail(w, data, {
+      day: this.reminderDayOf(appointment),
+      address: data.branchAddress ?? rules.address,
+      advice: rules.visitAdvice,
+      links: attendanceLinks(appointment),
+    });
+
     await this.notificationService.notify(appointment.patient.email, {
+      // La clave sigue diciendo "manana" aunque el recordatorio salga el mismo día: es la
+      // marca de que este aviso ya se dio, y cambiarla haría que los turnos que ya lo
+      // recibieron lo reciban de nuevo.
       eventKey: `t${appointment.numAppointment}:manana`,
-      title: "Mañana tenés turno",
-      body: `${this.whenOf(appointment)}. Es en 9 de Julio 3672.`,
+      ...mail.notice,
       tone: "info",
       target: "appointments",
     });
 
-    await this.sendReminderEmail(appointment.patient.email, appointment);
+    await this.deliver(appointment.patient.email, mail);
   }
 
   /**
@@ -1601,11 +1622,12 @@ export class AppointmentService {
       else byProfessional.set(email, { first: String(appointment.initialHour ?? "").slice(0, 5), count: 1 });
     }
 
+    const w = await this.words();
+
     for (const [email, { first, count }] of byProfessional) {
       await this.notificationService.notify(email, {
         eventKey: `manana:${iso}`,
-        title: count === 1 ? "Mañana tenés un turno" : `Mañana tenés ${count} turnos`,
-        body: `El primero, a las ${first}.`,
+        ...tomorrowNotice(w, count, first),
         tone: "info",
         target: "appointments",
       });

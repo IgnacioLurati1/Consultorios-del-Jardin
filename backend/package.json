@@ -14,7 +14,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "schema:plan": "node dist/scripts/schema-plan.js",
-    "deploy:migrate": "node dist/scripts/deploy-migrate.js"
+    "schema:apply": "node dist/scripts/schema-apply.js",
+    "deploy:migrate": "node dist/scripts/deploy-migrate.js",
+    "names:plan": "node dist/scripts/normalize-names.js",
+    "names:apply": "node dist/scripts/normalize-names.js --aplicar"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +39,7 @@
     "multer": "^2.3.0",
     "node-cron": "^3.0.3",
     "reflect-metadata": "0.2.2",
+    "sharp": "0.34.4",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },

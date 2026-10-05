@@ -2,9 +2,12 @@ import { orm } from "../shared/db/orm.js";
 import { Person } from "../people/people.entity.js";
 import { Vacation } from "./vacation.entity.js";
 import { Appointment } from "../appointments/appointments.entity.js";
-import { AppointmentService, DEBT_FILTER, pendingAmount } from "../appointments/appointments.service.js";
+import { AppointmentService, debtFilter, pendingAmount } from "../appointments/appointments.service.js";
+import { config, officeWords } from "../installation/installation.service.js";
 import { Recurrence } from "../recurrences/recurrences.entity.js";
-import { badRequest, notFound } from "../shared/errors.js";
+import { badRequest, forbidden, notFound } from "../shared/errors.js";
+import { capital } from "../shared/capital.js";
+import { RULE_MESSAGES, requireRule, rulesNow } from "../installation/rules.js";
 import { startOfDay, toISODate } from "../shared/dates.js";
 import { professionalMailSettings, setMailPreference } from "../people/mailPreferences.js";
 
@@ -43,7 +46,7 @@ export class SettingsService {
     const person = await em.findOne(Person, { email });
 
     if (!person) throw notFound("No encontramos tu usuario");
-    if (person.type !== "professional") throw badRequest("Esta configuración es solo para profesionales");
+    if (person.type !== "professional") throw badRequest(`Esta configuración es solo para ${(await officeWords()).profesionales}`);
 
     return person;
   }
@@ -62,7 +65,7 @@ export class SettingsService {
       autoPay: person.autoPay,
       autoPayWhen: person.autoPayWhen,
       pending,
-      mails: professionalMailSettings(person),
+      mails: professionalMailSettings(person, await officeWords()),
       vacations: vacations.map((vacation) => ({
         id: vacation.id!,
         fromDate: toISODate(startOfDay(vacation.fromDate)),
@@ -86,11 +89,19 @@ export class SettingsService {
   ): Promise<ProfessionalSettings> {
     const person = await this.professional(email);
 
+    // Lo que el consultorio impone para todos no lo cambia cada uno.
+    const { p, w } = await rulesNow();
+    const imposed =
+      (data.autoAccept !== undefined && p.acceptMode !== "each") ||
+      ((data.autoMark !== undefined || data.autoMarkWhen !== undefined) && p.markMode !== "each") ||
+      ((data.autoPay !== undefined || data.autoPayWhen !== undefined) && p.payMode !== "each");
+    if (imposed) throw forbidden(RULE_MESSAGES.forcedSetting(w), "RULE_OFF");
+
     if (data.autoAccept !== undefined) person.autoAccept = !!data.autoAccept;
 
     if (data.autoMark !== undefined) {
       if (data.autoMark !== null && data.autoMark !== "assisted" && data.autoMark !== "missed")
-        throw badRequest("El cierre automático solo puede dejar el turno como que vino o como que no vino");
+        throw badRequest(`El cierre automático solo puede dejar ${w.el("turno")} como que vino o como que no vino`);
 
       // La marca se sella al prender y se borra al apagar, así volver a prenderla más
       // adelante tampoco arrastra lo que pasó mientras estuvo apagada.
@@ -102,7 +113,7 @@ export class SettingsService {
 
     if (data.autoMarkWhen !== undefined) {
       if (data.autoMarkWhen !== "appointment" && data.autoMarkWhen !== "day")
-        throw badRequest("El cierre automático corre al terminar el turno o al terminar el día");
+        throw badRequest(`El cierre automático corre al terminar ${w.el("turno")} o al terminar el día`);
 
       person.autoMarkWhen = data.autoMarkWhen;
     }
@@ -118,7 +129,7 @@ export class SettingsService {
 
     if (data.autoPayWhen !== undefined) {
       if (data.autoPayWhen !== "appointment" && data.autoPayWhen !== "day")
-        throw badRequest("El cobro automatico corre al terminar el turno o al terminar el dia");
+        throw badRequest(`El cobro automatico corre al terminar ${w.el("turno")} o al terminar el dia`);
 
       person.autoPayWhen = data.autoPayWhen;
     }
@@ -190,7 +201,11 @@ export class SettingsService {
   async settleUnpaid(email: string): Promise<{ settled: number; amount: number }> {
     await this.professional(email);
 
-    const unpaid = await em.find(Appointment, { professional: { email }, patient: { $ne: null }, ...DEBT_FILTER });
+    const unpaid = await em.find(Appointment, {
+      professional: { email },
+      patient: { $ne: null },
+      ...debtFilter((await config()).chargesMissed),
+    });
 
     let amount = 0;
 
@@ -205,10 +220,24 @@ export class SettingsService {
     return { settled: unpaid.length, amount };
   }
 
+  /** Los períodos sin atender de un profesional, en orden. Los usa también la administración. */
+  async vacationsOf(email: string): Promise<ProfessionalSettings["vacations"]> {
+    await this.professional(email);
+    const vacations = await em.find(Vacation, { professional: { email } }, { orderBy: { fromDate: "asc" } });
+    const today = startOfDay(new Date());
+    return vacations.map((vacation) => ({
+      id: vacation.id!,
+      fromDate: toISODate(startOfDay(vacation.fromDate)),
+      toDate: toISODate(startOfDay(vacation.toDate)),
+      reason: vacation.reason ?? null,
+      current: startOfDay(vacation.fromDate) <= today && today <= startOfDay(vacation.toDate),
+    }));
+  }
+
   async addVacation(email: string, fromDate: string, toDate: string, reason?: string | null): Promise<Vacation> {
     const professional = await this.professional(email);
 
-    if (!fromDate || !toDate) throw badRequest("Elegí desde y hasta qué día no vas a atender");
+    if (!fromDate || !toDate) throw badRequest("Faltan las fechas de inicio y de fin");
 
     const from = startOfDay(fromDate);
     const to = startOfDay(toDate);
@@ -224,7 +253,7 @@ export class SettingsService {
       toDate: { $gte: from },
     });
 
-    if (overlapping) throw badRequest("Ya tenés cargado un período que se pisa con esas fechas");
+    if (overlapping) throw badRequest("Ya hay un período cargado que se pisa con esas fechas");
 
     const vacation = em.create(Vacation, {
       professional,
@@ -240,7 +269,7 @@ export class SettingsService {
   async removeVacation(email: string, id: number): Promise<void> {
     const vacation = await em.findOne(Vacation, { id, professional: { email } });
 
-    if (!vacation) throw notFound("Ese período no existe o no es tuyo");
+    if (!vacation) throw notFound("Ese período no existe");
 
     await em.removeAndFlush(vacation);
   }
@@ -293,11 +322,13 @@ export class SettingsService {
    */
   async deletePatientAppointments(professionalEmail: string, patientEmail: string, scope: DeleteScope) {
     await this.professional(professionalEmail);
+    await requireRule((p) => p.proDeleteHistory, RULE_MESSAGES.proDeleteHistory);
 
-    if (scope !== "future" && scope !== "all") throw badRequest("No sabemos qué turnos hay que borrar");
+    const w = await officeWords();
+    if (scope !== "future" && scope !== "all") throw badRequest(`No sabemos qué ${w.turnos} hay que borrar`);
 
     const patient = await em.findOne(Person, { email: patientEmail });
-    if (!patient) throw notFound("Ese paciente no existe");
+    if (!patient) throw notFound(`${capital(w.ese("paciente"))} no existe`);
 
     const mine = { professional: { email: professionalEmail }, patient: { email: patientEmail } };
     const onlyFuture = scope === "future" ? { date: { $gte: startOfDay(new Date()) } } : {};

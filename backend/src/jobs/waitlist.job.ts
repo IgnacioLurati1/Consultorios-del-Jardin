@@ -1,4 +1,4 @@
-import cron from "node-cron";
+import { scheduleJob } from "../shared/jobs/schedule.js";
 import { RequestContext } from "@mikro-orm/core";
 import { orm } from "../shared/db/orm.js";
 import { WaitlistService } from "../waitlist/waitlist.service.js";
@@ -27,11 +27,13 @@ async function run(withSnapshot: boolean): Promise<void> {
 }
 
 export async function startWaitlistJob() {
-  console.log(`[${new Date().toISOString()}] Cron job de listas de espera inicializado (una vez por día)`);
-
-  await run(false);
-
-  cron.schedule("55 23 * * *", async () => {
-    await run(true);
+  await scheduleJob({
+    name: "listas",
+    cron: "55 23 * * *",
+    everyMinutes: 1440,
+    label: "Tarea de listas de espera programada (una vez por dia)",
+    run: async (reason) => {
+      await run(reason === "programado");
+    },
   });
 }

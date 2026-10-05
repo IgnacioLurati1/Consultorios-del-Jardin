@@ -9,16 +9,55 @@
  * "no tenés permiso".
  */
 
+import { config, type AssistantTone } from "../installation/installation.service.js";
+import { DEFAULT_POLICIES, type Policies } from "../shared/policies.js";
+import type { Vocabulary } from "../shared/vocabulary.js";
+
 export type Role = "client" | "professional" | "admin";
 
-export const OFFICE_INFO = {
-  name: "Consultorios del Jardín",
-  address: "9 de Julio 3672",
-  hours: "Lunes a viernes, de 9 a 20",
-  mail: process.env.MAIL ?? "consultoriosjardinok@gmail.com",
-  instagram: "@consultorios_jardin",
-  specialities: ["Psicopedagogía", "Psicología", "Psiquiatría", "Nutrición", "Fonoaudiología"],
-};
+export interface OfficeInfo {
+  name: string;
+  address: string;
+  hours: string;
+  mail: string;
+  instagram: string;
+  phone?: string;
+  whatsapp?: string;
+  specialities: string[];
+  tone: AssistantTone;
+  notes: string;
+  /** Las palabras del rubro. Sin esto, las de siempre. */
+  vocabulary?: Vocabulary;
+  /** Las reglas del consultorio. Sin esto, las de siempre. */
+  policies?: Policies;
+}
+
+/**
+ * Lo que el asistente sabe del consultorio, desde la configuración de la instalación.
+ *
+ * Estaba escrito acá, así que el asistente de cualquier otro consultorio que corriera este
+ * código contestaba con esta dirección. Y si faltaba la variable `MAIL`, dictaba la casilla
+ * de este consultorio a los pacientes de otro: ese fallback ya no existe. Sin casilla
+ * cargada, el asistente no da ninguna.
+ */
+export async function officeInfo(): Promise<OfficeInfo> {
+  const c = await config();
+  return {
+    name: c.name,
+    address: c.address,
+    hours: c.publicHours,
+    // La casilla que el consultorio publica; si no cargó ninguna, la que manda los mails.
+    mail: c.email || (process.env.MAIL ?? "").trim(),
+    instagram: c.instagram ? `@${c.instagram.replace(/^@/, "")}` : "",
+    phone: c.phone,
+    whatsapp: c.whatsapp,
+    specialities: c.services,
+    tone: c.assistantTone,
+    notes: c.assistantNotes,
+    vocabulary: c.vocabulary,
+    policies: c.policies,
+  };
+}
 
 export interface Page {
   /** Clave que usa el modelo. En español, porque es lo que va a querer escribir. */
@@ -29,6 +68,8 @@ export interface Page {
   /** Para qué sirve. El modelo elige la pantalla leyendo esto. */
   description: string;
   roles: Role[];
+  /** La regla del consultorio sin la cual la pantalla no se ofrece. */
+  requires?: (p: Policies) => boolean;
 }
 
 export const PAGES: Page[] = [
@@ -59,6 +100,7 @@ export const PAGES: Page[] = [
     label: "Pedir un turno",
     description: "Pantalla para sacar un turno eligiendo especialidad, profesional y horario.",
     roles: ["client", "professional", "admin"],
+    requires: (p) => p.patientBooking,
   },
   {
     key: "mis-turnos",
@@ -133,6 +175,7 @@ export const PAGES: Page[] = [
   {
     key: "alquileres",
     path: "/AdminHome/Alquileres",
+    requires: (p) => p.rentModule,
     label: "Ver los alquileres",
     description: "Cuotas de alquiler de cada profesional y sus pagos. Ahí se cambian los precios de los consultorios, se aplica un aumento, se corrige una cuota y se exporta el mes. Para decir quién pagó o cuánto debe, usá las herramientas de alquiler.",
     roles: ["admin"],
@@ -167,13 +210,13 @@ export const PAGES: Page[] = [
   },
 ];
 
-export function pagesFor(role: Role): Page[] {
-  return PAGES.filter((page) => page.roles.includes(role));
+export function pagesFor(role: Role, p: Policies = DEFAULT_POLICIES): Page[] {
+  return PAGES.filter((page) => page.roles.includes(role) && (!page.requires || page.requires(p)));
 }
 
-export function findPage(key: string, role: Role): Page | undefined {
+export function findPage(key: string, role: Role, p: Policies = DEFAULT_POLICIES): Page | undefined {
   const wanted = String(key ?? "")
     .trim()
     .toLowerCase();
-  return pagesFor(role).find((page) => page.key === wanted);
+  return pagesFor(role, p).find((page) => page.key === wanted);
 }

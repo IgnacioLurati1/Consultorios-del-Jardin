@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import MailService from "../config/mailer.js";
 import { escapeHtml, factsCard, note, paragraph, quote, title } from "../config/mailTemplate.js";
+import { config, officeWords } from "../installation/installation.service.js";
+import { APPLICATION, defaultReasons, reasonLabel, type ContactReasonEntry } from "../shared/contactReasons.js";
+import type { Words } from "../shared/vocabulary.js";
 import { AppError, badRequest, sendError } from "../shared/errors.js";
 import { orm } from "../shared/db/orm.js";
 import { Person } from "../people/people.entity.js";
@@ -14,18 +17,16 @@ const INBOX = process.env.CONTACT_MAIL || (process.env.MAIL as string);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Motivos posibles. Es una lista cerrada para que el asunto del mail sea siempre
- * clasificable y no lo escriba quien manda el formulario.
+ * Los motivos que muestra la web, como los configuró el consultorio (ver
+ * shared/contactReasons). La lista es cerrada para que el asunto del mail sea siempre
+ * clasificable y no lo escriba quien manda el formulario. Si la base no contesta, los de
+ * siempre: una consulta que no llega porque no se pudo leer la lista es peor.
  */
-const REASONS: Record<string, string> = {
-  turnos: "Turnos",
-  profesional: "Quiero trabajar en el consultorio",
-  sugerencia: "Sugerencia",
-  otro: "Otra consulta",
-};
-
-/** El motivo de quien quiere sumarse como profesional. Es el único que pide teléfono y acepta CV. */
-const APPLICATION = "profesional";
+async function currentReasons(): Promise<ContactReasonEntry[]> {
+  return config()
+    .then((c) => c.contactReasons)
+    .catch(() => defaultReasons());
+}
 
 const LIMITS = { name: 80, email: 120, phone: 30, message: 2000 };
 
@@ -39,6 +40,8 @@ interface ContactData {
   email: string;
   phone: string;
   reason: string;
+  /** El nombre del motivo, como lo ve quien escribió. */
+  reasonName: string;
   message: string;
   cv: Cv | null;
 }
@@ -71,7 +74,7 @@ function cleanFileName(original: string): string {
   return `${stem || "cv"}${extension}`;
 }
 
-function validate(body: any, file?: Express.Multer.File): ContactData {
+function validate(body: any, reasons: ContactReasonEntry[], w: Words, file?: Express.Multer.File): ContactData {
   // Campo trampa: es invisible en el formulario, así que si viene con algo escrito
   // lo llenó un bot. Se corta acá y no se manda ningún mail.
   if (typeof body?.website === "string" && body.website.trim()) throw badRequest("No pudimos enviar el mensaje");
@@ -93,7 +96,7 @@ function validate(body: any, file?: Express.Multer.File): ContactData {
   if (reason === APPLICATION && !phone) throw badRequest("Falta el teléfono");
   if (phone && !/^[\d\s()+-]{6,30}$/.test(phone)) throw badRequest("Ese teléfono no parece válido");
 
-  if (!REASONS[reason]) throw badRequest("Elegí un motivo para la consulta");
+  if (!reasons.some((item) => item.id === reason && !item.hidden)) throw badRequest("Elegí un motivo para la consulta");
 
   if (message.length < 10) throw badRequest("Contanos un poco más. El mensaje es muy corto");
   if (message.length > LIMITS.message) throw badRequest("El mensaje es demasiado largo. Probá resumirlo");
@@ -105,33 +108,33 @@ function validate(body: any, file?: Express.Multer.File): ContactData {
     cv = { name: cleanFileName(file.originalname), content: file.buffer };
   }
 
-  return { name, email, phone, reason, message, cv };
+  return { name, email, phone, reason, reasonName: reasonLabel(reason, reasons, w), message, cv };
 }
 
 /** La copia que llega a la casilla del consultorio: primero quién escribió, después qué dijo. */
-function inboxHtml(data: ContactData): string {
+function inboxHtml(data: ContactData, w: Words): string {
   return [
-    title(data.reason === APPLICATION ? "Un profesional quiere sumarse" : "Consulta desde la página"),
-    factsCard(REASONS[data.reason], [
+    title(data.reason === APPLICATION ? `${w.Un("profesional")} quiere sumarse` : "Consulta desde la página"),
+    factsCard(data.reasonName, [
       { label: "Nombre", value: data.name },
       { label: "Email", value: data.email },
       { label: "Teléfono", value: data.phone },
       { label: "CV", value: data.cv ? data.cv.name : data.reason === APPLICATION ? "Sin CV" : "" },
     ]),
     quote(data.message),
-    data.cv ? note("El CV va adjunto a este mail. El consultorio no guarda una copia.") : "",
+    data.cv ? note(`El CV va adjunto a este mail. ${w.El("lugar")} no guarda una copia.`) : "",
     note(`Si respondés este mail le llega directo a ${escapeHtml(data.email)}.`),
   ].join("");
 }
 
 /** El acuse para quien escribió: que sepa que llegó y con qué texto. */
-function receiptHtml(data: ContactData): string {
+function receiptHtml(data: ContactData, w: Words): string {
   return [
     title("Recibimos tu mensaje"),
     paragraph(
       `Hola ${escapeHtml(data.name)}, gracias por escribirnos. Te respondemos a este mismo mail dentro del horario de atención.`
     ),
-    paragraph(`Esto fue lo que nos contaste sobre <strong>${escapeHtml(REASONS[data.reason].toLowerCase())}</strong>.`),
+    paragraph(`Esto fue lo que nos contaste sobre <strong>${escapeHtml(data.reasonName.toLowerCase())}</strong>.`),
     quote(data.message),
     data.cv ? paragraph(`También recibimos tu CV (<strong>${escapeHtml(data.cv.name)}</strong>).`) : "",
     note("Si no fuiste vos quien escribió, ignorá este mensaje."),
@@ -145,7 +148,7 @@ function receiptHtml(data: ContactData): string {
  * puede dejar sin avisar a los demás. Y nada de esto puede tumbar el envío, que ya salió
  * bien a la casilla del consultorio.
  */
-async function tellAdmins(data: ContactData, subject: string, html: string): Promise<void> {
+async function tellAdmins(data: ContactData, subject: string, html: string, w: Words): Promise<void> {
   try {
     const admins = await orm.em.fork().find(Person, { type: "admin", active: true });
     if (admins.length === 0) return;
@@ -165,7 +168,7 @@ async function tellAdmins(data: ContactData, subject: string, html: string): Pro
       admins.map((admin) => admin.email),
       {
         eventKey: `postulacion:${data.email.toLowerCase()}:${Date.now()}`,
-        title: "Nueva postulación de un profesional",
+        title: `Nueva postulación de ${w.un("profesional")}`,
         body: [data.name, data.phone, data.cv ? "CV adjunto en el mail" : "Sin CV"].join(" · "),
         tone: "info",
         target: null,
@@ -185,9 +188,10 @@ async function tellAdmins(data: ContactData, subject: string, html: string): Pro
  */
 export async function sendContactMessage(req: Request, res: Response) {
   try {
-    const data = validate(req.body, req.file);
-    const subject = `Contacto web · ${REASONS[data.reason]} · ${data.name}`;
-    const html = inboxHtml(data);
+    const w = await officeWords();
+    const data = validate(req.body, await currentReasons(), w, req.file);
+    const subject = `Contacto web · ${data.reasonName} · ${data.name}`;
+    const html = inboxHtml(data, w);
     const attachments = data.cv ? [{ name: data.cv.name, content: data.cv.content.toString("base64") }] : undefined;
 
     const toInbox = await mailService.createMessage(INBOX, subject, html, { replyTo: data.email, attachments });
@@ -196,11 +200,11 @@ export async function sendContactMessage(req: Request, res: Response) {
     // queda esperando respuesta a un mensaje que nunca llegó.
     if (!delivered) throw new AppError("No pudimos enviar el mensaje. Probá de nuevo en un rato", 502);
 
-    if (data.reason === APPLICATION) await tellAdmins(data, subject, html);
+    if (data.reason === APPLICATION) await tellAdmins(data, subject, html, w);
 
     // El acuse es una cortesía: si falla, la consulta ya llegó igual y no tiene sentido
     // decirle a la persona que no se envió.
-    const receipt = await mailService.createMessage(data.email, "Recibimos tu consulta", receiptHtml(data));
+    const receipt = await mailService.createMessage(data.email, "Recibimos tu consulta", receiptHtml(data, w));
     mailService.sendMail(receipt).catch(() => undefined);
 
     return res.status(200).json({ message: "Mensaje enviado" });
