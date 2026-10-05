@@ -2,17 +2,19 @@ import { badRequest } from "./errors.js";
 
 /**
  * Los colores propios de algunos elementos: la barra de arriba, el pie (con las franjas
- * oscuras de la portada) y la cabecera de los mails.
+ * oscuras de la portada), la cabecera de los mails y el fondo de la portada cuando va solo
+ * el nombre.
  *
  * Sin color propio, cada uno sigue al color de la marca o, sin marca, al de la estación,
- * como siempre. Los tres llevan texto claro encima, así que un color demasiado claro se
- * oscurece lo justo para que el texto se lea (ver `readableBackground`): se guarda el que
- * eligió el consultorio y se ajusta al dibujarlo.
+ * como siempre. Los tres primeros llevan texto claro encima, así que un color demasiado claro
+ * se oscurece lo justo para que el texto se lea (ver `readableBackground`): se guarda el que
+ * eligió el consultorio y se ajusta al dibujarlo. Sobre el fondo de la portada, en cambio, la
+ * web cambia el color del nombre.
  *
  * Es el espejo de lib/elementColors en la web.
  */
 
-export const ELEMENT_COLOR_KEYS = ["header", "footer", "mail"] as const;
+export const ELEMENT_COLOR_KEYS = ["header", "footer", "mail", "hero"] as const;
 export type ElementColorKey = (typeof ELEMENT_COLOR_KEYS)[number];
 export type ElementColors = Partial<Record<ElementColorKey, string>>;
 
@@ -79,4 +81,5 @@ export function readableBackground(hex: string, maxLight: number): string {
 }
 
 /** La luz máxima de cada elemento. El pie lleva texto chico y gris, así que pide más oscuro. */
-export const MAX_LIGHT: Record<ElementColorKey, number> = { header: 40, footer: 24, mail: 40 };
+// El fondo de arriba no se oscurece: la web cambia el color del nombre según el fondo.
+export const MAX_LIGHT: Record<ElementColorKey, number> = { header: 40, footer: 24, mail: 40, hero: 100 };
