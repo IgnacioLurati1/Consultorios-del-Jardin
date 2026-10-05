@@ -249,13 +249,15 @@ export class PeopleService {
         password: hashedPassword,
         anonymous: false,
         active: true,
+        // Dado de alta por la administración: sigue con la provisoria hasta que elija la suya.
+        provisionalPassword: !!options.invite,
       });
       await em.flush();
       await (options.invite ? this.sendFirstPasswordMail(existing) : this.sendWelcomeEmail(existing));
       return existing;
     }
 
-    const person = em.create(Person, { ...data, password: hashedPassword, anonymous: false });
+    const person = em.create(Person, { ...data, password: hashedPassword, anonymous: false, provisionalPassword: !!options.invite });
     await em.flush();
     await (options.invite ? this.sendFirstPasswordMail(person) : this.sendWelcomeEmail(person));
     return person;
@@ -333,6 +335,8 @@ export class PeopleService {
       autoPay: false,
       autoPayWhen: "appointment" as const,
       anonymous: true,
+      // Sin cuenta no hay contraseña que elegir.
+      provisionalPassword: false,
       createdBy: data.createdBy,
     });
 
@@ -573,6 +577,7 @@ export class PeopleService {
     if (person.passwordSetAt && person.passwordSetAt.getTime() >= issuedAt) throw new Error("Token expirado");
 
     person.password = await bcrypt.hash(newPassword, 10);
+    person.provisionalPassword = false;
     // Es el último cambio de contraseña, el que mira la administración para saber quién
     // sigue con la provisoria. También apaga el link de bienvenida: quien entró por acá ya
     // tiene la suya.
@@ -1016,6 +1021,7 @@ export class PeopleService {
     if (person.passwordSetAt) throw new Error("LINK_USED");
 
     person.password = await bcrypt.hash(String(password), 10);
+    person.provisionalPassword = false;
     person.passwordSetAt = new Date();
     await em.flush();
 

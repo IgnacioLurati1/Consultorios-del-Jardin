@@ -294,6 +294,8 @@ describe("crear un administrador", () => {
     // Nadie conoce la contraseña inicial, ni se puede adivinar comparando dos altas.
     expect(await bcrypt.compare("", creado.password)).toBe(false);
     expect(creado.password).not.toContain(CLAVE);
+    // Queda marcada como provisoria hasta que elija la suya: es lo que muestra la consola.
+    expect(creado.provisionalPassword).toBe(true);
   });
 
   it("guarda el correo en minúsculas, como lo busca el login", async () => {

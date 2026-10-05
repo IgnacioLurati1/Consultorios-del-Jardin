@@ -219,4 +219,12 @@ export class Person {
   // y las que vienen de antes de esto.
   @Property({ nullable: true, type: "datetime", hidden: true })
   passwordSetAt?: Date | null;
+
+  // Si la cuenta sigue con la contraseña que se le puso al crearla y que nadie conoce: la de
+  // un administrador creado desde la consola o un profesional dado de alta por la
+  // administración. Se apaga cuando la persona elige la suya. `passwordSetAt` no sirve
+  // para esto: está vacía en todas las cuentas de antes de que existiera, tengan o no
+  // contraseña propia. Las cuentas que ya estaban nacen en false.
+  @Property({ default: false, hidden: true })
+  provisionalPassword: boolean = false;
 }

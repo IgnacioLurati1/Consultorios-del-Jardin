@@ -82,6 +82,8 @@ export class ConsoleService {
       active: admin.active,
       // Quién sigue con la contraseña provisoria, que es el dato que importa después de crear.
       passwordSetAt: admin.passwordSetAt ?? null,
+      // Sigue con la contraseña al azar con que se creó: todavía no eligió la suya.
+      provisionalPassword: !!admin.provisionalPassword,
       owner: isOwner(admin.email),
     }));
   }
@@ -140,6 +142,7 @@ export class ConsoleService {
       docNumber: "",
       phoneNumber: "",
       password: await bcrypt.hash(unguessablePassword(), 10),
+      provisionalPassword: true,
       speciality: null as any,
       type: "admin",
       active: true,

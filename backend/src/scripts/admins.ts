@@ -99,6 +99,7 @@ export async function ensureAdmins(): Promise<number> {
       docNumber: "",
       phoneNumber: "",
       password: await bcrypt.hash(unguessablePassword(), 10),
+      provisionalPassword: true,
       speciality: null as any,
       type: "admin",
       active: true,
