@@ -76,7 +76,7 @@ export function ProfessionalReport({ data }: { data: ProfessionalAnalytics }) {
               label="Saldo de alquiler"
               value={money(data.rent.owed)}
               tone={data.rent.owed > 0 ? "danger" : undefined}
-              note={data.rent.owed > 0 ? "cuotas con saldo" : "sin deuda"}
+              note={data.rent.owed > 0 ? "cuotas vencidas con saldo" : "sin deuda"}
               to={data.rent.owed > 0 ? "/AdminHome/Alquileres?estado=pendientes" : undefined}
               toHint="Ver los pendientes de cobrar"
             />
