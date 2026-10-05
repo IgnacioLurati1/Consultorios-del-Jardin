@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { PREVIEW_AS, useInstallation, type HomeBlock } from "../../../lib/installation";
+import { isLightColor } from "../../../lib/elementColors";
 import { HolidayGarland } from "../../../components/decor/HolidayDecor";
 import { useHoliday } from "../../../components/decor/useHoliday";
 import { getDecodedToken } from "../../commonServices";
@@ -56,7 +57,9 @@ const BLOCKS: Record<HomeBlock, (session: Session) => ReactNode> = {
 
 export function Home() {
   const session = useSession();
-  const { homeBlocks, homeTemplate } = useInstallation();
+  const { homeBlocks, homeTemplate, elementColors } = useInstallation();
+  // Con un fondo propio para "Solo el nombre", el nombre va claro u oscuro según el fondo.
+  const hero = elementColors.hero ? (isLightColor(elementColors.hero) ? "claro" : "oscuro") : undefined;
 
   // Si se festeja algo, la portada se adorna. El atributo lo leen los adornos chicos de
   // decor.css; la guirnalda de arriba se cuelga sola.
@@ -71,7 +74,7 @@ export function Home() {
   const blocks = session.type === "guest" ? homeBlocks.guest : homeBlocks.member;
 
   return (
-    <div className="home" data-holiday={holiday ?? undefined} data-home-template={homeTemplate}>
+    <div className="home" data-holiday={holiday ?? undefined} data-home-template={homeTemplate} data-hero={hero}>
       {blocks.map((block) => (
         <Fragment key={block}>{BLOCKS[block](session)}</Fragment>
       ))}

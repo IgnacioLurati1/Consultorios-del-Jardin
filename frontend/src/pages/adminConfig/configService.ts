@@ -3,6 +3,7 @@ import type { HeroStyle, HomeBlock, HomeTemplate, HomeVariants, PanelSkin } from
 import type { Vocabulary } from "../../lib/vocabulary.ts";
 import type { Policies } from "../../lib/policies.ts";
 import type { ContactReasonEntry, FaqEntry } from "../../lib/contentLists.ts";
+import type { ElementColors } from "../../lib/elementColors.ts";
 
 export type RuleGroupKey = "reservas" | "profesionales" | "automatico" | "agenda" | "avisos" | "modulos";
 
@@ -56,7 +57,7 @@ export interface OfficeConfig {
   /** El diseño de las secciones que no siguen al diseño general. Un servidor anterior no lo trae. */
   homeVariants?: Partial<HomeVariants>;
   /** Los colores propios de la barra, el pie y los mails. Un servidor anterior no los trae. */
-  elementColors?: Partial<Record<"header" | "footer" | "mail", string>>;
+  elementColors?: ElementColors;
   assistantTone: "voseo" | "tuteo" | "usted";
   assistantNotes: string;
   vocabulary: Vocabulary;

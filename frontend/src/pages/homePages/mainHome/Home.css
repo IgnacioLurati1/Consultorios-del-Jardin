@@ -2135,3 +2135,24 @@
 .home[data-home-template="minimal"] :is(.home-tile, .home-space--list .home-access-grid) {
   box-shadow: none;
 }
+
+/* Un fondo propio para "Solo el nombre" (Configuración, Colores de cada parte). Es un color
+   liso, así que va sin la viñeta, que tiene el color de la estación. El nombre va crema sobre
+   un fondo oscuro y oscuro sobre uno claro: lo decide Home.tsx con data-hero. */
+.home[data-hero] .home-hero--text .home-collage {
+  background: linear-gradient(160deg, var(--brand-hero) 0%, var(--brand-hero-2) 100%);
+}
+
+.home[data-hero] .home-hero--text .home-vignette {
+  display: none;
+}
+
+.home[data-hero="oscuro"] .home-hero--text .home-wordmark {
+  color: var(--home-cream);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.25);
+}
+
+.home[data-hero="claro"] .home-hero--text .home-wordmark {
+  color: #1f2a33;
+  text-shadow: none;
+}

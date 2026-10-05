@@ -1,14 +1,16 @@
 /**
  * Los colores propios de algunos elementos: la barra de arriba, el pie (con las franjas
- * oscuras de la portada) y la cabecera de los mails.
+ * oscuras de la portada), la cabecera de los mails y el fondo de arriba cuando va solo el
+ * nombre.
  *
  * Sin color propio, cada uno sigue al color de la marca o, sin marca, al de la estación. Los
- * tres llevan texto claro encima, así que un color demasiado claro se oscurece lo justo
- * para que el texto se lea. Es el espejo de shared/elementColors en el servidor, que hace la
- * misma cuenta para los mails.
+ * tres primeros llevan texto claro encima, así que un color demasiado claro se oscurece lo
+ * justo para que el texto se lea. En el fondo de arriba, en cambio, el nombre cambia de
+ * color. Es el espejo de shared/elementColors en el servidor, que hace la misma cuenta para
+ * los mails.
  */
 
-export const ELEMENT_COLOR_KEYS = ["header", "footer", "mail"] as const;
+export const ELEMENT_COLOR_KEYS = ["header", "footer", "mail", "hero"] as const;
 export type ElementColorKey = (typeof ELEMENT_COLOR_KEYS)[number];
 export type ElementColors = Partial<Record<ElementColorKey, string>>;
 
@@ -17,10 +19,12 @@ export const ELEMENT_COLOR_INFO: ReadonlyArray<{ key: ElementColorKey; label: st
   { key: "header", label: "Barra de arriba", hint: "La barra con el nombre y el menú, en todas las pantallas" },
   { key: "footer", label: "Pie y franjas oscuras", hint: "El pie de la portada y las franjas oscuras de sus secciones" },
   { key: "mail", label: "Cabecera de los mails", hint: "La franja con el nombre, arriba de cada mail" },
+  { key: "hero", label: "Fondo de arriba", hint: "El fondo de la portada cuando el diseño de arriba es Solo el nombre" },
 ];
 
 /** La luz máxima de cada uno, de 0 a 100. El pie lleva texto chico y gris, así que pide más oscuro. */
-export const MAX_LIGHT: Record<ElementColorKey, number> = { header: 40, footer: 24, mail: 40 };
+// El fondo de arriba no se oscurece: el nombre cambia de color según el fondo (ver isLightColor).
+export const MAX_LIGHT: Record<ElementColorKey, number> = { header: 40, footer: 24, mail: 40, hero: 100 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -70,10 +74,20 @@ export function elementColorVars(colors: ElementColors): Record<string, string> 
     vars["--adm-bar-bottom"] = hsl(h, s, top - 9);
   }
   if (colors.footer) vars["--brand-ink"] = readableBackground(colors.footer, MAX_LIGHT.footer);
+  if (colors.hero) {
+    const [h, s, l] = toHsl(colors.hero);
+    vars["--brand-hero"] = hsl(h, s, l);
+    vars["--brand-hero-2"] = hsl(h, s, l - 8);
+  }
   return vars;
 }
 
-const VAR_NAMES = ["--adm-bar-top", "--adm-bar-bottom", "--brand-ink"] as const;
+/** Si un color es claro: encima va texto oscuro y no el crema de siempre. */
+export function isLightColor(hex: string): boolean {
+  return toHsl(hex)[2] > 62;
+}
+
+const VAR_NAMES = ["--adm-bar-top", "--adm-bar-bottom", "--brand-ink", "--brand-hero", "--brand-hero-2"] as const;
 
 /** Pone los colores elegidos sobre <html>, o los saca si no hay. */
 export function applyElementColors(colors: ElementColors): Record<string, string> {

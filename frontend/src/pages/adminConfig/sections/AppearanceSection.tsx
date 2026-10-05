@@ -91,7 +91,7 @@ export function AppearanceSection({ draft, set }: SectionProps) {
 }
 
 /** El color con que arranca un elemento al darle uno propio: el verde de siempre. */
-const STARTING: Record<ElementColorKey, string> = { header: "#2f5e46", footer: "#14261c", mail: "#3b7658" };
+const STARTING: Record<ElementColorKey, string> = { header: "#2f5e46", footer: "#14261c", mail: "#3b7658", hero: "#3b7658" };
 
 /**
  * Un color propio para la barra de arriba, el pie y la cabecera de los mails.
