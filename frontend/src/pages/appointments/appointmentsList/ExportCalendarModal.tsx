@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { useSimpleText } from "../../../lib/textMode.ts";
+import { useWords } from "../../../lib/installation.ts";
 import { downloadCalendar, type ExportOptions } from "../importService.ts";
 import "./importCalendar.css";
 
@@ -38,6 +39,7 @@ function inThreeMonths(): string {
 }
 
 export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProps) {
+  const w = useWords();
   const [options, setOptions] = useState<ExportOptions>({
     from: lastMonth(),
     to: inThreeMonths(),
@@ -63,10 +65,10 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
 
       toast.success(
         total === 0
-          ? "No había ningún turno en esas fechas, así que el archivo salió vacío"
+          ? `No había ${w.o("turno") === "a" ? "ninguna" : "ningún"} ${w.turno} en esas fechas, así que el archivo salió vacío`
           : total === 1
-            ? "Se bajó el archivo con 1 turno"
-            : `Se bajó el archivo con ${total} turnos`
+            ? `Se bajó el archivo con 1 ${w.turno}`
+            : `Se bajó el archivo con ${total} ${w.turnos}`
       );
 
       close();
@@ -110,14 +112,14 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
 
         <label className="imp-check">
           <span>
-            Incluir el nombre del paciente en el título
+            {`Incluir el nombre ${w.del("paciente")} en el título`}
             {/* Lo que pasa con el paciente se queda siempre: es el único dato del archivo
                 que identifica a alguien, y también el que decide si el turno vuelve entero
                 cuando este mismo archivo se importa de nuevo. */}
             <small>
               {simple
-                ? "Sin esta opción el paciente queda fuera del archivo."
-                : "Sin esta opción cada evento dice solo «Turno», y al volver a importar el archivo los turnos entran sin paciente."}
+                ? `Sin esta opción ${w.el("paciente")} queda fuera del archivo.`
+                : `Sin esta opción cada evento dice solo «${w.Turno}», y al volver a importar el archivo ${w.los("turno")} entran sin ${w.paciente}.`}
             </small>
           </span>
           <input
@@ -130,8 +132,8 @@ export function ExportCalendarModal({ isOpen, onClose }: ExportCalendarModalProp
 
         <label className="imp-check">
           <span>
-            Incluir los turnos cancelados
-            {!simple && <small>Entran marcados como cancelados.</small>}
+            {`Incluir ${w.los("turno")} cancelad${w.os("turno")}`}
+            {!simple && <small>{`Entran marcad${w.os("turno")} como cancelad${w.os("turno")}.`}</small>}
           </span>
           <input
             type="checkbox"

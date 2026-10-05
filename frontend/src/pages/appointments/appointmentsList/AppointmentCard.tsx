@@ -2,6 +2,8 @@ import type { HTMLAttributes } from "react";
 import type { Appointment, Person } from "../../types.ts";
 import { cancellationNotice, describeState, isCancelled, isOwnBooking, shortHour } from "../appointmentTypes.ts";
 import { FaRegClock, FaLocationDot, FaUser } from "react-icons/fa6";
+import { hasBranches, useInstallation, useWords } from "../../../lib/installation.ts";
+import { branchName, findBranch, manyCities } from "../../adminCRUDS/adminOffices/branches.ts";
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -16,6 +18,12 @@ interface AppointmentCardProps {
  * del mismo color que el cartel de estado, para leer la tarjeta de un vistazo.
  */
 export function AppointmentCard({ appointment, user, onOpen, quickActions }: AppointmentCardProps) {
+  const w = useWords();
+  const installation = useInstallation();
+  // Con varias sucursales, la del turno se busca en la lista de la configuración, que trae
+  // la ciudad escrita: en el turno viene como un número. Con una sola, el renglón es el de
+  // siempre.
+  const branch = hasBranches(installation) ? findBranch(appointment.room?.office, installation) : null;
   const state = describeState(appointment.state);
   const cancelled = isCancelled(appointment.state);
   // El turno que sacó para atenderse él. Es el único de su agenda donde no es quien
@@ -43,7 +51,7 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
   const counterpart = isProfessional
     ? appointment.patient
       ? `${appointment.patient.surname}, ${appointment.patient.name}`
-      : "Sin paciente asignado"
+      : `Sin ${w.paciente} asignad${w.o("paciente")}`
     : `${appointment.professional.surname}, ${appointment.professional.name}`;
 
   return (
@@ -66,16 +74,20 @@ export function AppointmentCard({ appointment, user, onOpen, quickActions }: App
         <span className="appt-card-room">
           <FaLocationDot aria-hidden="true" />
           {appointment.room?.description}
-          {appointment.room?.office?.description ? ` · ${appointment.room.office.description}` : ""}
+          {branch
+            ? ` · ${branchName(branch, manyCities(installation.branches))}`
+            : appointment.room?.office?.description
+              ? ` · ${appointment.room.office.description}`
+              : ""}
         </span>
       </span>
 
       <span className="appt-card-tags">
         {/* Con la agenda llena, el color solo dice "este es distinto". El cartel dice
             por qué, que es lo que hace falta para no leerlo como un paciente más. */}
-        {own && <span className="appt-tag-own">Turno propio</span>}
-        {appointment.origin === "import" && <span className="appt-tag-import">Importado</span>}
-        {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
+        {own && <span className="appt-tag-own">{`${w.Turno} propi${w.o("turno")}`}</span>}
+        {appointment.origin === "import" && <span className="appt-tag-import">{`Importad${w.o("turno")}`}</span>}
+        {appointment.overbooked && <span className="appt-tag-over">{`${w.Turno} especial`}</span>}
         {notice?.short && <span className="adm-badge adm-badge-red">Baja con poco aviso</span>}
         {confirmed && <span className="appt-tag-confirmed">Confirmó que viene</span>}
         <span className={state.className}>{state.label}</span>

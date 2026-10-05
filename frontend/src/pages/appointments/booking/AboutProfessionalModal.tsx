@@ -1,7 +1,9 @@
 import { FaEnvelope } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
-import type { Person } from "../../types.ts";
+import type { Office, Person } from "../../types.ts";
 import { gmailComposeUrl } from "./contactProfessional.ts";
+import { useInstallation, useWords } from "../../../lib/installation.ts";
+import { branchFromOffice, branchPlace } from "../../adminCRUDS/adminOffices/branches.ts";
 
 interface AboutProfessionalModalProps {
   open: boolean;
@@ -9,6 +11,11 @@ interface AboutProfessionalModalProps {
   professional: Person | undefined;
   /** Quién está mirando: su nombre y su email van en el mensaje. */
   patient: Person | undefined;
+  /**
+   * Dónde atiende, cuando se trabaja con varias sucursales. Sin pasar, la ficha es la de
+   * siempre.
+   */
+  branches?: Office[];
 }
 
 /**
@@ -19,7 +26,9 @@ interface AboutProfessionalModalProps {
  * teléfono —obra social, precio, primera consulta— se contestan acá o con el botón de
  * escribirle.
  */
-export function AboutProfessionalModal({ open, onClose, professional, patient }: AboutProfessionalModalProps) {
+export function AboutProfessionalModal({ open, onClose, professional, patient, branches }: AboutProfessionalModalProps) {
+  const w = useWords();
+  const installation = useInstallation();
   if (!professional) return null;
 
   return (
@@ -27,7 +36,7 @@ export function AboutProfessionalModal({ open, onClose, professional, patient }:
       open={open}
       onClose={onClose}
       title={`${professional.surname}, ${professional.name}`}
-      subtitle={professional.speciality || "Sin especialidad cargada"}
+      subtitle={professional.speciality || `Sin ${w.especialidad} cargad${w.o("especialidad")}`}
       footer={
         <>
           <a
@@ -56,9 +65,22 @@ export function AboutProfessionalModal({ open, onClose, professional, patient }:
       <div className="ui-section">
         <div className="ui-detail-list">
           <div className="ui-detail-row">
-            <span>Especialidad</span>
+            <span>{w.Especialidad}</span>
             <strong>{professional.speciality || <span className="ui-detail-empty">sin cargar</span>}</strong>
           </div>
+          {branches && branches.length > 0 && (
+            <div className="ui-detail-row">
+              <span>{branches.length === 1 ? w.Sucursal : w.Sucursales}</span>
+              <ul className="booking-about-branches">
+                {branches.map((item) => (
+                  <li key={item.idOffice}>
+                    <strong>{item.description}</strong>
+                    <small>{branchPlace(branchFromOffice(item), installation)}</small>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="ui-detail-row">
             <span>Email</span>
             <strong>{professional.email}</strong>

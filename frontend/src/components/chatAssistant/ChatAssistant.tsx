@@ -6,6 +6,9 @@ import { useAuth } from "../../context/AuthContext";
 import { sendMessageToAssistant } from "./chatAssistantService";
 import { readJsonCookie, writeJsonCookie } from "../../lib/cookies";
 import { AssistantAnswer } from "./AssistantAnswer";
+import { usePolicies, useWords } from "../../lib/installation";
+import { assistantFor } from "../../lib/policies";
+import type { Words } from "../../lib/vocabulary";
 import type { ChatLink, ChatMessage } from "./chatAssistantService";
 import "./ChatAssistant.css";
 
@@ -51,22 +54,22 @@ function saveChat(messages: ChatMessage[]): void {
 }
 
 /** Lo que puede hacer el asistente según quién esté logueado. */
-const GREETINGS: Record<string, string[]> = {
+const greetings = (w: Words): Record<string, string[]> => ({
     client: [
-        "Puedo mostrarte tus turnos, buscarte profesionales y sacarte uno nuevo.",
-        "Probá con “¿qué turnos tengo?” o “quiero un turno de nutrición”.",
+        `Puedo mostrarte tus ${w.turnos}, buscarte ${w.profesionales} y sacarte un${w.o("turno")} nuev${w.o("turno")}.`,
+        `Probá con “¿qué ${w.turnos} tengo?” o “quiero ${w.un("turno")} de nutrición”.`,
     ],
     professional: [
-        "Puedo mostrarte tu agenda, confirmar o rechazar turnos pendientes y darte tus números.",
+        `Puedo mostrarte tu agenda, confirmar o rechazar ${w.turnos} pendientes y darte tus números.`,
         "Probá con “¿qué tengo mañana?” o “¿cómo vengo este mes?”.",
     ],
     admin: [
         // "Turnos especiales" es el nombre de pantalla de los sobreturnos. El prompt del
         // backend sabe que son lo mismo y contesta con el nombre nuevo.
-        "Puedo darte los números del consultorio, decirte quién está dando turnos especiales y llevarte a cada pantalla del panel.",
-        "Probá con “¿quién da turnos especiales esta semana?” o “necesito cambiar una provincia”.",
+        `Puedo darte los números ${w.del("lugar")}, decirte quién está dando ${w.turnos} especiales y llevarte a cada pantalla del panel.`,
+        `Probá con “¿quién da ${w.turnos} especiales esta semana?” o “necesito cambiar una provincia”.`,
     ],
-};
+});
 
 const ROLES = ["client", "professional", "admin"];
 
@@ -92,13 +95,17 @@ function explainFailure(err: any): string {
 // El asistente atiende a los tres roles, con herramientas distintas para cada uno.
 export function ChatAssistant() {
     const { token } = useAuth();
+    const policies = usePolicies();
     if (!token) return null;
     const decoded = getDecodedToken();
     if (!decoded || !ROLES.includes(decoded.type)) return null;
+    // La instalación puede tener el asistente apagado, o solo para el equipo.
+    if (!assistantFor(policies, decoded.type)) return null;
     return <ChatAssistantWidget role={decoded.type} />;
 }
 
 function ChatAssistantWidget({ role }: { role: string }) {
+    const w = useWords();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     // Lo que quedó de antes de recargar. Vive aparte de `history` porque no es historial
@@ -202,6 +209,7 @@ function ChatAssistantWidget({ role }: { role: string }) {
     };
 
     const isInputDisabled = isLoading || rateLimitSeconds > 0;
+    const greeting = greetings(w);
 
     return (
         <>
@@ -247,8 +255,8 @@ function ChatAssistantWidget({ role }: { role: string }) {
                         {previous.length === 0 && history.length === 0 && !pendingMessage && (
                             <div className="chat-assistant-welcome">
                                 <FaRobot className="chat-assistant-welcome-icon" />
-                                <p>¡Hola! Soy el asistente del consultorio.</p>
-                                {(GREETINGS[role] ?? GREETINGS.client).map(line => (
+                                <p>¡Hola! Soy el asistente {w.del("lugar")}.</p>
+                                {(greeting[role] ?? greeting.client).map(line => (
                                     <p key={line}>{line}</p>
                                 ))}
                             </div>

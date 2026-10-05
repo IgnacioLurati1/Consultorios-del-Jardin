@@ -78,6 +78,19 @@
   font-style: italic;
 }
 
+/* Con recepción la tabla suma una columna con los botones de cada turno. Se la deja más
+   ancha en vez de apretarla: en el teléfono se arrastra igual que antes. */
+.control-table-reception {
+  min-width: 820px;
+}
+
+.control-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 .control-pagination {
   display: flex;
   align-items: center;

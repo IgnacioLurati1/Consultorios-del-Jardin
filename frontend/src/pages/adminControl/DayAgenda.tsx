@@ -4,6 +4,7 @@ import { FaChevronLeft, FaChevronRight, FaUsers } from "react-icons/fa6";
 import { SkeletonList } from "../../components/skeleton/Skeleton.tsx";
 import { Hint } from "../../components/hint/Hint.tsx";
 import { findDayAgenda, type CrowdedStretch, type DayAgenda as Agenda, type DayVisit } from "./dayAgendaService.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 
 /** El backend manda las horas como "09:00:00"; para leerlas alcanza con hh:mm. */
 const hhmm = (hour: string) => hour?.slice(0, 5) ?? hour;
@@ -33,11 +34,12 @@ export function today(): string {
 
 /** Cancelado no llega acá: el backend solo manda turnos vivos. */
 function describeState(state: string): { label: string; className: string } {
+  const w = currentWords();
   switch (state) {
     case "pending":
       return { label: "Pendiente", className: "adm-badge adm-badge-amber" };
     case "accepted":
-      return { label: "Confirmado", className: "adm-badge adm-badge-green" };
+      return { label: `Confirmad${w.o("turno")}`, className: "adm-badge adm-badge-green" };
     case "assisted":
       return { label: "Vino", className: "adm-badge adm-badge-grey" };
     case "missed":
@@ -70,6 +72,7 @@ function crowdedVisits(crowded: CrowdedStretch[]): Set<string> {
  * anticipar el día anterior, y lo único por lo que alguien abre esta pantalla dos veces.
  */
 export function DayAgenda() {
+  const w = useWords();
   const [date, setDate] = useState(today());
   const [agenda, setAgenda] = useState<Agenda | null>(null);
   const [loading, setLoading] = useState(true);
@@ -148,16 +151,18 @@ export function DayAgenda() {
         </div>
       ) : !agenda || agenda.visits.length === 0 ? (
         <div className="adm-panel">
-          <div className="adm-empty">Ese día no hay ningún turno cargado.</div>
+          <div className="adm-empty">
+            {`Ese día no hay ${w.o("turno") === "a" ? "ninguna" : "ningún"} ${w.turno} cargad${w.o("turno")}.`}
+          </div>
         </div>
       ) : (
         <>
           <div className="day-counts">
-            <Count value={agenda.patients} label={agenda.patients === 1 ? "paciente" : "pacientes"} />
-            <Count value={agenda.visits.length} label={agenda.visits.length === 1 ? "turno" : "turnos"} />
+            <Count value={agenda.patients} label={agenda.patients === 1 ? w.paciente : w.pacientes} />
+            <Count value={agenda.visits.length} label={agenda.visits.length === 1 ? w.turno : w.turnos} />
             <Count
               value={agenda.professionals.length}
-              label={agenda.professionals.length === 1 ? "profesional" : "profesionales"}
+              label={agenda.professionals.length === 1 ? w.profesional : w.profesionales}
             />
             <Count value={hhmm(agenda.professionals[0]?.from ?? "")} label="abre" />
             <Count value={hhmm(agenda.professionals.reduce((last, one) => (one.to > last ? one.to : last), ""))} label="cierra" />
@@ -170,7 +175,7 @@ export function DayAgenda() {
                   <FaUsers aria-hidden="true" />
                   Cuándo se llena
                 </span>
-                <span className="day-crowd-rule">{agenda.crowdLimit} pacientes o más a la vez</span>
+                <span className="day-crowd-rule">{agenda.crowdLimit} {w.pacientes} o más a la vez</span>
               </div>
 
               <ul className="day-crowd-list">
@@ -183,8 +188,8 @@ export function DayAgenda() {
                     <span className="day-crowd-peak">
                       <Hint
                         text={
-                          `En el momento más cargado del tramo hay ${stretch.peak} pacientes distintos en el consultorio al mismo tiempo. ` +
-                          `Abajo están los ${stretch.patients.length} que pasan en algún momento entre las ${hhmm(stretch.from)} y las ${hhmm(stretch.to)}, cada uno con su horario.`
+                          `En el momento más cargado del tramo hay ${stretch.peak} ${w.pacientes} distint${w.os("paciente")} en ${w.el("lugar")} al mismo tiempo. ` +
+                          `Abajo están l${w.os("paciente")} ${stretch.patients.length} que pasan en algún momento entre las ${hhmm(stretch.from)} y las ${hhmm(stretch.to)}, cada un${w.o("paciente")} con su horario.`
                         }
                       >
                         <strong>hasta {stretch.peak} a la vez</strong>
@@ -229,7 +234,7 @@ export function DayAgenda() {
                   </span>
 
                   <span className="day-team-count">
-                    {professional.patients} {professional.patients === 1 ? "paciente" : "pacientes"}
+                    {professional.patients} {professional.patients === 1 ? w.paciente : w.pacientes}
                     {professional.visits > professional.patients ? (
                       <span className="day-muted"> · {professional.visits - professional.patients} sin asignar</span>
                     ) : null}
@@ -248,7 +253,7 @@ export function DayAgenda() {
                   <div className="day-block-hour">
                     <strong>{hhmm(block.hour)}</strong>
                     <span>
-                      {block.visits.length} {block.visits.length === 1 ? "turno" : "turnos"}
+                      {block.visits.length} {block.visits.length === 1 ? w.turno : w.turnos}
                       {/* Turnos y personas no son lo mismo cuando alguien tiene dos seguidos,
                           y la regla de "se llena" cuenta personas: se aclara cuando difieren. */}
                       {block.people < block.visits.length ? ` · ${block.people} personas` : ""}
@@ -268,7 +273,7 @@ export function DayAgenda() {
                                 {visit.patient.surname}, {visit.patient.name}
                               </strong>
                             ) : (
-                              <span className="day-muted">Sin paciente asignado</span>
+                              <span className="day-muted">Sin {w.paciente} asignad{w.o("paciente")}</span>
                             )}
                             <span className="day-muted">
                               con {visit.professional.surname}, {visit.professional.name} · hasta {hhmm(visit.finalHour)}
@@ -281,7 +286,7 @@ export function DayAgenda() {
                           </span>
 
                           <span className="day-visit-tags">
-                            {visit.overbooked && <span className="appt-tag-over">Turno especial</span>}
+                            {visit.overbooked && <span className="appt-tag-over">{w.Turno} especial</span>}
                             <span className={state.className}>{state.label}</span>
                           </span>
                         </li>

@@ -10,6 +10,9 @@ export function OfficeLabel({ office,  active }: OfficeLabelProps){
     <div className={`crud-label office-label ${statusClass}`}>
       <div className="office-header">
         <span className="crud-name main-title">{office.description}</span>
+        {/* En el renglón del nombre, que tiene lugar: el de abajo ya lleva el horario y
+            la localidad. */}
+        {office.address && <span className="crud-name office-address">{office.address}</span>}
       </div>
       <div className="office-details">
         <span className="crud-name time-range">De {office.openingTime}hs a {office.closingTime}hs</span>

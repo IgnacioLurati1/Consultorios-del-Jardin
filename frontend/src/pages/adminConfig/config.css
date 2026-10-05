@@ -1,0 +1,1306 @@
+/* La pantalla de configuración. Usa las piezas del panel (adm-panel, ui-field, adm-switch)
+   y suma lo poco que es suyo: la grilla de campos, la lista de bloques y la barra de abajo. */
+
+.cfg-page {
+  /* Lugar para la barra de guardar, que queda fija abajo y taparía la última sección. */
+  padding-bottom: 96px;
+}
+
+.cfg-section + .cfg-section {
+  margin-top: 18px;
+}
+
+.cfg-section .adm-panel-head {
+  margin: 0;
+}
+
+.cfg-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+  padding: 20px 22px 24px;
+}
+
+.cfg-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .cfg-fields {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+}
+
+.cfg-loading {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+/* Un interruptor con su texto, a lo ancho. */
+.cfg-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm, 8px);
+  cursor: pointer;
+}
+
+.cfg-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+.cfg-switch-text small {
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--adm-muted);
+}
+
+/* El color de la marca: los dos controles y cuatro muestras de cómo queda. */
+.cfg-brand {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .cfg-brand {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cfg-brand input[type="range"] {
+  padding: 0;
+  border: 0;
+  accent-color: var(--adm-green);
+}
+
+.cfg-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.cfg-swatches i {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border);
+}
+
+/* Los bloques de la portada. */
+.cfg-blocks {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.cfg-blocks legend {
+  margin-bottom: 8px;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--adm-muted);
+}
+
+.cfg-blocks ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cfg-blocks li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm, 8px);
+  background: var(--adm-surface);
+}
+
+.cfg-blocks li.is-off {
+  grid-template-columns: auto minmax(0, 1fr);
+  opacity: 0.6;
+}
+
+.cfg-move {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+  background: var(--adm-surface);
+  color: var(--adm-text);
+  cursor: pointer;
+}
+
+.cfg-move:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cfg-move:focus-visible {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+/* La barra de guardar. Queda fija abajo, y se marca cuando hay algo sin guardar. */
+.cfg-savebar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px max(16px, calc((100vw - 1100px) / 2)) calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--adm-border);
+  background: var(--adm-surface);
+  box-shadow: 0 -4px 18px rgb(0 0 0 / 0.06);
+  font-weight: 600;
+  color: var(--adm-muted);
+}
+
+.cfg-savebar.is-dirty {
+  color: var(--adm-text);
+  border-top-color: var(--adm-green);
+}
+
+/* ---------- Pestañas ---------- */
+
+.cfg-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface-alt);
+}
+
+.cfg-tab {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: var(--adm-radius-sm);
+  background: none;
+  color: var(--adm-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfg-tab:hover {
+  color: var(--adm-text);
+}
+
+.cfg-tab.is-active {
+  background: var(--adm-surface);
+  color: var(--adm-green-dark);
+  box-shadow: var(--adm-shadow);
+}
+
+.cfg-tab:focus-visible {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+/* ---------- Una sección con columna al costado (la vista previa del mail, por ejemplo) ---------- */
+
+.cfg-with-aside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.cfg-with-aside .cfg-fields {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cfg-aside {
+  position: sticky;
+  top: 12px;
+  padding: 20px 22px 24px 0;
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .cfg-with-aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cfg-aside {
+    position: static;
+    padding: 0 16px 16px;
+  }
+}
+
+/* ---------- Estilos de panel ---------- */
+
+.cfg-skins {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.cfg-skins legend {
+  margin-bottom: 10px;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--adm-muted);
+}
+
+.cfg-skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.cfg-skin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 2px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  cursor: pointer;
+}
+
+.cfg-skin.is-selected {
+  border-color: var(--adm-green);
+}
+
+.cfg-skin input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cfg-skin:has(input:focus-visible) {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+.cfg-skin-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.cfg-skin-name svg {
+  color: var(--adm-green);
+}
+
+.cfg-skin > small {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--adm-muted);
+}
+
+/* La muestra de cada estilo. Los grises se vuelven a declarar acá: los de la página ya
+   vienen calculados con el estilo de la página, y una variable que depende de otra se
+   calcula donde se declara. Con esto, cada muestra lee el --tint y el --neutral-h de su
+   propio data-panel-skin. */
+.cfg-skin-sample {
+  --adm-bg: hsl(var(--neutral-h) calc(14% * var(--tint)) 95%);
+  --adm-surface: #ffffff;
+  --adm-border: hsl(var(--neutral-h) calc(20% * var(--tint)) 90%);
+  --adm-text: hsl(var(--neutral-h) calc(18% * var(--tint)) 16%);
+  --adm-muted: hsl(var(--neutral-h) calc(12% * var(--tint)) 41%);
+
+  overflow: hidden;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-bg);
+  font-family: var(--app-font);
+  color: var(--adm-text);
+}
+
+[data-theme="dark"] .cfg-skin-sample {
+  --adm-bg: hsl(var(--neutral-h) calc(17% * var(--tint)) 7%);
+  --adm-surface: hsl(var(--neutral-h) calc(13% * var(--tint)) 10%);
+  --adm-border: hsl(var(--neutral-h) calc(11% * var(--tint)) 19%);
+  --adm-text: hsl(var(--neutral-h) calc(14% * var(--tint)) 91%);
+  --adm-muted: hsl(var(--neutral-h) calc(8% * var(--tint)) 62%);
+}
+
+.cfg-skin-bar {
+  height: 10px;
+  background: linear-gradient(90deg, var(--adm-bar-top), var(--adm-bar-bottom));
+}
+
+.cfg-skin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface);
+  box-shadow: var(--adm-shadow);
+  font-size: 0.82rem;
+}
+
+.cfg-skin-card span {
+  color: var(--adm-muted);
+}
+
+.cfg-skin-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cfg-skin-button {
+  padding: 4px 9px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-green);
+  color: var(--adm-on-green);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.cfg-skin-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--adm-ok-soft);
+  color: var(--adm-ok);
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* ---------- Palabras ---------- */
+
+.cfg-lead {
+  margin: 0;
+  color: var(--adm-muted);
+  line-height: 1.5;
+}
+
+.cfg-term {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px 12px;
+  margin: 0;
+  padding: 12px 14px 10px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  min-width: 0;
+}
+
+.cfg-term legend {
+  padding: 0 6px;
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.cfg-term-hint {
+  grid-column: 1 / -1;
+  color: var(--adm-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 520px) {
+  .cfg-term {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* El artículo, como dos botones pegados. */
+.cfg-gender {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+}
+
+.cfg-gender label {
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--adm-muted);
+  cursor: pointer;
+}
+
+.cfg-gender label + label {
+  border-left: 1px solid var(--adm-border-strong);
+}
+
+.cfg-gender label.is-on {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.cfg-gender input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cfg-gender label:has(input:focus-visible) {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: -2px;
+}
+
+/* La vista previa del mail. */
+.cfg-mail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cfg-mail-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cfg-mail-kinds button {
+  padding: 6px 11px;
+  border: 1px solid var(--adm-border);
+  border-radius: 999px;
+  background: var(--adm-surface);
+  color: var(--adm-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfg-mail-kinds button.is-active {
+  border-color: var(--adm-green);
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.cfg-mail-kinds button:focus-visible {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+.cfg-mail-subject {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface-alt);
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+.cfg-mail-frame {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: #f1f4f6;
+}
+
+.cfg-mail-problem {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+}
+
+/* ---------- Fotos ---------- */
+
+.cfg-photos-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px 22px 22px;
+}
+
+.cfg-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.cfg-photo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+}
+
+.cfg-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--adm-radius-sm);
+  background-size: cover;
+  background-position: center;
+}
+
+.cfg-photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cfg-photo-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--adm-danger-line);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-danger-soft);
+  color: var(--adm-danger);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfg-photo-delete.is-armed {
+  background: var(--adm-danger);
+  color: #fff;
+}
+
+.cfg-photo-delete:focus-visible {
+  outline: 2px solid var(--adm-danger);
+  outline-offset: 2px;
+}
+
+.cfg-photo-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 200px;
+  padding: 16px;
+  border: 2px dashed var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+  color: var(--adm-green-dark);
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.cfg-photo-add:hover {
+  border-color: var(--adm-green);
+  background: var(--adm-green-soft);
+}
+
+.cfg-photo-add small {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--adm-muted);
+}
+
+.cfg-photo-add input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cfg-photo-add:has(input:focus-visible) {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+.cfg-photo-add.is-busy {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.cfg-photo-full {
+  align-self: center;
+  margin: 0;
+  color: var(--adm-muted);
+}
+
+/* ---------- Diseños de portada ---------- */
+
+/* Un dibujo esquemático de cada diseño. Los colores salen de la estación o la marca, como
+   la portada misma. */
+.cfg-sketch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-bg);
+}
+
+.cfg-sketch-hero {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  height: 56px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--adm-green), var(--adm-green-dark));
+}
+
+.cfg-sketch-hero i {
+  flex: 1;
+  background: hsl(var(--sea-h) 20% 70%);
+}
+
+.cfg-sketch-hero b {
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  bottom: 10px;
+  height: 7px;
+  border-radius: 4px;
+  background: #fefae0;
+}
+
+.cfg-sketch-band {
+  height: 12px;
+  border-radius: 3px;
+  background: hsl(var(--sea-h2) var(--sea-s2) 14%);
+}
+
+.cfg-sketch-cards {
+  display: flex;
+  gap: 5px;
+}
+
+.cfg-sketch-cards i {
+  flex: 1;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+  border-top: 6px solid var(--adm-green);
+}
+
+/* Clásico: una foto entera, franja clara. */
+.cfg-sketch--clasico .cfg-sketch-hero {
+  background: linear-gradient(160deg, hsl(var(--sea-h) 20% 62%), hsl(var(--sea-h) 20% 48%));
+}
+
+.cfg-sketch--clasico .cfg-sketch-band {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-border);
+}
+
+.cfg-sketch--clasico .cfg-sketch-cards i {
+  border-radius: 3px;
+}
+
+/* Minimalista: el nombre sobre el papel, sin color. */
+.cfg-sketch--minimal .cfg-sketch-hero {
+  background: var(--adm-bg);
+  border: 1px solid var(--adm-border);
+}
+
+.cfg-sketch--minimal .cfg-sketch-hero b {
+  top: 50%;
+  bottom: auto;
+  translate: 0 -50%;
+  background: var(--adm-text);
+}
+
+.cfg-sketch--minimal .cfg-sketch-band {
+  height: 1px;
+  background: var(--adm-border-strong);
+}
+
+.cfg-sketch--minimal .cfg-sketch-cards i {
+  border-top-width: 1px;
+  border-top-color: var(--adm-border);
+  border-radius: 2px;
+}
+
+/* ---------- La vista previa de la portada ---------- */
+
+.cfg-preview-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cfg-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--adm-border-strong);
+  border-radius: var(--adm-radius-sm);
+}
+
+.cfg-toggle button {
+  padding: 6px 11px;
+  border: 0;
+  background: var(--adm-surface);
+  color: var(--adm-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cfg-toggle button + button {
+  border-left: 1px solid var(--adm-border-strong);
+}
+
+.cfg-toggle button.is-on {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.cfg-toggle button:focus-visible {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: -2px;
+}
+
+.cfg-preview-body {
+  display: grid;
+  gap: 10px;
+  padding: 18px 22px 22px;
+}
+
+/* La caja mide lo que mide el iframe ya achicado; el iframe tiene el tamaño de una pantalla
+   de verdad y se achica desde la esquina. */
+.cfg-preview-box {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-bg);
+}
+
+.cfg-preview-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  transform-origin: top left;
+  background: var(--adm-bg);
+}
+
+/* ---------- Reglas de funcionamiento ---------- */
+
+/* Cada grupo de reglas es un recuadro con su título, como las palabras del rubro. */
+.cfg-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  align-items: start;
+  gap: 12px 16px;
+  margin: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  min-width: 0;
+}
+
+.cfg-rules legend {
+  padding: 0 6px;
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: var(--adm-text);
+}
+
+/* Una regla bloqueada se lee igual, pero no invita a tocarla. */
+.cfg-rules .is-locked {
+  opacity: 0.75;
+}
+
+.cfg-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--adm-muted);
+  font-size: 0.78rem;
+}
+
+/* ---------- Especialidades ---------- */
+
+.cfg-specs {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Una fila por especialidad: la muestra como sale en la portada, el nombre, el ícono y lo demás. */
+.cfg-spec {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) minmax(0, 0.7fr) auto;
+  align-items: end;
+  gap: 10px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+}
+
+.cfg-spec-photo {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 1.2rem;
+  background: var(--tint, var(--adm-green));
+}
+
+.cfg-spec-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cfg-spec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cfg-spec-add {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+}
+
+.cfg-spec-add .ui-field {
+  flex: 1;
+}
+
+@media (max-width: 720px) {
+  .cfg-spec {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .cfg-spec-icon,
+  .cfg-spec-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Las preguntas frecuentes y los motivos de contacto: una tarjeta por cada uno. */
+.cfg-items {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cfg-item {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+}
+
+.cfg-item-hidden {
+  background: var(--adm-surface-alt);
+}
+
+.cfg-item-hidden .cfg-item-title {
+  color: var(--adm-muted);
+}
+
+.cfg-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.cfg-item-title {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.cfg-item-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 10px 12px;
+}
+
+.cfg-item-fields .cfg-wide {
+  grid-column: 1 / -1;
+}
+
+/* La respuesta de siempre, como se ve en la página. Los links no se siguen desde acá. */
+.cfg-faq-auto {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--adm-surface-sunken);
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.cfg-faq-auto p {
+  margin: 0 0 6px;
+}
+
+.cfg-faq-auto p:last-child {
+  margin-bottom: 0;
+}
+
+.cfg-faq-rewrite {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+@media (max-width: 720px) {
+  .cfg-item-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cfg-faq-auto,
+.cfg-faq-auto * {
+  font-weight: 400;
+}
+
+.ui-field .cfg-faq-rewrite {
+  align-self: flex-start;
+  width: auto;
+}
+
+/* Los botones de la barra. adm-btn-row solo los deja pasar de renglón: el resto de las
+   pantallas lo combina con una clase que ya trae el flex y la separación, y esta no. Sin
+   esto, Descartar y Guardar quedaban pegados en los estilos con botón relleno. */
+.cfg-savebar .adm-btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* ---------- El diseño de cada sección de la portada ---------- */
+
+.cfg-variants {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cfg-variants legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.cfg-variant-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--adm-border);
+}
+
+.cfg-variant-label {
+  font-weight: 600;
+}
+
+.cfg-variant-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 168px));
+  gap: 10px;
+}
+
+.cfg-variant {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cfg-variant:hover {
+  border-color: var(--adm-green);
+}
+
+.cfg-variant.is-selected {
+  border-color: var(--adm-green);
+  box-shadow: inset 0 0 0 1px var(--adm-green);
+}
+
+.cfg-variant input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cfg-variant:has(input:focus-visible) {
+  outline: 2px solid var(--adm-green-dark);
+  outline-offset: 2px;
+}
+
+.cfg-variant-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cfg-variants-reset {
+  justify-self: start;
+}
+
+@media (max-width: 720px) {
+  .cfg-variant-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Los dibujos. Cajas, renglones y puntos con los colores del panel, no fotos. */
+.vs {
+  display: block;
+  aspect-ratio: 16 / 9;
+  padding: 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--adm-surface-sunken);
+  box-sizing: border-box;
+}
+
+.vs > span {
+  height: 100%;
+}
+
+.vs i {
+  display: block;
+}
+
+.vs-box {
+  border-radius: 3px;
+  background: var(--adm-border);
+}
+
+.vs-photo {
+  background: linear-gradient(160deg, hsl(var(--sea-h) 22% 70%), hsl(var(--sea-h) 26% 46%));
+}
+
+.vs-fill {
+  border-radius: 3px;
+  background: var(--adm-green);
+}
+
+.vs-soft {
+  opacity: 0.55;
+}
+
+.vs-faded {
+  opacity: 0.45;
+}
+
+.vs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+  border: 1px solid var(--adm-border);
+  border-radius: 3px;
+  background: var(--adm-surface);
+}
+
+.vs-card > .vs-fill {
+  flex: 0 0 58%;
+  border-radius: 0;
+}
+
+.vs-pad {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px;
+}
+
+.vs-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 3px;
+}
+
+.vs-ruled + .vs-ruled {
+  border-top: 1px solid var(--adm-border);
+}
+
+.vs-row .vs-line {
+  flex: 1;
+}
+
+.vs-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--adm-green);
+}
+
+.vs-line {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--adm-muted);
+  opacity: 0.45;
+}
+
+.vs-line-strong {
+  height: 5px;
+  opacity: 0.8;
+}
+
+.vs-rule {
+  width: 100%;
+  height: 1px;
+  background: rgba(254, 250, 224, 0.3);
+}
+
+.vs-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.vs-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 100%;
+}
+
+.vs-dark {
+  padding: 4px;
+  border-radius: 3px;
+  background: hsl(var(--sea-h2) var(--sea-s2) 14%);
+}
+
+.vs-light {
+  background: rgba(254, 250, 224, 0.75);
+}
+
+.vs-map {
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, transparent 47%, rgba(255, 255, 255, 0.7) 47% 53%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, rgba(255, 255, 255, 0.7) 47% 53%, transparent 53%),
+    hsl(var(--sea-h) 20% 82%);
+  background-size: 26px 26px;
+}
+
+.vs-layer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.vs-float {
+  width: 42%;
+  height: 64%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- Colores de cada parte ---------- */
+
+.cfg-element-colors {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.cfg-element-colors legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.cfg-element-colors .cfg-lead {
+  margin-bottom: 8px;
+}
+
+.cfg-element-color {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--adm-border);
+}
+
+.cfg-element-text {
+  display: grid;
+  gap: 2px;
+}
+
+.cfg-element-text small,
+.cfg-element-follow {
+  color: var(--adm-muted);
+}
+
+.cfg-element-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cfg-element-pick input[type="color"] {
+  width: 44px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--adm-border);
+  border-radius: 8px;
+  background: var(--adm-surface);
+  cursor: pointer;
+}
+
+.cfg-element-result {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-border);
+}

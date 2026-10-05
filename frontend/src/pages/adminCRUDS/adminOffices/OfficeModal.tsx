@@ -1,29 +1,36 @@
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { useWords } from "../../../lib/installation.ts";
 
 interface OfficeModalProps {
   visible: boolean;
   onClose: () => void;
   office: any | null;
   onDelete: (id: string) => void;
+  /** `newAddress` sin pasar es la reactivación: ahí la dirección no se toca. */
   onEdit: (
     id: string,
     newDescription: string,
     newOpeningTime: string,
     newClosingTime: string,
     newCityId: string,
-    active: boolean
+    active: boolean,
+    newAddress?: string
   ) => void;
   action: string;
-  onCreate: (newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string) => void;
+  onCreate: (newDescription: string, newOpeningTime: string, newClosingTime: string, newCityId: string, newAddress: string) => void;
   cities: any[];
   provinces: any[];
 }
 
-const emptyForm = { description: "", openingTime: "", closingTime: "", city: "", province: "" };
+const emptyForm = { description: "", address: "", openingTime: "", closingTime: "", city: "", province: "" };
+
+/** El mismo tope que guarda el servidor. */
+const ADDRESS_MAX = 160;
 
 export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action, onCreate, cities, provinces }: OfficeModalProps) {
+  const w = useWords();
   // El estado vive acá arriba y no dentro de cada rama: antes cada caso llamaba a
   // useState por su cuenta, y cambiar de caso rompía el orden de los hooks.
   const [form, setForm] = useState(emptyForm);
@@ -38,6 +45,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
       office
         ? {
             description: office.description,
+            address: office.address ?? "",
             openingTime: office.openingTime,
             closingTime: office.closingTime,
             city: office.city.idCity,
@@ -60,8 +68,9 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
 
     setError(null);
 
-    if (editing) onEdit(office.idOffice, form.description.trim(), form.openingTime, form.closingTime, form.city, office.active);
-    else onCreate(form.description.trim(), form.openingTime, form.closingTime, form.city);
+    const address = form.address.trim();
+    if (editing) onEdit(office.idOffice, form.description.trim(), form.openingTime, form.closingTime, form.city, office.active, address);
+    else onCreate(form.description.trim(), form.openingTime, form.closingTime, form.city, address);
   }
 
   // Una sucursal dada de baja solo se puede reactivar.
@@ -72,7 +81,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
         onClose={onClose}
         size="sm"
         title={office.description}
-        subtitle="Sucursal dada de baja"
+        subtitle={`${w.Sucursal} dad${w.o("sucursal")} de baja`}
         footer={
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
@@ -86,7 +95,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
                 onEdit(office.idOffice, office.description, office.openingTime, office.closingTime, office.city.idCity, false)
               }
             >
-              Reactivar sucursal
+              {`Reactivar ${w.sucursal}`}
             </button>
           </>
         }
@@ -99,6 +108,12 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
                 {office.openingTime} a {office.closingTime}
               </strong>
             </div>
+            {office.address && (
+              <div className="ui-detail-row">
+                <span>Dirección</span>
+                <strong>{office.address}</strong>
+              </div>
+            )}
             <div className="ui-detail-row">
               <span>Localidad</span>
               <strong>
@@ -106,7 +121,9 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
               </strong>
             </div>
           </div>
-          <p className="ui-alert ui-alert-info">Mientras esté dada de baja no se pueden dar turnos en sus consultorios.</p>
+          <p className="ui-alert ui-alert-info">
+            {`Mientras esté dada de baja no se pueden dar ${w.turnos} en sus ${w.salas}.`}
+          </p>
         </div>
       </Modal>
     );
@@ -116,8 +133,8 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
     <Modal
       open
       onClose={onClose}
-      title={editing ? "Editar sucursal" : "Nueva sucursal"}
-      subtitle={editing ? office.description : "Dónde atienden los profesionales"}
+      title={editing ? `Editar ${w.sucursal}` : `Nuev${w.o("sucursal")} ${w.sucursal}`}
+      subtitle={editing ? office.description : `Dónde atienden ${w.los("profesional")}`}
       footer={
         <>
           {editing && (
@@ -130,7 +147,7 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
-            {editing ? "Guardar cambios" : "Crear sucursal"}
+            {editing ? "Guardar cambios" : `Crear ${w.sucursal}`}
           </button>
         </>
       }
@@ -141,9 +158,20 @@ export function OfficeModal({ visible, onClose, office, onDelete, onEdit, action
           <input
             autoFocus
             value={form.description}
-            placeholder="Sucursal Centro"
+            placeholder={`${w.Sucursal} Centro`}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+        </label>
+
+        <label className="ui-field">
+          <span>Dirección</span>
+          <input
+            value={form.address}
+            maxLength={ADDRESS_MAX}
+            placeholder="Calle y número"
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
+          <small>{`Opcional. Vacía, se usa la dirección general ${w.del("lugar")}.`}</small>
         </label>
 
         <div className="ui-field-row">

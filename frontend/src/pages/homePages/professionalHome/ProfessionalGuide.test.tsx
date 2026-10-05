@@ -2,9 +2,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { deleteCookie, readCookie } from "../../../lib/cookies.ts";
+import { words } from "../../../lib/vocabulary.ts";
 import { ProfessionalGuide } from "./ProfessionalGuide.tsx";
-import { GUIDE_STEPS } from "./guideSteps.ts";
+import { guideSteps } from "./guideSteps.ts";
 import { GUIDE_COOKIE, useProfessionalGuide } from "./useProfessionalGuide.ts";
+
+/** La guía con las palabras de siempre, que son las que se ven en la prueba. */
+const GUIDE_STEPS = guideSteps(words());
 
 /** Lo mínimo del panel: el botón de ayuda y la guía, con el mismo hook que usa el panel. */
 function Panel() {

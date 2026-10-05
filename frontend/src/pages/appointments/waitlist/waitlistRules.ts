@@ -5,6 +5,8 @@
  * waitlistService), así que cambiarlos es tocar un solo lugar del backend.
  */
 
+import { currentWords } from "../../../lib/installation.ts";
+
 export interface WaitlistLimits {
   maxDays: number;
   maxHours: number;
@@ -15,7 +17,7 @@ export interface WaitlistLimits {
   maxPerProfessional: number;
 }
 
-/** De lunes a sábado, con el número de `getDay()`. El domingo el consultorio no atiende. */
+/** De lunes a sábado, con el número de `getDay()`. Es lo de siempre: el domingo no se atiende. */
 export const WEEK_DAYS = [
   { value: 1, label: "Lunes" },
   { value: 2, label: "Martes" },
@@ -24,6 +26,17 @@ export const WEEK_DAYS = [
   { value: 5, label: "Viernes" },
   { value: 6, label: "Sábado" },
 ];
+
+/**
+ * Los días que se pueden elegir, según si el consultorio atiende el domingo.
+ *
+ * El domingo va al final aunque `getDay()` lo cuente primero, porque la semana del
+ * consultorio arranca el lunes, como en la agenda. El servidor controla lo mismo al anotar
+ * (ver parseWaitlistRequest).
+ */
+export function weekDays(opensSunday: boolean) {
+  return opensSunday ? [...WEEK_DAYS, { value: 0, label: "Domingo" }] : WEEK_DAYS;
+}
 
 const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
@@ -83,7 +96,7 @@ export interface JoinState {
  * pantalla no tiene que dejar mandarlo nunca.
  */
 export function blockReason(status: JoinState): string | null {
-  if (!status.enabled) return "Profesional sin lista de espera.";
+  if (!status.enabled) return `${currentWords().Profesional} sin lista de espera.`;
 
   if (status.monthUsed >= status.limits.maxPerMonth)
     return `Máximo de ${status.limits.maxPerMonth} inscripciones mensuales alcanzado. El mes próximo se habilitan nuevas inscripciones.`;

@@ -4,6 +4,7 @@ import { Modal } from "../../../components/modal/Modal.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { findMyWaitlist, messageOf, removeFromMyWaitlist, type WaitingPatient } from "./waitlistService.ts";
 import { describeDaysTitle, formatMoment } from "./waitlistRules.ts";
+import { useWords } from "../../../lib/installation.ts";
 
 interface WaitlistPeopleModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface WaitlistPeopleModalProps {
  * una decisión de la agenda del profesional y contársela no le deja nada para hacer.
  */
 export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeopleModalProps) {
+  const w = useWords();
   const [list, setList] = useState<WaitingPatient[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<number | null>(null);
@@ -126,7 +128,7 @@ export function WaitlistPeopleModal({ open, onClose, onChanged }: WaitlistPeople
           </ul>
 
           <p className="waitlist-fineprint">
-            Al liberarse un horario de su franja, el aviso llega a todos a la vez y el turno queda para quien lo reserve
+            Al liberarse un horario de su franja, el aviso llega a todos a la vez y {w.el("turno")} queda para quien {w.lo("turno")} reserve
             primero. Quitar a alguien de la lista no le envía aviso.
           </p>
         </>

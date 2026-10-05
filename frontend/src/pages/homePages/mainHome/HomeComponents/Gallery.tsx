@@ -20,16 +20,23 @@ import salaDesdeArriba640 from "../../../../assets/gallery/sala-desde-arriba-640
 import salaDesdeArriba960 from "../../../../assets/gallery/sala-desde-arriba-960.webp";
 import { PHOTO_PREVIEWS } from "../photoPreviews";
 import { HomePhoto } from "./HomePhoto";
+import { imageUrl, useHomeVariant, useInstallation } from "../../../../lib/installation";
 
 interface Photo {
-  /** La clave de su vista previa en photoPreviews.ts. */
-  name: string;
+  /** Su vista previa borrosa, la que se ve mientras llega la de verdad. */
+  preview: string | undefined;
   /** La de 1600 px, para verla ampliada. */
   src: string;
-  /** Las de 640 y 960 px, para el carrusel. */
+  /** Las del carrusel: una de 640 px y otra más grande, con su ancho. */
   small: string;
   medium: string;
+  mediumWidth: number;
   alt: string;
+}
+
+/** Las de siempre, en la forma de las demás. */
+function bundled(photo: { name: string; src: string; small: string; medium: string; alt: string }): Photo {
+  return { preview: PHOTO_PREVIEWS[photo.name], src: photo.src, small: photo.small, medium: photo.medium, mediumWidth: 960, alt: photo.alt };
 }
 
 /**
@@ -42,7 +49,7 @@ interface Photo {
  * Si fueran todas de 1600, al entrar a la portada se bajarían casi 900 KB de fotos que
  * todavía no se ven, y le quitarían conexión a las de arriba.
  */
-const PHOTOS: Photo[] = [
+const BUNDLED: Photo[] = [
   { name: "sala-jardin", src: salaJardin, small: salaJardin640, medium: salaJardin960, alt: "Sala de espera con vista al jardín" },
   {
     name: "sala-vidriada",
@@ -66,7 +73,28 @@ const PHOTOS: Photo[] = [
     medium: salaDesdeArriba960,
     alt: "Sala de espera vista desde el primer piso",
   },
-];
+].map(bundled);
+
+/**
+ * Las fotos de la galería: las que subió el consultorio, o si no subió ninguna, las de
+ * siempre. Las subidas vienen en dos tamaños, 640 y 1600; la de 1600 hace a la vez de grande
+ * del carrusel y de ampliada.
+ */
+function useGalleryPhotos(): Photo[] {
+  const { images, bundledPhotos } = useInstallation();
+  const uploaded = images.gallery;
+  // Sin subidas, las del sitio; y si el sitio no trae las suyas, ninguna: nunca las de otro.
+  if (uploaded.length === 0) return bundledPhotos ? BUNDLED : [];
+
+  return uploaded.map((image) => ({
+    preview: image.preview || undefined,
+    src: imageUrl(image.id, "large"),
+    small: imageUrl(image.id, "small"),
+    medium: imageUrl(image.id, "large"),
+    mediumWidth: 1600,
+    alt: image.alt,
+  }));
+}
 
 /**
  * Qué tan ancha se ve una foto del carrusel, para que el navegador elija el tamaño. Tiene
@@ -76,17 +104,17 @@ const PHOTOS: Photo[] = [
 const SLIDE_SIZES = "(max-width: 620px) 76vw, min(44vw, 560px)";
 
 /** Lleva cualquier número a una foto que existe: después de la última viene la primera. */
-function wrap(index: number) {
-  return ((index % PHOTOS.length) + PHOTOS.length) % PHOTOS.length;
+function wrap(index: number, count: number) {
+  return ((index % count) + count) % count;
 }
 
 /**
  * Dónde cae la foto `index` cuando la del medio es `active`: 0 es la del medio, -1 la
  * anterior, 1 la siguiente. Da la vuelta, así que la anterior a la primera es la última.
  */
-function offsetOf(index: number, active: number) {
-  const offset = wrap(index - active);
-  return offset > PHOTOS.length / 2 ? offset - PHOTOS.length : offset;
+function offsetOf(index: number, active: number, count: number) {
+  const offset = wrap(index - active, count);
+  return offset > count / 2 ? offset - count : offset;
 }
 
 /** Deslizar con el dedo (o arrastrar con el mouse) pasa de foto, hacia el lado que se tira. */
@@ -128,9 +156,16 @@ function useSwipe(onPrev: () => void, onNext: () => void) {
  * vuelta en los dos sentidos. Tocar cualquiera la abre en grande.
  *
  * Va en su propia franja de color, del ancho de la página, como la ubicación.
+ *
+ * Es uno de tres diseños (ver HOME_VARIANTS en lib/installation). Los otros dos muestran
+ * todas las fotos a la vez: la grilla, con la primera más grande, y la tira, una fila que
+ * se desliza de costado. En los tres, tocar una la abre en grande.
  */
 export function Gallery() {
+  const variant = useHomeVariant("gallery");
   const reveal = useFadeIn<HTMLElement>();
+  const photos = useGalleryPhotos();
+  const count = photos.length;
 
   // `previous` sirve para saber qué fotos saltan de un costado al otro al dar la vuelta:
   // esas no se animan, porque cruzarían la pantalla por detrás de las demás.
@@ -139,7 +174,10 @@ export function Gallery() {
   const slides = useRef<(HTMLButtonElement | null)[]>([]);
 
   const { active, previous } = position;
-  const go = useCallback((index: number) => setPosition((current) => ({ active: wrap(index), previous: current.active })), []);
+  const go = useCallback(
+    (index: number) => setPosition((current) => ({ active: wrap(index, count), previous: current.active })),
+    [count]
+  );
   const swipe = useSwipe(
     () => go(active - 1),
     () => go(active + 1)
@@ -147,7 +185,7 @@ export function Gallery() {
 
   /** El foco sigue a la foto del medio, una vez que ya está dibujada ahí. */
   function focusSlide(index: number) {
-    requestAnimationFrame(() => slides.current[wrap(index)]?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => slides.current[wrap(index, count)]?.focus({ preventScroll: true }));
   }
 
   function handleKeyDown(event: ReactKeyboardEvent) {
@@ -164,6 +202,51 @@ export function Gallery() {
     go(expanded);
     setExpanded(null);
     focusSlide(expanded);
+  }
+
+  // Sin fotos no hay galería. Va después de los hooks y no antes: las fotos llegan del
+  // servidor, así que la cantidad puede pasar de cero a cinco entre un dibujo y el otro.
+  if (count === 0) return null;
+
+  if (variant !== "carousel") {
+    return (
+      <div className="home-gallery-band">
+        <section
+          ref={reveal.ref}
+          className={`home-section home-gallery home-gallery--${variant} ${reveal.isVisible ? "is-visible" : ""}`}
+          aria-labelledby="home-gallery-title"
+        >
+          <div className="home-section-head">
+            <h2 className="home-section-title" id="home-gallery-title">
+              Nuestro espacio
+            </h2>
+          </div>
+
+          <ul className={variant === "grid" ? `home-gallery-grid ${count >= 3 ? "has-feature" : ""}` : "home-gallery-strip"}>
+            {photos.map((photo, index) => (
+              <li key={photo.src} style={{ "--delay": `${index * 70}ms` } as CSSProperties}>
+                <button type="button" className="home-gallery-tile" aria-haspopup="dialog" onClick={() => setExpanded(index)}>
+                  <HomePhoto
+                    preview={photo.preview ?? ""}
+                    src={photo.medium}
+                    srcSet={`${photo.small} 640w, ${photo.medium} ${photo.mediumWidth}w`}
+                    sizes={variant === "grid" && index === 0 ? "(max-width: 620px) 100vw, 50vw" : "(max-width: 620px) 80vw, 33vw"}
+                    alt={photo.alt}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {expanded !== null && (
+            <Lightbox photos={photos} index={expanded} onChange={(index) => setExpanded(wrap(index, count))} onClose={() => setExpanded(null)} />
+          )}
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -188,10 +271,10 @@ export function Gallery() {
           {...swipe.handlers}
         >
           <div className="home-gallery-stage">
-            {PHOTOS.map((photo, index) => {
-              const offset = offsetOf(index, active);
+            {photos.map((photo, index) => {
+              const offset = offsetOf(index, active, count);
               const place = offset === 0 ? "center" : Math.abs(offset) === 1 ? "near" : "far";
-              const jumps = Math.abs(offset - offsetOf(index, previous)) > 1;
+              const jumps = Math.abs(offset - offsetOf(index, previous, count)) > 1;
 
               return (
                 <button
@@ -211,9 +294,9 @@ export function Gallery() {
                   }}
                 >
                   <HomePhoto
-                    preview={PHOTO_PREVIEWS[photo.name]}
+                    preview={photo.preview ?? ""}
                     src={photo.medium}
-                    srcSet={`${photo.small} 640w, ${photo.medium} 960w`}
+                    srcSet={`${photo.small} 640w, ${photo.medium} ${photo.mediumWidth}w`}
                     sizes={SLIDE_SIZES}
                     alt={photo.alt}
                     loading="lazy"
@@ -232,7 +315,7 @@ export function Gallery() {
           </button>
 
           <div className="home-gallery-dots">
-            {PHOTOS.map((photo, index) => (
+            {photos.map((photo, index) => (
               <button
                 key={photo.src}
                 type="button"
@@ -250,7 +333,7 @@ export function Gallery() {
         </div>
 
         {expanded !== null && (
-          <Lightbox index={expanded} onChange={(index) => setExpanded(wrap(index))} onClose={closeLightbox} />
+          <Lightbox photos={photos} index={expanded} onChange={(index) => setExpanded(wrap(index, count))} onClose={closeLightbox} />
         )}
       </section>
     </div>
@@ -258,6 +341,7 @@ export function Gallery() {
 }
 
 interface LightboxProps {
+  photos: Photo[];
   index: number;
   onChange: (index: number) => void;
   onClose: () => void;
@@ -269,10 +353,10 @@ interface LightboxProps {
  *
  * Va directo en el body: dentro de la portada quedaría debajo de la barra de arriba.
  */
-function Lightbox({ index, onChange, onClose }: LightboxProps) {
+function Lightbox({ photos, index, onChange, onClose }: LightboxProps) {
   const dialog = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
-  const photo = PHOTOS[index];
+  const photo = photos[index];
   const swipe = useSwipe(
     () => onChange(index - 1),
     () => onChange(index + 1)
@@ -334,7 +418,7 @@ function Lightbox({ index, onChange, onClose }: LightboxProps) {
           <FaChevronLeft aria-hidden="true" />
         </button>
         <span className="home-lightbox-count" aria-live="polite">
-          {index + 1} / {PHOTOS.length}
+          {index + 1} / {photos.length}
         </span>
         <button type="button" className="home-lightbox-btn" onClick={() => onChange(index + 1)} aria-label="Foto siguiente">
           <FaChevronRight aria-hidden="true" />

@@ -33,16 +33,9 @@ import {
 } from "./settingsService";
 import { useSimpleText } from "../../../lib/textMode";
 import { useSimpleView } from "../../../lib/simpleView";
-
-/** "14/09" alcanza dentro de un renglón que ya dice de qué se trata. */
-function shortDate(value: string): string {
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
-}
-
-function today(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
+import { usePolicies, useWords } from "../../../lib/installation";
+import { VacationsModal } from "../../../components/vacations/VacationsModal";
+import { shortDate } from "../../../components/vacations/vacationDates";
 
 /**
  * Una automatización: el switch que la prende y, abajo, cómo se configura.
@@ -240,6 +233,18 @@ function MailRow({
  * olvidan, no cosas que se miren todos los días.
  */
 export function ProfessionalSettings() {
+  const w = useWords();
+  const policies = usePolicies();
+  // Lo que el consultorio impone para todos, dicho en una línea cada cosa.
+  const imposed = [
+    policies.acceptMode === "always" ? `${w.Los("turno")} pedid${w.os("turno")} se confirman solos.` : "",
+    policies.acceptMode === "never" ? `${w.Los("turno")} pedid${w.os("turno")} se confirman a mano.` : "",
+    policies.markMode === "assisted" ? `${w.Los("turno")} que pasaron se cierran solos como asistidos.` : "",
+    policies.markMode === "missed" ? `${w.Los("turno")} que pasaron se cierran solos como ausentes.` : "",
+    policies.markMode === "never" ? `${w.Los("turno")} que pasaron se cierran a mano.` : "",
+    policies.payMode === "always" ? `${w.Los("turno")} atendid${w.os("turno")} se dan por cobrad${w.os("turno")} solos.` : "",
+    policies.payMode === "never" ? "Los cobros se marcan a mano." : "",
+  ].filter(Boolean);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [mailsOpen, setMailsOpen] = useState(false);
@@ -276,6 +281,8 @@ export function ProfessionalSettings() {
   }
 
   const onVacation = settings?.vacations.find((vacation) => vacation.current);
+  // Si las carga el profesional (solo o junto con la administración).
+  const ownVacations = policies.vacations !== "admin";
 
   // Cerrado, el renglón tiene que decir si hay algo apagado: es el único momento en que
   // alguien se entera de que dejó de recibir un aviso hace tres meses.
@@ -348,33 +355,48 @@ export function ProfessionalSettings() {
               </div>
             </div>
 
+            {/* Lo que el consultorio define para todos se cuenta, en vez de un interruptor
+                que no se puede mover. */}
+            {imposed.length > 0 && (
+              <div className="ui-alert ui-alert-info">
+                <strong>{`Lo define ${w.el("lugar")} para todos`}</strong>
+                {imposed.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
+            )}
+
+            {policies.proRecurring && (
             <Link className="prof-setting-link" to="/Recurrences">
               <span className="prof-setting-icon" aria-hidden="true">
                 <FaRepeat />
               </span>
               <span className="prof-setting-text">
-                <span className="prof-setting-label">Turnos repetibles</span>
+                <span className="prof-setting-label">{`${w.Turnos} repetibles`}</span>
                 {!simple && (
                   <span className="prof-setting-desc">
-                    Turnos que se agendan solos cada semana, con paciente y fecha de fin.
+                    {`${w.Turnos} que se agendan sol${w.os("turno")} cada semana, con ${w.paciente} y fecha de fin.`}
                   </span>
                 )}
               </span>
               <FaChevronRight className="prof-setting-chevron" aria-hidden="true" />
             </Link>
+            )}
 
             {/* Solo vale para lo que entre de acá en adelante. Lo que ya está esperando se
                 despacha desde la bandeja de pedidos, arriba de todo, que es donde se lo
                 está mirando. */}
+            {policies.acceptMode === "each" && (
             <Switch
               checked={settings.autoAccept}
               disabled={saving}
               onChange={(value) => save({ autoAccept: value })}
-              label="Confirmar turnos automáticamente"
+              label={`Confirmar ${w.turnos} automáticamente`}
               icon={<FaCircleCheck />}
               simple={simple}
-              description="Los turnos solicitados por pacientes quedan confirmados sin aprobación manual."
+              description={`${w.Los("turno")} solicitad${w.os("turno")} por ${w.pacientes} quedan confirmad${w.os("turno")} sin aprobación manual.`}
             />
+            )}
 
             {/*
               Las dos automatizaciones de abajo se esconden con la vista simplificada, pero
@@ -382,15 +404,15 @@ export function ProfessionalSettings() {
               profesional sin forma de apagarlo, y una automatización que no se puede apagar
               y que además no se ve es lo peor de los dos mundos.
             */}
-            {(!simpleViewOn || settings.autoMark !== null) && (
+            {policies.markMode === "each" && (!simpleViewOn || settings.autoMark !== null) && (
             <Switch
               checked={settings.autoMark !== null}
               disabled={saving}
               onChange={(value) => save({ autoMark: value ? "assisted" : null })}
-              label="Cerrar los turnos que ya pasaron automáticamente"
+              label={`Cerrar ${w.los("turno")} que ya pasaron automáticamente`}
               icon={<FaClipboardCheck />}
               simple={simple}
-              description="Los turnos sin marcar reciben la asistencia automáticamente. Se pueden corregir a mano."
+              description={`${w.Los("turno")} sin marcar reciben la asistencia automáticamente. Se pueden corregir a mano.`}
             >
               <div className="ui-field">
                 <span>Cierre</span>
@@ -426,7 +448,7 @@ export function ProfessionalSettings() {
                       checked={settings.autoMarkWhen === "appointment"}
                       onChange={() => save({ autoMarkWhen: "appointment" })}
                     />
-                    <span>Al terminar cada turno</span>
+                    <span>{`Al terminar cada ${w.turno}`}</span>
                   </label>
                   <label className="ui-choice">
                     <input
@@ -440,13 +462,13 @@ export function ProfessionalSettings() {
                 </div>
                 {!simple && (
                   <small>
-                    Al terminar el día queda margen para cargar a mano los turnos extendidos o con demora.
+                    {`Al terminar el día queda margen para cargar a mano ${w.los("turno")} extendid${w.os("turno")} o con demora.`}
                   </small>
                 )}
               </div>
 
               <p className="ui-alert ui-alert-info">
-                Aplica a los turnos que terminen desde ahora. Los anteriores quedan sin cambios.
+                {`Aplica a ${w.los("turno")} que terminen desde ahora. L${w.os("turno")} anteriores quedan sin cambios.`}
               </p>
             </Switch>
             )}
@@ -454,15 +476,15 @@ export function ProfessionalSettings() {
             {/* Para el consultorio donde se cobra en el momento y siempre: ahí registrar
                 cada pago es escribir dos veces lo mismo, y lo único que importa es la
                 excepción. Con esto la excepción es lo único que se marca a mano. */}
-            {(!simpleViewOn || settings.autoPay) && (
+            {policies.payMode === "each" && (!simpleViewOn || settings.autoPay) && (
             <Switch
               checked={settings.autoPay}
               disabled={saving}
               onChange={(value) => save({ autoPay: value })}
-              label="Considerar cobrado un turno automáticamente"
+              label={`Considerar cobrad${w.o("turno")} ${w.un("turno")} automáticamente`}
               icon={<FaMoneyBillWave />}
               simple={simple}
-              description="Los turnos ya pasados se dan por cobrados. Los adeudados se corrigen a mano."
+              description={`${w.Los("turno")} ya pasad${w.os("turno")} se dan por cobrad${w.os("turno")}. L${w.os("turno")} adeudad${w.os("turno")} se corrigen a mano.`}
             >
               <div className="ui-field">
                 <span>Momento</span>
@@ -474,7 +496,7 @@ export function ProfessionalSettings() {
                       checked={settings.autoPayWhen === "appointment"}
                       onChange={() => save({ autoPayWhen: "appointment" })}
                     />
-                    <span>Al terminar cada turno</span>
+                    <span>{`Al terminar cada ${w.turno}`}</span>
                   </label>
                   <label className="ui-choice">
                     <input
@@ -487,13 +509,12 @@ export function ProfessionalSettings() {
                   </label>
                 </div>
                 {!simple && (
-                  <small>Al terminar el día queda margen para marcar los adeudados antes de darlos por cobrados.</small>
+                  <small>{`Al terminar el día queda margen para marcar l${w.os("turno")} adeudad${w.os("turno")} antes de dar${w.lo("turno")}s por cobrad${w.os("turno")}.`}</small>
                 )}
               </div>
 
               <p className="ui-alert ui-alert-info">
-                Aplica solo a turnos atendidos y sin cobrar. Los cobros parciales y los turnos anteriores a la activación
-                quedan sin cambios.
+                {`Aplica solo a ${w.turnos} atendid${w.os("turno")} y sin cobrar. Los cobros parciales y ${w.los("turno")} anteriores a la activación quedan sin cambios.`}
               </p>
             </Switch>
             )}
@@ -564,14 +585,14 @@ export function ProfessionalSettings() {
             <div className="prof-setting-actions adm-btn-row">
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setVacationsOpen(true)}>
                 <FaPlaneDeparture />
-                {onVacation ? `De vacaciones hasta el ${shortDate(onVacation.toDate)}` : "Cargar vacaciones"}
+                {onVacation ? `De vacaciones hasta el ${shortDate(onVacation.toDate)}` : ownVacations ? "Cargar vacaciones" : "Ver vacaciones"}
               </button>
               {/* Se lleva por delante el historial de una persona y se usa una vez cada
                   tanto, así que es lo primero que sobra en la vista simplificada. */}
-              {!simpleViewOn && (
+              {!simpleViewOn && policies.proDeleteHistory && (
                 <button type="button" className="adm-btn adm-btn-danger" onClick={() => setDeleteOpen(true)}>
                   <FaTrashCan />
-                  Borrar los turnos de un paciente
+                  {`Borrar ${w.los("turno")} de ${w.un("paciente")}`}
                 </button>
               )}
             </div>
@@ -579,11 +600,15 @@ export function ProfessionalSettings() {
         )}
       </div>
 
+      {/* Donde las vacaciones las carga la administración, el profesional las ve y no las
+          toca: el servidor lo rechazaría igual. */}
       <VacationsModal
         open={vacationsOpen}
         onClose={() => setVacationsOpen(false)}
-        settings={settings}
-        onChanged={load}
+        vacations={settings?.vacations ?? null}
+        note={ownVacations ? null : "Las vacaciones las carga la administración."}
+        onAdd={ownVacations ? (fromDate, toDate, reason) => addVacation(fromDate, toDate, reason).then(load) : undefined}
+        onRemove={ownVacations ? (id) => removeVacation(id).then(load) : undefined}
       />
       <DeletePatientModal open={deleteOpen} onClose={() => setDeleteOpen(false)} />
 
@@ -637,147 +662,13 @@ export function ProfessionalSettings() {
 }
 
 /**
- * Los períodos en los que no atiende.
- *
- * El de hoy se corta con "Terminar ahora" y no con "Borrar": es la misma operación,
- * pero nadie piensa en volver antes como en borrar un registro.
- */
-function VacationsModal({
-  open,
-  onClose,
-  settings,
-  onChanged,
-}: {
-  open: boolean;
-  onClose: () => void;
-  settings: Settings | null;
-  onChanged: () => void;
-}) {
-  const [form, setForm] = useState({ fromDate: "", toDate: "", reason: "" });
-  const [saving, setSaving] = useState(false);
-
-  function add() {
-    setSaving(true);
-    addVacation(form.fromDate, form.toDate, form.reason)
-      .then(() => {
-        toast.success("Vacaciones cargadas. Esos días el perfil queda fuera de las búsquedas");
-        setForm({ fromDate: "", toDate: "", reason: "" });
-        onChanged();
-      })
-      .catch((err) => toast.error(err.message))
-      .finally(() => setSaving(false));
-  }
-
-  function remove(id: number, current: boolean) {
-    setSaving(true);
-    removeVacation(id)
-      .then(() => {
-        toast.success(current ? "Vacaciones finalizadas. El perfil vuelve a las búsquedas" : "Período borrado");
-        onChanged();
-      })
-      .catch((err) => toast.error(err.message))
-      .finally(() => setSaving(false));
-  }
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Vacaciones"
-      subtitle="Días sin atención"
-      footer={
-        <>
-          <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
-            Cerrar
-          </button>
-          <button
-            type="button"
-            className="adm-btn adm-btn-primary"
-            disabled={saving || !form.fromDate || !form.toDate}
-            onClick={add}
-          >
-            Cargar
-          </button>
-        </>
-      }
-    >
-      {settings && settings.vacations.length > 0 && (
-        <div className="ui-section">
-          <h3 className="ui-section-title">Cargadas</h3>
-          <ul className="prof-vacation-list">
-            {settings.vacations.map((vacation) => (
-              <li className="prof-vacation-item" key={vacation.id}>
-                <div className="prof-vacation-text">
-                  <span className="prof-vacation-when">
-                    {shortDate(vacation.fromDate)} al {shortDate(vacation.toDate)}
-                  </span>
-                  {vacation.reason && <span className="prof-vacation-reason">{vacation.reason}</span>}
-                </div>
-                {vacation.current && <span className="adm-badge adm-badge-amber">En curso</span>}
-                <button
-                  type="button"
-                  className={vacation.current ? "adm-btn adm-btn-primary" : "adm-btn adm-btn-ghost"}
-                  disabled={saving}
-                  onClick={() => remove(vacation.id, vacation.current)}
-                >
-                  {vacation.current ? "Terminar ahora" : "Borrar"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="ui-section">
-        <h3 className="ui-section-title">Cargar un período</h3>
-        <div className="ui-field-row">
-          <label className="ui-field">
-            <span>Desde</span>
-            <input
-              type="date"
-              min={today()}
-              value={form.fromDate}
-              onChange={(event) => setForm({ ...form, fromDate: event.target.value })}
-            />
-          </label>
-          <label className="ui-field">
-            <span>Hasta</span>
-            <input
-              type="date"
-              min={form.fromDate || today()}
-              value={form.toDate}
-              onChange={(event) => setForm({ ...form, toDate: event.target.value })}
-            />
-          </label>
-        </div>
-
-        <label className="ui-field">
-          <span>Motivo (opcional)</span>
-          <input
-            type="text"
-            maxLength={80}
-            placeholder="Congreso, licencia, vacaciones…"
-            value={form.reason}
-            onChange={(event) => setForm({ ...form, reason: event.target.value })}
-          />
-          <small>Uso interno. El paciente no lo ve.</small>
-        </label>
-
-        <p className="ui-alert ui-alert-info">
-          Esos días el perfil queda fuera de la búsqueda y sin horarios ofrecidos. Los turnos ya dados quedan sin cambios.
-        </p>
-      </div>
-    </Modal>
-  );
-}
-
-/**
  * Borrar los turnos de un paciente.
  *
  * Dos pasos a propósito: primero se elige a quién y qué, y recién después aparece el
  * botón que borra. Es definitivo y no hay pantalla desde donde recuperarlo.
  */
 function DeletePatientModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const w = useWords();
   const [patients, setPatients] = useState<Person[]>([]);
   const [email, setEmail] = useState("");
   const [scope, setScope] = useState<DeleteScope>("future");
@@ -805,8 +696,8 @@ function DeletePatientModal({ open, onClose }: { open: boolean; onClose: () => v
       .then((result) => {
         toast.success(
           result.deleted === 0
-            ? "Sin turnos para borrar"
-            : `Se borraron ${result.deleted} turnos${result.stoppedRecurrences > 0 ? " y se frenaron sus repeticiones" : ""}`
+            ? `Sin ${w.turnos} para borrar`
+            : `Se borraron ${result.deleted} ${w.turnos}${result.stoppedRecurrences > 0 ? " y se frenaron sus repeticiones" : ""}`
         );
         close();
       })
@@ -821,8 +712,8 @@ function DeletePatientModal({ open, onClose }: { open: boolean; onClose: () => v
     <Modal
       open={open}
       onClose={close}
-      title="Borrar los turnos de un paciente"
-      subtitle={confirming ? name : "Paciente y alcance del borrado"}
+      title={`Borrar ${w.los("turno")} de ${w.un("paciente")}`}
+      subtitle={confirming ? name : `${w.Paciente} y alcance del borrado`}
       footer={
         confirming ? (
           <>
@@ -853,24 +744,28 @@ function DeletePatientModal({ open, onClose }: { open: boolean; onClose: () => v
       {confirming ? (
         <div className="ui-section">
           <p className="ui-alert ui-alert-error">
-            Se borran {scope === "all" ? "todos los turnos" : "los turnos de hoy en adelante"} de {name}, junto con sus
+            Se borran {scope === "all" ? `tod${w.os("turno")} ${w.los("turno")}` : `${w.los("turno")} de hoy en adelante`} de {name}, junto con sus
             observaciones. El borrado es definitivo.
           </p>
-          <p className="ui-hint">Si hay un turno repetible, se frena para que no vuelva a generar los turnos borrados.</p>
+          <p className="ui-hint">
+            {`Si hay ${w.un("turno")} repetible, se frena para que no vuelva a generar ${w.los("turno")} borrad${w.os("turno")}.`}
+          </p>
         </div>
       ) : (
         <div className="ui-section">
           <label className="ui-field">
-            <span>Paciente</span>
+            <span>{w.Paciente}</span>
             <select value={email} onChange={(event) => setEmail(event.target.value)}>
-              <option value="">Seleccionar paciente</option>
+              <option value="">{`Seleccionar ${w.paciente}`}</option>
               {patients.map((patient) => (
                 <option key={patient.email} value={patient.email}>
                   {patient.surname}, {patient.name}
                 </option>
               ))}
             </select>
-            <small>Solo pacientes propios. Los turnos con otros profesionales quedan sin cambios.</small>
+            <small>
+              {`Solo ${w.pacientes} propi${w.os("paciente")}. ${w.Los("turno")} con otr${w.os("profesional")} ${w.profesionales} quedan sin cambios.`}
+            </small>
           </label>
 
           <div className="ui-field">
@@ -882,13 +777,13 @@ function DeletePatientModal({ open, onClose }: { open: boolean; onClose: () => v
               </label>
               <label className="ui-choice">
                 <input type="radio" name="delete-scope" checked={scope === "all"} onChange={() => setScope("all")} />
-                <span>Todos, historial incluido</span>
+                <span>{`Tod${w.os("turno")}, historial incluido`}</span>
               </label>
             </div>
             <small>
               {scope === "future"
-                ? "Los turnos ya atendidos quedan registrados, con sus observaciones."
-                : "Incluye los turnos ya atendidos. El historial de esas sesiones deja de estar disponible."}
+                ? `${w.Los("turno")} ya atendid${w.os("turno")} quedan registrad${w.os("turno")}, con sus observaciones.`
+                : `Incluye ${w.los("turno")} ya atendid${w.os("turno")}. El historial de esas sesiones deja de estar disponible.`}
             </small>
           </div>
         </div>

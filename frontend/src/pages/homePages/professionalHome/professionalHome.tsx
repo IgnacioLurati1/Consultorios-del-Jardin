@@ -52,6 +52,8 @@ import { describeDaysTitle } from "../../appointments/waitlist/waitlistRules.ts"
 import "../../adminCRUDS/adminPanel.css";
 import { useSimpleText } from "../../../lib/textMode";
 import { useSimpleView } from "../../../lib/simpleView";
+import { currentWords, useWords } from "../../../lib/installation";
+import type { Words } from "../../../lib/vocabulary";
 import "./professionalHome.css";
 
 interface MenuEntry {
@@ -61,34 +63,45 @@ interface MenuEntry {
   link: string;
 }
 
-const entries: MenuEntry[] = [
-  {
-    icon: FaClipboardList,
-    title: "Turnos",
-    description: "Agenda de turnos en grilla o en lista, con su estado y su paciente.",
-    link: "/AppointmentsList",
-  },
-  {
-    icon: FaCalendarAlt,
-    title: "Horarios",
-    description: "Agenda semanal y duración de los turnos de cada módulo.",
-    link: "/scheduleProfessional",
-  },
-  {
-    icon: FaUserInjured,
-    title: "Pacientes",
-    description: "Pacientes con cuenta y sin cuenta.",
-    link: "/Patients",
-  },
-  {
-    icon: FaChartColumn,
-    title: "Números",
-    description: "Facturación, pacientes y carga de la agenda, mes a mes.",
-    link: "/Analytics",
-  },
-];
+/**
+ * Las cuatro tarjetas del panel.
+ *
+ * Es una función y no una lista fija porque los nombres salen de las palabras del rubro,
+ * que llegan del servidor después de que se carga este archivo.
+ */
+function menuEntries(w: Words): MenuEntry[] {
+  return [
+    {
+      icon: FaClipboardList,
+      title: w.Turnos,
+      description: `Agenda de ${w.turnos} en grilla o en lista, con su estado y su ${w.paciente}.`,
+      link: "/AppointmentsList",
+    },
+    {
+      icon: FaCalendarAlt,
+      title: "Horarios",
+      description: `Agenda semanal y duración de ${w.los("turno")} de cada módulo.`,
+      link: "/scheduleProfessional",
+    },
+    {
+      icon: FaUserInjured,
+      title: w.Pacientes,
+      description: `${w.Pacientes} con cuenta y sin cuenta.`,
+      link: "/Patients",
+    },
+    {
+      icon: FaChartColumn,
+      title: "Números",
+      description: `Facturación, ${w.pacientes} y carga de la agenda, mes a mes.`,
+      link: "/Analytics",
+    },
+  ];
+}
 
 export function ProfessionalHome() {
+  // Adentro de los efectos las palabras se piden con currentWords(): con `w` habría que
+  // ponerlo en las dependencias, y como es nuevo en cada render el efecto no pararía.
+  const w = useWords();
   const [simple] = useSimpleText();
   const [simpleView] = useSimpleView();
   const [professional, setProfessional] = useState<Person | undefined>(undefined);
@@ -117,7 +130,7 @@ export function ProfessionalHome() {
     findPerson(decoded.email)
       .then((data) => {
         if (!data) {
-          toast.error("No se encontró el profesional");
+          toast.error(`No se encontró ${currentWords().el("profesional")}`);
           return;
         }
         setProfessional(data);
@@ -201,7 +214,7 @@ export function ProfessionalHome() {
     setAccepting(true);
     acceptPendingAppointments()
       .then((accepted) => {
-        toast.success(accepted === 1 ? "Confirmaste el turno" : `Confirmaste ${accepted} turnos`);
+        toast.success(accepted === 1 ? `Confirmaste ${w.el("turno")}` : `Confirmaste ${accepted} ${w.turnos}`);
         refresh();
       })
       .catch((err) => toast.error(err.message))
@@ -222,8 +235,8 @@ export function ProfessionalHome() {
       .then(({ settled, amount }) => {
         toast.success(
           settled === 1
-            ? `Turno dado por cobrado${amount > 0 ? `, $${amount}` : ""}`
-            : `${settled} turnos dados por cobrados${amount > 0 ? `, $${amount}` : ""}`
+            ? `${w.Turno} dad${w.o("turno")} por cobrad${w.o("turno")}${amount > 0 ? `, $${amount}` : ""}`
+            : `${settled} ${w.turnos} dad${w.os("turno")} por cobrad${w.os("turno")}${amount > 0 ? `, $${amount}` : ""}`
         );
         refresh();
       })
@@ -277,7 +290,7 @@ export function ProfessionalHome() {
                 <h1 className="adm-title">
                   Hola, {professional?.name} {professional?.surname}
                 </h1>
-                <p className="adm-subtitle">{professional?.speciality || "Panel del profesional"}</p>
+                <p className="adm-subtitle">{professional?.speciality || `Panel ${w.del("profesional")}`}</p>
               </>
             )}
           </div>
@@ -293,7 +306,7 @@ export function ProfessionalHome() {
         {/* Las cuatro se quedan siempre, también en la vista simplificada: son las puertas
             a todo lo demás, y esconder una sería esconder una pantalla entera. */}
         <section className="adm-card-grid">
-          {entries.map((entry) => {
+          {menuEntries(w).map((entry) => {
             const Icon = entry.icon;
             return (
               <Link className="adm-card" to={entry.link} key={entry.title}>
@@ -337,7 +350,7 @@ export function ProfessionalHome() {
                 <SkeletonLine width="45%" height={18} />
               </div>
             ) : today.length === 0 ? (
-              <div className="adm-empty">Sin turnos para hoy.</div>
+              <div className="adm-empty">{`Sin ${w.turnos} para hoy.`}</div>
             ) : (
               <ul className="prof-today-list">
                 {today.map((appointment) => {
@@ -367,11 +380,11 @@ export function ProfessionalHome() {
                           {appointment.patient ? (
                             `${appointment.patient.surname}, ${appointment.patient.name}`
                           ) : (
-                            <span className="prof-today-free">Sin paciente asignado</span>
+                            <span className="prof-today-free">{`Sin ${w.paciente} asignad${w.o("paciente")}`}</span>
                           )}
                         </span>
                         <span className="prof-today-room">{appointment.room?.description}</span>
-                        {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
+                        {appointment.overbooked && <span className="appt-tag-over">{`${w.Turno} especial`}</span>}
                         {appointment.attendanceConfirmedAt && appointment.state === "accepted" && (
                           <span className="appt-tag-confirmed">Confirmó</span>
                         )}
@@ -399,13 +412,15 @@ export function ProfessionalHome() {
               <div>
                 <h2 className="prof-today-title">Pendientes de confirmación</h2>
                 <p className="prof-today-date">
-                  {pendingCount === 1 ? "Un turno pendiente de respuesta" : `${pendingCount} turnos pendientes de respuesta`}
+                  {pendingCount === 1
+                    ? `${w.Un("turno")} pendiente de respuesta`
+                    : `${pendingCount} ${w.turnos} pendientes de respuesta`}
                 </p>
               </div>
               <div className="prof-pending-actions adm-btn-row">
                 <button type="button" className="adm-btn adm-btn-primary" disabled={accepting} onClick={acceptAll}>
                   <FaCheck />
-                  {pendingCount === 1 ? "Confirmar el turno" : "Confirmar turnos"}
+                  {pendingCount === 1 ? `Confirmar ${w.el("turno")}` : `Confirmar ${w.turnos}`}
                 </button>
                 <Link className="adm-btn adm-btn-ghost" to="/AppointmentsList">
                   Ver toda la agenda
@@ -432,14 +447,14 @@ export function ProfessionalHome() {
                         {appointment.patient ? (
                           `${appointment.patient.surname}, ${appointment.patient.name}`
                         ) : (
-                          <span className="prof-today-free">Sin paciente asignado</span>
+                          <span className="prof-today-free">{`Sin ${w.paciente} asignad${w.o("paciente")}`}</span>
                         )}
                         {/* Un pendiente puede ser de cualquier día, así que la fecha va en la
                             fila. En la agenda de hoy sobraría. */}
                         <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
                       </span>
                       <span className="prof-today-room">{appointment.room?.description}</span>
-                      {appointment.overbooked && <span className="appt-tag-over">Turno especial</span>}
+                      {appointment.overbooked && <span className="appt-tag-over">{`${w.Turno} especial`}</span>}
                       <span className={describeState(appointment.state).className}>
                         {describeState(appointment.state).label}
                       </span>
@@ -544,9 +559,11 @@ export function ProfessionalHome() {
                 <span className="prof-unpaid-text">
                   <span className="prof-today-title">Sin cobrar</span>
                   <span className="prof-today-date">
-                    {unpaidCount === 1 ? "Un turno atendido sin cobrar" : `${unpaidCount} turnos atendidos sin cobrar`}
+                    {unpaidCount === 1
+                      ? `${w.Un("turno")} atendid${w.o("turno")} sin cobrar`
+                      : `${unpaidCount} ${w.turnos} atendid${w.os("turno")} sin cobrar`}
                     {owed > 0 ? ` · faltan $${owed}` : ""}
-                    {unpaidShown < unpaidCount ? ` · acá se ven los ${unpaidShown} más recientes` : ""}
+                    {unpaidShown < unpaidCount ? ` · acá se ven l${w.os("turno")} ${unpaidShown} más recientes` : ""}
                   </span>
                 </span>
                 <FaChevronDown className={`prof-unpaid-caret ${unpaidOpen ? "open" : ""}`} aria-hidden="true" />
@@ -561,7 +578,7 @@ export function ProfessionalHome() {
                 onClick={() => setConfirmingSettle(true)}
               >
                 <FaMoneyBillWave />
-                {unpaidCount === 1 ? "Considerar cobrado" : "Considerar todos cobrados"}
+                {unpaidCount === 1 ? `Considerar cobrad${w.o("turno")}` : `Considerar tod${w.os("turno")} cobrad${w.os("turno")}`}
               </button>
             </div>
 
@@ -587,7 +604,7 @@ export function ProfessionalHome() {
                             <span className="prof-today-person">
                               {appointment.patient
                                 ? `${appointment.patient.surname}, ${appointment.patient.name}`
-                                : "Sin paciente asignado"}
+                                : `Sin ${w.paciente} asignad${w.o("paciente")}`}
                               <span className="prof-pending-day">{formatDayLabel(appointmentDate(appointment.date))}</span>
                             </span>
                             {pendingAmount(appointment) > 0 && (
@@ -631,7 +648,7 @@ export function ProfessionalHome() {
         <Modal
           open={confirmingSettle}
           onClose={() => setConfirmingSettle(false)}
-          title="¿Darlos todos por cobrados?"
+          title={`¿Dar${w.lo("turno")}s tod${w.os("turno")} por cobrad${w.os("turno")}?`}
           size="sm"
           footer={
             <>
@@ -640,17 +657,19 @@ export function ProfessionalHome() {
               </button>
               <button type="button" className="adm-btn adm-btn-primary" onClick={settleAll} disabled={settling}>
                 <FaMoneyBillWave />
-                Sí, darlos por cobrados
+                {`Sí, dar${w.lo("turno")}s por cobrad${w.os("turno")}`}
               </button>
             </>
           }
         >
           <p className="adm-confirm-lead">
-            {unpaidCount === 1 ? "Se marca como cobrado 1 turno" : `Se marcan como cobrados ${unpaidCount} turnos`}
+            {unpaidCount === 1
+              ? `Se marca como cobrad${w.o("turno")} 1 ${w.turno}`
+              : `Se marcan como cobrad${w.os("turno")} ${unpaidCount} ${w.turnos}`}
             {owed > 0 ? `, $${owed}` : ""}.
           </p>
           <p className="adm-confirm-note">
-            Incluye todos los turnos atendidos sin saldar. Para revertirlo hay que cambiar cada turno a mano.
+            {`Incluye tod${w.os("turno")} ${w.los("turno")} atendid${w.os("turno")} sin saldar. Para revertirlo hay que cambiar cada ${w.turno} a mano.`}
           </p>
         </Modal>
 

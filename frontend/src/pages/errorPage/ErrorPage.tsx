@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { FaHouse, FaLeaf, FaRepeat } from "react-icons/fa6";
 import "./ErrorPage.css";
+import { useWords } from "../../lib/installation";
 
 // La aplicación no siempre vive en la raíz del dominio: publicada sin dominio propio
 // cuelga del nombre del repositorio. Estos dos links recargan la página entera a propósito
@@ -22,6 +23,7 @@ function detailOf(error: unknown): string {
  * los datos están a salvo, y el detalle queda plegado para quien lo necesite.
  */
 export function ErrorPage() {
+  const w = useWords();
   const error = useRouteError();
 
   return (
@@ -33,7 +35,7 @@ export function ErrorPage() {
 
         <h1 className="er-title">Ocurrió un error</h1>
 
-        <p className="er-text">Los turnos y los datos siguen guardados sin cambios.</p>
+        <p className="er-text">{`${w.Los("turno")} y los datos siguen guardados sin cambios.`}</p>
 
         <p className="er-text er-text-quiet">Volver a cargar la pantalla suele resolverlo.</p>
 

@@ -1,129 +1,28 @@
 import { Link } from "react-router-dom";
-import { FaChevronDown, FaEnvelope, FaInstagram, FaLocationDot, FaClock } from "react-icons/fa6";
-import { SPECIALITIES } from "../specialities";
+import { FaChevronDown, FaEnvelope, FaInstagram, FaLocationDot, FaClock, FaPhone, FaWhatsapp } from "react-icons/fa6";
 import { usePageMeta } from "../../lib/pageMeta";
+import { fullAddress, hasBranches, useInstallation, useWords } from "../../lib/installation";
+import { phoneHref, whatsappHref } from "../../lib/contentLists";
+import { branchPlace } from "../adminCRUDS/adminOffices/branches.ts";
+import { faqQuestions } from "./faqQuestions.tsx";
 import "../adminCRUDS/adminPanel.css";
 import "./faq.css";
 
-const MAIL = "consultoriosjardinok@gmail.com";
-const INSTAGRAM = "consultorios_jardin";
-
-interface Question {
-  q: string;
-  a: React.ReactNode;
-}
-
-/**
- * Lo que se pregunta antes de sacar el primer turno.
- *
- * Están en el orden en que aparecen las dudas de alguien que todavía no vino, no
- * agrupadas por tema. Primero dónde queda y qué se atiende, después quién se hace cargo
- * y cuánto sale, y al final cómo funciona la aplicación.
- *
- * Las especialidades salen de la misma lista que usa el pedido de turno, sin
- * descripciones ni cantidad: el consultorio pidió no comprometerse con nada que cambie
- * cuando se sume o se vaya una.
- */
-const QUESTIONS: Question[] = [
-  {
-    q: "¿Dónde queda el consultorio?",
-    a: (
-      <p>
-        En 9 de Julio 3672, Rosario, de lunes a viernes de 9 a 20. Cada profesional tiene sus propios días y horarios,
-        visibles al solicitar el turno.
-      </p>
-    ),
-  },
-  {
-    q: "¿Qué especialidades se atienden?",
-    a: <p>{SPECIALITIES.join(", ")}.</p>,
-  },
-  {
-    q: "¿Quién es responsable del tratamiento?",
-    a: (
-      <>
-        <p>Cada profesional es responsable de sus pacientes, de sus turnos y de lo que ocurre en la consulta.</p>
-        <p>
-          Consultorios del Jardín provee el espacio, la agenda y esta aplicación, sin intervenir en los tratamientos. Las
-          consultas sobre la atención se hablan con el profesional.
-        </p>
-      </>
-    ),
-  },
-  {
-    q: "¿Cuánto cuesta una consulta?",
-    a: (
-      <p>
-        Los honorarios los fija cada profesional, que cobra en forma directa. Conviene consultarlos al solicitar el primer
-        turno.
-      </p>
-    ),
-  },
-  {
-    q: "¿Cómo se solicita un turno?",
-    a: (
-      <p>
-        Con una cuenta creada, desde <Link to="/Appointment">Solicitar turno</Link>, eligiendo especialidad o profesional y
-        un horario libre. El turno queda pendiente hasta la confirmación del profesional, con aviso por mail.
-      </p>
-    ),
-  },
-  {
-    q: "¿Cómo se cancela un turno?",
-    a: (
-      <p>
-        Desde <Link to="/AppointmentsList">Mis turnos</Link>, con la mayor anticipación posible. El horario queda libre y el
-        profesional recibe el aviso.
-      </p>
-    ),
-  },
-  {
-    q: "¿Se puede elegir profesional?",
-    a: <p>Sí. Al solicitar turno figuran todos los profesionales, con su especialidad, sus horarios y una presentación.</p>,
-  },
-  {
-    q: "¿Dónde se ven las indicaciones del profesional?",
-    a: (
-      <p>
-        En <Link to="/AppointmentsList">Mis turnos</Link>, abriendo cada turno. Ahí quedan las indicaciones y el plan de
-        trabajo.
-      </p>
-    ),
-  },
-  {
-    q: "¿Qué uso tienen los datos personales?",
-    a: (
-      <p>
-        Los datos del perfil se usan solo para gestionar los turnos. Las anotaciones de cada consulta las ven únicamente el
-        profesional y el paciente.
-      </p>
-    ),
-  },
-  // La única que no es de un paciente: va al final para no meterse entre las suyas.
-  {
-    q: "¿Cómo sumarse al consultorio como profesional?",
-    a: (
-      <p>
-        Desde <Link to="/contacto?motivo=profesional">Contacto</Link>, con el motivo «Quiero trabajar acá» y el CV adjunto, o
-        por mensaje a{" "}
-        <a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer">
-          @{INSTAGRAM}
-        </a>{" "}
-        en Instagram.
-      </p>
-    ),
-  },
-];
-
 /**
  * Preguntas frecuentes.
+ *
+ * Las arma cada consultorio desde su panel: las de siempre (ver faqQuestions), ocultas,
+ * movidas o reescritas, y las propias.
  *
  * Se abre y se cierra cada una en vez de mostrarlas todas desplegadas porque el valor de
  * esta pantalla está en poder barrer las preguntas con la vista y encontrar la propia.
  * Todas abiertas obligan a leerlas enteras para descartarlas.
  */
 export function FaqPage() {
+  const w = useWords();
   usePageMeta("/preguntas");
+  const installation = useInstallation();
+  const instagram = installation.instagram.replace(/^@/, "");
 
   return (
     <div className="adm-page faq-page">
@@ -139,8 +38,8 @@ export function FaqPage() {
 
       <div className="faq-layout">
         <div className="faq-questions">
-          {QUESTIONS.map((item) => (
-            <details key={item.q} className="faq-item">
+          {faqQuestions(installation).map((item) => (
+            <details key={item.key} className="faq-item">
               <summary className="faq-question">
                 {item.q}
                 <FaChevronDown className="faq-chevron" aria-hidden="true" />
@@ -152,26 +51,55 @@ export function FaqPage() {
 
         <aside className="faq-aside">
           <div className="adm-panel faq-card">
-            <div className="adm-panel-head">El consultorio</div>
+            <div className="adm-panel-head">{w.El("lugar")}</div>
             <ul className="faq-facts">
-              <li>
-                <FaLocationDot aria-hidden="true" />
-                9 de Julio 3672, Rosario
-              </li>
-              <li>
-                <FaClock aria-hidden="true" />
-                Lunes a viernes, de 9 a 20
-              </li>
-              <li>
-                <FaEnvelope aria-hidden="true" />
-                <a href={`mailto:${MAIL}`}>{MAIL}</a>
-              </li>
-              <li>
-                <FaInstagram aria-hidden="true" />
-                <a href={`https://instagram.com/${INSTAGRAM}`} target="_blank" rel="noreferrer">
-                  @{INSTAGRAM}
-                </a>
-              </li>
+              {hasBranches(installation) ? (
+                installation.branches.map((branch) => (
+                  <li key={branch.id}>
+                    <FaLocationDot aria-hidden="true" />
+                    {`${branch.name} · ${branchPlace(branch, installation)}`}
+                  </li>
+                ))
+              ) : (
+                <li>
+                  <FaLocationDot aria-hidden="true" />
+                  {fullAddress(installation)}
+                </li>
+              )}
+              {installation.publicHours ? (
+                <li>
+                  <FaClock aria-hidden="true" />
+                  {installation.publicHours}
+                </li>
+              ) : null}
+              {installation.phone ? (
+                <li>
+                  <FaPhone aria-hidden="true" />
+                  <a href={phoneHref(installation.phone)}>{installation.phone}</a>
+                </li>
+              ) : null}
+              {installation.whatsapp ? (
+                <li>
+                  <FaWhatsapp aria-hidden="true" />
+                  <a href={whatsappHref(installation.whatsapp)} target="_blank" rel="noreferrer">
+                    {installation.whatsapp}
+                  </a>
+                </li>
+              ) : null}
+              {installation.email ? (
+                <li>
+                  <FaEnvelope aria-hidden="true" />
+                  <a href={`mailto:${installation.email}`}>{installation.email}</a>
+                </li>
+              ) : null}
+              {instagram ? (
+                <li>
+                  <FaInstagram aria-hidden="true" />
+                  <a href={`https://instagram.com/${instagram}`} target="_blank" rel="noreferrer">
+                    @{instagram}
+                  </a>
+                </li>
+              ) : null}
             </ul>
           </div>
 

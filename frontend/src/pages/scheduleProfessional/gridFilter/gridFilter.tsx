@@ -3,6 +3,7 @@ import { FaXmark } from "react-icons/fa6";
 import { useMemo, useState } from "react";
 import type { GridFilterProps } from "../scheduleTypes.ts";
 import "./gridFilter.css";
+import { useWords } from "../../../lib/installation.ts";
 
 /**
  * Filtro de la grilla de horarios.
@@ -14,6 +15,7 @@ import "./gridFilter.css";
  *    para ver dónde entra un profesional nuevo.
  */
 export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClearRoom, onShowRoomOccupancy }: GridFilterProps) {
+  const w = useWords();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -32,7 +34,7 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
   return (
     <div className="filter-container">
       <button type="button" className="filter-selector" onClick={() => setOpen(!open)} aria-expanded={open}>
-        {selectedRoom ? `Consultorio: ${selectedRoom.description}` : "Filtrar por consultorio"}
+        {selectedRoom ? `${w.Sala}: ${selectedRoom.description}` : `Filtrar por ${w.sala}`}
         <FaAngleDown className={open ? "icon rotated" : "icon"} />
       </button>
 
@@ -40,14 +42,14 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
         {selectedRoom && (
           <button type="button" className="delete-filters" onClick={onClearRoom}>
             <FaXmark />
-            Quitar filtro de consultorio
+            {`Quitar filtro de ${w.sala}`}
           </button>
         )}
 
         <div className="filter-option">
           <input
             className="filter-input"
-            placeholder="Buscar consultorio"
+            placeholder={`Buscar ${w.sala}`}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -55,7 +57,7 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
 
           <ul className="filter-list active">
             {filteredRooms.length === 0 ? (
-              <li className="filter-list-empty">No hay consultorios para mostrar</li>
+              <li className="filter-list-empty">{`No hay ${w.salas} para mostrar`}</li>
             ) : (
               filteredRooms.map((room) => (
                 <li key={room.idRoom}>
@@ -77,7 +79,7 @@ export function GridFilter({ rooms, viewMode, selectedRoom, onSelectRoom, onClea
 
         {selectedRoom && viewMode === "professional" && (
           <button type="button" className="filter-occupancy" onClick={() => { onShowRoomOccupancy(); setOpen(false); }}>
-            Ver ocupación completa del consultorio
+            {`Ver ocupación completa ${w.del("sala")}`}
           </button>
         )}
       </div>

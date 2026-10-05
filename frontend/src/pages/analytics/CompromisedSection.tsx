@@ -4,6 +4,7 @@ import { AnalyticsSection } from "./Kpi.tsx";
 import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { Hint } from "../../components/hint/Hint.tsx";
 import { findCompromisedAccounts, type CompromisedAccount, type CompromisedReport } from "./compromisedService.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 
 /** "2026-09-02T02:14:00Z" → "2 de sep, 02:14". La hora importa más que la fecha acá. */
 function when(iso: string | null): string {
@@ -16,11 +17,11 @@ function when(iso: string | null): string {
   })}`;
 }
 
-const ROLE: Record<string, string> = {
-  admin: "Administración",
-  professional: "Profesional",
-  client: "Paciente",
-};
+function roleOf(type: string): string {
+  const w = currentWords();
+  const labels: Record<string, string> = { admin: "Administración", professional: w.Profesional, client: w.Paciente };
+  return labels[type] ?? type;
+}
 
 /** Un 403 es un intento que rebotó; un 200 es algo que efectivamente pasó. */
 function outcome(status: number | null): { label: string; className: string } {
@@ -40,6 +41,7 @@ function outcome(status: number | null): { label: string; className: string } {
  * diferencia entre un daño y un intento.
  */
 export function CompromisedSection() {
+  const w = useWords();
   const [report, setReport] = useState<CompromisedReport | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -67,9 +69,9 @@ export function CompromisedSection() {
     <AnalyticsSection title="Cuentas cerradas por seguridad" scope="al día de hoy">
       <p className="an-note">
         Una cuenta se cierra sola cuando toca cuentas o datos de otras personas a una velocidad que no es de nadie
-        —{rules.burst.admin} puntos en {rules.burstSeconds} segundos para administración, {rules.burst.professional} para un
-        profesional, {rules.burst.client} para un paciente— o cuando lo hace entre las{" "}
-        {String(rules.nightFrom).padStart(2, "0")} y las {String(rules.nightTo).padStart(2, "0")} con el consultorio cerrado.
+        —{rules.burst.admin} puntos en {rules.burstSeconds} segundos para administración, {rules.burst.professional} para{" "}
+        {w.un("profesional")}, {rules.burst.client} para {w.un("paciente")}— o cuando lo hace entre las{" "}
+        {String(rules.nightFrom).padStart(2, "0")} y las {String(rules.nightTo).padStart(2, "0")} con {w.el("lugar")} cerrad{w.o("lugar")}.
         La persona recibe un mail y solo otro administrador puede volver a habilitarla.
       </p>
 
@@ -106,7 +108,7 @@ function Account({ account, open, onToggle }: { account: CompromisedAccount; ope
             {account.surname}, {account.name}
           </strong>
           <span>
-            {account.email} · {ROLE[account.type] ?? account.type} · {when(account.bannedAt)}
+            {account.email} · {roleOf(account.type)} · {when(account.bannedAt)}
           </span>
         </div>
 

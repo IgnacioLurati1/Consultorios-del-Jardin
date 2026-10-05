@@ -8,15 +8,20 @@ import { updatePerson } from "./editProfileServices";
 import { findPerson, getDecodedToken } from "../commonServices";
 import type { Person } from "../types";
 import { useSimpleText } from "../../lib/textMode";
+import { currentWords, useWords } from "../../lib/installation";
 import "./EditProfile.css";
 
 const DOC_TYPES = ["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"];
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Administrador",
-  professional: "Profesional",
-  client: "Paciente",
-};
+function roleLabels(): Record<string, string> {
+  const w = currentWords();
+
+  return {
+    admin: "Administrador",
+    professional: w.Profesional,
+    client: w.Paciente,
+  };
+}
 
 const HOME_BY_TYPE: Record<string, string> = {
   admin: "/AdminHome",
@@ -30,6 +35,7 @@ const emptyForm = { name: "", surname: "", email: "", phoneNumber: "", docType: 
 const ABOUT_MAX = 600;
 
 export function EditProfile() {
+  const w = useWords();
   const [simple] = useSimpleText();
   const [person, setPerson] = useState<Person | undefined>(undefined);
   const [form, setForm] = useState(emptyForm);
@@ -108,13 +114,13 @@ export function EditProfile() {
   }
 
   const initials = person ? `${person.name.charAt(0)}${person.surname.charAt(0)}`.toUpperCase() : "";
-  const role = decoded ? ROLE_LABEL[decoded.type] ?? decoded.type : "";
+  const role = decoded ? roleLabels()[decoded.type] ?? decoded.type : "";
 
   return (
     <div className="adm-page">
       <AdminHeader
         title="Mis datos"
-        subtitle="Datos visibles para los profesionales"
+        subtitle={`Datos visibles para ${w.los("profesional")}`}
         backTo={decoded ? HOME_BY_TYPE[decoded.type] ?? "/" : "/"}
         backLabel="Volver"
       />
@@ -217,7 +223,7 @@ export function EditProfile() {
                     {/* Con "menos texto" queda el contador solo: es lo único de acá que
                         cambia mientras se escribe, y lo otro ya lo dice el título del campo. */}
                     <small>
-                      {!simple && "Es lo que lee el paciente antes de elegir con quién atenderse. "}
+                      {!simple && `Es lo que lee ${w.el("paciente")} antes de elegir con quién atenderse. `}
                       {form.about.length}/{ABOUT_MAX}
                     </small>
                   </label>

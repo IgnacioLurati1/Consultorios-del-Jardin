@@ -6,11 +6,13 @@ import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { ProfessionalReport } from "./ProfessionalReport.tsx";
 import { findMyAnalytics, type ProfessionalAnalytics } from "./analyticsService.ts";
+import { useWords } from "../../lib/installation.ts";
 import "../adminCRUDS/adminPanel.css";
 import "./analytics.css";
 
 /** Los números del profesional logueado. */
 export function AnalyticsPage() {
+  const w = useWords();
   const [data, setData] = useState<ProfessionalAnalytics | null>(null);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export function AnalyticsPage() {
     <div className="adm-page an-page">
       <AdminHeader
         title="Números"
-        subtitle="Facturación y turnos, mes a mes"
+        subtitle={`Facturación y ${w.turnos}, mes a mes`}
         backTo="/ProfessionalHome"
         actions={
           <button type="button" className="adm-btn adm-btn-ghost" disabled={!data} onClick={() => window.print()}>

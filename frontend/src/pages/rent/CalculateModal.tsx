@@ -18,6 +18,7 @@ import {
   type OutsideLine,
   type PreviewRow,
 } from "./rentService.ts";
+import { useWords } from "../../lib/installation.ts";
 
 interface CalculateModalProps {
   open: boolean;
@@ -38,6 +39,7 @@ const extraKey = (email: string, line: OutsideLine) => `${email}|${line.day}|${l
  * se le pone valor a mano a los tramos que no arman un módulo, que el cálculo no sabe cobrar.
  */
 export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: CalculateModalProps) {
+  const w = useWords();
   const current = monthKeyOf();
   const next = shiftMonth(current, 1);
 
@@ -143,7 +145,7 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
       onClose={onClose}
       size="lg"
       title="Calcular con los módulos"
-      subtitle="Cuotas según la agenda y el precio de cada consultorio"
+      subtitle={`Cuotas según la agenda y el precio de cada ${w.sala}`}
       footer={
         <>
           {preview && chosen.length > 0 && <span className="rent-foot-total">Total {money(total)}</span>}
@@ -151,7 +153,11 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={apply} disabled={busy || !preview || chosen.length === 0}>
-            {busy ? "Aplicando…" : chosen.length === 1 ? "Aplicar a 1 profesional" : `Aplicar a ${chosen.length} profesionales`}
+            {busy
+              ? "Aplicando…"
+              : chosen.length === 1
+              ? `Aplicar a 1 ${w.profesional}`
+              : `Aplicar a ${chosen.length} ${w.profesionales}`}
           </button>
         </>
       }
@@ -200,7 +206,9 @@ export function CalculateModal({ open, onClose, onApplied, onOpenPrices }: Calcu
             </div>
           )
         ) : rows.length === 0 ? (
-          <p className="adm-confirm-note">Ningún profesional habilitado tiene horarios cargados.</p>
+          <p className="adm-confirm-note">
+            {`${w.o("profesional") === "a" ? "Ninguna" : "Ningún"} ${w.profesional} habilitad${w.o("profesional")} tiene horarios cargados.`}
+          </p>
         ) : (
           <ul className="rent-calc-list">
             {rows.map((row) => {

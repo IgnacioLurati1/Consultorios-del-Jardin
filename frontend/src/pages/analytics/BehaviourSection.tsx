@@ -10,6 +10,7 @@ import {
   type BannedPatient,
   type BehaviourReport,
 } from "./behaviourService.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 
 /** "2026-09-02T13:40:00Z" → "2 de sep, 13:40". */
 function whenBanned(iso: string | null): string {
@@ -24,10 +25,11 @@ function whenBanned(iso: string | null): string {
 
 /** Qué pasó exactamente con una cuenta que se cayó sola, en una línea. */
 function explainBanned(person: BannedPatient): string {
+  const w = currentWords();
   const reason = person.reason ? person.reason.charAt(0).toLowerCase() + person.reason.slice(1) : "saltó uno de los límites";
 
   return (
-    `El sistema la deshabilitó solo porque ${reason}. Los turnos de esa tanda se dieron de baja junto con la cuenta. ` +
+    `El sistema la deshabilitó solo porque ${reason}. ${w.Los("turno")} de esa tanda se dieron de baja junto con la cuenta. ` +
     "La persona queda sin acceso hasta volver a habilitarla desde Usuarios."
   );
 }
@@ -41,6 +43,7 @@ function explainBanned(person: BannedPatient): string {
  * sistema actuó— y la amarilla no es una acusación, es un pedido de que alguien mire.
  */
 export function BehaviourSection() {
+  const w = useWords();
   const [report, setReport] = useState<BehaviourReport | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -64,10 +67,10 @@ export function BehaviourSection() {
   return (
     <AnalyticsSection title="Cuentas y comportamiento" scope="al día de hoy">
       <p className="an-note">
-        El sistema deshabilita solo a quien saca más de {rules.burstLimit} turnos en un minuto o llega a {rules.dailyLimit} en
-        el mismo día, y le da de baja esos turnos. Aparte marca —sin ninguna consecuencia— a quien asistió a menos del{" "}
-        {rules.ratePercent}% de sus turnos cerrados teniendo al menos {rules.minMissed} ausencias, y a quien dio de baja{" "}
-        {rules.minLateCancels ?? 3} turnos o más con menos de {rules.shortNoticeHours ?? 24} horas de aviso.
+        El sistema deshabilita solo a quien saca más de {rules.burstLimit} {w.turnos} en un minuto o llega a {rules.dailyLimit} en
+        el mismo día, y le da de baja es{w.os("turno")} {w.turnos}. Aparte marca —sin ninguna consecuencia— a quien asistió a menos del{" "}
+        {rules.ratePercent}% de sus {w.turnos} cerrad{w.os("turno")} teniendo al menos {rules.minMissed} ausencias, y a quien dio de baja{" "}
+        {rules.minLateCancels ?? 3} {w.turnos} o más con menos de {rules.shortNoticeHours ?? 24} horas de aviso.
       </p>
 
       <KpiGrid>
@@ -80,7 +83,7 @@ export function BehaviourSection() {
         <Kpi
           label="Comportamiento sospechoso"
           value={suspicious.length}
-          note={`sobre ${measured} pacientes con turnos cerrados`}
+          note={`sobre ${measured} ${w.pacientes} con ${w.turnos} cerrad${w.os("turno")}`}
         />
       </KpiGrid>
 

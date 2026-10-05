@@ -5,6 +5,7 @@
  */
 
 import { isEmailAvailable } from "./registerService.ts";
+import { currentWords } from "../../lib/installation.ts";
 
 export const DOC_TYPES = ["DNI", "Pasaporte", "Cédula de Identidad", "Libreta de Enrolamiento", "Libreta Cívica", "Otro"];
 
@@ -90,6 +91,6 @@ export function validateContact(form: RegisterForm, options: { requireSpeciality
   if (!form.docType) return "Falta el tipo de documento";
   if (!form.docNumber.trim()) return "Falta el número de documento";
   if (!/^\d+$/.test(form.docNumber.trim())) return "El documento debe tener solo dígitos";
-  if (options.requireSpeciality && !form.speciality.trim()) return "Falta la especialidad";
+  if (options.requireSpeciality && !form.speciality.trim()) return `Falta ${currentWords().el("especialidad")}`;
   return null;
 }

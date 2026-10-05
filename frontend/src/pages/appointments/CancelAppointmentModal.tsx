@@ -1,7 +1,11 @@
 import { Modal } from "../../components/modal/Modal.tsx";
 import { TECLA_MOD } from "../../lib/shortcuts.ts";
+import { useWords } from "../../lib/installation.ts";
 import type { Appointment } from "../types.ts";
 import { appointmentDate, formatDayLabel, shortHour } from "./appointmentTypes.ts";
+
+/** Para la frase que arranca con un ayudante del vocabulario, que viene en minúscula. */
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 interface Props {
   /** El turno que se está por dar de baja. Sin turno, no hay ventana. */
@@ -29,20 +33,21 @@ interface Props {
  * puerta cerrada.
  */
 export function CancelAppointmentModal({ appointment, waitlistCount = 0, onClose, onConfirm }: Props) {
+  const w = useWords();
   if (!appointment) return null;
 
   // Todavía sin confirmar: el backend lo borra en vez de dejarlo cancelado.
   const pendiente = appointment.state === "pending";
   const paciente = appointment.patient
     ? `${appointment.patient.surname}, ${appointment.patient.name}`
-    : "Sin paciente asignado";
+    : `Sin ${w.paciente} asignad${w.o("paciente")}`;
   const esperan = waitlistCount;
 
   return (
     <Modal
       open
       onClose={onClose}
-      title={pendiente ? "¿Eliminar el turno?" : "¿Cancelar el turno?"}
+      title={pendiente ? `¿Eliminar ${w.el("turno")}?` : `¿Cancelar ${w.el("turno")}?`}
       subtitle={`${formatDayLabel(appointmentDate(appointment.date))} · ${shortHour(appointment.initialHour)} · ${paciente}`}
       // Con la pregunta de la lista de espera son tres botones, y en la angosta el último
       // se caía a otro renglón, justo el que hay que leer con más cuidado.
@@ -66,7 +71,7 @@ export function CancelAppointmentModal({ appointment, waitlistCount = 0, onClose
               Volver
             </button>
             <button type="button" className="adm-btn adm-btn-danger" onClick={() => onConfirm(appointment, false)}>
-              {pendiente ? "Sí, eliminarlo" : "Sí, cancelarlo"}
+              {pendiente ? `Sí, eliminar${w.lo("turno")}` : `Sí, cancelar${w.lo("turno")}`}
             </button>
           </>
         )
@@ -74,8 +79,8 @@ export function CancelAppointmentModal({ appointment, waitlistCount = 0, onClose
     >
       <p className="adm-confirm-lead">
         {pendiente
-          ? "El turno todavía no está confirmado, así que se borra y el horario queda libre."
-          : "El turno queda cancelado y en el historial, y el horario queda libre."}
+          ? `${w.El("turno")} todavía no está confirmad${w.o("turno")}, así que se borra y el horario queda libre.`
+          : `${w.El("turno")} queda cancelad${w.o("turno")} y en el historial, y el horario queda libre.`}
       </p>
 
       {esperan > 0 && (
@@ -83,13 +88,13 @@ export function CancelAppointmentModal({ appointment, waitlistCount = 0, onClose
           {esperan === 1
             ? "Una persona en la lista de espera busca este horario."
             : `${esperan} personas en la lista de espera buscan este horario.`}{" "}
-          Con el aviso reciben un mail y el turno queda para quien lo reserve primero. Si la cancelación es por ausencia
+          Con el aviso reciben un mail y {w.el("turno")} queda para quien {w.lo("turno")} reserve primero. Si la cancelación es por ausencia
           ese día, conviene no avisar.
         </p>
       )}
 
       <p className="adm-confirm-note">
-        {appointment.patient ? "Al paciente le llega un mail avisándole. " : ""}
+        {appointment.patient ? `${capital(w.al("paciente"))} le llega un mail avisándole. ` : ""}
         {/* Bajar un pedido sin confirmar es un rechazo, y los rechazos del mes se cuentan.
             No lo dice ninguna otra pantalla, y es la clase de cosa que conviene saber
             antes y no cuando aparece en los números. */}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { IconType } from "react-icons";
+import { useOfficeName, useWords } from "../../lib/installation.ts";
+import type { Words } from "../../lib/vocabulary.ts";
 // Los mismos íconos que usan las tarjetas del panel, de donde salgan.
 import { FaCalendarAlt, FaClipboardList, FaUserInjured } from "react-icons/fa";
 import { FaArrowRight, FaChartColumn, FaMoon } from "react-icons/fa6";
@@ -30,42 +32,47 @@ interface Beat {
  * nombre y la misma descripción: la idea es que cuando entre las reconozca. El quinto no
  * es del panel pero es lo primero que se toca sin querer, así que mejor contarlo. El
  * último no muestra nada: es la despedida.
+ *
+ * Es una función y no una lista fija porque los nombres salen de las palabras del rubro,
+ * que llegan del servidor después de que se carga este archivo.
  */
-const TOUR: Beat[] = [
-  {
-    icon: FaClipboardList,
-    title: "Turnos",
-    description: "Agenda de turnos en grilla o en lista, con su estado y su paciente.",
-    say: "Arranquemos por los turnos. Ahí tenés tu agenda completa, y los pedidos que llegan los aceptás o los rechazás vos.",
-  },
-  {
-    icon: FaCalendarAlt,
-    title: "Horarios",
-    description: "Agenda semanal y duración de los turnos de cada módulo.",
-    say: "Lo que cargues en horarios es lo que se puede pedir. El día que no atendés, no aparece.",
-  },
-  {
-    icon: FaUserInjured,
-    title: "Pacientes",
-    description: "Pacientes con cuenta y sin cuenta.",
-    say: "Cada paciente tiene su ficha, con su historial y tus observaciones. A los que todavía no tienen cuenta los cargás vos.",
-  },
-  {
-    icon: FaChartColumn,
-    title: "Números",
-    description: "Facturación, pacientes y carga de la agenda, mes a mes.",
-    say: "Y acá ves cómo viene el mes, sin sacar una sola cuenta a mano.",
-  },
-  {
-    icon: FaMoon,
-    title: "Tema y temporada",
-    description: "Arriba a la derecha, al lado del engranaje.",
-    say: "Una cosita más: la pantalla se pone clara u oscura, y el jardín cambia con la temporada. Eso lo elegís vos, arriba a la derecha.",
-  },
-  {
-    say: "Si me necesitás, abajo a la derecha podés preguntarme cualquier duda.",
-  },
-];
+function tour(w: Words): Beat[] {
+  return [
+    {
+      icon: FaClipboardList,
+      title: w.Turnos,
+      description: `Agenda de ${w.turnos} en grilla o en lista, con su estado y su ${w.paciente}.`,
+      say: `Arranquemos por ${w.los("turno")}. Ahí tenés tu agenda completa, y los pedidos que llegan los aceptás o los rechazás vos.`,
+    },
+    {
+      icon: FaCalendarAlt,
+      title: "Horarios",
+      description: `Agenda semanal y duración de ${w.los("turno")} de cada módulo.`,
+      say: "Lo que cargues en horarios es lo que se puede pedir. El día que no atendés, no aparece.",
+    },
+    {
+      icon: FaUserInjured,
+      title: w.Pacientes,
+      description: `${w.Pacientes} con cuenta y sin cuenta.`,
+      say: `Cada ${w.paciente} tiene su ficha, con su historial y tus observaciones. A l${w.os("paciente")} que todavía no tienen cuenta l${w.os("paciente")} cargás vos.`,
+    },
+    {
+      icon: FaChartColumn,
+      title: "Números",
+      description: `Facturación, ${w.pacientes} y carga de la agenda, mes a mes.`,
+      say: "Y acá ves cómo viene el mes, sin sacar una sola cuenta a mano.",
+    },
+    {
+      icon: FaMoon,
+      title: "Tema y temporada",
+      description: "Arriba a la derecha, al lado del engranaje.",
+      say: "Una cosita más: la pantalla se pone clara u oscura, y el jardín cambia con la temporada. Eso lo elegís vos, arriba a la derecha.",
+    },
+    {
+      say: "Si me necesitás, abajo a la derecha podés preguntarme cualquier duda.",
+    },
+  ];
+}
 
 type Phase = "hello" | "leaving" | "tour";
 
@@ -117,8 +124,12 @@ function useTyped(text: string, on: boolean): string {
  * panel, una por vez. El último paso lleva al panel.
  */
 export function WelcomeTour({ name, onFinish }: { name: string; onFinish: () => void }) {
+  const w = useWords();
+  const officeName = useOfficeName();
   const [phase, setPhase] = useState<Phase>("hello");
   const [beat, setBeat] = useState(0);
+  const beats = tour(w);
+  const lastBeat = beats.length - 1;
 
   function comenzar() {
     setPhase("leaving");
@@ -130,16 +141,16 @@ export function WelcomeTour({ name, onFinish }: { name: string; onFinish: () => 
     if (phase !== "tour") return;
 
     function onKey(event: KeyboardEvent) {
-      if (event.key === "ArrowRight") setBeat((value) => Math.min(value + 1, TOUR.length - 1));
+      if (event.key === "ArrowRight") setBeat((value) => Math.min(value + 1, lastBeat));
       if (event.key === "ArrowLeft") setBeat((value) => Math.max(value - 1, 0));
     }
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase]);
+  }, [phase, lastBeat]);
 
-  const current = TOUR[beat];
-  const last = beat === TOUR.length - 1;
+  const current = beats[beat];
+  const last = beat === lastBeat;
   // El hook va acá y no adentro del paso: adentro se llamaría solo a veces.
   const dicho = useTyped(current.say, phase === "tour");
 
@@ -147,7 +158,7 @@ export function WelcomeTour({ name, onFinish }: { name: string; onFinish: () => 
     <div className="wl-dark">
       {phase !== "tour" ? (
         <div className={`wl-hello ${phase === "leaving" ? "is-leaving" : ""}`}>
-          <img className="wl-hello-logo" src={logoClaro} alt="Consultorios del Jardín" />
+          <img className="wl-hello-logo" src={logoClaro} alt={officeName} />
 
           {/* role status: quien no ve la animación se entera igual de que ya está adentro. */}
           <h1 className="wl-hello-title" role="status">
@@ -188,7 +199,7 @@ export function WelcomeTour({ name, onFinish }: { name: string; onFinish: () => 
           )}
 
           <div className="wl-dots" role="tablist" aria-label="Pasos de la presentación">
-            {TOUR.map((item, index) => (
+            {beats.map((item, index) => (
               <button
                 key={item.say}
                 type="button"

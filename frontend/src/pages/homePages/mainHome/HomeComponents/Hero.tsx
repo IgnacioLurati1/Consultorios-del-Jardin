@@ -15,6 +15,9 @@ import jardinNoche from "../../../../assets/collage/jardin-noche.webp";
 import jardinNocheLarge from "../../../../assets/collage/jardin-noche-960.webp";
 import { PHOTO_PREVIEWS } from "../photoPreviews";
 import { HomePhoto } from "./HomePhoto";
+import { imageUrl, useInstallation, usePolicies, useWords } from "../../../../lib/installation";
+import type { Policies } from "../../../../lib/policies";
+import type { Words } from "../../../../lib/vocabulary";
 
 /**
  * Las fotos del consultorio, en el orden en que se lo recorre: la entrada, la recepción,
@@ -26,13 +29,32 @@ import { HomePhoto } from "./HomePhoto";
  *
  * `name` es la clave de su vista previa en photoPreviews.ts.
  */
-const PHOTOS = [
+const BUNDLED = [
   { name: "pasillo-mural", src: pasilloMural, large: pasilloMuralLarge },
   { name: "recepcion", src: recepcion, large: recepcionLarge },
   { name: "consultorio", src: consultorio, large: consultorioLarge },
   { name: "patio-vidriado", src: patioVidriado, large: patioVidriadoLarge },
   { name: "jardin-noche", src: jardinNoche, large: jardinNocheLarge },
-];
+].map((photo) => ({ ...photo, preview: PHOTO_PREVIEWS[photo.name], largeWidth: 960 }));
+
+/**
+ * Las fotos de la portada: las que subió el consultorio, o si no subió ninguna, las de
+ * siempre. Las subidas vienen en 640 y en 1600; la de 1600 hace de grande en el celular.
+ */
+function useHeroPhotos() {
+  const { images, bundledPhotos } = useInstallation();
+  const uploaded = images.hero;
+  // Sin subidas, las del sitio; y si el sitio no trae las suyas, ninguna: nunca las de otro.
+  if (uploaded.length === 0) return bundledPhotos ? BUNDLED : [];
+
+  return uploaded.map((image) => ({
+    name: image.id,
+    src: imageUrl(image.id, "small"),
+    large: imageUrl(image.id, "large"),
+    preview: image.preview,
+    largeWidth: 1600,
+  }));
+}
 
 /** Hasta este ancho las fotos van de a una, con fundido. Tiene que coincidir con Home.css. */
 const PHONE = "(max-width: 700px)";
@@ -85,24 +107,30 @@ interface Action {
 }
 
 /** Los dos accesos de cada uno, debajo de las fotos: el primero es el principal. */
-const ACTIONS: Record<Session["type"], [Action, Action]> = {
+const actionsFor = (w: Words, p: Policies): Record<Session["type"], [Action, Action]> => ({
   guest: [
     { label: "Crear cuenta", to: "/Register" },
     { label: "Iniciar sesión", to: "/Login" },
   ],
-  client: [
-    { label: "Solicitar turno", to: "/Appointment" },
-    { label: "Mis turnos", to: "/AppointmentsList" },
-  ],
+  // Donde los turnos se piden al consultorio, el principal es ver los propios.
+  client: p.patientBooking
+    ? [
+        { label: `Solicitar ${w.turno}`, to: "/Appointment" },
+        { label: `Mis ${w.turnos}`, to: "/AppointmentsList" },
+      ]
+    : [
+        { label: `Mis ${w.turnos}`, to: "/AppointmentsList" },
+        { label: "Contacto", to: "/contacto" },
+      ],
   professional: [
-    { label: "Panel del profesional", to: "/ProfessionalHome" },
-    { label: "Turnos", to: "/AppointmentsList" },
+    { label: `Panel ${w.del("profesional")}`, to: "/ProfessionalHome" },
+    { label: w.Turnos, to: "/AppointmentsList" },
   ],
   admin: [
     { label: "Panel de administración", to: "/AdminHome" },
-    { label: "Números del consultorio", to: "/AdminHome/Analytics" },
+    { label: `Números ${w.del("lugar")}`, to: "/AdminHome/Analytics" },
   ],
-};
+});
 
 /**
  * En el celular las fotos pasan de a una con un fundido: en tiras de un tercio de
@@ -126,7 +154,8 @@ function useSlideshow(count: number) {
     function update() {
       window.clearInterval(timer);
       timer = undefined;
-      if (!phone.matches || still.matches) return;
+      // Con una foto o ninguna no hay nada que pasar, y con cero la cuenta del módulo da NaN.
+      if (!phone.matches || still.matches || count < 2) return;
 
       timer = window.setInterval(() => {
         setSlide(({ current }) => ({ current: (current + 1) % count, leaving: current }));
@@ -159,26 +188,34 @@ interface HeroProps {
  * está fijo adentro. Ver `.home-hero` en Home.css.
  */
 export function Hero({ session }: HeroProps) {
-  const [primary, secondary] = ACTIONS[session.type];
-  const slide = useSlideshow(PHOTOS.length);
-  const hold = useHoldUntilAllReady(PHOTOS.length);
+  const w = useWords();
+  const policies = usePolicies();
+  const [primary, secondary] = actionsFor(w, policies)[session.type];
+  const { name, tagline, heroStyle } = useInstallation();
+
+  // Cuántas fotos lleva la portada. El collage son todas; la foto, la primera sola, que el
+  // mismo collage estira a todo el ancho; el texto, ninguna.
+  const all = useHeroPhotos();
+  const photos = heroStyle === "collage" ? all : heroStyle === "photo" ? all.slice(0, 1) : [];
+  const slide = useSlideshow(photos.length);
+  const hold = useHoldUntilAllReady(photos.length);
 
   return (
     <>
-      <section className="home-hero" aria-labelledby="home-wordmark">
+      <section className={`home-hero home-hero--${heroStyle}`} aria-labelledby="home-wordmark">
         <div className="home-hero-stage">
           {/* Decorativas: el nombre del consultorio está en el título de abajo. */}
           <div className="home-collage" aria-hidden="true">
-            {PHOTOS.map((photo, index) => (
+            {photos.map((photo, index) => (
               <HomePhoto
                 key={photo.src}
-                preview={PHOTO_PREVIEWS[photo.name]}
+                preview={photo.preview}
                 hold={hold.active}
                 instant={hold.instant}
                 onReady={(fast) => hold.markReady(index, fast)}
                 frameClassName={index === slide.current ? "is-active" : index === slide.leaving ? "is-leaving" : undefined}
                 src={photo.src}
-                srcSet={`${photo.src} 640w, ${photo.large} 960w`}
+                srcSet={`${photo.src} 640w, ${photo.large} ${photo.largeWidth}w`}
                 sizes={`${PHONE} 100vw, 20vw`}
                 alt=""
                 // Son lo primero que se ve: que el navegador las pida antes que el resto.
@@ -192,15 +229,13 @@ export function Hero({ session }: HeroProps) {
           </div>
           <div className="home-vignette" aria-hidden="true" />
 
-          <Wordmark />
+          <Wordmark name={name} />
         </div>
       </section>
 
       <section className="home-intro">
         <div className="home-intro-inner">
-          {session.type === "guest" && (
-            <p className="home-intro-lead">Consultorios en Rosario, con turnos online y elección de profesional y horario.</p>
-          )}
+          {session.type === "guest" && tagline && <p className="home-intro-lead">{tagline}</p>}
 
           <div className="home-actions adm-btn-row">
             <Link className="home-btn home-btn-primary" to={primary.to}>
@@ -225,10 +260,20 @@ export function Hero({ session }: HeroProps) {
  * pantalla o un buscador leerían mal; por eso lo dibujado va escondido y al lado va el
  * nombre bien escrito, invisible.
  */
-function Wordmark() {
+function Wordmark({ name }: { name: string }) {
+  // El dibujo está hecho para este nombre y para ningún otro: con otro nombre, el nombre en
+  // letras, con la misma tipografía y el mismo lugar.
+  if (name !== JARDIN) {
+    return (
+      <h1 className="home-wordmark" id="home-wordmark">
+        {name}
+      </h1>
+    );
+  }
+
   return (
     <h1 className="home-wordmark" id="home-wordmark">
-      <span className="home-sr-only">Consultorios del Jardín</span>
+      <span className="home-sr-only">{JARDIN}</span>
       <span aria-hidden="true">
         Consultorios del Jard
         <span className="home-wordmark-accent">
@@ -239,3 +284,6 @@ function Wordmark() {
     </h1>
   );
 }
+
+/** El único nombre que lleva las hojas de tilde. */
+const JARDIN = "Consultorios del Jardín";

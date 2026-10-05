@@ -1,4 +1,5 @@
 import api from "../../axios";
+import { currentWords } from "../../lib/installation.ts";
 
 /**
  * Traer al sistema la agenda que el profesional venía llevando en otro lado.
@@ -117,34 +118,48 @@ export function runCalendarImport(file: File, options: ImportOptions): Promise<I
 }
 
 /** Cómo se llaman las opciones en pantalla. Las mismas palabras que usa el modal. */
-export const STATE_LABELS: { value: StateChoice; label: string; hint: string }[] = [
-  {
-    value: "past-assisted",
-    label: "Los que ya pasaron, atendidos. Los que vienen, confirmados",
-    hint: "La opción más cercana a lo ocurrido.",
-  },
-  { value: "all-accepted", label: "Todos confirmados", hint: "Se cierran después, uno por uno." },
-  { value: "all-assisted", label: "Todos atendidos", hint: "Incluidos los que todavía no se dieron." },
-];
+export function stateLabels(): { value: StateChoice; label: string; hint: string }[] {
+  // Función y no lista fija: los textos concuerdan con la palabra que el consultorio eligió
+  // para el turno, y esa llega del servidor después de cargado este módulo.
+  const w = currentWords();
+  const o = w.o("turno");
+  const os = w.os("turno");
 
-export const PAYMENT_LABELS: { value: PaymentChoice; label: string; hint: string }[] = [
-  {
-    value: "past-paid",
-    label: "Los que ya pasaron, cobrados. Los que vienen, sin cobrar",
-    hint: "Lo anterior queda saldado y lo próximo, por cobrar.",
-  },
-  { value: "all-paid", label: "Todos cobrados", hint: "Ninguno figura como deuda." },
-  {
-    value: "none",
-    label: "Ninguno cobrado",
-    hint: "Los pasados figuran en «Sin cobrar», que con años de agenda son muchos.",
-  },
-  {
-    value: "unset",
-    label: "No registrar el cobro",
-    hint: "No figuran ni cobrados ni adeudados.",
-  },
-];
+  return [
+    {
+      value: "past-assisted",
+      label: `L${os} que ya pasaron, atendid${os}. L${os} que vienen, confirmad${os}`,
+      hint: "La opción más cercana a lo ocurrido.",
+    },
+    { value: "all-accepted", label: `Tod${os} confirmad${os}`, hint: `Se cierran después, un${o} por un${o}.` },
+    { value: "all-assisted", label: `Tod${os} atendid${os}`, hint: `Incluid${os} l${os} que todavía no se dieron.` },
+  ];
+}
+
+export function paymentLabels(): { value: PaymentChoice; label: string; hint: string }[] {
+  const w = currentWords();
+  const o = w.o("turno");
+  const os = w.os("turno");
+
+  return [
+    {
+      value: "past-paid",
+      label: `L${os} que ya pasaron, cobrad${os}. L${os} que vienen, sin cobrar`,
+      hint: "Lo anterior queda saldado y lo próximo, por cobrar.",
+    },
+    { value: "all-paid", label: `Tod${os} cobrad${os}`, hint: `Ningun${o} figura como deuda.` },
+    {
+      value: "none",
+      label: `Ningun${o} cobrad${o}`,
+      hint: `L${os} pasad${os} figuran en «Sin cobrar», que con años de agenda son much${os}.`,
+    },
+    {
+      value: "unset",
+      label: "No registrar el cobro",
+      hint: `No figuran ni cobrad${os} ni adeudad${os}.`,
+    },
+  ];
+}
 
 /* ============================================================
    Y para el otro lado: llevarse la agenda
@@ -177,7 +192,7 @@ export async function downloadCalendar(options: ExportOptions): Promise<number> 
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `turnos-${options.from}-a-${options.to}.ics`;
+    link.download = `${currentWords().turnos}-${options.from}-a-${options.to}.ics`;
     document.body.appendChild(link);
     link.click();
     link.remove();

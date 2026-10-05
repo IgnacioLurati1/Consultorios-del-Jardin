@@ -8,9 +8,8 @@ import type { partialAppointment } from "../appointmentTypes.ts";
 import type { Office, Person } from "../../types.ts";
 import { AvailableWeekGrid } from "./AvailableWeekGrid.tsx";
 import { ConfirmAppointmentModal } from "./ConfirmAppointmentModal.tsx";
+import { bookingWindowText, hasBranches, useInstallation, useWords } from "../../../lib/installation.ts";
 
-/** Hasta dónde se puede pedir turno: esta semana y la que viene, igual que en ProfessionalSchedule. */
-const WEEKS_AHEAD = 1;
 
 /** Un horario libre de la especialidad, con el profesional que lo atiende. */
 type SpecialitySlot = partialAppointment & { professional: Person };
@@ -40,6 +39,7 @@ interface SpecialityScheduleProps {
  * del profesional desde la lista.
  */
 export function SpecialitySchedule({ speciality, professionals, office, blockedReason }: SpecialityScheduleProps) {
+  const w = useWords();
   const [slots, setSlots] = useState<SpecialitySlot[] | null>(null);
   const [failed, setFailed] = useState<Person[]>([]);
   const [monday, setMonday] = useState<Date>(() => startOfWeek(new Date()));
@@ -49,7 +49,13 @@ export function SpecialitySchedule({ speciality, professionals, office, blockedR
   const [attempt, setAttempt] = useState(0);
 
   const firstMonday = useMemo(() => startOfWeek(new Date()), []);
-  const lastMonday = useMemo(() => addDays(firstMonday, WEEKS_AHEAD * 7), [firstMonday]);
+  // Hasta dónde se puede pedir turno, el mismo límite que controla el servidor.
+  const installation = useInstallation();
+  const { bookingWeeksAhead } = installation.rules;
+  const windowText = bookingWindowText(bookingWeeksAhead);
+  // Con varias sucursales, el subtítulo dice de cuál son estos horarios.
+  const branch = hasBranches(installation) ? ` · ${office.description}` : "";
+  const lastMonday = useMemo(() => addDays(firstMonday, bookingWeeksAhead * 7), [firstMonday, bookingWeeksAhead]);
 
   // La lista llega como un arreglo nuevo en cada dibujo de la pantalla. Lo que dice si
   // cambió de verdad —y si hay que volver a pedir las agendas— son los profesionales.
@@ -128,7 +134,7 @@ export function SpecialitySchedule({ speciality, professionals, office, blockedR
         )
       );
     } catch (error) {
-      toast.error(`Error al solicitar el turno: ${(error as Error).message}`);
+      toast.error(`Error al solicitar ${w.el("turno")}: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -142,7 +148,10 @@ export function SpecialitySchedule({ speciality, professionals, office, blockedR
       <div className="booking-schedule-head">
         <div>
           <h2 className="booking-schedule-title">Horarios de {speciality}</h2>
-          <p className="booking-schedule-sub">Todos los profesionales · hasta dos semanas en adelante</p>
+          <p className="booking-schedule-sub">
+            {`Tod${w.os("profesional")} ${w.los("profesional")}`}
+            {branch} · {windowText.sub}
+          </p>
         </div>
       </div>
 
@@ -173,7 +182,7 @@ export function SpecialitySchedule({ speciality, professionals, office, blockedR
         </div>
       ) : bookable.length === 0 ? (
         <div className="adm-panel">
-          <div className="adm-empty">Sin horarios libres de {speciality} en las próximas dos semanas.</div>
+          <div className="adm-empty">Sin horarios libres de {speciality} {windowText.empty}.</div>
         </div>
       ) : (
         <>

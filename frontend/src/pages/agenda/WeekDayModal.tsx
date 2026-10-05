@@ -9,6 +9,7 @@ import {
   type AgendaPerson,
   type AgendaWeekDay,
 } from "./agendaService.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 
 /** El backend manda las horas como "09:00:00"; para leerlas alcanza con hh:mm. */
 const hhmm = (hour: string) => hour.slice(0, 5);
@@ -29,9 +30,9 @@ function plural(count: number, one: string, many: string): string {
 
 /** Qué clase de turno es, en una palabra. Los normales no dicen nada: son la mayoría. */
 function kindOf(appointment: AgendaAppointment): string {
-  if (appointment.overbooked) return "turno especial";
-  if (appointment.imported) return "importado";
-  if (appointment.recurring) return "repetido";
+  if (appointment.overbooked) return `${currentWords().turno} especial`;
+  if (appointment.imported) return `importad${currentWords().o("turno")}`;
+  if (appointment.recurring) return `repetid${currentWords().o("turno")}`;
   return "";
 }
 
@@ -50,6 +51,7 @@ interface Attending {
  * el detalle se pide recién al abrir, que es cuando hace falta.
  */
 export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onClose: () => void }) {
+  const w = useWords();
   const [data, setData] = useState<AgendaDay | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,8 +78,8 @@ export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onCl
     for (const room of data?.rooms ?? [])
       names.set(room.idRoom, offices.size > 1 ? `${room.description} · ${room.office.description}` : room.description);
 
-    return (idRoom: number) => names.get(idRoom) ?? "Sin sala";
-  }, [data]);
+    return (idRoom: number) => names.get(idRoom) ?? `Sin ${w.sala}`;
+  }, [data, w.sala]);
 
   // Quién atiende: los módulos de cada uno, y también quien solo tiene turnos sueltos.
   const attending = useMemo(() => {
@@ -113,11 +115,12 @@ export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onCl
   if (!day) return null;
 
   const counts = [
-    plural(day.appointments, "turno", "turnos"),
-    plural(day.patients, "paciente", "pacientes"),
-    plural(day.professionals, "profesional", "profesionales"),
+    plural(day.appointments, w.turno, w.turnos),
+    plural(day.patients, w.paciente, w.pacientes),
+    plural(day.professionals, w.profesional, w.profesionales),
   ];
-  if (data && data.cancelled > 0) counts.push(plural(data.cancelled, "cancelado", "cancelados"));
+  if (data && data.cancelled > 0)
+    counts.push(plural(data.cancelled, `cancelad${w.o("turno")}`, `cancelad${w.os("turno")}`));
 
   return (
     <Modal open onClose={onClose} size="lg" title={longDay(day.date)} subtitle={`${day.isToday ? "Hoy · " : ""}${counts.join(" · ")}`}>
@@ -149,7 +152,7 @@ export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onCl
                   <strong>
                     {day.peak.from} a {day.peak.to}
                   </strong>
-                  <span>{plural(day.peak.appointments, "turno a la vez", "turnos a la vez")}</span>
+                  <span>{plural(day.peak.appointments, `${w.turno} a la vez`, `${w.turnos} a la vez`)}</span>
                 </dd>
               </div>
             )}
@@ -176,7 +179,7 @@ export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onCl
                     <div>
                       <strong>{fullName(person)}</strong>
                       <span className="wkm-muted">
-                        {[person.speciality, plural(count, "turno", "turnos")].filter(Boolean).join(" · ")}
+                        {[person.speciality, plural(count, w.turno, w.turnos)].filter(Boolean).join(" · ")}
                       </span>
                     </div>
                     <div className="wkm-modules">
@@ -200,9 +203,11 @@ export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onCl
           </div>
 
           <div className="ui-section">
-            <h3 className="ui-section-title">Turnos</h3>
+            <h3 className="ui-section-title">{w.Turnos}</h3>
             {appointments.length === 0 ? (
-              <p className="wk-quiet">Sin turnos cargados.</p>
+              <p className="wk-quiet">
+                Sin {w.turnos} cargad{w.os("turno")}.
+              </p>
             ) : (
               <ul className="wkm-list">
                 {appointments.map((appointment) => {
@@ -216,7 +221,7 @@ export function WeekDayModal({ day, onClose }: { day: AgendaWeekDay | null; onCl
                         <span className="wkm-muted">{hhmm(appointment.finalHour)}</span>
                       </span>
                       <span className="wkm-people">
-                        <strong>{appointment.patient ? fullName(appointment.patient) : "Sin paciente"}</strong>
+                        <strong>{appointment.patient ? fullName(appointment.patient) : `Sin ${w.paciente}`}</strong>
                         <span className="wkm-muted">
                           con {fullName(appointment.professional)} · {roomName(appointment.idRoom)}
                           {kind ? ` · ${kind}` : ""}

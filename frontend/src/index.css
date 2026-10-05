@@ -12,7 +12,8 @@ body {
   box-sizing: border-box;
   background-color: var(--adm-bg);
   color: var(--adm-text);
-  font-family: 'Ubuntu', sans-serif;
+  /* La letra la decide el estilo del panel (ver adminPanel.css). Ubuntu es la de siempre. */
+  font-family: var(--app-font, 'Ubuntu', sans-serif);
 }
 
 /* El fondo también en el html: al hacer scroll más allá del contenido, el navegador

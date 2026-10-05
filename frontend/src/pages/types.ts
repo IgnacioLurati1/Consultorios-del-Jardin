@@ -15,6 +15,11 @@ export interface Office {
 
     idOffice: string;
     description: string;
+    /**
+     * Calle y número. Vacía, la sucursal usa la dirección general del consultorio.
+     * Opcional porque un servidor de antes no la manda.
+     */
+    address?: string | null;
     openingTime: string;
     closingTime: string;
     city: City

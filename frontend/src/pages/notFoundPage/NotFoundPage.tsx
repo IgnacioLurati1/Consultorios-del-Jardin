@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { FaArrowRight, FaLeaf } from "react-icons/fa6";
 import { getDecodedToken } from "../commonServices";
+import { currentPolicies, currentWords, useWords } from "../../lib/installation";
 import "./NotFoundPage.css";
 
 interface Suggestion {
@@ -9,40 +10,49 @@ interface Suggestion {
   to: string;
 }
 
-const COMMON: Suggestion[] = [
-  { label: "Inicio", description: "Portada del consultorio.", to: "/" },
-  { label: "Contacto", description: "Para avisar de un link roto.", to: "/contacto" },
-];
+function common(): Suggestion[] {
+  const w = currentWords();
+
+  return [
+    { label: "Inicio", description: `Portada ${w.del("lugar")}.`, to: "/" },
+    { label: "Contacto", description: "Para avisar de un link roto.", to: "/contacto" },
+  ];
+}
 
 /** A dónde le sirve ir a cada uno. Perderse sin sesión no es lo mismo que perderse con una. */
 function suggestionsFor(type: string | undefined): Suggestion[] {
+  const w = currentWords();
+
   switch (type) {
     case "client":
       return [
-        { label: "Solicitar turno", description: "Especialidad, profesional y horario.", to: "/Appointment" },
-        { label: "Mis turnos", description: "Próximos y anteriores.", to: "/AppointmentsList" },
-        ...COMMON,
+        ...(currentPolicies().patientBooking
+          ? [{ label: `Solicitar ${w.turno}`, description: `${w.Especialidad}, ${w.profesional} y horario.`, to: "/Appointment" }]
+          : []),
+        { label: `Mis ${w.turnos}`, description: `Próxim${w.os("turno")} y anteriores.`, to: "/AppointmentsList" },
+        ...common(),
       ];
     case "professional":
       return [
-        { label: "Panel del profesional", description: "Turnos del día y accesos.", to: "/ProfessionalHome" },
-        { label: "Turnos", description: "Agenda en grilla o en lista.", to: "/AppointmentsList" },
-        ...COMMON,
+        { label: `Panel ${w.del("profesional")}`, description: `${w.Turnos} del día y accesos.`, to: "/ProfessionalHome" },
+        { label: w.Turnos, description: "Agenda en grilla o en lista.", to: "/AppointmentsList" },
+        ...common(),
       ];
     case "admin":
       return [
         { label: "Panel de administración", description: "Horarios, usuarios, control y números.", to: "/AdminHome" },
-        ...COMMON,
+        ...common(),
       ];
     default:
       return [
-        { label: "Iniciar sesión", description: "Para ver o solicitar turnos.", to: "/Login" },
-        ...COMMON,
+        { label: "Iniciar sesión", description: `Para ver o solicitar ${w.turnos}.`, to: "/Login" },
+        ...common(),
       ];
   }
 }
 
 export function NotFoundPage() {
+  const w = useWords();
   const location = useLocation();
   const decoded = getDecodedToken();
   const suggestions = suggestionsFor(decoded?.type);
@@ -57,7 +67,7 @@ export function NotFoundPage() {
         <h1 className="nf-title">Página no encontrada</h1>
 
         {/* Lo primero que se teme al ver un error es haber perdido algo: se dice que no. */}
-        <p className="nf-text">El link puede estar desactualizado. Los turnos y los datos de la cuenta siguen intactos.</p>
+        <p className="nf-text">{`El link puede estar desactualizado. ${w.Los("turno")} y los datos de la cuenta siguen intactos.`}</p>
 
         {/* Decir qué se pidió ayuda a darse cuenta de un error de tipeo en la barra. */}
         <p className="nf-path">

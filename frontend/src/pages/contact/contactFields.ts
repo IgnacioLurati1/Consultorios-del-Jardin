@@ -1,19 +1,20 @@
 import api from "../../axios";
+import { words } from "../../lib/vocabulary.ts";
+import type { Installation } from "../../lib/installation.ts";
+import { APPLICATION, visibleReasons } from "../../lib/contentLists.ts";
 
 /**
- * Motivos posibles de una consulta. La lista es cerrada y coincide con la del backend:
- * el asunto del mail se arma con esto, así la casilla del consultorio queda ordenada
- * sola en vez de llenarse de "Consulta" a secas.
+ * Motivos posibles de una consulta, como los configuró el consultorio. La lista es
+ * cerrada y el servidor solo acepta uno de estos: el asunto del mail se arma con su
+ * nombre, así la casilla del consultorio queda ordenada sola en vez de llenarse de
+ * "Consulta" a secas.
  */
-export const REASONS = [
-  { id: "turnos", label: "Turnos", hint: "Solicitudes, cambios y cancelaciones." },
-  { id: "profesional", label: "Quiero trabajar acá", hint: "Profesionales interesados en sumarse al consultorio." },
-  { id: "sugerencia", label: "Sugerencia", hint: "Propuestas de mejora." },
-  { id: "otro", label: "Otra consulta", hint: "Otros temas." },
-];
+export function reasons(installation: Installation) {
+  return visibleReasons(installation.contactReasons, words(installation.vocabulary));
+}
 
 /** El motivo de quien quiere sumarse al equipo: pide teléfono y acepta un CV. */
-export const APPLICATION = "profesional";
+export { APPLICATION };
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -1,0 +1,54 @@
+/* Los períodos sin atender de un profesional. Los usa la configuración del profesional y
+   la ficha del profesional en la administración (ver VacationsModal). */
+
+.prof-vacation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prof-vacation-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--adm-border);
+  border-radius: var(--adm-radius-sm);
+}
+
+.prof-vacation-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.prof-vacation-when {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.prof-vacation-reason {
+  color: var(--adm-muted);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 640px) {
+  .prof-vacation-item {
+    flex-wrap: wrap;
+  }
+
+  .prof-vacation-item .adm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.prof-vacation-empty {
+  margin: 0;
+  color: var(--adm-muted);
+}

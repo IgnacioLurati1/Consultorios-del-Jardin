@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useLogo } from "../../lib/useLogo";
 import "../newPassword/passwordPages.css";
 import "./welcome.css";
+import { useOfficeName } from "../../lib/installation.ts";
 
 /** Mismo mínimo que pide el registro. */
 const MIN_PASSWORD = 6;
@@ -38,6 +39,7 @@ interface Problem {
  * sesión. La dirección del backend sí es la misma, así que sale de la constante compartida.
  */
 export function Welcome() {
+  const officeName = useOfficeName();
   const logo = useLogo();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -137,7 +139,7 @@ export function Welcome() {
 
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
-          <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <img src={logo} alt={officeName} className="pw-logo" />
           <h1 className="pw-title">{name ? `Hola, ${name}` : "Creá tu contraseña"}</h1>
           <p className="pw-subtitle">Elegí la contraseña con la que vas a entrar. Es el último paso para abrir tu cuenta.</p>
         </div>

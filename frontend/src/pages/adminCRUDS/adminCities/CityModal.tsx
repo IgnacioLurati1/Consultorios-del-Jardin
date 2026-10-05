@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
+import { useWords } from "../../../lib/installation.ts";
 
 interface CityModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ interface CityModalProps {
 }
 
 export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit, onCreate, type }: CityModalProps) {
+  const w = useWords();
   const [cityData, setCityData] = useState({ idCity: "", nameCity: "", province: "", active: true });
   const [errors, setErrors] = useState<{ nameCity?: string; province?: string }>({});
 
@@ -102,7 +104,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
         }
       >
         <p className="ui-alert ui-alert-info">
-          Mientras esté dada de baja no se pueden crear sucursales en esta localidad.
+          {`Mientras esté dada de baja no se pueden crear ${w.sucursales} en esta localidad.`}
         </p>
       </Modal>
     );
@@ -114,7 +116,7 @@ export function CityModal({ visible, city, provinces, onClose, onDelete, onEdit,
       onClose={onClose}
       size="sm"
       title={editing ? "Editar localidad" : "Nueva localidad"}
-      subtitle={editing ? city!.nameCity : "Se usa para ubicar las sucursales"}
+      subtitle={editing ? city!.nameCity : `Se usa para ubicar ${w.los("sucursal")}`}
       footer={
         <>
           {editing && (

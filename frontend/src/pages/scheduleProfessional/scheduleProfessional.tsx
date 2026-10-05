@@ -21,11 +21,15 @@ import { daysSpanish } from "./scheduleTypes.ts";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
 import { DayGrid } from "../agenda/DayGrid.tsx";
 import { findAgendaDay, weekDays, type AgendaDay } from "../agenda/agendaService.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 
 const openingTime = "08:00";
 const closingTime = "21:00";
 
 export function ScheduleProfessional() {
+  // Adentro de los efectos las palabras se piden con currentWords(): con `w` habría que
+  // ponerlo en las dependencias, y como es nuevo en cada render la carga no pararía.
+  const w = useWords();
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | undefined>(undefined);
   const [selectedKey, setSelectedKey] = useState<string | undefined>();
@@ -63,12 +67,12 @@ export function ScheduleProfessional() {
       findPerson(decoded.email)
         .then((data) => {
           if (!data) {
-            toast.error("No se encontró el profesional");
+            toast.error(`No se encontró ${currentWords().el("profesional")}`);
             return;
           }
           setProfessional(data);
         })
-        .catch((err) => toast.error(`Error al cargar al profesional: ${err.message}`));
+        .catch((err) => toast.error(`Error al cargar ${currentWords().al("profesional")}: ${err.message}`));
       return;
     }
 
@@ -90,7 +94,7 @@ export function ScheduleProfessional() {
           )
         )
       )
-      .catch((err) => toast.error(`Error cargando profesionales: ${err.message}`))
+      .catch((err) => toast.error(`Error cargando ${currentWords().profesionales}: ${err.message}`))
       .finally(() => setLoadingProfessionals(false));
   }, []);
 
@@ -101,7 +105,7 @@ export function ScheduleProfessional() {
     setLoadingSchedules(true);
     findProfessionalSchedules(professional.email)
       .then((data) => setSchedules(data))
-      .catch((err) => toast.error(`Error al obtener horarios del profesional: ${err.message}`))
+      .catch((err) => toast.error(`Error al obtener horarios ${currentWords().del("profesional")}: ${err.message}`))
       .finally(() => setLoadingSchedules(false));
   }, [professional, viewMode]);
 
@@ -112,7 +116,7 @@ export function ScheduleProfessional() {
     setLoadingSchedules(true);
     findRoomSchedules(roomToFilter.idRoom)
       .then((data) => setSchedules(data))
-      .catch((err) => toast.error(`Error al obtener los horarios del consultorio: ${err.message}`))
+      .catch((err) => toast.error(`Error al obtener los horarios ${currentWords().del("sala")}: ${err.message}`))
       .finally(() => setLoadingSchedules(false));
   }, [roomToFilter, viewMode]);
 
@@ -134,11 +138,11 @@ export function ScheduleProfessional() {
   useEffect(() => {
     findAllActiveRooms()
       .then(setRooms)
-      .catch((err) => toast.error(`Error cargando consultorios: ${err.message}`));
+      .catch((err) => toast.error(`Error cargando ${currentWords().salas}: ${err.message}`));
 
     findAllActiveOffices()
       .then(setOffices)
-      .catch((err) => toast.error(`Error cargando sucursales: ${err.message}`));
+      .catch((err) => toast.error(`Error cargando ${currentWords().sucursales}: ${err.message}`));
 
     findAllActiveCities()
       .then(setCities)
@@ -255,13 +259,13 @@ export function ScheduleProfessional() {
 
   const subtitle = inDayMode
     ? dayShows === "schedules"
-      ? "Quién atiende ese día, consultorio por consultorio"
-      : "Todos los turnos de ese día, consultorio por consultorio"
+      ? `Quién atiende ese día, ${w.sala} por ${w.sala}`
+      : `Tod${w.os("turno")} ${w.los("turno")} de ese día, ${w.sala} por ${w.sala}`
     : inRoomMode
-    ? "Horarios de todos los profesionales en este consultorio. Solo lectura."
+    ? `Horarios de tod${w.os("profesional")} ${w.los("profesional")} en ${w.este("sala")}. Solo lectura.`
     : professional
     ? professional.speciality || "Agenda semanal"
-    : "Seleccionar un profesional o un consultorio";
+    : `Seleccionar ${w.un("profesional")} o ${w.un("sala")}`;
 
   const filter = (
     <GridFilter
@@ -286,7 +290,7 @@ export function ScheduleProfessional() {
           title="Mis horarios"
           subtitle={
             professional
-              ? "Cada módulo abre su detalle y la duración de los turnos"
+              ? `Cada módulo abre su detalle y la duración de ${w.los("turno")}`
               : "Cargando la agenda…"
           }
           backTo="/ProfessionalHome"
@@ -345,7 +349,7 @@ export function ScheduleProfessional() {
                 className="adm-btn adm-btn-primary"
                 onClick={() => setDayShows(dayShows === "schedules" ? "appointments" : "schedules")}
               >
-                {dayShows === "schedules" ? "Ver los turnos" : "Ver los horarios"}
+                {dayShows === "schedules" ? `Ver ${w.los("turno")}` : "Ver los horarios"}
               </button>
               <button type="button" className="adm-btn adm-btn-ghost" onClick={backToProfessional}>
                 Volver
@@ -362,7 +366,7 @@ export function ScheduleProfessional() {
                 Ver un día completo
               </button>
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setPickerOpen(true)}>
-                {professional || inRoomMode ? "Cambiar" : "Elegir profesional o consultorio"}
+                {professional || inRoomMode ? "Cambiar" : `Elegir ${w.profesional} o ${w.sala}`}
               </button>
               {filter}
             </>
@@ -374,14 +378,13 @@ export function ScheduleProfessional() {
 
       {lockedProfessional && !inRoomMode && !inDayMode && (
         <p className="schedule-mode-note schedule-mode-warn">
-          Profesional deshabilitado. Sus horarios siguen ocupando el consultorio y se pueden borrar desde acá, sin carga
-          de horarios nuevos.
+          {`${w.Profesional} deshabilitad${w.o("profesional")}. Sus horarios siguen ocupando ${w.el("sala")} y se pueden borrar desde acá, sin carga de horarios nuevos.`}
         </p>
       )}
 
       {inRoomMode && (
         <p className="schedule-mode-note">
-          Estás viendo el consultorio completo. Las franjas muestran qué profesional lo ocupa; desde acá no se crean ni se borran horarios.
+          {`Estás viendo ${w.el("sala")} complet${w.o("sala")}. Las franjas muestran qué ${w.profesional} ${w.lo("sala")} ocupa; desde acá no se crean ni se borran horarios.`}
         </p>
       )}
 
@@ -436,7 +439,7 @@ export function ScheduleProfessional() {
               <DayGrid data={dayData} mode={dayShows} />
               {dayShows === "appointments" && dayData.cancelled > 0 && (
                 <p className="schedule-mode-note">
-                  {dayData.cancelled} {dayData.cancelled === 1 ? "turno cancelado" : "turnos cancelados"} no se dibujan.
+                  {dayData.cancelled} {dayData.cancelled === 1 ? `${w.turno} cancelad${w.o("turno")}` : `${w.turnos} cancelad${w.os("turno")}`} no se dibujan.
                 </p>
               )}
             </div>
@@ -446,10 +449,10 @@ export function ScheduleProfessional() {
         ) : !professional && !inRoomMode ? (
           <div className="adm-panel">
             <div className="adm-empty">
-              Un profesional muestra su agenda, y un consultorio, su ocupación.
+              {`${w.Un("profesional")} muestra su agenda, y ${w.un("sala")}, su ocupación.`}
               <br />
               <button type="button" className="adm-btn adm-btn-primary" style={{ marginTop: 16 }} onClick={() => setPickerOpen(true)}>
-                Elegir profesional o consultorio
+                {`Elegir ${w.profesional} o ${w.sala}`}
               </button>
             </div>
           </div>

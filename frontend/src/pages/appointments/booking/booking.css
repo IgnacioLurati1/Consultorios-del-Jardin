@@ -5,6 +5,20 @@
 
 /* Los filtros usan .adm-filters y .adm-chips del sistema visual. */
 
+/* ---------- sucursales ----------
+   Solo donde se trabaja con varias. Son chips como los de especialidad, con el pin
+   adelante para que las dos filas no se confundan, y la ciudad en voz más baja. */
+
+.booking-branches button svg {
+  flex-shrink: 0;
+  font-size: 0.9em;
+}
+
+.booking-branch-city {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
 /* ---------- buscador ---------- */
 
 .booking-search {
@@ -125,6 +139,39 @@
 .booking-professional-speciality {
   color: var(--adm-muted);
   font-size: 0.92rem;
+}
+
+/* Dónde atiende, cuando hay más de una sucursal. Debajo de la especialidad y más chico:
+   es para quien ya sabe a qué va y está eligiendo adónde. */
+.booking-professional-branches {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--adm-muted);
+  font-size: 0.86rem;
+}
+
+.booking-professional-branches svg {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--adm-green);
+}
+
+/* Las sucursales en la ficha del profesional: una por renglón, con dónde queda abajo. */
+.booking-about-branches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: right;
+}
+
+.booking-about-branches small {
+  display: block;
+  color: var(--adm-muted);
+  font-weight: 400;
 }
 
 .booking-professional-action {

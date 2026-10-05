@@ -6,11 +6,13 @@ import { Toasts } from "../../components/toast/Toasts.tsx";
 import { API_BASE_URL } from "../../axios.ts";
 import { useLogo } from "../../lib/useLogo";
 import "./passwordPages.css";
+import { useOfficeName } from "../../lib/installation.ts";
 
 /** Mismo mínimo que pide el registro. */
 const MIN_PASSWORD = 6;
 
 export function NewPassword() {
+  const officeName = useOfficeName();
   const logo = useLogo();
   const [params] = useSearchParams();
   const token = params.get("token");
@@ -105,7 +107,7 @@ export function NewPassword() {
     <div className="pw-page">
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
-          <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <img src={logo} alt={officeName} className="pw-logo" />
           <h1 className="pw-title">Contraseña nueva</h1>
         </div>
 

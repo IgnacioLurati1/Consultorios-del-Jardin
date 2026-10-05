@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnalyticsSection } from "./Kpi.tsx";
 import { money } from "./analyticsService.ts";
+import { useWords } from "../../lib/installation.ts";
 import {
   BLOCK_LABEL,
   findFreeBlocks,
@@ -32,6 +33,7 @@ const SHORT_DAY: Record<string, string> = {
  * cuando alguien lo pide.
  */
 export function RentPotentialSection() {
+  const w = useWords();
   const current = monthKeyOf();
   const months = [current, shiftMonth(current, 1)];
 
@@ -94,7 +96,7 @@ export function RentPotentialSection() {
           <div className="adm-panel-head">Bloques libres</div>
           <div className="an-potential-body">
             <p className="an-potential-text">
-              Los bloques de cada consultorio que nadie usa, de lunes a viernes, y lo que dejarían por mes alquilados a su
+              Los bloques de cada {w.sala} que nadie usa, de lunes a viernes, y lo que dejarían por mes alquilados a su
               precio.
             </p>
             <button type="button" className="adm-btn adm-btn-primary" onClick={searchFree} disabled={freeBusy}>

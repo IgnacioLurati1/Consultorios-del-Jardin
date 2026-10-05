@@ -7,6 +7,7 @@ import { HolidayGarland } from "../../components/decor/HolidayDecor.tsx";
 import { EntranceBackdrop } from "../../components/entrance/EntranceBackdrop.tsx";
 import api from "../../axios";
 import { useLogo } from "../../lib/useLogo";
+import { usePolicies, useWords } from "../../lib/installation.ts";
 import {
   DOC_TYPES,
   MIN_PASSWORD,
@@ -33,6 +34,8 @@ import "../newPassword/passwordPages.css";
  * dictaron en el mostrador.
  */
 export function Register() {
+  const w = useWords();
+  const policies = usePolicies();
   const logo = useLogo();
 
   const [form, setForm] = useState<RegisterForm>(emptyRegisterForm);
@@ -118,7 +121,7 @@ export function Register() {
     {
       id: "datos",
       title: "Datos",
-      hint: "Identificación ante el profesional.",
+      hint: `Identificación ante ${w.el("profesional")}.`,
       validate: () => validatePersonalData(form),
       content: (
         <div className="ui-field-row">
@@ -136,7 +139,7 @@ export function Register() {
     {
       id: "contacto",
       title: "Contacto",
-      hint: "Para los avisos de turnos.",
+      hint: `Para los avisos de ${w.turnos}.`,
       validate: () => validateContact(form),
       content: (
         <>
@@ -209,7 +212,8 @@ export function Register() {
     <>
       <SteppedForm
         title="Crear cuenta"
-        subtitle="Tres pasos y un mail de confirmación"
+        // Con el registro cerrado, la cuenta es para quien ya cargó el consultorio.
+        subtitle={policies.openSignup ? "Tres pasos y un mail de confirmación" : `Con el mismo mail que se le dio ${w.al("lugar")}`}
         logo={logo}
         steps={steps}
         submitLabel="Enviar mail de confirmación"

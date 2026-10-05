@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
-import { GUIDE_STEPS } from "./guideSteps.ts";
+import { useWords } from "../../../lib/installation.ts";
+import { guideSteps } from "./guideSteps.ts";
 import "./professionalGuide.css";
 
 interface Props {
@@ -16,6 +17,9 @@ interface Props {
  * `useProfessionalGuide`.
  */
 export function ProfessionalGuide({ open, onClose }: Props) {
+  const w = useWords();
+  const steps = guideSteps(w);
+  const lastStep = steps.length - 1;
   const [step, setStep] = useState(0);
 
   // Cada vez que se abre arranca del principio: el que la vuelve a abrir desde el botón de
@@ -29,17 +33,17 @@ export function ProfessionalGuide({ open, onClose }: Props) {
     if (!open) return;
 
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "ArrowRight") setStep((current) => Math.min(current + 1, GUIDE_STEPS.length - 1));
+      if (event.key === "ArrowRight") setStep((current) => Math.min(current + 1, lastStep));
       if (event.key === "ArrowLeft") setStep((current) => Math.max(current - 1, 0));
     }
 
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open]);
+  }, [open, lastStep]);
 
-  const current = GUIDE_STEPS[step];
+  const current = steps[step];
   const first = step === 0;
-  const last = step === GUIDE_STEPS.length - 1;
+  const last = step === lastStep;
   const Icon = current.icon;
 
   return (
@@ -48,7 +52,7 @@ export function ProfessionalGuide({ open, onClose }: Props) {
       onClose={onClose}
       size="sm"
       title="Cómo funciona el panel"
-      subtitle={`Paso ${step + 1} de ${GUIDE_STEPS.length}`}
+      subtitle={`Paso ${step + 1} de ${steps.length}`}
       footer={
         <>
           {first ? (
@@ -72,7 +76,7 @@ export function ProfessionalGuide({ open, onClose }: Props) {
         {/* La barra de avance, en tramos. Cada tramo lleva a su paso: el que ya sabe cómo
             funcionan los turnos va derecho a los pacientes sin cuenta. */}
         <ol className="guide-progress">
-          {GUIDE_STEPS.map((item, index) => (
+          {steps.map((item, index) => (
             <li key={item.title}>
               <button
                 type="button"

@@ -14,12 +14,15 @@ import {
   validatePersonalData,
   type RegisterForm,
 } from "../../register/registerFields.ts";
-import { SPECIALITIES } from "../../specialities.ts";
+import { useSpecialities } from "../../specialities.ts";
+import { useWords } from "../../../lib/installation.ts";
 
 /** El mismo tope que valida el backend. */
 const ABOUT_MAX = 600;
 
 export function RegisterProf() {
+  const w = useWords();
+  const specialities = useSpecialities();
   const logo = useLogo();
   const navigate = useNavigate();
 
@@ -47,12 +50,12 @@ export function RegisterProf() {
       about: form.about.trim() || undefined,
     })
       .then(() => {
-        toast.success("Profesional registrado. Le mandamos un mail para que cree su contraseña");
+        toast.success(`${w.Profesional} registrad${w.o("profesional")}. Le mandamos un mail para que cree su contraseña`);
         navigate("/AdminHome/UsersAdmin");
         subirAlPrincipio();
       })
       .catch((err: Error) => {
-        setServerError(err.message || "Error al registrar al profesional");
+        setServerError(err.message || `Error al registrar ${w.al("profesional")}`);
         setSending(false);
       });
   }
@@ -61,7 +64,7 @@ export function RegisterProf() {
     {
       id: "cuenta",
       title: "Cuenta",
-      hint: "Al profesional le llega un mail para que cree su contraseña y entre por primera vez.",
+      hint: `${w.o("profesional") === "a" ? "A la" : "Al"} ${w.profesional} le llega un mail para que cree su contraseña y entre por primera vez.`,
       validate: () => validateAccountAsync(form, { password: false }),
       content: (
         <label className="ui-field">
@@ -74,7 +77,7 @@ export function RegisterProf() {
     {
       id: "datos",
       title: "Datos",
-      hint: "Nombre visible para los pacientes al solicitar turno.",
+      hint: `Nombre visible para ${w.los("paciente")} al solicitar ${w.turno}.`,
       validate: () => validatePersonalData(form),
       content: (
         <div className="ui-field-row">
@@ -97,12 +100,12 @@ export function RegisterProf() {
       content: (
         <>
           <label className="ui-field">
-            <span>Especialidad</span>
+            <span>{w.Especialidad}</span>
             {/* Lista fija: es la misma con la que el paciente filtra al buscar turno,
                 así que escribirla a mano solo abre la puerta a que no coincidan. */}
             <select value={form.speciality} onChange={(e) => set("speciality", e.target.value)}>
               <option value="">Seleccionar…</option>
-              {SPECIALITIES.map((item) => (
+              {specialities.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -120,7 +123,7 @@ export function RegisterProf() {
               onChange={(e) => set("about", e.target.value)}
             />
             <small>
-              Opcional. Visible para el paciente al elegir profesional. {form.about.length}/{ABOUT_MAX}
+              Opcional. Visible para {w.el("paciente")} al elegir {w.profesional}. {form.about.length}/{ABOUT_MAX}
             </small>
           </label>
 
@@ -154,11 +157,11 @@ export function RegisterProf() {
   return (
     <>
       <SteppedForm
-        title="Registrar profesional"
-        subtitle="Queda habilitado para atender apenas se guarda. La contraseña la elige el profesional desde su mail"
+        title={`Registrar ${w.profesional}`}
+        subtitle={`Queda habilitad${w.o("profesional")} para atender apenas se guarda. La contraseña la elige ${w.el("profesional")} desde su mail`}
         logo={logo}
         steps={steps}
-        submitLabel="Registrar profesional"
+        submitLabel={`Registrar ${w.profesional}`}
         submitting={sending}
         serverError={serverError}
         onSubmit={handleSubmit}

@@ -6,25 +6,28 @@ import { findPerson, getDecodedToken } from "../../../pages/commonServices";
 import { Modal } from "../../modal/Modal";
 import api from "../../../axios";
 import type { Person } from "../../../pages/types";
+import { useWords } from "../../../lib/installation";
+import type { Words } from "../../../lib/vocabulary";
 import "../Header.css";
 
-const PANEL_BY_TYPE: Record<string, { label: string; to: string }> = {
+const panelByType = (w: Words): Record<string, { label: string; to: string }> => ({
   admin: { label: "Panel de administración", to: "/AdminHome" },
-  professional: { label: "Panel del profesional", to: "/ProfessionalHome" },
-  client: { label: "Mis turnos", to: "/AppointmentsList" },
-};
+  professional: { label: `Panel ${w.del("profesional")}`, to: "/ProfessionalHome" },
+  client: { label: `Mis ${w.turnos}`, to: "/AppointmentsList" },
+});
 
-const ROLE_LABEL: Record<string, string> = {
+const roleLabel = (w: Words): Record<string, string> => ({
   admin: "Administrador",
-  professional: "Profesional",
-  client: "Paciente",
-};
+  professional: w.Profesional,
+  client: w.Paciente,
+});
 
 /**
  * Bloque de sesión de la barra superior. Sin sesión muestra los accesos a login y
  * registro; con sesión, un menú con los datos de la persona, su panel y la salida.
  */
 export function Session() {
+  const w = useWords();
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -97,7 +100,7 @@ export function Session() {
 
   const name = person ? `${person.name} ${person.surname}` : decoded.email;
   const initials = person ? `${person.name.charAt(0)}${person.surname.charAt(0)}`.toUpperCase() : decoded.email.charAt(0).toUpperCase();
-  const panel = PANEL_BY_TYPE[decoded.type];
+  const panel = panelByType(w)[decoded.type];
 
   return (
     <div className="app-session" ref={menuRef}>
@@ -114,7 +117,7 @@ export function Session() {
           <div className="app-user-menu-head">
             <span className="app-user-menu-name">{name}</span>
             <span className="app-user-menu-mail">{decoded.email}</span>
-            <span className="adm-badge adm-badge-green">{ROLE_LABEL[decoded.type] ?? decoded.type}</span>
+            <span className="adm-badge adm-badge-green">{roleLabel(w)[decoded.type] ?? decoded.type}</span>
           </div>
 
           {panel && (

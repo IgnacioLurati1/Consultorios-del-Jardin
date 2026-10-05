@@ -9,6 +9,7 @@ import { findRecurrences, stopRecurrence, updateRecurrence, FREQUENCY_LABELS } f
 import { findAllActiveRooms } from "../../adminCRUDS/adminRooms/RoomService";
 import { appointmentDate, formatDayLabel, shortHour } from "../appointmentTypes";
 import type { Recurrence, RecurrenceFrequency, Room } from "../../types";
+import { currentWords, useWords } from "../../../lib/installation.ts";
 import "../../adminCRUDS/adminPanel.css";
 import "../../homePages/professionalHome/professionalHome.css";
 import "./recurrences.css";
@@ -47,6 +48,7 @@ function byWhen(a: Recurrence, b: Recurrence): number {
  * y los que ya están creados se editan o se cancelan desde la agenda, uno por uno.
  */
 export function RecurrencesPage() {
+  const w = useWords();
   const [recurrences, setRecurrences] = useState<Recurrence[] | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [editing, setEditing] = useState<Recurrence | undefined>(undefined);
@@ -63,7 +65,7 @@ export function RecurrencesPage() {
     findRecurrences()
       .then(setRecurrences)
       .catch((err) => {
-        toast.error(`Error al cargar los turnos repetibles: ${err.message}`);
+        toast.error(`Error al cargar ${currentWords().los("turno")} repetibles: ${err.message}`);
         setRecurrences([]);
       });
   }
@@ -100,7 +102,7 @@ export function RecurrencesPage() {
       endDate: form.forever ? null : form.endDate,
     })
       .then(() => {
-        toast.success("Cambios guardados. Los próximos turnos se generan así");
+        toast.success(`Cambios guardados. L${w.os("turno")} próxim${w.os("turno")} ${w.turnos} se generan así`);
         setEditing(undefined);
         load();
       })
@@ -111,7 +113,7 @@ export function RecurrencesPage() {
   function stop(recurrence: Recurrence) {
     stopRecurrence(recurrence.idRecurrence)
       .then(() => {
-        toast.success("Se frenó la repetición. Los turnos ya creados siguen en pie.");
+        toast.success(`Se frenó la repetición. ${w.Los("turno")} ya cread${w.os("turno")} siguen en pie.`);
         setEditing(undefined);
         load();
       })
@@ -123,11 +125,11 @@ export function RecurrencesPage() {
   return (
     <div className="adm-page">
       <AdminHeader
-        title="Turnos repetibles"
+        title={`${w.Turnos} repetibles`}
         subtitleIsData={total > 0}
         subtitle={
           total === 0
-            ? "Los turnos que se agendan solos"
+            ? `${w.Los("turno")} que se agendan sol${w.os("turno")}`
             : `${total} ${total === 1 ? "repetición activa" : "repeticiones activas"} · se agendan solas hasta cuatro semanas para adelante`
         }
         backTo="/ProfessionalHome"
@@ -145,9 +147,9 @@ export function RecurrencesPage() {
       ) : ordered.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">
-            Sin turnos repetibles.
+            {`Sin ${w.turnos} repetibles.`}
             <br />
-            Un turno se marca como repetible desde su ficha en la agenda.
+            {`${w.Un("turno")} se marca como repetible desde su ficha en la agenda.`}
           </div>
         </div>
       ) : (
@@ -171,7 +173,7 @@ export function RecurrencesPage() {
 
               <div className="rec-card-facts">
                 <div className="rec-fact">
-                  <span>Paciente</span>
+                  <span>{w.Paciente}</span>
                   <strong>
                     {recurrence.patient ? (
                       `${recurrence.patient.surname}, ${recurrence.patient.name}`
@@ -181,7 +183,7 @@ export function RecurrencesPage() {
                   </strong>
                 </div>
                 <div className="rec-fact">
-                  <span>Consultorio</span>
+                  <span>{w.Sala}</span>
                   <strong>{recurrence.room.description}</strong>
                 </div>
                 <div className="rec-fact">
@@ -195,9 +197,9 @@ export function RecurrencesPage() {
               </div>
 
               <div className="rec-card-next">
-                <span className="rec-card-next-label">Próximos</span>
+                <span className="rec-card-next-label">{`Próxim${w.os("turno")}`}</span>
                 {recurrence.upcoming.length === 0 ? (
-                  <span className="ui-detail-empty">Sin turnos agendados por ahora</span>
+                  <span className="ui-detail-empty">{`Sin ${w.turnos} agendad${w.os("turno")} por ahora`}</span>
                 ) : (
                   <ul className="rec-next-list">
                     {recurrence.upcoming.slice(0, 4).map((item) => (
@@ -208,7 +210,7 @@ export function RecurrencesPage() {
               </div>
 
               <footer className="rec-card-foot">
-                {recurrence.overbooked && <span className="appt-tag-over">Turno especial</span>}
+                {recurrence.overbooked && <span className="appt-tag-over">{`${w.Turno} especial`}</span>}
                 {recurrence.endDate && <span className="appt-tag-until">hasta el {shortDate(recurrence.endDate)}</span>}
                 <button type="button" className="adm-btn adm-btn-ghost" onClick={() => openEdit(recurrence)}>
                   Configurar
@@ -222,7 +224,7 @@ export function RecurrencesPage() {
       <Modal
         open={!!editing}
         onClose={() => setEditing(undefined)}
-        title="Turno repetible"
+        title={`${w.Turno} repetible`}
         subtitle={editing ? `${weekdayOf(editing.startDate)} · ${shortHour(editing.initialHour)}` : undefined}
         footer={
           <>
@@ -244,8 +246,7 @@ export function RecurrencesPage() {
         }
       >
         <p className="ui-alert ui-alert-info">
-          Los cambios aplican a los turnos que faltan generar. Los ya agendados quedan sin cambios y se editan o cancelan
-          desde la agenda, uno por uno.
+          {`Los cambios aplican a ${w.los("turno")} que faltan generar. L${w.os("turno")} ya agendad${w.os("turno")} quedan sin cambios y se editan o cancelan desde la agenda, un${w.o("turno")} por un${w.o("turno")}.`}
         </p>
 
         <div className="ui-section">
@@ -298,12 +299,12 @@ export function RecurrencesPage() {
             <small>
               {form.forever
                 ? "Se repite hasta frenarla a mano."
-                : "Adelantar la fecha no borra los turnos ya creados. Esos se cancelan desde la agenda."}
+                : `Adelantar la fecha no borra ${w.los("turno")} ya cread${w.os("turno")}. Es${w.os("turno")} se cancelan desde la agenda.`}
             </small>
           </div>
 
           <label className="ui-field">
-            <span>Consultorio</span>
+            <span>{w.Sala}</span>
             <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })}>
               {rooms.map((room) => (
                 <option key={room.idRoom} value={room.idRoom}>
@@ -323,12 +324,12 @@ export function RecurrencesPage() {
               value={form.value}
               onChange={(e) => setForm({ ...form, value: e.target.value })}
             />
-            <small>Valor de cada uno de los próximos turnos. Vacío equivale a 0.</small>
-            <p className="ui-alert ui-alert-info">Dato visible solo para el profesional y el paciente.</p>
+            <small>{`Valor de cada un${w.o("turno")} de l${w.os("turno")} próxim${w.os("turno")} ${w.turnos}. Vacío equivale a 0.`}</small>
+            <p className="ui-alert ui-alert-info">{`Dato visible solo para ${w.el("profesional")} y ${w.el("paciente")}.`}</p>
           </label>
         </div>
 
-        <p className="ui-hint">Frenar la repetición no borra ningún turno ya agendado.</p>
+        <p className="ui-hint">{`Frenar la repetición no borra ${w.o("turno") === "a" ? "ninguna" : "ningún"} ${w.turno} ya agendad${w.o("turno")}.`}</p>
       </Modal>
 
       <Toasts />

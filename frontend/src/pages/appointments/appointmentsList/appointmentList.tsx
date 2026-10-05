@@ -42,6 +42,7 @@ import {
 import { useAppointmentActions } from "../useAppointmentActions.ts";
 import { useUndo } from "../../../context/UndoContext.tsx";
 import { useSimpleView } from "../../../lib/simpleView.ts";
+import { currentWords, usePolicies, useWords } from "../../../lib/installation.ts";
 import { findProfessionalSchedules } from "../../scheduleProfessional/scheduleServices.ts";
 import { findPerson, getDecodedToken } from "../../commonServices.ts";
 import { AnnouncementBanner } from "../../announcements/AnnouncementBanner.tsx";
@@ -50,7 +51,12 @@ import "./appointmentList.css";
 
 type ViewMode = "list" | "grid";
 
+/** Para la frase que arranca con un ayudante del vocabulario, que viene en minúscula. */
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
 export function AppointmentsList() {
+  const w = useWords();
+  const policies = usePolicies();
   // Traer y llevarse la agenda entera se hace una vez en la vida del consultorio, así que
   // es lo primero que la vista simplificada saca de esta barra.
   const [simpleView] = useSimpleView();
@@ -94,10 +100,13 @@ export function AppointmentsList() {
 
   useEffect(() => {
     if (!isProfessional || !searchParams.has("nuevo")) return;
-    setPreset(null);
-    setNewModalOpen(true);
+    // Donde los profesionales no cargan turnos, el atajo no abre nada.
+    if (policies.proCreate) {
+      setPreset(null);
+      setNewModalOpen(true);
+    }
     setSearchParams({}, { replace: true });
-  }, [isProfessional, searchParams, setSearchParams]);
+  }, [isProfessional, policies.proCreate, searchParams, setSearchParams]);
 
   useEffect(() => {
     const decoded = getDecodedToken();
@@ -193,7 +202,7 @@ export function AppointmentsList() {
         setHasMore(mode === "list" && agenda.length === 15);
       })
       .catch((err) => {
-        if (vigente()) toast.error(`Error al obtener turnos: ${err.message}`);
+        if (vigente()) toast.error(`Error al obtener ${currentWords().turnos}: ${err.message}`);
       })
       // El cartel de "cargando" lo apaga el pedido vigente y nadie más: apagarlo desde uno
       // viejo dejaría la pantalla quieta mientras el bueno todavía viene en camino.
@@ -261,7 +270,7 @@ export function AppointmentsList() {
     repeat: { frequency: RecurrenceFrequency; endDate: string | null } | null;
   }) {
     const created = await createProfessionalAppointment(data);
-    const label = data.overbooked ? "Turno especial" : "Turno";
+    const label = data.overbooked ? `${w.Turno} especial` : w.Turno;
 
     /**
      * Cómo se deshace un turno recién creado.
@@ -280,13 +289,13 @@ export function AppointmentsList() {
       }
 
       const avisos = [
-        "El turno queda cancelado en el historial.",
-        data.patientEmail ? "Al paciente le llega el aviso de que se canceló." : "",
-        extra ? "Los turnos que la repetición ya haya agendado siguen en pie." : "",
+        `${w.El("turno")} queda cancelad${w.o("turno")} en el historial.`,
+        data.patientEmail ? `${capital(w.al("paciente"))} le llega el aviso de que se canceló.` : "",
+        extra ? `${w.Los("turno")} que la repetición ya haya agendado siguen en pie.` : "",
       ].filter(Boolean);
 
       remember({
-        label: `Se canceló el ${label.toLowerCase()} recién creado`,
+        label: `Se canceló ${w.el("turno")}${data.overbooked ? " especial" : ""} recién cread${w.o("turno")}`,
         note: avisos.join(" "),
         undo: async () => {
           if (extra) await stopRecurrence(extra.idRecurrence);
@@ -297,7 +306,7 @@ export function AppointmentsList() {
     }
 
     if (!data.repeat || !created?.numAppointment) {
-      toast.success(`${label} creado`);
+      toast.success(`${label} cread${w.o("turno")}`);
       recordarComoDeshacer();
       loadAppointments();
       return;
@@ -309,13 +318,15 @@ export function AppointmentsList() {
     try {
       const repeticion = await createRecurrence(created.numAppointment, data.repeat.frequency, data.repeat.endDate);
       toast.success(
-        repeticion.created > 0 ? `${label} creado, y ${repeticion.created} más agendados` : `${label} creado, se va a repetir`
+        repeticion.created > 0
+          ? `${label} cread${w.o("turno")}, y ${repeticion.created} más agendad${w.os("turno")}`
+          : `${label} cread${w.o("turno")}, se va a repetir`
       );
       recordarComoDeshacer(repeticion.idRecurrence ? { idRecurrence: repeticion.idRecurrence } : undefined);
     } catch (err: any) {
       // El turno ya está creado y sigue siendo un turno común, así que deshacer tiene que
       // poder sacarlo igual.
-      toast.warning(`${label} creado, pero no se pudo configurar la repetición. ${err.message}`);
+      toast.warning(`${label} cread${w.o("turno")}, pero no se pudo configurar la repetición. ${err.message}`);
       recordarComoDeshacer();
     }
 
@@ -345,19 +356,21 @@ export function AppointmentsList() {
       <AnnouncementBanner />
 
       <AdminHeader
-        title="Turnos"
+        title={w.Turnos}
         subtitleIsData={effectiveMode === "grid"}
         subtitle={
           effectiveMode === "grid"
             ? formatWeekRange(monday)
             : isProfessional
-            ? "Del más reciente al más antiguo"
-            : "Próximos y anteriores"
+            ? w.o("turno") === "a"
+              ? "De la más reciente a la más antigua"
+              : "Del más reciente al más antiguo"
+            : `Próxim${w.os("turno")} y anteriores`
         }
         backTo={isProfessional ? "/ProfessionalHome" : "/"}
         actions={
           <>
-            {isProfessional && (
+            {isProfessional && policies.proCreate && (
               <button
                 type="button"
                 className="adm-btn adm-btn-primary"
@@ -367,21 +380,21 @@ export function AppointmentsList() {
                 }}
               >
                 <FaPlus />
-                Nuevo turno
+                {`Nuev${w.o("turno")} ${w.turno}`}
               </button>
             )}
-            {isProfessional && !simpleView && (
+            {isProfessional && !simpleView && policies.proCalendar && (
               <button
                 type="button"
                 className="adm-btn adm-btn-accent"
                 onClick={() => setImportModalOpen(true)}
-                title="Traer turnos desde un calendario exportado de Google"
+                title={`Traer ${w.turnos} desde un calendario exportado de Google`}
               >
                 <FaFileArrowUp />
                 Importar
               </button>
             )}
-            {isProfessional && !simpleView && (
+            {isProfessional && !simpleView && policies.proCalendar && (
               <button
                 type="button"
                 className="adm-btn adm-btn-accent"
@@ -399,10 +412,14 @@ export function AppointmentsList() {
                 setIncludeCancelled((v) => !v);
                 setPage(0);
               }}
-              title={includeCancelled ? "Ocultar los turnos cancelados" : "Mostrar también los cancelados"}
+              title={
+                includeCancelled
+                  ? `Ocultar ${w.los("turno")} cancelad${w.os("turno")}`
+                  : `Mostrar también l${w.os("turno")} cancelad${w.os("turno")}`
+              }
             >
               {includeCancelled ? <FaEyeSlash /> : <FaEye />}
-              {includeCancelled ? "Ocultar cancelados" : "Ver cancelados"}
+              {includeCancelled ? `Ocultar cancelad${w.os("turno")}` : `Ver cancelad${w.os("turno")}`}
             </button>
 
             {canUseGrid && (
@@ -467,12 +484,14 @@ export function AppointmentsList() {
           onOpen={open}
           quickActions={quickActions}
           schedules={schedules}
-          onNew={abrirHueco}
+          onNew={policies.proCreate ? abrirHueco : undefined}
         />
       ) : appointments.length === 0 ? (
         <div className="adm-panel">
           <div className="adm-empty">
-            {includeCancelled ? "Sin turnos para mostrar." : "Sin turnos activos. Los cancelados se ven con “Ver cancelados”."}
+            {includeCancelled
+              ? `Sin ${w.turnos} para mostrar.`
+              : `Sin ${w.turnos} activ${w.os("turno")}. L${w.os("turno")} cancelad${w.os("turno")} se ven con “Ver cancelad${w.os("turno")}”.`}
           </div>
         </div>
       ) : (

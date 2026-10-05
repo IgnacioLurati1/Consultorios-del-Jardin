@@ -17,6 +17,7 @@ import {
   type RentRow,
   type RoomPrices,
 } from "./rentService.ts";
+import { useWords } from "../../lib/installation.ts";
 
 interface IncreaseModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ const raise = (price: number, percent: number) => Math.round(price * (1 + percen
  * servidor.
  */
 export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) {
+  const w = useWords();
   const current = monthKeyOf();
   const next = shiftMonth(current, 1);
 
@@ -142,7 +144,7 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
 
   async function apply() {
     if (pending.some((change) => change.invalid)) return setError("Los precios van en pesos, sin centavos");
-    if (selected.size === 0) return setError("Falta elegir los consultorios");
+    if (selected.size === 0) return setError(`Falta elegir ${w.los("sala")}`);
     if (pending.length === 0) return setError(valid ? "Los precios quedan iguales" : "Falta el porcentaje del aumento");
 
     setBusy(true);
@@ -154,7 +156,7 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
         pending.map(({ idRoom, block, price }) => ({ idRoom, block, price }))
       );
       const count = new Set(pending.map((change) => change.idRoom)).size;
-      toast.success(count === 1 ? "Aumento aplicado a 1 consultorio" : `Aumento aplicado a ${count} consultorios`);
+      toast.success(count === 1 ? `Aumento aplicado a 1 ${w.sala}` : `Aumento aplicado a ${count} ${w.salas}`);
       onApplied();
       onClose();
     } catch (problem) {
@@ -170,7 +172,7 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
       onClose={onClose}
       size="lg"
       title="Aumento de alquiler"
-      subtitle="En porcentaje, sobre el precio de cada consultorio"
+      subtitle={`En porcentaje, sobre el precio de cada ${w.sala}`}
       footer={
         <>
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose} disabled={busy}>
@@ -221,18 +223,20 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
 
       <div className="ui-section">
         <div className="ui-section-head">
-          <h3 className="ui-section-title">Consultorios</h3>
+          <h3 className="ui-section-title">{w.Salas}</h3>
           <div className="ui-section-actions">
             <button type="button" className="rent-link" onClick={() => setSelected(new Set(rooms.map((room) => room.idRoom)))}>
-              Todos
+              {`Tod${w.os("sala")}`}
             </button>
             <button type="button" className="rent-link" onClick={() => setSelected(new Set())}>
-              Ninguno
+              {`Ningun${w.o("sala")}`}
             </button>
           </div>
         </div>
 
-        <p className="adm-confirm-note">Cada precio se puede corregir antes de aplicar. Un consultorio sin tildar queda igual.</p>
+        <p className="adm-confirm-note">
+          {`Cada precio se puede corregir antes de aplicar. ${w.Un("sala")} sin tildar queda igual.`}
+        </p>
 
         {!data ? (
           error ? null : (
@@ -242,13 +246,13 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
             </div>
           )
         ) : rooms.length === 0 ? (
-          <p className="adm-confirm-note">No hay consultorios habilitados.</p>
+          <p className="adm-confirm-note">{`No hay ${w.salas} habilitad${w.os("sala")}.`}</p>
         ) : (
           <div className="rent-scroll">
             <table className="rent-table rent-price-table rent-raise-table">
               <thead>
                 <tr>
-                  <th>Consultorio</th>
+                  <th>{w.Sala}</th>
                   {blocks.map((block) => (
                     <th key={block.key}>{block.label}</th>
                   ))}
@@ -311,8 +315,8 @@ export function IncreaseModal({ open, onClose, onApplied }: IncreaseModalProps) 
         {fixed > 0 && (
           <p className="adm-confirm-note">
             {fixed === 1
-              ? "La cuota fija queda igual y se cambia desde la fila del profesional."
-              : `Las ${fixed} cuotas fijas quedan iguales y se cambian desde la fila de cada profesional.`}
+              ? `La cuota fija queda igual y se cambia desde la fila ${w.del("profesional")}.`
+              : `Las ${fixed} cuotas fijas quedan iguales y se cambian desde la fila de cada ${w.profesional}.`}
           </p>
         )}
 

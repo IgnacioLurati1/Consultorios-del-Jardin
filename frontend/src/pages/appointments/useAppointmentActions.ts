@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type HTMLAttributes } from "react";
 import { toast } from "react-toastify";
 import { useUndo, type Undoable } from "../../context/UndoContext.tsx";
 import { escribiendo } from "../../lib/shortcuts.ts";
+import { useWords } from "../../lib/installation.ts";
 import type { Appointment, PaymentState, Person, RecurrenceFrequency, Room } from "../types.ts";
 import { describePayment, describeState, isCancelled, isOwnBooking, type AppointmentState } from "./appointmentTypes.ts";
 import {
@@ -17,6 +18,9 @@ import { countWaitlistMatches } from "./waitlist/waitlistService.ts";
 import { findAllPatients } from "../patients/patientsService.ts";
 import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
 
+/** Para la frase que arranca con un ayudante del vocabulario, que viene en minúscula. */
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
 /**
  * Todo lo que se puede hacer con un turno desde su ficha, en un solo lugar.
  *
@@ -27,6 +31,8 @@ import { findAllActiveRooms } from "../adminCRUDS/adminRooms/RoomService.ts";
  * `reload` es lo que cada pantalla hace para volver a pedir sus turnos.
  */
 export function useAppointmentActions(user: Person | undefined, reload: () => void) {
+  // Es un hook: las palabras se leen acá una vez por dibujo y los avisos de abajo las usan.
+  const w = useWords();
   const isProfessional = user?.type === "professional";
   const { remember } = useUndo();
 
@@ -101,7 +107,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   /** Avanza un turno al estado que sigue, y deja anotado cómo volver. */
   function cycleState(appointment: Appointment) {
     if (isCancelled(appointment.state)) {
-      toast.info("Un turno cancelado ya no cambia de estado.");
+      toast.info(`${w.Un("turno")} cancelad${w.o("turno")} ya no cambia de estado.`);
       return;
     }
 
@@ -110,15 +116,15 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
 
     ponerEstado(appointment, hasta)
       .then(() => {
-        toast.success(`Turno marcado como "${describeState(hasta).label}"`);
+        toast.success(`${w.Turno} marcad${w.o("turno")} como "${describeState(hasta).label}"`);
 
         remember({
-          label: `El turno volvió a "${describeState(desde).label}"`,
+          label: `${w.El("turno")} volvió a "${describeState(desde).label}"`,
           // El mail no se puede desenviar. Decirlo es la diferencia entre creer que no
           // pasó nada y saber que hay que llamar al paciente.
           note:
             desde === "pending"
-              ? "El mail de confirmación ya había salido. Al paciente le llegó igual."
+              ? `El mail de confirmación ya había salido. ${capital(w.al("paciente"))} le llegó igual.`
               : undefined,
           undo: () =>
             updateAppointmentRecord(appointment.numAppointment, {
@@ -144,15 +150,15 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
    */
   function askCancel(appointment: Appointment) {
     if (isCancelled(appointment.state)) {
-      toast.info("Ese turno ya está cancelado.");
+      toast.info(`${capital(w.ese("turno"))} ya está cancelad${w.o("turno")}.`);
       return;
     }
     if (appointment.state === "assisted") {
-      toast.info("Un turno que ya figura como asistido no se puede cancelar.");
+      toast.info(`${w.Un("turno")} que ya figura como asistid${w.o("turno")} no se puede cancelar.`);
       return;
     }
     if (appointment.state === "missed") {
-      toast.info('Un turno marcado como "No vino" no se puede cancelar.');
+      toast.info(`${w.Un("turno")} marcad${w.o("turno")} como "No vino" no se puede cancelar.`);
       return;
     }
 
@@ -268,9 +274,9 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   }
 
   const onAccept = (appointment: Appointment) =>
-    refreshAfter(acceptAppointment(appointment.numAppointment), "Turno aceptado", {
-      label: 'El turno volvió a "Pendiente"',
-      note: "El mail de confirmación ya había salido. Al paciente le llegó igual.",
+    refreshAfter(acceptAppointment(appointment.numAppointment), `${w.Turno} aceptad${w.o("turno")}`, {
+      label: `${w.El("turno")} volvió a "Pendiente"`,
+      note: `El mail de confirmación ya había salido. ${capital(w.al("paciente"))} le llegó igual.`,
       undo: () =>
         updateAppointmentRecord(appointment.numAppointment, {
           state: "pending",
@@ -283,10 +289,10 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
     refreshAfter(
       cancelAppointmentService(appointment.numAppointment, isProfessional ? notifyWaitlist : undefined),
       appointment.state === "pending"
-        ? "Turno eliminado"
+        ? `${w.Turno} eliminad${w.o("turno")}`
         : notifyWaitlist
-          ? "Turno cancelado. Aviso enviado a quienes esperaban ese horario"
-          : "Turno cancelado"
+          ? `${w.Turno} cancelad${w.o("turno")}. Aviso enviado a quienes esperaban ese horario`
+          : `${w.Turno} cancelad${w.o("turno")}`
     );
 
   /*
@@ -310,7 +316,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
       updateAppointmentRecord(appointment.numAppointment, { ...data, patientEmail: appointment.patient?.email }),
       "Registro guardado",
       {
-        label: "Volvió el registro anterior del turno",
+        label: `Volvió el registro anterior ${w.del("turno")}`,
         undo: () =>
           updateAppointmentRecord(appointment.numAppointment, {
             state: appointment.state,
@@ -327,7 +333,11 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
 
     refreshAfter(
       updateAppointmentPayment(appointment.numAppointment, paymentState, paidAmount),
-      paymentState === "paid" ? "Turno cobrado" : paymentState === "partial" ? "Cobro parcial registrado" : "Turno marcado sin cobrar",
+      paymentState === "paid"
+        ? `${w.Turno} cobrad${w.o("turno")}`
+        : paymentState === "partial"
+          ? "Cobro parcial registrado"
+          : `${w.Turno} marcad${w.o("turno")} sin cobrar`,
       antes
         ? {
             label: `El cobro volvió a "${describePayment({ ...appointment, paymentState: antes })?.label ?? antes}"`,
@@ -338,14 +348,14 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   };
 
   const onAddPatient = (appointment: Appointment, patientEmail: string) =>
-    refreshAfter(addPatientToAppointment(appointment.numAppointment, patientEmail), "Paciente asignado");
+    refreshAfter(addPatientToAppointment(appointment.numAppointment, patientEmail), `${w.Paciente} asignad${w.o("paciente")}`);
 
   const onUpdate = (
     appointment: Appointment,
     data: { date?: string; initialHour?: string; finalHour?: string; room?: string; value?: number }
   ) =>
-    refreshAfter(updateAppointment(appointment.numAppointment, data), "Turno actualizado", {
-      label: "Volvieron los datos anteriores del turno",
+    refreshAfter(updateAppointment(appointment.numAppointment, data), `${w.Turno} actualizad${w.o("turno")}`, {
+      label: `Volvieron los datos anteriores ${w.del("turno")}`,
       undo: () =>
         updateAppointment(appointment.numAppointment, {
           date: appointment.date?.slice(0, 10),
@@ -359,7 +369,11 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
   const onRepeat = (appointment: Appointment, frequency: RecurrenceFrequency, endDate: string | null) =>
     createRecurrence(appointment.numAppointment, frequency, endDate)
       .then(({ created }) => {
-        toast.success(created > 0 ? `Turno repetible creado: ${created} turnos más agendados` : "Turno repetible creado");
+        toast.success(
+          created > 0
+            ? `${w.Turno} repetible cread${w.o("turno")}: ${created} ${w.turnos} más agendad${w.os("turno")}`
+            : `${w.Turno} repetible cread${w.o("turno")}`
+        );
         setSelected(undefined);
         reload();
       })
@@ -371,7 +385,7 @@ export function useAppointmentActions(user: Person | undefined, reload: () => vo
 
     stopRecurrence(appointment.recurrence.idRecurrence)
       .then(() => {
-        toast.success("Se frenó la repetición. Los turnos ya creados siguen en pie.");
+        toast.success(`Se frenó la repetición. ${w.Los("turno")} ya cread${w.os("turno")} siguen en pie.`);
         setSelected(undefined);
         reload();
       })

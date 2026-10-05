@@ -1,12 +1,27 @@
+import { currentInstallation, DEFAULT_INSTALLATION, useInstallation } from "../lib/installation.ts";
+
 /**
- * Especialidades que se atienden en el consultorio. Por ahora es una lista fija: no
- * cambian lo suficiente como para justificar un ABM. Se usa tanto para buscar turnos como
+ * Especialidades que se atienden en el consultorio. Se usa tanto para buscar turnos como
  * para cargar profesionales, así que el texto guardado coincide con el que se filtra.
  *
- * La app del celular tiene la misma lista en mobile/src/lib/specialities.ts, y el
- * asistente en backend/src/assistant/assistant.catalog.ts: sumar una es sumarla en los tres.
+ * Era una lista fija escrita acá, en la app del celular y en el asistente: sumar una era
+ * sumarla en los tres. Ahora la decide el consultorio en la configuración (`services`) y
+ * llega del servidor; la web y el asistente leen la misma. La app del celular todavía
+ * tiene su copia en mobile/src/lib/specialities.ts.
  */
-export const SPECIALITIES = ["Psicología", "Psicopedagogía", "Psiquiatría", "Nutrición", "Fonoaudiología"];
+
+/** La lista de siempre, para lo que se arma antes de que llegue la configuración. */
+export const SPECIALITIES = DEFAULT_INSTALLATION.services;
+
+/** La lista del consultorio, para un componente: se vuelve a dibujar cuando llega. */
+export function useSpecialities(): string[] {
+  return useInstallation().services;
+}
+
+/** La lista del consultorio, fuera de un componente. Antes de que llegue, la de siempre. */
+export function specialities(): string[] {
+  return currentInstallation().services;
+}
 
 /** Compara especialidades sin que molesten los acentos ni las mayúsculas. */
 export function normalizeSpeciality(value: string): string {

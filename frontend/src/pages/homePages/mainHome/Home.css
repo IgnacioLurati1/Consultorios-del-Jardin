@@ -10,7 +10,7 @@
   /* El tono más profundo de la estación: la franja de los accesos y el pie. Sale del
      extremo lejano del degradado, no del acento, para dejar respirar al crema de la
      marca sin pelearse con la barra de arriba. */
-  --home-ink: hsl(var(--sea-h2) var(--sea-s2) 10%);
+  --home-ink: var(--brand-ink, hsl(var(--sea-h2) var(--sea-s2) 10%));
   --home-green: var(--adm-green, #3b7658);
   --home-green-dark: var(--adm-green-dark, #2f5e46);
   --home-green-light: hsl(var(--sea-h) var(--sea-s) 60%);
@@ -115,6 +115,14 @@
   gap: clamp(6px, 0.8vw, 12px);
   background: var(--home-paper);
 }
+
+/* Portada solo con el nombre, para un consultorio sin fotos o con un nombre que no lleva
+   las hojas del logo. El fondo es el color de la marca en vez de las fotos; la viñeta
+   queda igual para que el nombre se lea con el mismo contraste. */
+.home-hero--text .home-collage {
+  background: linear-gradient(160deg, var(--home-green) 0%, var(--home-green-dark) 100%);
+}
+
 
 .home-collage .home-pic-frame {
   height: 100%;
@@ -406,6 +414,22 @@
 
 .home-card:hover .home-photo svg {
   transform: scale(1.08) rotate(-3deg);
+}
+
+/* La foto que subió el consultorio ocupa el bloque entero, en lugar del ícono. */
+.home-photo {
+  overflow: hidden;
+}
+
+.home-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.home-card:hover .home-photo img {
+  transform: scale(1.04);
 }
 
 .home-card-body {
@@ -924,6 +948,85 @@
   }
 }
 
+/* Con varias sucursales, la lista en lugar de la dirección única. Cada una es un botón:
+   tocarla lleva el mapa a esa. La elegida queda marcada con el color de la marca. */
+.home-branches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.home-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  border: 1px solid var(--home-border);
+  border-radius: 14px;
+  background: var(--home-surface);
+  color: var(--home-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.home-branch:hover {
+  border-color: var(--home-green);
+}
+
+.home-branch:focus-visible {
+  outline: 2px solid var(--home-green);
+  outline-offset: 2px;
+}
+
+.home-branch.active {
+  border-color: var(--home-green);
+  box-shadow: inset 0 0 0 1px var(--home-green);
+}
+
+.home-branch-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.home-branch-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--home-muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.home-branch-line svg {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--home-green);
+}
+
+/* Las esquinas siguen a las tarjetas de cada diseño de portada. */
+.home[data-home-template="clasico"] .home-branch {
+  border-radius: 10px;
+}
+
+.home[data-home-template="minimal"] .home-branch {
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-branch {
+    transition: none;
+  }
+}
+
 /* ---------- pie ---------- */
 
 .home-footer {
@@ -1168,4 +1271,867 @@
   .home-access:hover {
     transform: none;
   }
+}
+
+/* ============================================================
+   Los diseños de portada.
+
+   "jardin" es todo lo de arriba y no tiene reglas propias. Los otros dos pisan solo lo
+   que cambian, sobre .home[data-home-template], que lo pone Home.tsx con lo que diga la
+   configuración. El color sigue saliendo de la estación o de la marca en los tres.
+
+   El pie oscuro queda igual en todos: es la base de la página y tiene sus propios
+   colores pensados para ese fondo.
+   ============================================================ */
+
+/* ---------- Clásico: una foto grande, letra sin serifa, franjas claras ---------- */
+
+.home[data-home-template="clasico"] {
+  --home-display: var(--app-font, "Ubuntu", sans-serif);
+  --home-hero-h: clamp(380px, 64vh, 680px);
+}
+
+.home[data-home-template="clasico"] :is(.home-wordmark, .home-section-title, .home-footer-name) {
+  font-variation-settings: normal;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* La franja de los accesos, debajo de la foto, pasa a ser clara. */
+.home[data-home-template="clasico"] .home-intro {
+  background: var(--home-surface);
+  color: var(--home-text);
+  border-bottom: 1px solid var(--home-border);
+}
+
+.home[data-home-template="clasico"] .home-intro-lead {
+  color: var(--home-muted);
+}
+
+.home[data-home-template="clasico"] .home-intro .home-btn-primary {
+  background: var(--home-green);
+  color: var(--adm-on-green, #fff);
+  box-shadow: none;
+}
+
+.home[data-home-template="clasico"] .home-intro .home-btn-primary:hover {
+  background: var(--home-green-dark);
+}
+
+.home[data-home-template="clasico"] .home-intro .home-btn-ghost {
+  border-color: var(--home-green);
+  color: var(--home-green-dark);
+}
+
+.home[data-home-template="clasico"] .home-intro .home-btn-ghost:hover {
+  background: var(--adm-green-soft, #e8f1ec);
+}
+
+.home[data-home-template="clasico"] :is(.home-gallery-band, .home-location-band) {
+  background: var(--home-surface);
+  border-color: var(--home-border);
+}
+
+.home[data-home-template="clasico"] :is(.home-card, .home-btn) {
+  border-radius: 10px;
+}
+
+.home[data-home-template="clasico"] .home-photo {
+  aspect-ratio: 3 / 1;
+  font-size: 1.8rem;
+}
+
+/* ---------- Minimalista: solo el nombre, sin color de fondo, mucho aire ---------- */
+
+.home[data-home-template="minimal"] {
+  --home-display: var(--app-font, "Ubuntu", sans-serif);
+  --home-hero-h: clamp(280px, 44vh, 440px);
+}
+
+.home[data-home-template="minimal"] :is(.home-wordmark, .home-section-title, .home-footer-name) {
+  font-variation-settings: normal;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* La portada de texto queda sobre el papel, sin viñeta ni sombra. Solo la de texto: si
+   alguien elige fotos con este diseño, el nombre sigue encima de las fotos y tiene que
+   seguir leyéndose. */
+.home[data-home-template="minimal"] .home-hero--text .home-collage {
+  background: var(--home-paper);
+}
+
+.home[data-home-template="minimal"] .home-hero--text .home-vignette {
+  display: none;
+}
+
+.home[data-home-template="minimal"] .home-hero--text .home-wordmark {
+  color: var(--home-text);
+  text-shadow: none;
+}
+
+.home[data-home-template="minimal"] .home-intro {
+  background: var(--home-paper);
+  color: var(--home-text);
+  border-block: 1px solid var(--home-border);
+}
+
+.home[data-home-template="minimal"] .home-intro-inner {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.home[data-home-template="minimal"] .home-intro-lead {
+  color: var(--home-muted);
+}
+
+.home[data-home-template="minimal"] .home-intro .home-btn-primary {
+  background: var(--home-text);
+  color: var(--home-paper);
+  box-shadow: none;
+}
+
+.home[data-home-template="minimal"] .home-intro .home-btn-ghost {
+  border-color: var(--home-border);
+  color: var(--home-text);
+}
+
+.home[data-home-template="minimal"] .home-intro .home-btn-ghost:hover {
+  background: var(--home-surface);
+}
+
+.home[data-home-template="minimal"] :is(.home-gallery-band, .home-location-band) {
+  background: transparent;
+  border-color: var(--home-border);
+}
+
+.home[data-home-template="minimal"] :is(.home-card, .home-btn) {
+  border-radius: 4px;
+}
+
+.home[data-home-template="minimal"] .home-card {
+  box-shadow: none;
+}
+
+.home[data-home-template="minimal"] .home-card:hover {
+  transform: none;
+}
+
+/* Sin el bloque de color: el ícono suelto, del color de la especialidad. */
+.home[data-home-template="minimal"] .home-photo {
+  aspect-ratio: auto;
+  place-items: start;
+  padding: 20px 22px 0;
+  background: none;
+  color: var(--tint, var(--home-green));
+  font-size: 1.6rem;
+}
+
+/* ============================================================
+   Los diseños de cada sección.
+
+   Cada sección se dibuja de tres maneras (ver HOME_VARIANTS en lib/installation). La
+   primera de cada una es todo lo de arriba; acá van las otras dos, con una clase
+   --variante en la sección. Los colores y la letra siguen saliendo del diseño general y de
+   la estación, así que cualquier variante va con cualquier diseño general.
+   ============================================================ */
+
+/* ---------- especialidades: lista ---------- */
+
+/* Renglones en columnas, con una línea entre uno y otro. El color de cada especialidad
+   queda en el punto y en el texto al pasar por encima. */
+.home-spec-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  column-gap: 40px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-spec-list li {
+  border-bottom: 1px solid var(--home-border);
+}
+
+.home-section.is-visible .home-spec-list li {
+  animation: home-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) backwards;
+}
+
+.home-spec-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 4px;
+  color: var(--home-text);
+  text-decoration: none;
+}
+
+.home-spec-dot {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--tint, var(--home-green));
+  color: #fff;
+  font-size: 1.15rem;
+}
+
+.home-spec-dot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-spec-name {
+  flex: 1;
+  font-size: 1.16rem;
+  font-weight: 700;
+  transition: color 0.15s ease;
+}
+
+.home-spec-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--tint, var(--home-green-dark));
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.home-spec-row:hover .home-spec-name,
+.home-spec-row:focus-visible .home-spec-name {
+  color: var(--tint, var(--home-green-dark));
+}
+
+.home-spec-row:hover .home-spec-cta,
+.home-spec-row:focus-visible .home-spec-cta {
+  opacity: 1;
+  transform: none;
+}
+
+/* En una pantalla táctil no hay "pasar por encima": la flecha va siempre. */
+@media (hover: none) {
+  .home-spec-cta {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- especialidades: mosaico ---------- */
+
+/* La foto o el color ocupan la pieza entera y el nombre va encima, sobre una sombra que
+   lo deja leer en cualquier foto. Con tres o más, la primera ocupa el doble. */
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  grid-auto-rows: 210px;
+  gap: 16px;
+}
+
+.home-tiles.has-feature .home-tile:first-child {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.home-tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 18px;
+  background: var(--tint, var(--home-green));
+  color: #fff;
+  text-decoration: none;
+  box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
+}
+
+.home-section.is-visible .home-tile {
+  animation: home-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) backwards;
+}
+
+.home-tile-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: grid;
+  place-items: center;
+  font-size: 4.6rem;
+  color: rgba(255, 255, 255, 0.3);
+  background:
+    radial-gradient(120% 100% at 20% 10%, rgba(255, 255, 255, 0.26), transparent 60%),
+    var(--tint, var(--home-green));
+}
+
+.home-tiles.has-feature .home-tile:first-child .home-tile-media {
+  font-size: 7rem;
+}
+
+.home-tile-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-tile:hover .home-tile-media img {
+  transform: scale(1.05);
+}
+
+.home-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0.12) 46%, transparent 70%);
+}
+
+.home-tile-body {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+}
+
+.home-tile-title {
+  font-family: var(--home-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+}
+
+.home-tiles.has-feature .home-tile:first-child .home-tile-title {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+
+.home-tile-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  opacity: 0.88;
+}
+
+.home-tile-cta svg {
+  transition: transform 0.18s ease;
+}
+
+.home-tile:hover .home-tile-cta svg {
+  transform: translateX(4px);
+}
+
+@media (max-width: 560px) {
+  .home-tiles {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 150px;
+    gap: 10px;
+  }
+
+  .home-tiles.has-feature .home-tile:first-child {
+    grid-column: 1 / -1;
+    grid-row: span 1;
+  }
+
+  .home-tile-title,
+  .home-tiles.has-feature .home-tile:first-child .home-tile-title {
+    font-size: 1.15rem;
+  }
+
+  .home-tile-media {
+    font-size: 3rem;
+  }
+}
+
+/* ---------- galería: grilla y tira ---------- */
+
+.home-gallery-grid,
+.home-gallery-strip {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Todas a la vista. Con tres o más, la primera ocupa el doble. */
+.home-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  grid-auto-rows: 190px;
+  gap: 12px;
+}
+
+.home-gallery-grid.has-feature li:first-child {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* Una fila que se desliza de costado y se detiene en cada foto. Toma el margen de la
+   sección para que la última no quede cortada contra el borde. */
+.home-gallery-strip {
+  display: flex;
+  gap: 14px;
+  margin-inline: -22px;
+  padding: 4px 22px 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 22px;
+  overscroll-behavior-x: contain;
+}
+
+.home-gallery-strip li {
+  flex: 0 0 auto;
+  height: clamp(220px, 28vw, 340px);
+  aspect-ratio: 4 / 3;
+  scroll-snap-align: start;
+}
+
+.home-section.is-visible :is(.home-gallery-grid, .home-gallery-strip) li {
+  animation: home-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) backwards;
+}
+
+.home-gallery-tile {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 14px;
+  background: var(--home-border);
+  cursor: zoom-in;
+}
+
+.home-gallery-tile .home-pic-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.home-gallery-tile img {
+  transition: opacity 1.4s ease-in-out, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-gallery-tile:hover img {
+  transform: scale(1.04);
+}
+
+@media (max-width: 560px) {
+  .home-gallery-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 130px;
+    gap: 8px;
+  }
+
+  .home-gallery-grid.has-feature li:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .home-gallery-strip li {
+    height: 200px;
+  }
+}
+
+/* ---------- accesos y pasos: lista ---------- */
+
+/* Un solo recuadro con un renglón por acceso, la flecha siempre a la vista. */
+.home-space--list .home-access-grid {
+  display: flex;
+  flex-direction: column;
+  max-width: 820px;
+  overflow: hidden;
+  border: 1px solid var(--home-border);
+  border-radius: 16px;
+  background: var(--home-surface);
+  box-shadow: var(--adm-shadow, 0 1px 3px rgba(16, 24, 40, 0.08));
+}
+
+.home-space--list .home-access {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 18px;
+  row-gap: 2px;
+  padding: 18px 22px;
+  border: 0;
+  border-bottom: 1px solid var(--home-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-space--list .home-access:last-child {
+  border-bottom: 0;
+}
+
+.home-space--list .home-access:hover {
+  transform: none;
+  background: var(--adm-green-soft, #e8f1ec);
+  box-shadow: none;
+}
+
+.home-space--list .home-access-icon {
+  grid-row: 1 / 3;
+  width: 44px;
+  height: 44px;
+  font-size: 1.25rem;
+}
+
+.home-space--list .home-access-arrow {
+  position: static;
+  grid-column: 3;
+  grid-row: 1 / 3;
+  opacity: 1;
+  transform: none;
+}
+
+/* Los pasos, uno debajo del otro, unidos por una línea: se lee el orden sin los recuadros. */
+.home-space--list .home-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 760px;
+}
+
+.home-space--list .home-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  column-gap: 18px;
+  row-gap: 4px;
+  padding: 0 0 28px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.home-space--list .home-step-number {
+  grid-row: 1 / 3;
+  align-self: start;
+  margin-bottom: 0;
+}
+
+.home-space--list .home-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 44px;
+  bottom: 6px;
+  left: 18px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--adm-green-line, #d3e3da);
+}
+
+/* ---------- accesos y pasos: franja ---------- */
+
+/* Sobre el color hondo de la estación, de lado a lado, como la franja de abajo de las
+   fotos. Los accesos van en fila separados por una línea y los pasos llevan el número
+   grande, sin círculo. */
+.home-space-band {
+  background: var(--home-ink);
+  color: var(--home-cream);
+}
+
+.home-space--band .home-section-title {
+  color: var(--home-cream);
+}
+
+.home-space--band .home-access-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0;
+}
+
+.home-space--band .home-access {
+  padding: 6px 26px 10px;
+  border: 0;
+  border-left: 1px solid rgba(254, 250, 224, 0.16);
+  border-radius: 0;
+  background: transparent;
+  color: var(--home-cream);
+  box-shadow: none;
+}
+
+.home-space--band .home-access:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.home-space--band .home-access:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.home-space--band .home-access:hover .home-access-title {
+  color: var(--home-green-light);
+}
+
+.home-space--band .home-access-icon {
+  background: rgba(254, 250, 224, 0.1);
+  color: var(--home-green-light);
+}
+
+.home-space--band .home-access-desc {
+  color: rgba(254, 250, 224, 0.66);
+}
+
+.home-space--band .home-access-arrow {
+  color: var(--home-green-light);
+}
+
+.home-space--band .home-step {
+  padding: 0 26px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.home-space--band .home-step-number {
+  display: block;
+  width: auto;
+  height: auto;
+  margin-bottom: 6px;
+  border-radius: 0;
+  background: none;
+  color: var(--home-green-light);
+  font-size: clamp(2.6rem, 4vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.home-space--band .home-step-desc {
+  color: rgba(254, 250, 224, 0.66);
+}
+
+.home-space--band a:focus-visible {
+  outline-color: var(--home-cream);
+}
+
+@media (max-width: 620px) {
+  .home-space--band .home-access {
+    padding: 14px 0;
+    border-left: 0;
+    border-top: 1px solid rgba(254, 250, 224, 0.16);
+  }
+
+  .home-space--band .home-access:first-child {
+    border-top: 0;
+  }
+}
+
+/* ---------- ubicación: lado a lado ---------- */
+
+.home-location--split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 56px);
+}
+
+.home-location--split .home-location-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.home-location--split .home-location-link {
+  margin-left: 0;
+}
+
+.home-location--split .home-branches {
+  grid-template-columns: 1fr;
+  margin: 22px 0 0;
+}
+
+@media (max-width: 860px) {
+  .home-location--split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- ubicación: sobre el mapa ---------- */
+
+/* El mapa ocupa la franja entera y los datos van en una tarjeta encima, a la izquierda.
+   La sección no atrapa el mouse, así el mapa se puede mover alrededor de la tarjeta. */
+.home-location-band--overlay {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: clamp(460px, 46vw, 600px);
+  overflow: hidden;
+}
+
+.home-location-band--overlay > .home-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-location-band--overlay > .home-location {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.home-location-band--overlay .home-location-info {
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  padding: 26px 28px;
+  border: 1px solid var(--home-border);
+  border-radius: 18px;
+  background: var(--home-surface);
+  box-shadow: var(--adm-shadow-lg, 0 10px 30px rgba(16, 24, 40, 0.12));
+  pointer-events: auto;
+}
+
+.home-location-band--overlay .home-location-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+.home-location-band--overlay .home-location-link {
+  margin-left: 0;
+}
+
+.home-location-band--overlay .home-branches {
+  grid-template-columns: 1fr;
+  max-height: 300px;
+  margin: 18px 0 0;
+  overflow: auto;
+}
+
+.home-location-band--overlay.is-mapless {
+  min-height: 0;
+}
+
+/* En el celular la tarjeta taparía el mapa entero: el mapa arriba y los datos abajo. */
+@media (max-width: 620px) {
+  .home-location-band--overlay {
+    display: block;
+    min-height: 0;
+  }
+
+  .home-location-band--overlay > .home-map {
+    position: static;
+    height: 300px;
+  }
+
+  .home-location-band--overlay > .home-location {
+    pointer-events: auto;
+  }
+
+  .home-location-band--overlay .home-location-info {
+    width: 100%;
+    box-shadow: none;
+  }
+}
+
+/* ---------- pie: columnas ---------- */
+
+.home-footer--columns .home-footer-inner {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+}
+
+.home-footer-heading {
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(254, 250, 224, 0.14);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--home-cream);
+}
+
+.home-footer--columns .home-footer-logo {
+  width: 52px;
+}
+
+.home-footer--columns .home-footer-name {
+  font-size: 1.5rem;
+}
+
+.home-footer--columns .home-footer-links {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 12px 28px;
+}
+
+@media (max-width: 860px) {
+  .home-footer--columns .home-footer-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- pie: centrado ---------- */
+
+.home-footer--centered .home-footer-inner {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.home-footer--centered .home-footer-brand {
+  flex-direction: column;
+  align-items: center;
+}
+
+.home-footer--centered .home-footer-logo {
+  width: 48px;
+}
+
+.home-footer--centered .home-footer-col {
+  max-width: 900px;
+}
+
+.home-footer--centered :is(.home-footer-contact, .home-footer-links) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 24px;
+}
+
+.home-footer--centered .home-footer-legal {
+  text-align: center;
+}
+
+/* ---------- sin animación, también en las variantes ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .home-section.is-visible :is(.home-spec-list li, .home-tile, .home-gallery-grid li, .home-gallery-strip li) {
+    animation: none;
+  }
+
+  .home-tile:hover .home-tile-media img,
+  .home-gallery-tile:hover img {
+    transform: none;
+  }
+}
+
+/* Las esquinas de las variantes siguen a las de cada diseño general. */
+.home[data-home-template="clasico"] :is(.home-tile, .home-gallery-tile, .home-location-info, .home-space--list .home-access-grid) {
+  border-radius: 10px;
+}
+
+.home[data-home-template="minimal"] :is(.home-tile, .home-gallery-tile, .home-location-info, .home-space--list .home-access-grid) {
+  border-radius: 4px;
+}
+
+.home[data-home-template="minimal"] :is(.home-tile, .home-space--list .home-access-grid) {
+  box-shadow: none;
 }

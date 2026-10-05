@@ -1,3 +1,5 @@
+import { currentInstallation, currentWords } from "../../../lib/installation.ts";
+
 interface Named {
   name?: string;
   surname?: string;
@@ -14,6 +16,7 @@ interface Named {
  * que arrancar de una hoja en blanco.
  */
 function draft(professional: Named, patient?: Named): { subject: string; body: string } {
+  const w = currentWords();
   const who = [patient?.name, patient?.surname].filter(Boolean).join(" ").trim();
   const greeting = professional.name ? `Hola ${professional.name}, ¿cómo estás?` : "Hola, ¿cómo estás?";
 
@@ -25,7 +28,7 @@ function draft(professional: Named, patient?: Named): { subject: string; body: s
   const body = [
     greeting,
     "",
-    "Te escribo desde Consultorios del Jardín, antes de sacar un turno. Quería consultarte:",
+    `Te escribo desde ${currentInstallation().name}, antes de sacar ${w.un("turno")}. Quería consultarte:`,
     "",
     "· ¿Trabajás con obra social o prepaga? ¿Con cuáles?",
     "· ¿Cuánto sale la consulta?",
@@ -36,7 +39,7 @@ function draft(professional: Named, patient?: Named): { subject: string; body: s
   ].join("\n");
 
   return {
-    subject: `Consulta antes de sacar turno${professional.speciality ? ` · ${professional.speciality}` : ""}`,
+    subject: `Consulta antes de sacar ${w.turno}${professional.speciality ? ` · ${professional.speciality}` : ""}`,
     body,
   };
 }

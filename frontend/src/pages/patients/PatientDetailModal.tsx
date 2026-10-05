@@ -14,6 +14,7 @@ import {
   type AnonymousPatientInput,
 } from "./patientsService.ts";
 import { getDecodedToken } from "../commonServices.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 
 const emptyForm: AnonymousPatientInput = {
   email: "",
@@ -26,17 +27,18 @@ const emptyForm: AnonymousPatientInput = {
 
 /** El estado del turno puede ser un ISO timestamp: eso significa cancelado. */
 function describeState(state: string): { label: string; className: string } {
+  const w = currentWords();
   switch (state) {
     case "pending":
       return { label: "A confirmar", className: "adm-badge adm-badge-amber" };
     case "accepted":
-      return { label: "Confirmado", className: "adm-badge adm-badge-green" };
+      return { label: `Confirmad${w.o("turno")}`, className: "adm-badge adm-badge-green" };
     case "assisted":
       return { label: "Asistió", className: "adm-badge adm-badge-grey" };
     case "missed":
       return { label: "No vino", className: "adm-badge adm-badge-amber" };
     default:
-      return { label: "Cancelado", className: "adm-badge adm-badge-red" };
+      return { label: `Cancelad${w.o("turno")}`, className: "adm-badge adm-badge-red" };
   }
 }
 
@@ -53,13 +55,16 @@ function describeState(state: string): { label: string; className: string } {
  */
 type HistoryFilter = "owed" | "missed" | "assisted" | "cancelled" | "accepted";
 
-const HISTORY_FILTERS: { value: HistoryFilter; label: string; matches: (appointment: Appointment) => boolean }[] = [
-  { value: "owed", label: "Adeuda", matches: (appointment) => pendingAmount(appointment) > 0 },
-  { value: "missed", label: "No vino", matches: (appointment) => appointment.state === "missed" },
-  { value: "assisted", label: "Asistió", matches: (appointment) => appointment.state === "assisted" },
-  { value: "cancelled", label: "Cancelado", matches: (appointment) => isCancelled(appointment.state) },
-  { value: "accepted", label: "Confirmado", matches: (appointment) => appointment.state === "accepted" },
-];
+function historyFilterOptions(): { value: HistoryFilter; label: string; matches: (appointment: Appointment) => boolean }[] {
+  const w = currentWords();
+  return [
+    { value: "owed", label: "Adeuda", matches: (appointment) => pendingAmount(appointment) > 0 },
+    { value: "missed", label: "No vino", matches: (appointment) => appointment.state === "missed" },
+    { value: "assisted", label: "Asistió", matches: (appointment) => appointment.state === "assisted" },
+    { value: "cancelled", label: `Cancelad${w.o("turno")}`, matches: (appointment) => isCancelled(appointment.state) },
+    { value: "accepted", label: `Confirmad${w.o("turno")}`, matches: (appointment) => appointment.state === "accepted" },
+  ];
+}
 
 /** La fecha del turno se guarda a medianoche UTC: leerla en local la corre un día. */
 function historyDate(value: string): string {
@@ -122,6 +127,7 @@ export function PatientDetailModal({
   onOpenAppointment,
   historyToken = 0,
 }: PatientDetailModalProps) {
+  const w = useWords();
   const [form, setForm] = useState<AnonymousPatientInput>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -234,7 +240,7 @@ export function PatientDetailModal({
     if (!history) return [];
     if (historyFilters.length === 0) return history;
 
-    const puestos = HISTORY_FILTERS.filter((filter) => historyFilters.includes(filter.value));
+    const puestos = historyFilterOptions().filter((filter) => historyFilters.includes(filter.value));
     return history.filter((appointment) => puestos.some((filter) => filter.matches(appointment)));
   }, [history, historyFilters]);
 
@@ -268,13 +274,13 @@ export function PatientDetailModal({
       // desde la de un turno, y ahí guardar no tenía ninguna respuesta.
       if (patient) {
         const saved = await updatePatient(patient.email, data);
-        toast.success("Paciente actualizado");
+        toast.success(`${w.Paciente} actualizad${w.o("paciente")}`);
         onSaved?.(saved, patient);
       } else {
         // Si ya lo había cargado otro profesional el aviso es el mismo: para quien carga, el
         // paciente queda en su lista igual. La diferencia solo cambia qué se puede deshacer.
         const created = await createAnonymousPatient({ ...data, email: form.email.trim() });
-        toast.success("Paciente creado");
+        toast.success(`${w.Paciente} cread${w.o("paciente")}`);
         onSaved?.(created.patient, null, created.alreadyLoaded);
       }
       setFormError(null);
@@ -330,7 +336,7 @@ export function PatientDetailModal({
     setSaving(true);
     try {
       await deleteAnonymousPatient(patient.email, force);
-      toast.success("Paciente borrado");
+      toast.success(`${w.Paciente} borrad${w.o("paciente")}`);
       onDeleted?.(patient.email);
       onClose();
     } catch (err: any) {
@@ -351,7 +357,7 @@ export function PatientDetailModal({
       open={open}
       onClose={onClose}
       size="sm"
-      title={patient ? (readOnly ? "Datos del paciente" : "Editar paciente") : "Nuevo paciente sin cuenta"}
+      title={patient ? (readOnly ? `Datos ${w.del("paciente")}` : `Editar ${w.paciente}`) : `Nuev${w.o("paciente")} ${w.paciente} sin cuenta`}
       subtitle={patient ? patient.email : "Los campos con * son obligatorios"}
       footer={
         pending ? (
@@ -415,7 +421,7 @@ export function PatientDetailModal({
             )}
             {!readOnly && (
               <button type="button" className="adm-btn adm-btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? "Guardando…" : patient ? "Guardar cambios" : "Crear paciente"}
+                {saving ? "Guardando…" : patient ? "Guardar cambios" : `Crear ${w.paciente}`}
               </button>
             )}
           </>
@@ -435,7 +441,7 @@ export function PatientDetailModal({
                 placeholder="paciente@mail.com"
                 autoFocus
               />
-              <small>Se mueve la ficha entera con sus turnos. Si el paciente no tiene correo, va el de otra persona.</small>
+              <small>{`Se mueve la ficha entera con sus ${w.turnos}. Si ${w.el("paciente")} no tiene correo, va el de otra persona.`}</small>
             </label>
             {formError && <p className="ui-alert ui-alert-error">{formError}</p>}
           </>
@@ -449,14 +455,15 @@ export function PatientDetailModal({
 
         {pending === "delete-todo" && (
           <p className="ui-alert ui-alert-warn">
-            {deleteWarning}. Se van también sus turnos, con lo cobrado y lo anotado en cada uno.
+            {deleteWarning}
+            {`. Se van también sus ${w.turnos}, con lo cobrado y lo anotado en cada un${w.o("turno")}.`}
           </p>
         )}
 
         {!pending && readOnly && (
           <p className="ui-alert ui-alert-info">
             {loadedByOther
-              ? "Lo cargó otro profesional, así que sus datos los corrige quien lo cargó."
+              ? `L${w.o("paciente")} cargó ${w.otro("profesional")}, así que sus datos los corrige quien ${w.lo("paciente")} cargó.`
               : "Esta persona ya tiene su propia cuenta, así que sus datos los edita ella desde su perfil."}
           </p>
         )}
@@ -476,8 +483,7 @@ export function PatientDetailModal({
               aria-required="true"
             />
             <small>
-              Ahí le llegan el turno y el recordatorio, así que tiene que ser real. Si el paciente no tiene correo, va el de otra
-              persona. Si más adelante se registra, hereda lo cargado.
+              {`Ahí le llegan ${w.el("turno")} y el recordatorio, así que tiene que ser real. Si ${w.el("paciente")} no tiene correo, va el de otra persona. Si más adelante se registra, hereda lo cargado.`}
             </small>
           </label>
         )}
@@ -544,14 +550,14 @@ export function PatientDetailModal({
 
       {patient && !pending && (
         <div className="ui-section patients-history">
-          <h3 className="patients-history-title">Historial de turnos</h3>
+          <h3 className="patients-history-title">{`Historial de ${w.turnos}`}</h3>
 
           {/* Los recortes, cada uno con cuántos turnos tiene detrás. El número es lo que
               convierte la fila en un resumen del paciente antes de tocar nada, y lo que
               hace que no se prenda un filtro para descubrir que no hay nada adentro. */}
           {!loadingHistory && history && history.length > 0 && (
             <div className="patients-history-filters" role="group" aria-label="Filtrar el historial">
-              {HISTORY_FILTERS.map((filter) => {
+              {historyFilterOptions().map((filter) => {
                 const count = history.filter(filter.matches).length;
                 const active = historyFilters.includes(filter.value);
 
@@ -579,9 +585,9 @@ export function PatientDetailModal({
           {loadingHistory ? (
             <SkeletonList rows={3} />
           ) : !history || history.length === 0 ? (
-            <p className="adm-empty">Sin turnos todavía.</p>
+            <p className="adm-empty">{`Sin ${w.turnos} todavía.`}</p>
           ) : shownHistory.length === 0 ? (
-            <p className="adm-empty">Sin turnos para este filtro.</p>
+            <p className="adm-empty">{`Sin ${w.turnos} para este filtro.`}</p>
           ) : (
             <ul className="patients-history-list">
               {shownHistory.map((appointment) => {
@@ -622,7 +628,7 @@ export function PatientDetailModal({
                         type="button"
                         className="patients-history-item"
                         onClick={() => onOpenAppointment({ ...appointment, patient })}
-                        title="Ver la ficha del turno"
+                        title={`Ver la ficha ${w.del("turno")}`}
                       >
                         {content}
                       </button>

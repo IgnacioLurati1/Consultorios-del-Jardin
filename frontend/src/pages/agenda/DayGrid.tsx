@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { AgendaAppointment, AgendaDay, AgendaSchedule } from "./agendaService.ts";
 import "./dayGrid.css";
 import { roomLook } from "../../lib/roomLook.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
 import { FaLeaf, FaRoad, FaStairs } from "react-icons/fa6";
 
 /**
@@ -72,11 +73,11 @@ function pack<T extends Span>(items: T[]): { item: T; lane: number; lanes: numbe
 
 /** Qué clase de turno es, en una palabra. Los normales no dicen nada: son la mayoría. */
 function kindOf(appointment: AgendaAppointment): string {
-  if (appointment.overbooked) return "turno especial";
+  if (appointment.overbooked) return `${currentWords().turno} especial`;
   // Antes que "repetido" porque un importado no se repite, y porque es lo que explica que
   // el bloque esté corrido respecto de los módulos de al lado.
-  if (appointment.imported) return "importado";
-  if (appointment.recurring) return "repetido";
+  if (appointment.imported) return `importad${currentWords().o("turno")}`;
+  if (appointment.recurring) return `repetid${currentWords().o("turno")}`;
   return "";
 }
 
@@ -113,6 +114,7 @@ function RoomMark({ name }: { name?: string | null }) {
 }
 
 export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
+  const w = useWords();
   const from = minutes(data.opening);
   const to = minutes(data.closing);
   const height = Math.max(to - from, 60) * PX_PER_MINUTE + PAD * 2;
@@ -142,7 +144,11 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
   const total = mode === "schedules" ? data.schedules.length : data.appointments.length;
 
   if (data.rooms.length === 0) {
-    return <div className="adm-panel adm-empty">No hay consultorios activos para dibujar la grilla.</div>;
+    return (
+      <div className="adm-panel adm-empty">
+        No hay {w.salas} activ{w.os("sala")} para dibujar la grilla.
+      </div>
+    );
   }
 
   return (
@@ -206,7 +212,7 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
 
                   {isAppointment ? (
                     <span className="dg-block-patient">
-                      {item.patient ? `${item.patient.surname}, ${item.patient.name}` : "Sin paciente"}
+                      {item.patient ? `${item.patient.surname}, ${item.patient.name}` : `Sin ${w.paciente}`}
                     </span>
                   ) : null}
                 </div>
@@ -219,8 +225,8 @@ export function DayGrid({ data, mode, onPickAppointment }: DayGridProps) {
       {total === 0 && (
         <p className="dg-empty">
           {mode === "schedules"
-            ? "Ningún profesional atiende este día."
-            : "No hay turnos cargados para este día."}
+            ? `${w.o("profesional") === "a" ? "Ninguna" : "Ningún"} ${w.profesional} atiende este día.`
+            : `No hay ${w.turnos} cargad${w.os("turno")} para este día.`}
         </p>
       )}
     </div>

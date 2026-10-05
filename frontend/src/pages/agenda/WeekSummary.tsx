@@ -3,6 +3,7 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { findAgendaWeek, type AgendaEdge, type AgendaWeekDay, type AgendaWeek } from "./agendaService.ts";
 import { WeekDayModal } from "./WeekDayModal.tsx";
+import { useWords } from "../../lib/installation.ts";
 import "./weekSummary.css";
 
 /** "2026-09-01" → "1 de septiembre". Las dos fechas del encabezado son del mismo año. */
@@ -112,6 +113,7 @@ export function WeekSummary() {
  * La tarjeta entera abre el día completo. Un día sin nadie no abre nada: no hay qué mostrar.
  */
 function WeekDayCard({ day, onOpen }: { day: AgendaWeekDay; onOpen: () => void }) {
+  const w = useWords();
   const quiet = !day.earliest && day.appointments === 0;
 
   // Un article y no un button: adentro hay un título y una lista, que un botón no admite.
@@ -136,7 +138,7 @@ function WeekDayCard({ day, onOpen }: { day: AgendaWeekDay; onOpen: () => void }
       </h3>
 
       {quiet ? (
-        <p className="wk-quiet">Nadie atiende y no hay turnos.</p>
+        <p className="wk-quiet">Nadie atiende y no hay {w.turnos}.</p>
       ) : (
         <>
           {day.earliest && day.latest && (
@@ -164,16 +166,18 @@ function WeekDayCard({ day, onOpen }: { day: AgendaWeekDay; onOpen: () => void }
                 {day.peak.from} a {day.peak.to}
               </span>
               <span className="wk-peak-note">
-                {day.peak.appointments} {day.peak.appointments === 1 ? "turno" : "turnos"} a la vez
+                {day.peak.appointments} {day.peak.appointments === 1 ? w.turno : w.turnos} a la vez
               </span>
             </span>
           ) : (
-            <p className="wk-quiet">Sin turnos cargados.</p>
+            <p className="wk-quiet">
+              Sin {w.turnos} cargad{w.os("turno")}.
+            </p>
           )}
 
           <p className="wk-counts">
-            {day.patients} {day.patients === 1 ? "paciente" : "pacientes"} · {day.professionals}{" "}
-            {day.professionals === 1 ? "profesional" : "profesionales"}
+            {day.patients} {day.patients === 1 ? w.paciente : w.pacientes} · {day.professionals}{" "}
+            {day.professionals === 1 ? w.profesional : w.profesionales}
           </p>
         </>
       )}

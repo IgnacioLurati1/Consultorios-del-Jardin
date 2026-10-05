@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Kpi, KpiGrid, AnalyticsSection } from "./Kpi.tsx";
 import { SkeletonLine } from "../../components/skeleton/Skeleton.tsx";
 import { findAssistantUsage, type AssistantUsage } from "./analyticsService.ts";
+import { currentWords } from "../../lib/installation.ts";
 
 /** Los tokens se cuentan de a miles: "1,2 M" se lee, "1.204.883" no. */
 function tokens(value: number): string {
@@ -10,11 +11,11 @@ function tokens(value: number): string {
   return String(value);
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  client: "Pacientes",
-  professional: "Profesionales",
-  admin: "Administración",
-};
+/** Función y no lista fija: los nombres salen de las palabras del rubro. */
+function roleLabels(): Record<string, string> {
+  const w = currentWords();
+  return { client: w.Pacientes, professional: w.Profesionales, admin: "Administración" };
+}
 
 /**
  * Qué se le pide al asistente y cuánto sale.
@@ -96,8 +97,8 @@ export function AssistantUsageSection() {
         <Kpi label="Personas que lo usaron" value={data.personasDistintas} />
         <Kpi
           label="Quién lo usa"
-          value={ROLE_LABELS[data.porRol.slice().sort((a, b) => b.consultas - a.consultas)[0]?.role] ?? "—"}
-          note={data.porRol.map((row) => `${ROLE_LABELS[row.role] ?? row.role}: ${row.consultas}`).join(" · ")}
+          value={roleLabels()[data.porRol.slice().sort((a, b) => b.consultas - a.consultas)[0]?.role] ?? "—"}
+          note={data.porRol.map((row) => `${roleLabels()[row.role] ?? row.role}: ${row.consultas}`).join(" · ")}
         />
       </KpiGrid>
 

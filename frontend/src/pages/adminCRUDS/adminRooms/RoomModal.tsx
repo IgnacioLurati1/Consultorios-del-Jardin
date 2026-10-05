@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import type { RoomModalProps } from "./typesRoom.tsx";
+import { useWords } from "../../../lib/installation.ts";
 
 export function RoomModal({ visible, room, offices, cities, onClose, onDelete, onEdit, onCreate, type }: RoomModalProps) {
+  const w = useWords();
   const [roomData, setRoomData] = useState({ idRoom: "", description: "", office: "", active: true });
   const [city, setCity] = useState("");
   const [errors, setErrors] = useState<{ description?: string; office?: string }>({});
@@ -32,7 +34,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         open
         onClose={onClose}
         size="sm"
-        title={editing ? "Editar consultorio" : "Nuevo consultorio"}
+        title={editing ? `Editar ${w.sala}` : `Nuev${w.o("sala")} ${w.sala}`}
         footer={
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
             Cerrar
@@ -40,7 +42,8 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         }
       >
         <p className="ui-alert ui-alert-error">
-          No hay ninguna sucursal habilitada. Creá o reactivá una antes de {editing ? "editar" : "crear"} consultorios.
+          {`No hay ${w.o("sucursal") === "a" ? "ninguna" : "ningún"} ${w.sucursal} habilitad${w.o("sucursal")}. Creá o reactivá un${w.o("sucursal")} antes de `}
+          {editing ? "editar" : "crear"} {w.salas}.
         </p>
       </Modal>
     );
@@ -53,7 +56,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         onClose={onClose}
         size="sm"
         title={room!.description}
-        subtitle={`${room!.office.description} · sucursal dada de baja`}
+        subtitle={`${room!.office.description} · ${w.sucursal} dad${w.o("sucursal")} de baja`}
         footer={
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
             Cerrar
@@ -61,7 +64,8 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         }
       >
         <p className="ui-alert ui-alert-error">
-          Este consultorio no se puede modificar porque la sucursal a la que pertenece está dada de baja. Reactivala primero.
+          {w.o("sala") === "a" ? "Esta" : "Este"} {w.sala} no se puede modificar porque {w.el("sucursal")} a la que pertenece está
+          {` dad${w.o("sucursal")} de baja. Reactiva${w.lo("sucursal")} primero.`}
         </p>
       </Modal>
     );
@@ -72,7 +76,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
   function submit() {
     const newErrors: typeof errors = {};
     if (!roomData.description.trim()) newErrors.description = "La descripción es obligatoria";
-    if (!roomData.office) newErrors.office = "Falta la sucursal";
+    if (!roomData.office) newErrors.office = `Falta ${w.el("sucursal")}`;
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -88,19 +92,21 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         onClose={onClose}
         size="sm"
         title={room!.description}
-        subtitle={`${room!.office.description} · consultorio dado de baja`}
+        subtitle={`${room!.office.description} · ${w.sala} dad${w.o("sala")} de baja`}
         footer={
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
               Cerrar
             </button>
             <button type="button" className="adm-btn adm-btn-primary" autoFocus onClick={() => onEdit(roomData, false)}>
-              Reactivar consultorio
+              Reactivar {w.sala}
             </button>
           </>
         }
       >
-        <p className="ui-alert ui-alert-info">Mientras esté dado de baja no se pueden dar turnos ni cargar horarios en este consultorio.</p>
+        <p className="ui-alert ui-alert-info">
+          {`Mientras esté dad${w.o("sala")} de baja no se pueden dar ${w.turnos} ni cargar horarios en ${w.este("sala")}.`}
+        </p>
       </Modal>
     );
   }
@@ -110,8 +116,8 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
       open
       onClose={onClose}
       size="sm"
-      title={editing ? "Editar consultorio" : "Nuevo consultorio"}
-      subtitle={editing ? room!.description : "Dentro de una sucursal"}
+      title={editing ? `Editar ${w.sala}` : `Nuev${w.o("sala")} ${w.sala}`}
+      subtitle={editing ? room!.description : `Dentro de ${w.un("sucursal")}`}
       footer={
         <>
           {editing && (
@@ -131,7 +137,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={submit}>
-            {editing ? "Guardar cambios" : "Crear consultorio"}
+            {editing ? "Guardar cambios" : `Crear ${w.sala}`}
           </button>
         </>
       }
@@ -142,7 +148,7 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
           <input
             autoFocus
             value={roomData.description}
-            placeholder="Consultorio 1"
+            placeholder={`${w.Sala} 1`}
             onChange={(e) => setRoomData({ ...roomData, description: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && submit()}
           />
@@ -169,9 +175,9 @@ export function RoomModal({ visible, room, offices, cities, onClose, onDelete, o
         </label>
 
         <label className="ui-field">
-          <span>Sucursal</span>
+          <span>{w.Sucursal}</span>
           <select value={roomData.office} disabled={!city} onChange={(e) => setRoomData({ ...roomData, office: e.target.value })}>
-            <option value="">{city ? "Seleccionar sucursal…" : "Primero, la localidad"}</option>
+            <option value="">{city ? `Seleccionar ${w.sucursal}…` : "Primero, la localidad"}</option>
             {filteredOffices.map((office) => (
               <option key={office.idOffice} value={office.idOffice}>
                 {office.description}

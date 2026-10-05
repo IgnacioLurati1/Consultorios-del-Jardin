@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FaArrowRight, FaCircleCheck, FaClock, FaEnvelope, FaInstagram, FaLocationDot, FaRegPaperPlane } from "react-icons/fa6";
+import {
+  FaArrowRight,
+  FaCircleCheck,
+  FaClock,
+  FaEnvelope,
+  FaInstagram,
+  FaLocationDot,
+  FaPhone,
+  FaRegPaperPlane,
+  FaWhatsapp,
+} from "react-icons/fa6";
+import type { IconType } from "react-icons";
 import { SteppedForm, type FormStep } from "../../components/steppedForm/SteppedForm.tsx";
 import { Toasts } from "../../components/toast/Toasts.tsx";
 import { useAuth } from "../../context/AuthContext";
@@ -10,7 +21,7 @@ import {
   APPLICATION,
   CV_ACCEPT,
   MAX_MESSAGE,
-  REASONS,
+  reasons,
   emptyContactForm,
   sendContactMessage,
   validateCv,
@@ -20,28 +31,86 @@ import {
   type ContactForm,
 } from "./contactFields.ts";
 import "./contact.css";
+import {
+  currentPolicies,
+  currentWords,
+  fullAddress,
+  hasBranches,
+  useInstallation,
+  useWords,
+  type Installation,
+} from "../../lib/installation.ts";
+import { branchHours, branchPlace } from "../adminCRUDS/adminOffices/branches.ts";
+import { phoneHref, whatsappHref } from "../../lib/contentLists.ts";
 
-const MAIL = "consultoriosjardinok@gmail.com";
-const INSTAGRAM = "consultorios_jardin";
+/**
+ * Los datos del consultorio, de la configuración. `href` los vuelve accionables desde el
+ * celular. El que no está cargado no aparece.
+ *
+ * Con varias sucursales, en lugar de la dirección va una por sucursal: su nombre, dónde
+ * queda y, abajo, su horario.
+ */
+interface OfficeDetail {
+  icon: IconType;
+  label: string;
+  value: string;
+  /** Un renglón más, debajo del dato. El horario de cada sucursal. */
+  detail?: string;
+  href?: string;
+  small?: boolean;
+  external?: boolean;
+}
 
-/** Los datos fijos del consultorio. `href` los vuelve accionables desde el celular. */
-const OFFICE = [
-  { icon: FaLocationDot, label: "Dirección", value: "9 de Julio 3672, Rosario" },
-  { icon: FaClock, label: "Horario", value: "Lunes a viernes, de 9 a 20" },
-  { icon: FaEnvelope, label: "Mail", value: MAIL, href: `mailto:${MAIL}`, small: true },
-  {
-    icon: FaInstagram,
-    label: "Instagram",
-    value: `@${INSTAGRAM}`,
-    href: `https://instagram.com/${INSTAGRAM}`,
-    external: true,
-  },
-];
+function officeDetails(installation: Installation): OfficeDetail[] {
+  const instagram = installation.instagram.replace(/^@/, "");
 
-const SHORTCUTS = [
-  { label: "Solicitar turno", to: "/Appointment" },
-  { label: "Ver mis turnos", to: "/AppointmentsList" },
-];
+  const places: OfficeDetail[] = hasBranches(installation)
+    ? installation.branches.map((branch) => ({
+        icon: FaLocationDot,
+        label: branch.name,
+        value: branchPlace(branch, installation),
+        detail: branchHours(branch),
+      }))
+    : [{ icon: FaLocationDot, label: "Dirección", value: fullAddress(installation) }];
+
+  const details: OfficeDetail[] = [
+    ...places,
+    { icon: FaClock, label: "Horario", value: installation.publicHours },
+    { icon: FaPhone, label: "Teléfono", value: installation.phone, href: phoneHref(installation.phone) },
+    {
+      icon: FaWhatsapp,
+      label: "WhatsApp",
+      value: installation.whatsapp,
+      href: whatsappHref(installation.whatsapp),
+      external: true,
+    },
+    {
+      icon: FaEnvelope,
+      label: "Mail",
+      value: installation.email,
+      href: `mailto:${installation.email}`,
+      small: true,
+    },
+    {
+      icon: FaInstagram,
+      label: "Instagram",
+      value: instagram ? `@${instagram}` : "",
+      href: `https://instagram.com/${instagram}`,
+      external: true,
+    },
+  ];
+
+  return details.filter((item) => item.value);
+}
+
+function shortcuts() {
+  const w = currentWords();
+
+  return [
+    ...(currentPolicies().patientBooking ? [{ label: `Solicitar ${w.turno}`, to: "/Appointment" }] : []),
+    { label: `Ver mis ${w.turnos}`, to: "/AppointmentsList" },
+  ];
+}
 
 /**
  * Contacto por mail, en tres pasos.
@@ -51,6 +120,10 @@ const SHORTCUTS = [
  * mensaje —lo único que importa de verdad— queda para el final, con lugar para escribir.
  */
 export function ContactPage() {
+  const w = useWords();
+  const installation = useInstallation();
+  const OFFICE = officeDetails(installation);
+  const REASONS = reasons(installation);
   usePageMeta("/contacto");
   const { token } = useAuth();
 
@@ -304,7 +377,7 @@ export function ContactPage() {
               onSubmit={handleSubmit}
               footerNote={
                 <>
-                  <FaRegPaperPlane aria-hidden="true" /> Envío por mail a la casilla del consultorio.
+                  <FaRegPaperPlane aria-hidden="true" /> Envío por mail a la casilla {w.del("lugar")}.
                 </>
               }
             />
@@ -313,12 +386,13 @@ export function ContactPage() {
 
         <aside className="contact-aside">
           <div className="adm-panel contact-office">
-            <div className="adm-panel-head">El consultorio</div>
+            <div className="adm-panel-head">{w.El("lugar")}</div>
             <ul className="contact-office-list">
-              {OFFICE.map((item) => {
+              {OFFICE.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <li key={item.label}>
+                  // Con el orden: dos sucursales de ciudades distintas pueden llamarse igual.
+                  <li key={`${index}-${item.label}`}>
                     <span className="contact-office-icon">
                       <Icon />
                     </span>
@@ -336,6 +410,7 @@ export function ContactPage() {
                           item.value
                         )}
                       </span>
+                      {item.detail && <span className="contact-office-label">{item.detail}</span>}
                     </span>
                   </li>
                 );
@@ -346,10 +421,10 @@ export function ContactPage() {
           {/* Un turno se resuelve solo desde la app: escribir un mail para eso es el
               camino largo. */}
           <div className="contact-shortcut">
-            <p>Gestión de turnos</p>
+            <p>{`Gestión de ${w.turnos}`}</p>
             <p className="contact-shortcut-text">Solicitud, consulta y cancelación desde la app, sin esperar respuesta.</p>
             <div className="contact-shortcut-actions">
-              {SHORTCUTS.map((shortcut) => (
+              {shortcuts().map((shortcut) => (
                 <Link key={shortcut.to} className="contact-shortcut-link" to={shortcut.to}>
                   {shortcut.label}
                   <FaArrowRight aria-hidden="true" />

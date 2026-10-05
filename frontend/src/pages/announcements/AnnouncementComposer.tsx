@@ -11,6 +11,8 @@ import {
   type AnnouncementChannel,
   type AnnouncementLevel,
 } from "./announcementsService.ts";
+import { useWords } from "../../lib/installation.ts";
+import type { Words } from "../../lib/vocabulary.ts";
 import "./announcements.css";
 
 const MAX_TITLE = 80;
@@ -23,11 +25,13 @@ const LEVELS: { key: AnnouncementLevel; label: string; hint: string; icon: React
   { key: "news", label: "Novedad", hint: "Algo nuevo o que cambió", icon: FaCircleInfo },
 ];
 
-const AUDIENCES: { key: AnnouncementAudience; label: string }[] = [
-  { key: "client", label: "Pacientes" },
-  { key: "professional", label: "Profesionales" },
-  { key: "both", label: "Los dos" },
-];
+function audiences(w: Words): { key: AnnouncementAudience; label: string }[] {
+  return [
+    { key: "client", label: w.Pacientes },
+    { key: "professional", label: w.Profesionales },
+    { key: "both", label: "Los dos" },
+  ];
+}
 
 const CHANNELS: { key: AnnouncementChannel; label: string; hint: string }[] = [
   { key: "banner", label: "En el panel", hint: "Lo ven cuando entran" },
@@ -35,11 +39,13 @@ const CHANNELS: { key: AnnouncementChannel; label: string; hint: string }[] = [
   { key: "both", label: "Las dos", hint: "Suena y además queda arriba" },
 ];
 
-const AUDIENCE_LABEL: Record<AnnouncementAudience, string> = {
-  client: "Pacientes",
-  professional: "Profesionales",
-  both: "Pacientes y profesionales",
-};
+function audienceLabel(w: Words): Record<AnnouncementAudience, string> {
+  return {
+    client: w.Pacientes,
+    professional: w.Profesionales,
+    both: `${w.Pacientes} y ${w.profesionales}`,
+  };
+}
 
 const CHANNEL_LABEL: Record<AnnouncementChannel, string> = {
   banner: "en el panel",
@@ -65,6 +71,7 @@ function shortDate(iso: string): string {
  * cuando no se viene a publicar nada.
  */
 export function AnnouncementComposer() {
+  const w = useWords();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -196,7 +203,7 @@ export function AnnouncementComposer() {
               <div className="anc-composer-row">
                 <span className="anc-composer-label">A quién le llega</span>
                 <div className="adm-chips" role="group" aria-label="Destinatarios">
-                  {AUDIENCES.map((option) => (
+                  {audiences(w).map((option) => (
                     <button
                       key={option.key}
                       type="button"
@@ -246,7 +253,7 @@ export function AnnouncementComposer() {
               </article>
 
               <p className="anc-composer-hint">
-                Lo ven {AUDIENCE_LABEL[audience].toLowerCase()}, {CHANNEL_LABEL[channel]}. Cada uno lo puede cerrar y no le
+                Lo ven {audienceLabel(w)[audience].toLowerCase()}, {CHANNEL_LABEL[channel]}. Cada uno lo puede cerrar y no le
                 vuelve a aparecer.
               </p>
 
@@ -265,7 +272,7 @@ export function AnnouncementComposer() {
                   <div className="anc-item-text">
                     <strong>{announcement.title}</strong>
                     <span>
-                      {AUDIENCE_LABEL[announcement.audience]} · {shortDate(announcement.createdAt)}
+                      {audienceLabel(w)[announcement.audience]} · {shortDate(announcement.createdAt)}
                       {announcement.active ? "" : " · bajado"}
                     </span>
                   </div>

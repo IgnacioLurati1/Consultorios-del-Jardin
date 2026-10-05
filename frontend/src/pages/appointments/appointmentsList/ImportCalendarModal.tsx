@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { FaCircleCheck, FaTriangleExclamation } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { useSimpleText } from "../../../lib/textMode.ts";
-import { PAYMENT_LABELS, previewCalendarImport, runCalendarImport, STATE_LABELS } from "../importService.ts";
+import { useWords } from "../../../lib/installation.ts";
+import { paymentLabels, previewCalendarImport, runCalendarImport, stateLabels } from "../importService.ts";
 import type {
   ImportOptions,
   ImportPlan,
@@ -74,6 +75,7 @@ function byReason(skipped: SkippedEvent[]): { reason: string; items: SkippedEven
 }
 
 export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalendarModalProps) {
+  const w = useWords();
   const [file, setFile] = useState<File | null>(null);
   const [options, setOptions] = useState<ImportOptions>({
     from: aYearAgo(),
@@ -169,7 +171,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
         </button>
         {plan!.planned.length > 0 && (
           <button type="button" className="adm-btn adm-btn-primary" onClick={confirm} disabled={busy}>
-            {busy ? "Importando…" : `Importar ${plural(plan!.planned.length, "1 turno", `${plan!.planned.length} turnos`)}`}
+            {busy ? "Importando…" : `Importar ${plural(plan!.planned.length, `1 ${w.turno}`, `${plan!.planned.length} ${w.turnos}`)}`}
           </button>
         )}
       </>
@@ -198,7 +200,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
               "Vista previa. Todavía sin guardar"
             : simple
               ? "Agenda de Google Calendar"
-              : "Agenda de Google Calendar. Los turnos entran sin paciente y sin repetición"
+              : `Agenda de Google Calendar. ${w.Los("turno")} entran sin ${w.paciente} y sin repetición`
       }
       footer={footer}
     >
@@ -250,24 +252,24 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                 <input type="date" value={options.to} onChange={(event) => setOptions({ ...options, to: event.target.value })} />
               </label>
             </div>
-            <small className="imp-note">Los turnos ya cargados se omiten, así que se puede importar por tramos.</small>
+            <small className="imp-note">{`${w.Los("turno")} ya cargad${w.os("turno")} se omiten, así que se puede importar por tramos.`}</small>
           </div>
 
           <div className="ui-section">
             <label className="ui-field">
-              <span>Estado de los turnos</span>
+              <span>Estado de {w.los("turno")}</span>
               <select
                 value={options.state}
                 onChange={(event) => setOptions({ ...options, state: event.target.value as StateChoice })}
               >
-                {STATE_LABELS.map((choice) => (
+                {stateLabels().map((choice) => (
                   <option key={choice.value} value={choice.value}>
                     {choice.label}
                   </option>
                 ))}
               </select>
               {/* La opción elegida se lee entera ahí arriba; esto la reformula. */}
-              {!simple && <small>{STATE_LABELS.find((choice) => choice.value === options.state)?.hint}</small>}
+              {!simple && <small>{stateLabels().find((choice) => choice.value === options.state)?.hint}</small>}
             </label>
 
             <label className="ui-field">
@@ -276,13 +278,13 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                 value={options.payment}
                 onChange={(event) => setOptions({ ...options, payment: event.target.value as PaymentChoice })}
               >
-                {PAYMENT_LABELS.map((choice) => (
+                {paymentLabels().map((choice) => (
                   <option key={choice.value} value={choice.value}>
                     {choice.label}
                   </option>
                 ))}
               </select>
-              {!simple && <small>{PAYMENT_LABELS.find((choice) => choice.value === options.payment)?.hint}</small>}
+              {!simple && <small>{paymentLabels().find((choice) => choice.value === options.payment)?.hint}</small>}
             </label>
 
             <label className="imp-check">
@@ -291,8 +293,8 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                 {/* Lo que puede salir mal se queda; lo que explica para qué sirve, no. */}
                 <small>
                   {simple
-                    ? "Las observaciones son visibles para el paciente."
-                    : "Permite reconocer cada turno. Las observaciones son visibles para el paciente."}
+                    ? `Las observaciones son visibles para ${w.el("paciente")}.`
+                    : `Permite reconocer cada ${w.turno}. Las observaciones son visibles para ${w.el("paciente")}.`}
                 </small>
               </span>
               <input
@@ -305,8 +307,8 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
 
             <label className="imp-check">
               <span>
-                Incluir turnos fuera del horario de atención
-                {!simple && <small>Se asignan al consultorio más usado. Útil para agendas antiguas.</small>}
+                Incluir {w.turnos} fuera del horario de atención
+                {!simple && <small>{`Se asignan ${w.al("sala")} más usad${w.o("sala")}. Útil para agendas antiguas.`}</small>}
               </span>
               <input
                 type="checkbox"
@@ -329,10 +331,10 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
           <div className="ui-section imp-rules">
             <h3>Funcionamiento</h3>
             <ul>
-              <li>El consultorio se toma de los horarios de atención.</li>
-              <li>Cada turno conserva su hora y su duración, aunque quede fuera de los módulos.</li>
-              <li>Los eventos repetidos entran como turnos sueltos, sin repetición.</li>
-              <li>El valor se toma de un número del texto. Sin número, el turno queda sin valor.</li>
+              <li>{`${w.El("sala")} se toma de los horarios de atención.`}</li>
+              <li>{`Cada ${w.turno} conserva su hora y su duración, aunque quede fuera de los módulos.`}</li>
+              <li>{`Los eventos repetidos entran como ${w.turnos} suelt${w.os("turno")}, sin repetición.`}</li>
+              <li>{`El valor se toma de un número del texto. Sin número, ${w.el("turno")} queda sin valor.`}</li>
             </ul>
           </div>
           )}
@@ -345,7 +347,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
             <div className="imp-summary imp-summary-empty">
               <strong>0</strong>
               <span>
-                Ninguno de {plural(plan.read, "el evento leído", `los ${plan.read} eventos leídos`)} corresponde a un turno en
+                Ninguno de {plural(plan.read, "el evento leído", `los ${plan.read} eventos leídos`)} corresponde a {w.un("turno")} en
                 ese tramo. Abajo figura el motivo de cada uno.
               </span>
             </div>
@@ -353,7 +355,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
             <div className="imp-summary">
               <strong>{plan.planned.length}</strong>
               <span>
-                {plural(plan.planned.length, "turno entraría", "turnos entrarían")}, de {plan.read}{" "}
+                {plural(plan.planned.length, `${w.turno} entraría`, `${w.turnos} entrarían`)}, de {plan.read}{" "}
                 {plural(plan.read, "evento leído", "eventos leídos")}
                 {plan.calendars > 1 ? ` en ${plan.calendars} calendarios` : ""}.
               </span>
@@ -365,7 +367,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
               <li>
                 {propios.length} {plural(propios.length, "proviene", "provienen")} de una exportación de esta app y{" "}
                 {plural(propios.length, "conserva", "conservan")} sus datos, sin cambios por las opciones.
-                {conPaciente > 0 && ` ${conPaciente} ${plural(conPaciente, "trae su paciente", "traen su paciente")}.`}
+                {conPaciente > 0 && ` ${conPaciente} ${plural(conPaciente, `trae su ${w.paciente}`, `traen su ${w.paciente}`)}.`}
               </li>
             )}
             {plan.outOfRange > 0 && (
@@ -381,8 +383,8 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
             {fueraDeHorario.length > 0 && (
               <li>
                 {fueraDeHorario.length} fuera del horario de atención.{" "}
-                {plural(fueraDeHorario.length, "Se asigna", "Se asignan")} a <strong>{fueraDeHorario[0].room}</strong>, el
-                consultorio más usado.
+                {plural(fueraDeHorario.length, "Se asigna", "Se asignan")} a <strong>{fueraDeHorario[0].room}</strong>,{" "}
+                {`${w.el("sala")} más usad${w.o("sala")}.`}
               </li>
             )}
             {fueraDeGrilla > 0 && (
@@ -405,9 +407,9 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                   <tr>
                     <th>Día</th>
                     <th>Hora</th>
-                    <th>Consultorio</th>
+                    <th>{w.Sala}</th>
                     <th>Valor</th>
-                    {conPaciente > 0 && <th>Paciente</th>}
+                    {conPaciente > 0 && <th>{w.Paciente}</th>}
                     <th>Del calendario</th>
                   </tr>
                 </thead>
@@ -429,7 +431,7 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
                       </td>
                       <td
                         className={item.outsideSchedule ? "imp-offgrid" : ""}
-                        title={item.outsideSchedule ? "Fuera del horario de atención. Consultorio asignado automáticamente." : undefined}
+                        title={item.outsideSchedule ? `Fuera del horario de atención. ${w.Sala} asignad${w.o("sala")} automáticamente.` : undefined}
                       >
                         {item.room}
                       </td>
@@ -482,15 +484,15 @@ export function ImportCalendarModal({ isOpen, onClose, onImported }: ImportCalen
           <FaCircleCheck className="imp-done-icon" />
           <p className="imp-done-count">
             {result.created === 0
-              ? "Sin turnos importados."
-              : `Se ${result.created === 1 ? "importó 1 turno" : `importaron ${result.created} turnos`}.`}
+              ? `Sin ${w.turnos} importad${w.os("turno")}.`
+              : `Se ${result.created === 1 ? `importó 1 ${w.turno}` : `importaron ${result.created} ${w.turnos}`}.`}
           </p>
           {result.failed > 0 && <p className="imp-error">{result.failed} sin guardar. Conviene repetir la importación.</p>}
           {result.created > 0 &&
             (result.planned.every((item) => item.fromExport) ? (
-              <p className="imp-done-note">Cargados en la agenda con su paciente y su cobro.</p>
+              <p className="imp-done-note">{`Cargad${w.os("turno")} en la agenda con su ${w.paciente} y su cobro.`}</p>
             ) : (
-              <p className="imp-done-note">Cargados en la agenda sin paciente. El paciente se asigna desde cada turno.</p>
+              <p className="imp-done-note">{`Cargad${w.os("turno")} en la agenda sin ${w.paciente}. ${w.El("paciente")} se asigna desde cada ${w.turno}.`}</p>
             ))}
         </div>
       )}

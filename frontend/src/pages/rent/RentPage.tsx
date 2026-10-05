@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   FaArrowTrendUp,
@@ -38,6 +38,7 @@ import {
   type RentMonth,
   type RentRow,
 } from "./rentService.ts";
+import { currentWords, usePolicies, useWords } from "../../lib/installation.ts";
 import "../../components/modal/modal.css";
 import "../adminCRUDS/adminPanel.css";
 import "../analytics/analytics.css";
@@ -46,12 +47,15 @@ import "./rent.css";
 type Filter = "all" | "pending" | "paid" | "late";
 type Dialog = "prices" | "calculate" | "increase" | "dueDay" | null;
 
-const FILTERS: { key: Filter; label: string; test: (row: RentRow) => boolean }[] = [
-  { key: "all", label: "Todos", test: () => true },
-  { key: "pending", label: "Con saldo", test: (row) => row.pending > 0 },
-  { key: "paid", label: "Pagaron", test: (row) => row.status === "paid" },
-  { key: "late", label: "Fuera de término", test: (row) => row.late },
-];
+function filters(): { key: Filter; label: string; test: (row: RentRow) => boolean }[] {
+  const w = currentWords();
+  return [
+    { key: "all", label: `Tod${w.os("profesional")}`, test: () => true },
+    { key: "pending", label: "Con saldo", test: (row) => row.pending > 0 },
+    { key: "paid", label: "Pagaron", test: (row) => row.status === "paid" },
+    { key: "late", label: "Fuera de término", test: (row) => row.late },
+  ];
+}
 
 /** Hasta cuántos meses para atrás se puede ir aunque no haya cuotas, para cargar historia vieja. */
 const MONTHS_BACK = 36;
@@ -74,7 +78,14 @@ const BADGE: Record<RentRow["status"], string> = {
  * un aumento y los precios de los consultorios. Rigen desde este mes o el que viene, sin
  * importar qué mes se esté mirando.
  */
+/** Sin alquileres en esta instalación, la sección no existe: vuelve al panel. */
 export function RentPage() {
+  const policies = usePolicies();
+  return policies.rentModule ? <RentScreen /> : <Navigate to="/AdminHome" replace />;
+}
+
+function RentScreen() {
+  const w = useWords();
   const [params, setParams] = useSearchParams();
   const thisMonth = monthKeyOf();
 
@@ -162,7 +173,7 @@ export function RentPage() {
   const upcoming = month > current;
 
   const rows = data?.rows ?? [];
-  const activeFilter = FILTERS.find((item) => item.key === filter)!;
+  const activeFilter = filters().find((item) => item.key === filter)!;
   const visible = rows.filter(activeFilter.test);
   const withoutAmount = rows.filter((row) => row.active && row.amount === null).length;
   const withWarnings = rows.filter((row) => row.warnings.length > 0).length;
@@ -172,7 +183,7 @@ export function RentPage() {
       <AdminHeader
         title="Alquileres"
         subtitleIsData
-        subtitle={data ? `${capitalize(data.label)} · vencimiento el día ${data.dueDay}` : "Cuotas de los profesionales"}
+        subtitle={data ? `${capitalize(data.label)} · vencimiento el día ${data.dueDay}` : `Cuotas de ${w.los("profesional")}`}
         actions={
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setDialog("prices")}>
@@ -241,7 +252,7 @@ export function RentPage() {
               lead
               label="Cuotas del mes"
               value={money(data.totals.due)}
-              note={`${rows.filter((row) => row.amount !== null).length} profesionales${upcoming ? " · estimado" : ""}`}
+              note={`${rows.filter((row) => row.amount !== null).length} ${w.profesionales}${upcoming ? " · estimado" : ""}`}
             />
             <Kpi
               label="Cobrado"
@@ -269,7 +280,7 @@ export function RentPage() {
 
       {data && month >= current && withoutAmount > 0 && (
         <p className="ui-alert ui-alert-warn rent-alert">
-          {withoutAmount === 1 ? "Un profesional sin cuota." : `${withoutAmount} profesionales sin cuota.`} «Calcular» la arma con
+          {withoutAmount === 1 ? `${w.Un("profesional")} sin cuota.` : `${withoutAmount} ${w.profesionales} sin cuota.`} «Calcular» la arma con
           los módulos de su agenda, y el lápiz de cada fila la deja fija.
         </p>
       )}
@@ -282,7 +293,7 @@ export function RentPage() {
       )}
 
       <div className="adm-chips rent-filters" role="group" aria-label="Filtrar">
-        {FILTERS.map((item) => (
+        {filters().map((item) => (
           <button
             key={item.key}
             type="button"
@@ -308,7 +319,7 @@ export function RentPage() {
             {rows.length === 0
               ? month < current
                 ? `Sin cuotas registradas en ${data.label}.`
-                : "Sin profesionales habilitados."
+                : `Sin ${w.profesionales} habilitad${w.os("profesional")}.`
               : "Ninguna cuota en este filtro."}
           </div>
         ) : (
@@ -316,7 +327,7 @@ export function RentPage() {
             <table className="rent-table">
               <thead>
                 <tr>
-                  <th>Profesional</th>
+                  <th>{w.Profesional}</th>
                   <th>Cuota</th>
                   <th>Estado</th>
                   <th>Pagado</th>
@@ -340,7 +351,7 @@ export function RentPage() {
                               {row.surname}, {row.name}
                             </strong>
                             <span className="rent-sub">
-                              {[row.speciality, row.active ? null : "deshabilitado"].filter(Boolean).join(" · ")}
+                              {[row.speciality, row.active ? null : `deshabilitad${w.o("profesional")}`].filter(Boolean).join(" · ")}
                             </span>
                           </div>
                         </td>

@@ -22,6 +22,7 @@ import { PatientDetailModal } from "./PatientDetailModal.tsx";
 import { findPerson, getDecodedToken } from "../commonServices.ts";
 import type { Person } from "../types.ts";
 import { useSimpleText } from "../../lib/textMode.ts";
+import { currentWords, usePolicies, useWords } from "../../lib/installation.ts";
 
 const normalize = (text: string) =>
   text
@@ -37,6 +38,8 @@ const normalize = (text: string) =>
 type Scope = "mine" | "all";
 
 export function PatientsPage() {
+  const w = useWords();
+  const policies = usePolicies();
   const [simple] = useSimpleText();
   const [patients, setPatients] = useState<Person[]>([]);
   // Quién está logueado: firma el borrador del mail que se le abre al paciente.
@@ -83,7 +86,7 @@ export function PatientsPage() {
         if (!cancelled) setPatients(data);
       })
       .catch((err) => {
-        if (!cancelled) toast.error(`Error al cargar los pacientes: ${err.message}`);
+        if (!cancelled) toast.error(`Error al cargar ${currentWords().los("paciente")}: ${err.message}`);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -170,18 +173,20 @@ export function PatientsPage() {
   return (
     <div className="adm-page">
       <AdminHeader
-        title="Pacientes"
+        title={w.Pacientes}
         subtitle={
           scope === "mine"
-            ? "Con turno o cargados sin cuenta"
-            : "Todos los pacientes con cuenta y los sin cuenta propios"
+            ? `Con ${w.turno} o cargad${w.os("paciente")} sin cuenta`
+            : `Tod${w.os("paciente")} ${w.los("paciente")} con cuenta y l${w.os("paciente")} sin cuenta propi${w.os("paciente")}`
         }
         backTo="/ProfessionalHome"
         actions={
-          <button type="button" className="adm-btn adm-btn-primary" onClick={openNew}>
-            <FaPlus />
-            Nuevo paciente sin cuenta
-          </button>
+          policies.proPatients ? (
+            <button type="button" className="adm-btn adm-btn-primary" onClick={openNew}>
+              <FaPlus />
+              {`Nuev${w.o("paciente")} ${w.paciente} sin cuenta`}
+            </button>
+          ) : undefined
         }
       />
 
@@ -189,7 +194,7 @@ export function PatientsPage() {
 
       {!simple && (
         <p className="people-note">
-          Un paciente <strong>sin cuenta</strong> se carga sin registro ni contraseña, y lo ven solo quien lo cargó y la
+          {w.Un("paciente")} <strong>sin cuenta</strong> se carga sin registro ni contraseña, y {w.lo("paciente")} ven solo quien {w.lo("paciente")} cargó y la
           administración. Sus datos se pueden corregir en cualquier momento. Si después se registra con el mismo email, pasa a tener
           cuenta propia y conserva lo cargado.
         </p>
@@ -197,14 +202,14 @@ export function PatientsPage() {
 
       {/* Arranca en los propios: es lo que se busca casi siempre. Ver a todos sirve
           cuando hay que darle turno a alguien que todavía no se atendió acá. */}
-      <div className="patients-scope" role="group" aria-label="Qué pacientes mostrar">
+      <div className="patients-scope" role="group" aria-label={`Qué ${w.pacientes} mostrar`}>
         <button
           type="button"
           className={`adm-btn adm-btn-ghost ${scope === "mine" ? "active" : ""}`}
           aria-pressed={scope === "mine"}
           onClick={() => setScope("mine")}
         >
-          Mis pacientes
+          {`Mis ${w.pacientes}`}
         </button>
         <button
           type="button"
@@ -217,7 +222,7 @@ export function PatientsPage() {
             setScope("all");
           }}
         >
-          Todos los pacientes
+          {`Tod${w.os("paciente")} ${w.los("paciente")}`}
         </button>
 
         {/* Contra el borde derecho y solo entre los propios: es un recorte de esa lista. */}
@@ -227,7 +232,7 @@ export function PatientsPage() {
             className={`adm-btn adm-btn-ghost patients-debt-filter ${onlyDebtors ? "active" : ""}`}
             aria-pressed={onlyDebtors}
             disabled={debtors === 0 && !onlyDebtors}
-            title={debtors === 0 ? "Sin deudas" : "Solo pacientes con deuda"}
+            title={debtors === 0 ? "Sin deudas" : `Solo ${w.pacientes} con deuda`}
             onClick={() => setOnlyDebtors(!onlyDebtors)}
           >
             <FaMoneyBillWave />
@@ -245,11 +250,11 @@ export function PatientsPage() {
         ) : patients.length === 0 ? (
           <div className="adm-empty">
             {scope === "mine"
-              ? "Sin pacientes todavía. Acá aparecen los que tienen turno o se cargaron sin cuenta."
-              : "Sin pacientes cargados."}
+              ? `Sin ${w.pacientes} todavía. Acá aparecen l${w.os("paciente")} que tienen ${w.turno} o se cargaron sin cuenta.`
+              : `Sin ${w.pacientes} cargad${w.os("paciente")}.`}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="adm-empty">Sin pacientes para esta búsqueda.</div>
+          <div className="adm-empty">{`Sin ${w.pacientes} para esta búsqueda.`}</div>
         ) : (
           <PeopleList>
             {filtered.map((patient) => (
@@ -267,7 +272,7 @@ export function PatientsPage() {
                         // Uno compartido: se ve acá, pero los datos los corrige quien lo cargó.
                         hint:
                           patient.createdBy && me && patient.createdBy !== me.email
-                            ? "Lo cargó otro profesional. Los datos los corrige quien lo cargó."
+                            ? `L${w.o("paciente")} cargó ${w.otro("profesional")}. Los datos los corrige quien ${w.lo("paciente")} cargó.`
                             : undefined,
                       }
                     : { label: "Con cuenta", tone: "green" as const },
@@ -280,7 +285,7 @@ export function PatientsPage() {
                         {
                           label: "El correo no existe",
                           tone: "red" as const,
-                          hint: "No recibe el turno ni el recordatorio. Se arregla corrigiendo el correo en su ficha.",
+                          hint: `No recibe ${w.el("turno")} ni el recordatorio. Se arregla corrigiendo el correo en su ficha.`,
                         },
                       ]
                     : bounced.get(patient.email) === "blocked"
@@ -298,7 +303,7 @@ export function PatientsPage() {
                           label:
                             (patient.owedAppointments ?? 0) === 1 ? "Adeuda un pago" : `Adeuda ${patient.owedAppointments} pagos`,
                           tone: "red" as const,
-                          hint: `Le quedaron $${patient.owedAmount ?? 0} sin pagar. Se registra desde la ficha de cada turno.`,
+                          hint: `Le quedaron $${patient.owedAmount ?? 0} sin pagar. Se registra desde la ficha de cada ${w.turno}.`,
                         },
                       ]
                     : []),
@@ -362,7 +367,7 @@ export function PatientsPage() {
             // Los datos de antes, tal como estaban en la fila. Solo se puede sobre un
             // paciente sin cuenta, que son los únicos que este profesional puede editar.
             remember({
-              label: "Volvieron los datos anteriores del paciente",
+              label: `Volvieron los datos anteriores ${w.del("paciente")}`,
               undo: async () => {
                 const vuelto = await updatePatient(previous.email, {
                   name: previous.name,
@@ -388,7 +393,7 @@ export function PatientsPage() {
           // Deshacer el alta lo borra de verdad. El backend solo lo deja mientras no tenga
           // ningún turno, que recién creado es siempre el caso.
           remember({
-            label: `Se borró el paciente ${saved.surname}, ${saved.name}`,
+            label: `Se borró ${w.el("paciente")} ${saved.surname}, ${saved.name}`,
             undo: async () => {
               await deleteAnonymousPatient(saved.email);
               setPatients((prev) => prev.filter((p) => p.email !== saved.email));

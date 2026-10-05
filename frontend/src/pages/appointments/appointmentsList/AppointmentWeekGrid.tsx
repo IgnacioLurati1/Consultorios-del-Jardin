@@ -13,6 +13,8 @@ import {
 } from "../appointmentTypes.ts";
 import { freeDaySlots, type DaySlot } from "../freeSlots.ts";
 import { WeekGrid, type WeekGridDay } from "../../../components/weekGrid/WeekGrid.tsx";
+import { hasBranches, useInstallation, useWords } from "../../../lib/installation.ts";
+import { findBranch } from "../../adminCRUDS/adminOffices/branches.ts";
 
 /** Un rato libre de la agenda, con el día al que pertenece. */
 export interface FreeSlotPick {
@@ -58,6 +60,16 @@ export function AppointmentWeekGrid({
   schedules,
   onNew,
 }: AppointmentWeekGridProps) {
+  const w = useWords();
+  const installation = useInstallation();
+  const multi = hasBranches(installation);
+
+  /**
+   * La sucursal de un consultorio, con varias sucursales. Un profesional que atiende en
+   * más de una tiene que ver en cuál cae cada hueco antes de darlo.
+   */
+  const branchOf = (room: { office?: unknown } | null | undefined): string =>
+    multi && room ? (findBranch(room.office, installation)?.name ?? "") : "";
   const isProfessional = user.type === "professional";
   // Los huecos son para dar de alta, así que solo existen del lado del profesional.
   const ofreceHuecos = isProfessional && !!onNew && !!schedules?.length;
@@ -109,7 +121,7 @@ export function AppointmentWeekGrid({
       const counterpart = atiende
         ? appointment.patient
           ? `${appointment.patient.surname}, ${appointment.patient.name}`
-          : "Sin paciente"
+          : `Sin ${w.paciente}`
         : `${appointment.professional.surname}, ${appointment.professional.name}`;
 
       return {
@@ -120,17 +132,19 @@ export function AppointmentWeekGrid({
             key={`turno-${appointment.numAppointment}`}
             className={`week-slot state-${stateClass} ${appointment.overbooked ? "overbooked" : ""} ${own ? "own" : ""}`}
             onClick={() => onOpen(appointment)}
-            title={`${shortHour(appointment.initialHour)} · ${own ? "turno propio con " : ""}${counterpart} · ${state.label}${
+            title={`${shortHour(appointment.initialHour)} · ${own ? `${w.turno} propi${w.o("turno")} con ` : ""}${counterpart} · ${state.label}${
               notice?.short ? " · baja sobre la hora" : ""
-            }${appointment.overbooked ? " · turno especial" : ""}${confirmed ? " · asistencia confirmada" : ""}`}
+            }${appointment.overbooked ? ` · ${w.turno} especial` : ""}${confirmed ? " · asistencia confirmada" : ""}${
+              branchOf(appointment.room) ? ` · ${branchOf(appointment.room)}` : ""
+            }`}
             {...quickActions?.(appointment)}
           >
             <span className="week-slot-hour">
               {shortHour(appointment.initialHour)}
               {/* En una celda de dos renglones no entra una frase. El nombre de abajo es
                   el del colega, y esto dice de quién es el nombre. */}
-              {own && <span className="appt-slot-own">tuyo</span>}
-              {appointment.overbooked && <span className="appt-slot-over">turno especial</span>}
+              {own && <span className="appt-slot-own">{`tuy${w.o("turno")}`}</span>}
+              {appointment.overbooked && <span className="appt-slot-over">{`${w.turno} especial`}</span>}
               {confirmed && <FaCircleCheck className="appt-slot-confirmed" aria-hidden="true" />}
             </span>
             <span className="week-slot-note">{counterpart}</span>
@@ -148,13 +162,17 @@ export function AppointmentWeekGrid({
             key={`libre-${slot.key}`}
             className="week-slot week-slot-free"
             onClick={() => onNew!({ date: key, slot })}
-            title={`Dar un turno de las ${slot.initialHour} a las ${slot.finalHour} en ${slot.room.description}`}
+            title={`Dar ${w.un("turno")} de las ${slot.initialHour} a las ${slot.finalHour} en ${slot.room.description}${
+              branchOf(slot.room) ? ` (${branchOf(slot.room)})` : ""
+            }`}
           >
             <span className="week-slot-hour">
               <FaPlus aria-hidden="true" />
               {slot.initialHour}
             </span>
-            <span className="week-slot-note">{slot.duration} min</span>
+            <span className="week-slot-note">
+              {slot.duration} min{branchOf(slot.room) ? ` · ${branchOf(slot.room)}` : ""}
+            </span>
           </button>
         ),
       });

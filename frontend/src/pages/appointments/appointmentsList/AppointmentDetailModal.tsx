@@ -19,6 +19,11 @@ import { SkeletonLine } from "../../../components/skeleton/Skeleton.tsx";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { PatientPicker } from "../../../components/patientPicker/PatientPicker.tsx";
 import { PatientDetailModal } from "../../patients/PatientDetailModal.tsx";
+import { hasBranches, useInstallation, usePolicies, useWords } from "../../../lib/installation.ts";
+import { branchPlace, findBranch } from "../../adminCRUDS/adminOffices/branches.ts";
+
+/** Para la frase que arranca con un ayudante del vocabulario, que viene en minúscula. */
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
  * Una sección de la ficha que se abre y se cierra.
@@ -106,6 +111,9 @@ export function AppointmentDetailModal({
   patients,
   rooms,
 }: AppointmentDetailModalProps) {
+  const w = useWords();
+  const policies = usePolicies();
+  const installation = useInstallation();
   const [observations, setObservations] = useState("");
   const [state, setState] = useState("");
   const [history, setHistory] = useState<Appointment[] | null>(null);
@@ -200,7 +208,26 @@ export function AppointmentDetailModal({
   const notice = cancellationNotice(appointment);
   // Todavía sin confirmar: el backend lo borra, no lo marca como cancelado.
   const pendingYet = appointment.state === "pending";
+
+  /*
+   * Si se puede dar de baja, según las reglas del consultorio. Retirar un pedido que
+   * todavía no se confirmó se puede siempre; un turno confirmado depende de quién lo
+   * cancela y, para el paciente, de con cuánta anticipación.
+   */
+  const hoursLeft = (() => {
+    const startsAt = new Date(appointmentDate(appointment.date).getTime());
+    const [hour, minute] = String(appointment.initialHour).split(":").map(Number);
+    startsAt.setHours(hour, minute || 0, 0, 0);
+    return (startsAt.getTime() - Date.now()) / 3_600_000;
+  })();
+  const cancelAllowed =
+    pendingYet ||
+    (isProfessional
+      ? policies.proCancel
+      : policies.patientCancel && (policies.cancelNoticeHours === 0 || hoursLeft >= policies.cancelNoticeHours));
   const badge = describeState(appointment.state);
+  // Con varias sucursales, en cuál es y dónde queda va en su propio renglón.
+  const branch = hasBranches(installation) ? findBranch(appointment.room?.office, installation) : null;
   const date = appointmentDate(appointment.date);
   const isPast = date.getTime() < new Date().setHours(0, 0, 0, 0);
 
@@ -279,10 +306,10 @@ export function AppointmentDetailModal({
    */
   function paymentProblem(): string | null {
     if (payment !== "partial") return null;
-    if (value <= 0) return "Un cobro parcial requiere un valor cargado en el turno.";
+    if (value <= 0) return `Un cobro parcial requiere un valor cargado en ${w.el("turno")}.`;
     if (!paidAmount.trim() || !Number.isFinite(amount) || amount <= 0) return "Falta el monto cobrado.";
-    if (amount > value) return `El monto supera el valor del turno, que es de $${value}.`;
-    if (amount === value) return `Es el valor completo del turno. Corresponde la opción "Cobrado".`;
+    if (amount > value) return `El monto supera el valor ${w.del("turno")}, que es de $${value}.`;
+    if (amount === value) return `Es el valor completo ${w.del("turno")}. Corresponde la opción "Cobrado".`;
     return null;
   }
 
@@ -318,30 +345,33 @@ export function AppointmentDetailModal({
         Descartar
       </button>
       <button type="button" className="adm-btn adm-btn-primary" onClick={saveEdit}>
-        Guardar turno
+        Guardar {w.turno}
       </button>
     </>
   ) : (
     <>
       {isProfessional && appointment.state === "pending" && (
         <button type="button" className="adm-btn adm-btn-primary" onClick={() => onAccept(appointment)}>
-          Aceptar turno
+          Aceptar {w.turno}
         </button>
       )}
-      {!cancelled && appointment.state !== "assisted" && (
+      {!cancelled && appointment.state !== "assisted" && !cancelAllowed && (
+        <small className="ui-hint">{`Para cancelar hay que avisarle ${w.al("lugar")}`}</small>
+      )}
+      {!cancelled && appointment.state !== "assisted" && cancelAllowed && (
         <button
           type="button"
           className="adm-btn adm-btn-danger"
           onClick={() => onCancel(appointment)}
           title={
             pendingYet
-              ? "El turno todavía no está confirmado. Se borra y el horario queda libre."
-              : "El turno queda cancelado y en el historial."
+              ? `${w.El("turno")} todavía no está confirmad${w.o("turno")}. Se borra y el horario queda libre.`
+              : `${w.El("turno")} queda cancelad${w.o("turno")} y en el historial.`
           }
         >
           {/* Un turno pendiente no se cancela: se borra. Decirle "cancelar" a las dos
               cosas hacía pensar que quedaba registro de este también. */}
-          {pendingYet ? "Eliminar turno" : "Cancelar turno"}
+          {pendingYet ? `Eliminar ${w.turno}` : `Cancelar ${w.turno}`}
         </button>
       )}
       <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose}>
@@ -366,7 +396,7 @@ export function AppointmentDetailModal({
       <Modal
         open
         onClose={onClose}
-        title={editing ? "Editar turno" : `Turno #${appointment.numAppointment}`}
+        title={editing ? `Editar ${w.turno}` : `${w.Turno} #${appointment.numAppointment}`}
         subtitle={`${formatDayLabel(date)} · ${shortHour(appointment.initialHour)} a ${shortHour(appointment.finalHour)}`}
         footer={footer}
       >
@@ -389,7 +419,7 @@ export function AppointmentDetailModal({
             </div>
 
             <label className="ui-field">
-              <span>Consultorio</span>
+              <span>{w.Sala}</span>
               <select value={edit.room} onChange={(e) => setEdit({ ...edit, room: e.target.value })}>
                 {rooms.map((room) => (
                   <option key={room.idRoom} value={room.idRoom}>
@@ -413,7 +443,7 @@ export function AppointmentDetailModal({
               <small>Valor de la consulta. Vacío equivale a 0.</small>
             </label>
 
-            <p className="ui-alert ui-alert-info">Dato visible solo para el profesional y el paciente.</p>
+            <p className="ui-alert ui-alert-info">{`Dato visible solo para ${w.el("profesional")} y ${w.el("paciente")}.`}</p>
           </div>
         ) : (
           <>
@@ -422,14 +452,14 @@ export function AppointmentDetailModal({
                 la busque. */}
             {ownBooking && (
               <p className="ui-alert appt-own-note">
-                Turno propio como paciente. El registro y el cobro los maneja el profesional que atiende.
+                {`${w.Turno} propi${w.o("turno")} como ${w.paciente}. El registro y el cobro los maneja ${w.el("profesional")} que atiende.`}
               </p>
             )}
 
             <div className="ui-section">
               <div className="ui-section-head">
-                <h3 className="ui-section-title">Datos del turno</h3>
-                {isProfessional && !cancelled && (
+                <h3 className="ui-section-title">Datos {w.del("turno")}</h3>
+                {isProfessional && !cancelled && policies.proEdit && (
                   <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setEditing(true)}>
                     Editar
                   </button>
@@ -454,12 +484,12 @@ export function AppointmentDetailModal({
                 </div>
                 {notice && (
                   <div className="ui-detail-row">
-                    <span>{isProfessional ? "Baja del paciente" : "Dado de baja"}</span>
+                    <span>{isProfessional ? `Baja ${w.del("paciente")}` : `Dad${w.o("turno")} de baja`}</span>
                     <span className="appt-notice">
                       <strong>{formatCancellation(notice.at)}</strong>
                       {notice.short && (
                         <span className="adm-badge adm-badge-red">
-                          {notice.hours < 0 ? "Después de la hora del turno" : "Menos de 24 horas antes"}
+                          {notice.hours < 0 ? `Después de la hora ${w.del("turno")}` : "Menos de 24 horas antes"}
                         </span>
                       )}
                     </span>
@@ -476,11 +506,11 @@ export function AppointmentDetailModal({
                 {appointment.overbooked && (
                   <div className="ui-detail-row">
                     <span>Tipo</span>
-                    <span className="appt-tag-over">Turno especial</span>
+                    <span className="appt-tag-over">{`${w.Turno} especial`}</span>
                   </div>
                 )}
                 <div className="ui-detail-row">
-                  <span>{isProfessional ? "Paciente" : "Profesional"}</span>
+                  <span>{isProfessional ? w.Paciente : w.Profesional}</span>
                   <strong>
                     {isProfessional ? (
                       appointment.patient ? (
@@ -493,18 +523,24 @@ export function AppointmentDetailModal({
                           {appointment.patient.surname}, {appointment.patient.name}
                         </button>
                       ) : (
-                        <span className="ui-detail-empty">Sin paciente asignado</span>
+                        <span className="ui-detail-empty">{`Sin ${w.paciente} asignad${w.o("paciente")}`}</span>
                       )
                     ) : (
                       `${appointment.professional.surname}, ${appointment.professional.name}`
                     )}
                   </strong>
                 </div>
+                {branch && (
+                  <div className="ui-detail-row">
+                    <span>{w.Sucursal}</span>
+                    <strong>{[branch.name, branchPlace(branch, installation)].filter(Boolean).join(" · ")}</strong>
+                  </div>
+                )}
                 <div className="ui-detail-row">
-                  <span>Consultorio</span>
+                  <span>{w.Sala}</span>
                   <strong>
                     {appointment.room?.description}
-                    {appointment.room?.office?.description ? ` · ${appointment.room.office.description}` : ""}
+                    {!branch && appointment.room?.office?.description ? ` · ${appointment.room.office.description}` : ""}
                   </strong>
                 </div>
                 <div className="ui-detail-row">
@@ -517,7 +553,7 @@ export function AppointmentDetailModal({
                 {appointment.origin === "import" && (
                   <div className="ui-detail-row">
                     <span>Origen</span>
-                    <strong>Importado de un calendario</strong>
+                    <strong>{`Importad${w.o("turno")} de un calendario`}</strong>
                   </div>
                 )}
               </div>
@@ -540,9 +576,9 @@ export function AppointmentDetailModal({
             )}
 
             {/* ---- asignar paciente a un turno que no tiene ---- */}
-            {isProfessional && !appointment.patient && !cancelled && (
+            {isProfessional && !appointment.patient && !cancelled && policies.proCreate && (
               <div className="ui-section">
-                <h3 className="ui-section-title">Asignar paciente</h3>
+                <h3 className="ui-section-title">Asignar {w.paciente}</h3>
                 {/* El buscador y el botón uno debajo del otro, y no al lado: la lista de
                     nombres se abre empujando lo que tiene abajo, y al costado el botón
                     quedaba estirado a lo alto de la lista entera. */}
@@ -572,14 +608,14 @@ export function AppointmentDetailModal({
                 <h3 className="ui-section-title">Registro de la consulta</h3>
 
                 <label className={`ui-field ${flashingState ? "appt-flash" : ""}`} ref={stateFieldRef}>
-                  <span>Estado del turno</span>
+                  <span>Estado {w.del("turno")}</span>
                   <select ref={stateSelectRef} value={state} onChange={(e) => setState(e.target.value)}>
                     <option value="pending">Pendiente</option>
-                    <option value="accepted">Confirmado</option>
+                    <option value="accepted">{`Confirmad${w.o("turno")}`}</option>
                     <option value="assisted">Asistió</option>
                     <option value="missed">No vino</option>
                   </select>
-                  {!isPast && state === "missed" && <small className="ui-hint">El turno todavía no ocurrió.</small>}
+                  {!isPast && state === "missed" && <small className="ui-hint">{`${w.El("turno")} todavía no ocurrió.`}</small>}
                 </label>
 
                 <label className="ui-field">
@@ -606,7 +642,7 @@ export function AppointmentDetailModal({
                     escribe: decirlo acá, al lado del campo, es la única forma de que se
                     entere antes de guardar y no después. */}
                 <p className="ui-alert ui-alert-info">
-                  Visible para el paciente. Sirve para el seguimiento, con plan, indicaciones y pautas hasta la próxima
+                  Visible para {w.el("paciente")}. Sirve para el seguimiento, con plan, indicaciones y pautas hasta la próxima
                   consulta.
                 </p>
 
@@ -668,7 +704,7 @@ export function AppointmentDetailModal({
                       onChange={(e) => setPaidAmount(e.target.value)}
                     />
                     <small>
-                      {value > 0 ? `Valor del turno $${value}.` : "Turno sin valor cargado."}
+                      {value > 0 ? `Valor ${w.del("turno")} $${value}.` : `${w.Turno} sin valor cargado.`}
                       {!paymentIssue && amount > 0 && value > 0 ? ` Saldo pendiente $${value - amount}.` : ""}
                     </small>
                   </label>
@@ -678,7 +714,7 @@ export function AppointmentDetailModal({
 
                 {!savedPayment && (
                   <p className="ui-hint">
-                    Turno anterior al registro de cobros. Figura como impago recién cuando se elige una opción.
+                    {`${w.Turno} anterior al registro de cobros. Figura como impag${w.o("turno")} recién cuando se elige una opción.`}
                   </p>
                 )}
 
@@ -696,9 +732,9 @@ export function AppointmentDetailModal({
             )}
 
             {/* ---- turno repetible ---- */}
-            {isProfessional && !cancelled && (
+            {isProfessional && !cancelled && policies.proRecurring && (
               <Fold
-                title="Turno repetible"
+                title={`${w.Turno} repetible`}
                 summary={
                   appointment.recurrence?.active ? (
                     <span className="adm-badge adm-badge-green">
@@ -716,9 +752,10 @@ export function AppointmentDetailModal({
                 {appointment.recurrence?.active ? (
                   <>
                     <p className="ui-alert ui-alert-info">
-                      Este turno se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}
+                      {capital(w.este("turno"))} se repite {appointment.recurrence.frequency === "weekly" ? "todas las semanas" : "cada dos semanas"}
                       {appointment.recurrence.endDate ? ` hasta el ${new Date(`${appointment.recurrence.endDate.slice(0, 10)}T12:00:00`).toLocaleDateString("es-AR")}` : ", sin fecha de corte"}. El
-                      sistema deja creados los de las próximas cuatro semanas y va agregando los que siguen.
+                      sistema deja {`cread${w.os("turno")} l${w.os("turno")}`} de las próximas cuatro semanas y va agregando{" "}
+                      {`l${w.os("turno")} que siguen.`}
                     </p>
 
                     <div className="ui-section-actions">
@@ -726,7 +763,7 @@ export function AppointmentDetailModal({
                         Frenar la repetición
                       </button>
                     </div>
-                    <p className="ui-hint">Frenarla no borra los turnos ya creados. Esos se cancelan de a uno.</p>
+                    <p className="ui-hint">{`Frenarla no borra ${w.los("turno")} ya cread${w.os("turno")}. Es${w.os("turno")} se cancelan de a un${w.o("turno")}.`}</p>
                   </>
                 ) : (
                   <>
@@ -747,7 +784,7 @@ export function AppointmentDetailModal({
                         disabled={!repeatForever && !repeatUntil}
                         onClick={() => onRepeat(appointment, frequency, repeatForever ? null : repeatUntil)}
                       >
-                        Repetir turno
+                        Repetir {w.turno}
                       </button>
                     </div>
                   </>
@@ -758,7 +795,7 @@ export function AppointmentDetailModal({
             {/* ---- historial del paciente ---- */}
             {isProfessional && appointment.patient && (
               <div className="ui-section">
-                <h3 className="ui-section-title">Historial del paciente</h3>
+                <h3 className="ui-section-title">Historial {w.del("paciente")}</h3>
 
                 {!showHistory ? (
                   <div>
@@ -785,7 +822,7 @@ export function AppointmentDetailModal({
                     ))}
                   </ul>
                 ) : (
-                  <p className="ui-detail-empty">No hay consultas anteriores con este paciente.</p>
+                  <p className="ui-detail-empty">{`No hay consultas anteriores con ${w.este("paciente")}.`}</p>
                 )}
               </div>
             )}

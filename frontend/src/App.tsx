@@ -34,6 +34,8 @@ import { ErrorPage } from "./pages/errorPage/ErrorPage.tsx";
 import { AttendancePage } from "./pages/attendance/AttendancePage.tsx";
 import { RentPage } from "./pages/rent/RentPage.tsx";
 import { SpacePage } from "./pages/space/SpacePage.tsx";
+import { useAppearance } from "./lib/installation.ts";
+import { ConfigPage } from "./pages/adminConfig/ConfigPage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -84,6 +86,7 @@ const router = createBrowserRouter([
           { path: "Analytics", element: <OfficeAnalyticsPage/>},
           { path: "Alquileres", element: <RentPage/>},
           { path: "RegisterProfAdmin", element: <RegisterProf/>},
+          { path: "Configuracion", element: <ConfigPage /> },
         ],
       },
 
@@ -173,6 +176,10 @@ const router = createBrowserRouter([
 });
 
 function App() {
+  // El color de la marca, si el consultorio tiene uno fijo, y el estilo de los paneles.
+  // Va acá, en la raíz, porque los dos viven en <html>.
+  useAppearance();
+
   return <RouterProvider router={router} />;
 }
 

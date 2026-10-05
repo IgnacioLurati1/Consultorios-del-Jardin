@@ -45,3 +45,69 @@ export function findAppointmentsByProfessional(
       throw new Error(backendMsg);
     });
 }
+
+/* ============================================================
+   La recepción: la administración sobre la agenda de cualquier profesional.
+
+   Solo existe con la regla adminBooking prendida. Las tres devuelven el mensaje del
+   servidor, que ya viene escrito para mostrarse tal cual, y fallan con ese mismo mensaje.
+   ============================================================ */
+
+type HttpError = { response?: { data?: { message?: string } }; message?: string };
+
+function backendError(err: HttpError): never {
+  throw new Error(err.response?.data?.message || err.message);
+}
+
+export interface AdminAppointmentInput {
+  professionalEmail: string;
+  /** "AAAA-MM-DD". */
+  date: string;
+  initialHour: string;
+  finalHour: string;
+  /** idRoom. */
+  room: number;
+  value: number;
+  patientEmail?: string;
+  overbooked?: boolean;
+}
+
+/** Da un turno en la agenda de un profesional. */
+export function createAdminAppointment(input: AdminAppointmentInput): Promise<string> {
+  return api
+    .post("/appointments/admin", input)
+    .then((response) => String(response.data?.message ?? ""))
+    .catch(backendError);
+}
+
+/** Lo que se puede cambiar de un turno ya dado. Lo que no viene queda como estaba. */
+export interface AdminAppointmentChanges {
+  date?: string;
+  initialHour?: string;
+  finalHour?: string;
+  room?: number;
+  value?: number;
+}
+
+/** Mueve un turno o le cambia el valor. */
+export function moveAdminAppointment(numAppointment: number, changes: AdminAppointmentChanges): Promise<string> {
+  return api
+    .patch(`/appointments/${numAppointment}/admin`, changes)
+    .then((response) => String(response.data?.message ?? ""))
+    .catch(backendError);
+}
+
+/**
+ * Da de baja un turno. Si estaba pendiente, el servidor lo borra en lugar de dejarlo
+ * cancelado.
+ *
+ * No se manda `notifyWaitlist`: el servidor lo toma como "no avisar". Para preguntarlo
+ * habría que saber cuánta gente espera ese horario, y esa cuenta hoy solo la puede pedir
+ * el profesional del turno.
+ */
+export function cancelAdminAppointment(numAppointment: number): Promise<string> {
+  return api
+    .patch(`/appointments/${numAppointment}/admin-cancel`, {})
+    .then((response) => String(response.data?.message ?? ""))
+    .catch(backendError);
+}

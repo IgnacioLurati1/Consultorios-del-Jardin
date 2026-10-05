@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cancellationNotice, formatCancellation, SHORT_NOTICE_HOURS } from "./appointmentTypes.ts";
+import { cancellationNotice, formatCancellation, shortNoticeHours } from "./appointmentTypes.ts";
 
 /**
  * Con cuánta anticipación avisó el paciente que daba de baja el turno.
@@ -43,7 +43,7 @@ describe("La baja del paciente", () => {
 
   // El borde exacto cuenta como aviso suficiente: 24 horas son 24 horas.
   it("justo en el límite no queda marcada", () => {
-    const notice = cancellationNotice(turno(SHORT_NOTICE_HOURS))!;
+    const notice = cancellationNotice(turno(shortNoticeHours()))!;
 
     expect(notice.short).toBe(false);
   });

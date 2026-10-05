@@ -7,6 +7,18 @@
   min-width: 0;
 }
 
+/* La calle, al lado del nombre y en voz más baja. Se corta con puntos si no entra.
+   Con cuatro clases para ganarle a `.crud-name:last-child` del celular, que deja el
+   último texto sin cortar y la calle se salía de la tarjeta. */
+.office-label .office-header .crud-name.office-address {
+  flex: 0 1 auto;
+  text-align: right;
+  color: var(--adm-muted);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .office-label-row-1 {
   display: flex;   
   justify-content: space-between; 

@@ -1,5 +1,6 @@
 import type { Appointment, Room, Schedule } from "../types.ts";
 import { appointmentDate, isCancelled, toISODate } from "./appointmentTypes.ts";
+import { currentInstallation, type InstallationRules } from "../../lib/installation.ts";
 
 /**
  * Los turnos que entran en un día, según la grilla de horarios del profesional.
@@ -8,7 +9,40 @@ import { appointmentDate, isCancelled, toISODate } from "./appointmentTypes.ts";
  * disponibles, y la que hace la agenda semanal para dibujar el "+" en los huecos. Vive
  * acá y no adentro de una pantalla porque las dos tienen que dar exactamente lo mismo:
  * un "+" que ofrezca una franja que después el alta no acepta es peor que no tener "+".
+ *
+ * Y tiene que dar lo mismo que el servidor, que hace la cuenta en `appointments/slotGrid`.
+ * Las reglas —cada cuánto arranca un turno, desde dónde se cuenta, el colchón entre
+ * turnos— llegan del servidor (ver lib/installation); la cuenta está escrita dos veces
+ * porque una corre en el navegador y la otra en el servidor, y las pruebas de los dos
+ * lados fijan los mismos casos.
  */
+
+type GridRules = Pick<InstallationRules, "slotStepMinutes" | "realignToOpening" | "bufferMinutes">;
+
+function minutesOf(hour: string): number {
+  const [h, m] = hour.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function hourOf(minutes: number): string {
+  const total = Math.max(0, minutes);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Desde dónde se cuenta la grilla de un módulo.
+ *
+ * Sin realinear, desde el inicio del módulo, como siempre. Realineando, desde la hora en
+ * que abre la sucursal si el módulo arranca antes: es el arreglo del primer horario que
+ * aparecía corrido (un módulo de 14 a 20 con la sucursal abriendo a las 15 empezaba en
+ * 15:30).
+ */
+function anchorOf(schedule: Schedule, rules: GridRules): number {
+  const start = minutesOf(shortHour(schedule.initialHour));
+  const opens = schedule.room?.office?.openingTime;
+  if (rules.realignToOpening && opens) return Math.max(start, minutesOf(shortHour(opens)));
+  return start;
+}
 
 /** Los días como los guardan los horarios de atención: en minúscula y sin acentos. */
 const DAY_NAMES = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
@@ -54,7 +88,11 @@ export interface DaySlot {
  * celular ya lo ofrecía). Sin eso, a las tres de la tarde un módulo de 14 a 20 con turnos
  * de 45 minutos arrancaba en el de las 15:30.
  */
-export function buildDaySlots(schedules: Schedule[], isoDate: string, { fromNow = false } = {}): DaySlot[] {
+export function buildDaySlots(
+  schedules: Schedule[],
+  isoDate: string,
+  { fromNow = false, rules = currentInstallation().rules as GridRules } = {}
+): DaySlot[] {
   if (!isoDate) return [];
 
   const day = dayNameOf(isoDate);
@@ -62,23 +100,22 @@ export function buildDaySlots(schedules: Schedule[], isoDate: string, { fromNow 
   const slots: DaySlot[] = [];
 
   for (const schedule of schedules.filter((s) => s.day === day)) {
-    let hour = shortHour(schedule.initialHour);
-    const end = shortHour(schedule.finalHour);
+    const end = minutesOf(shortHour(schedule.finalHour));
+    // El paso es la duración del módulo salvo que el consultorio haya puesto otro.
+    const step = rules.slotStepMinutes && rules.slotStepMinutes > 0 ? rules.slotStepMinutes : schedule.duration;
+    if (step <= 0 || schedule.duration <= 0) continue;
 
-    while (addMinutes(hour, schedule.duration) <= end) {
-      const finalHour = addMinutes(hour, schedule.duration);
+    for (let start = anchorOf(schedule, rules); start + schedule.duration <= end; start += step) {
+      const hour = hourOf(start);
+      if (hour <= from) continue;
 
-      if (hour > from) {
-        slots.push({
-          key: `${hour}-${schedule.room.idRoom}`,
-          initialHour: hour,
-          finalHour,
-          room: schedule.room,
-          duration: schedule.duration,
-        });
-      }
-
-      hour = finalHour;
+      slots.push({
+        key: `${hour}-${schedule.room.idRoom}`,
+        initialHour: hour,
+        finalHour: hourOf(start + schedule.duration),
+        room: schedule.room,
+        duration: schedule.duration,
+      });
     }
   }
 
@@ -95,18 +132,28 @@ export function buildDaySlots(schedules: Schedule[], isoDate: string, { fromNow 
  * Los días que ya pasaron no tienen huecos. No se puede dar un turno para ayer, y ofrecer
  * uno que el alta va a rechazar es prometer algo que no se cumple.
  */
-export function freeDaySlots(schedules: Schedule[], isoDate: string, appointments: Appointment[]): DaySlot[] {
+export function freeDaySlots(
+  schedules: Schedule[],
+  isoDate: string,
+  appointments: Appointment[],
+  rules: GridRules = currentInstallation().rules
+): DaySlot[] {
   if (isoDate < toISODate(new Date())) return [];
+
+  // Cada turno ocupa también el colchón de cada lado: el alta del profesional lo controla
+  // igual (ver withBuffer en el motor), y un "+" que ofrezca el hueco pegado a otro turno
+  // sería prometer algo que el servidor después rechaza.
+  const buffer = Math.max(0, rules.bufferMinutes || 0);
 
   const ocupadas = appointments
     .filter((appointment) => !isCancelled(appointment.state))
     .filter((appointment) => toISODate(appointmentDate(appointment.date)) === isoDate)
     .map((appointment) => ({
-      initialHour: shortHour(appointment.initialHour),
-      finalHour: shortHour(appointment.finalHour),
+      initialHour: hourOf(minutesOf(shortHour(appointment.initialHour)) - buffer),
+      finalHour: hourOf(minutesOf(shortHour(appointment.finalHour)) + buffer),
     }));
 
-  return buildDaySlots(schedules, isoDate, { fromNow: true }).filter(
+  return buildDaySlots(schedules, isoDate, { fromNow: true, rules }).filter(
     (slot) => !ocupadas.some((taken) => slot.initialHour < taken.finalHour && slot.finalHour > taken.initialHour)
   );
 }

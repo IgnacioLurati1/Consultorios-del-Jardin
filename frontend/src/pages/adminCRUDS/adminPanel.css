@@ -25,6 +25,15 @@
   --sea-h2: 128;
   --sea-s2: 42%;
 
+  /* ---------- El estilo del panel ----------
+     De qué tono son los grises y cuánto color llevan. Por omisión, el de la estación y
+     tal como estaban: los grises siempre llevaron una pizca del acento. Un estilo de panel
+     (más abajo) los vuelve casi neutros, o los corre a un tono tibio, sin tocar el acento.
+     --app-font es la letra de toda la aplicación. */
+  --neutral-h: var(--sea-h);
+  --tint: 1;
+  --app-font: "Ubuntu", sans-serif;
+
   --adm-green: hsl(var(--sea-h) var(--sea-s) 35%);
   /* En claro es más oscuro que --adm-green; en oscuro es más claro. Lo que se mantiene
      entre los dos no es el tono sino el rol: contrasta contra --adm-green-soft y marca
@@ -66,8 +75,8 @@
   /* El gris de un bloque que todavía está cargando, y el reflejo que lo recorre. El
      reflejo siempre tiene que ser más claro que la base: si se invierten, la animación
      se lee como una sombra que pasa y no como algo que está por llegar. */
-  --adm-skeleton: hsl(var(--sea-h) 12% 93%);
-  --adm-skeleton-shine: hsl(var(--sea-h) 12% 97%);
+  --adm-skeleton: hsl(var(--neutral-h) calc(12% * var(--tint)) 93%);
+  --adm-skeleton-shine: hsl(var(--neutral-h) calc(12% * var(--tint)) 97%);
   /* La barra de arriba es marca, no superficie: lleva el color de la estación en los dos
      temas. Por eso tiene sus propios valores y no sale de --adm-green, que en oscuro se
      aclara para poder leerse sobre el fondo y dejaría la barra más clara que la página. */
@@ -76,21 +85,21 @@
   --adm-surface: #ffffff;
   /* Superficie apenas separada de la principal: encabezados de tabla, pies de tarjeta,
      franjas que agrupan sin llegar a ser un panel aparte. */
-  --adm-surface-alt: hsl(var(--sea-h) 10% 98%);
+  --adm-surface-alt: hsl(var(--neutral-h) calc(10% * var(--tint)) 98%);
   /* Hundida: lo que está detrás de la superficie, como el fondo de una fila al pasarle
      el mouse o el riel de un control. */
-  --adm-surface-sunken: hsl(var(--sea-h) 12% 94%);
-  --adm-bg: hsl(var(--sea-h) 14% 95%);
+  --adm-surface-sunken: hsl(var(--neutral-h) calc(12% * var(--tint)) 94%);
+  --adm-bg: hsl(var(--neutral-h) calc(14% * var(--tint)) 95%);
   /* Los grises tampoco son neutros acá: llevan una pizca de la estación, igual que en
      oscuro. Un gris azulado sobre un papel tibio se ve francamente azul, y la pantalla
      se parte en dos. */
-  --adm-text: hsl(var(--sea-h) 18% 16%);
-  --adm-muted: hsl(var(--sea-h) 12% 41%);
-  --adm-muted-soft: hsl(var(--sea-h) 12% 63%);
+  --adm-text: hsl(var(--neutral-h) calc(18% * var(--tint)) 16%);
+  --adm-muted: hsl(var(--neutral-h) calc(12% * var(--tint)) 41%);
+  --adm-muted-soft: hsl(var(--neutral-h) calc(12% * var(--tint)) 63%);
   /* Los bordes también son de la estación, con muy poco color. Es lo que hace que en
      otoño la página entera se sienta tibia, y no que solo cambiaron los botones. */
-  --adm-border: hsl(var(--sea-h) 20% 90%);
-  --adm-border-strong: hsl(var(--sea-h) 20% 82%);
+  --adm-border: hsl(var(--neutral-h) calc(20% * var(--tint)) 90%);
+  --adm-border-strong: hsl(var(--neutral-h) calc(20% * var(--tint)) 82%);
   /* Gris azulado de los gráficos y las leyendas: el neutro que acompaña al verde. */
   --adm-slate: #6c788e;
   --adm-danger: #c0392b;
@@ -130,22 +139,22 @@
   --adm-gold-soft: hsl(44 34% 13%);
   --adm-gold-line: hsl(43 55% 40%);
   --adm-gold: hsl(45 85% 66%);
-  --adm-skeleton: hsl(var(--sea-h) 11% 13%);
-  --adm-skeleton-shine: hsl(var(--sea-h) 11% 19%);
+  --adm-skeleton: hsl(var(--neutral-h) calc(11% * var(--tint)) 13%);
+  --adm-skeleton-shine: hsl(var(--neutral-h) calc(11% * var(--tint)) 19%);
   --adm-bar-top: hsl(var(--sea-h) var(--sea-s) 17%);
   --adm-bar-bottom: hsl(var(--sea-h2) var(--sea-s2) 12%);
-  --adm-surface: hsl(var(--sea-h) 13% 10%);
-  --adm-surface-alt: hsl(var(--sea-h) 11% 13%);
-  --adm-surface-sunken: hsl(var(--sea-h) 11% 15%);
-  --adm-bg: hsl(var(--sea-h) 17% 7%);
+  --adm-surface: hsl(var(--neutral-h) calc(13% * var(--tint)) 10%);
+  --adm-surface-alt: hsl(var(--neutral-h) calc(11% * var(--tint)) 13%);
+  --adm-surface-sunken: hsl(var(--neutral-h) calc(11% * var(--tint)) 15%);
+  --adm-bg: hsl(var(--neutral-h) calc(17% * var(--tint)) 7%);
   /* En oscuro los grises tampoco son neutros: llevan una pizca de la estación. Un gris
      neutro al lado de un acento marrón se ve azulado por contraste, y la pantalla se
      parte en dos. */
-  --adm-text: hsl(var(--sea-h) 14% 91%);
-  --adm-muted: hsl(var(--sea-h) 8% 62%);
-  --adm-muted-soft: hsl(var(--sea-h) 6% 48%);
-  --adm-border: hsl(var(--sea-h) 11% 19%);
-  --adm-border-strong: hsl(var(--sea-h) 10% 26%);
+  --adm-text: hsl(var(--neutral-h) calc(14% * var(--tint)) 91%);
+  --adm-muted: hsl(var(--neutral-h) calc(8% * var(--tint)) 62%);
+  --adm-muted-soft: hsl(var(--neutral-h) calc(6% * var(--tint)) 48%);
+  --adm-border: hsl(var(--neutral-h) calc(11% * var(--tint)) 19%);
+  --adm-border-strong: hsl(var(--neutral-h) calc(10% * var(--tint)) 26%);
   --adm-slate: #93a0b5;
   --adm-danger: #ef8a7d;
   --adm-danger-soft: #32201e;
@@ -194,6 +203,66 @@
   --sea-h2: 130;
   --sea-s2: 40%;
 }
+
+/* Los estilos de panel.
+
+   Cada uno cambia la forma y no el color: la letra, el redondeo, las sombras y cuánto
+   color llevan los grises. El color sigue saliendo de la estación o de la marca, así que
+   cualquier estilo va con cualquier color. Lo pone lib/installation sobre <html>, como
+   data-panel-skin, y la configuración del consultorio dice cuál.
+
+   "jardin" es el de siempre y no tiene regla: son los valores de :root.
+
+   Van después del modo oscuro a propósito. Con la misma especificidad gana el último, y
+   lo que pisan acá —el redondeo, la letra, las sombras de "sobrio"— vale igual en los dos
+   temas. Los colores de cada tema no se tocan: los grises se mueven por --tint y
+   --neutral-h, que el modo oscuro ya lee. */
+
+/* Jardín, explícito. En <html> no hace falta —son los valores de :root— pero una muestra
+   de este estilo adentro de una página con otro estilo heredaría el otro si no se los
+   vuelve a poner. Ver la elección de estilo en la configuración. */
+[data-panel-skin="jardin"] {
+  --neutral-h: var(--sea-h);
+  --tint: 1;
+  --adm-radius: 12px;
+  --adm-radius-sm: 8px;
+  --adm-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --app-font: "Ubuntu", sans-serif;
+}
+
+[data-theme="dark"] [data-panel-skin="jardin"] {
+  --adm-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Clínico: letra técnica, esquinas chicas, grises casi neutros. */
+[data-panel-skin="clinico"] {
+  --neutral-h: var(--sea-h);
+  --tint: 0.25;
+  --adm-radius: 6px;
+  --adm-radius-sm: 4px;
+  --app-font: "IBM Plex Sans", "Ubuntu", sans-serif;
+}
+
+/* Cálido: letra redonda, esquinas amplias, grises que tiran a papel. */
+[data-panel-skin="calido"] {
+  --neutral-h: 36;
+  --tint: 1.6;
+  --adm-radius: 18px;
+  --adm-radius-sm: 12px;
+  --app-font: "Nunito", "Ubuntu", sans-serif;
+}
+
+/* Sobrio: sin sombras, esquinas casi rectas, grises neutros. Los bordes hacen el trabajo
+   que hacían las sombras. */
+[data-panel-skin="sobrio"] {
+  --tint: 0;
+  --adm-radius: 3px;
+  --adm-radius-sm: 2px;
+  --adm-shadow: none;
+  --adm-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --app-font: "Work Sans", "Ubuntu", sans-serif;
+}
+
 
 /* El texto de ejemplo de un campo vacío.
    Sin esta regla lo elige el navegador a partir del color del texto: en oscuro queda casi
@@ -1141,4 +1210,36 @@ textarea::placeholder {
   .adm-swapping {
     transition: none;
   }
+}
+
+/* Los dos botones de abajo del panel van del mismo ancho, así los bordes quedan alineados
+   uno debajo del otro. El ancho alcanza para "Ocultar datos generales". */
+.adm-section-wide {
+  min-width: 17.5rem;
+  box-sizing: border-box;
+}
+
+/* Configuración, debajo de datos generales. Lleva al otro lado en vez de desplegar algo,
+   así que no se disfraza de "+": borde liso, el ícono de ajustes y una flecha. */
+.adm-section-link {
+  display: flex;
+  width: fit-content;
+  margin-top: 12px;
+  border-style: solid;
+  text-decoration: none;
+}
+
+.adm-section-link .adm-plus {
+  background: var(--adm-green-soft);
+  color: var(--adm-green-dark);
+}
+
+.adm-section-arrow {
+  margin-left: auto;
+  font-size: 0.9rem;
+  transition: transform 0.15s ease;
+}
+
+.adm-section-link:hover .adm-section-arrow {
+  transform: translateX(3px);
 }

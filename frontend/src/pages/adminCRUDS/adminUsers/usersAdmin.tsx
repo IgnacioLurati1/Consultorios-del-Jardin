@@ -24,17 +24,21 @@ import { UserModal } from "./userModal";
 import { deletionLabel, formatDeletionDate } from "./accountDeletion.ts";
 import { PasswordLinksModal } from "./PasswordLinksModal";
 import type { Person } from "../../types";
+import { currentWords, useWords } from "../../../lib/installation.ts";
 
 /** Los tipos de fila que puede haber en el listado. */
 type UserFilter = "all" | "client" | "anonymous" | "professional" | "admin";
 
-const FILTERS: { key: UserFilter; label: string }[] = [
-  { key: "all", label: "Todos" },
-  { key: "client", label: "Pacientes" },
-  { key: "anonymous", label: "Sin cuenta" },
-  { key: "professional", label: "Profesionales" },
-  { key: "admin", label: "Administración" },
-];
+function filters(): { key: UserFilter; label: string }[] {
+  const w = currentWords();
+  return [
+    { key: "all", label: "Todos" },
+    { key: "client", label: w.Pacientes },
+    { key: "anonymous", label: "Sin cuenta" },
+    { key: "professional", label: w.Profesionales },
+    { key: "admin", label: "Administración" },
+  ];
+}
 
 /** Un paciente sin cuenta es un paciente, pero se cuenta y se filtra aparte. */
 function matchesFilter(user: Person, filter: UserFilter): boolean {
@@ -54,6 +58,7 @@ function matchesFilter(user: Person, filter: UserFilter): boolean {
 
 /** Por qué se cayó sola una cuenta. El motivo lo escribe la regla que la dio de baja. */
 function explainBan(user: Person): string {
+  const w = currentWords();
   const reason = user.banReason ? user.banReason.charAt(0).toLowerCase() + user.banReason.slice(1) : null;
   const when = user.bannedAt
     ? ` el ${new Date(user.bannedAt).toLocaleDateString("es-AR", { day: "numeric", month: "long" })}`
@@ -61,7 +66,7 @@ function explainBan(user: Person): string {
 
   return (
     `El sistema la deshabilitó solo${when}${reason ? `: ${reason}` : ""}. ` +
-    `Los turnos de esa tanda se dieron de baja. Se vuelve a habilitar desde su ficha, hasta el ${deletionLabel(
+    `${w.Los("turno")} de esa tanda se dieron de baja. Se vuelve a habilitar desde su ficha, hasta el ${deletionLabel(
       user.bannedAt ?? undefined
     )}, que es cuando se elimina.`
   );
@@ -74,6 +79,7 @@ const normalize = (text: string) =>
     .toLowerCase() ?? "";
 
 export function UsersAdmin() {
+  const w = useWords();
   const [users, setUsers] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -125,7 +131,7 @@ export function UsersAdmin() {
   // El número de cada chip no mira la búsqueda: es cuántos hay en total de ese tipo.
   const counts = useMemo(() => {
     const result = {} as Record<UserFilter, number>;
-    for (const { key } of FILTERS) result[key] = users.filter((user) => matchesFilter(user, key)).length;
+    for (const { key } of filters()) result[key] = users.filter((user) => matchesFilter(user, key)).length;
     return result;
   }, [users]);
 
@@ -140,7 +146,7 @@ export function UsersAdmin() {
   function describeOrigin(user: Person): string | null {
     if (!user.createdBy) return null;
     const author = nameByEmail.get(user.createdBy) ?? user.createdBy;
-    return user.anonymous ? `cargado por ${author}` : `originalmente cargado por ${author}`;
+    return user.anonymous ? `cargad${w.o("paciente")} por ${author}` : `originalmente cargad${w.o("paciente")} por ${author}`;
   }
 
   /**
@@ -167,7 +173,7 @@ export function UsersAdmin() {
         toast.success(
           active
             ? antes?.type === "professional" && bookable === false
-              ? "Cuenta habilitada. Para que aparezca en la búsqueda de turnos, volver a ofrecerla"
+              ? `Cuenta habilitada. Para que aparezca en la búsqueda de ${w.turnos}, volver a ofrecerla`
               : "Cuenta habilitada"
             : `Cuenta deshabilitada. Se elimina a partir del ${deletionAt ? formatDeletionDate(deletionAt) : deletionLabel()}`
         );
@@ -189,7 +195,7 @@ export function UsersAdmin() {
   async function deleteUser(email: string, force: boolean) {
     try {
       await deletePerson(email, force);
-      toast.success("Paciente eliminado");
+      toast.success(`${w.Paciente} eliminad${w.o("paciente")}`);
       setUsers((prev) => prev.filter((user) => user.email !== email));
       return null;
     } catch (err: any) {
@@ -223,7 +229,7 @@ export function UsersAdmin() {
   function toggleBookableUser(email: string) {
     toggleBookable(email)
       .then(({ bookable }) => {
-        toast.success(bookable ? "Vuelve a aparecer cuando se busca turno" : "Deja de aparecer cuando se busca turno");
+        toast.success(bookable ? `Vuelve a aparecer cuando se busca ${w.turno}` : `Deja de aparecer cuando se busca ${w.turno}`);
         setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, bookable })));
       })
       .catch((err) => toast.error(`Error al guardar el cambio: ${err.message}`));
@@ -244,7 +250,7 @@ export function UsersAdmin() {
     try {
       const updated = await updatePerson(email, data);
       setUsers((prev) => prev.map((user) => (user.email !== email ? user : { ...user, ...updated })));
-      toast.success("Profesional actualizado");
+      toast.success(`${w.Profesional} actualizad${w.o("profesional")}`);
       setModalVisible(false);
     } catch (err: any) {
       toast.error(`Error al guardar los cambios: ${err.message}`);
@@ -254,10 +260,10 @@ export function UsersAdmin() {
   function badgesFor(user: Person): PersonBadge[] {
     const badges: PersonBadge[] = [
       user.type === "admin"
-        ? { label: "Administración", tone: "grey", hint: "Maneja el panel. No atiende ni saca turnos." }
+        ? { label: "Administración", tone: "grey", hint: `Maneja el panel. No atiende ni saca ${w.turnos}.` }
         : user.type === "professional"
-        ? { label: "Profesional", tone: "green" }
-        : { label: "Paciente", tone: "grey" },
+        ? { label: w.Profesional, tone: "green" }
+        : { label: w.Paciente, tone: "grey" },
     ];
 
     if (user.email === self) badges.push({ label: "Cuenta propia", tone: "grey" });
@@ -270,7 +276,7 @@ export function UsersAdmin() {
       badges.push({
         label: "El correo no existe",
         tone: "red",
-        hint: "No recibe el turno ni el recordatorio. Se arregla corrigiendo el correo en su ficha.",
+        hint: `No recibe ${w.el("turno")} ni el recordatorio. Se arregla corrigiendo el correo en su ficha.`,
       });
     } else if (bounced.get(user.email) === "blocked") {
       // La dirección existe. No se arregla corrigiendo nada, así que no se dice que esté mal.
@@ -310,7 +316,7 @@ export function UsersAdmin() {
       badges.push({
         label: "Fuera de la búsqueda",
         tone: "amber",
-        hint: "Sigue trabajando y atendiendo, pero no aparece cuando un paciente busca con quién sacar turno.",
+        hint: `Sigue trabajando y atendiendo, pero no aparece cuando ${w.un("paciente")} busca con quién sacar ${w.turno}.`,
       });
     } else if (flagged.has(user.email)) {
       badges.push({ label: "Comportamiento sospechoso", tone: "amber", hint: explainSuspicion(flagged.get(user.email)!) });
@@ -323,7 +329,7 @@ export function UsersAdmin() {
     <div className="adm-page">
       <AdminHeader
         title="Usuarios"
-        subtitle="Pacientes y profesionales registrados"
+        subtitle={`${w.Pacientes} y ${w.profesionales} registrad${w.o("paciente") === "a" && w.o("profesional") === "a" ? "as" : "os"}`}
         actions={
           <>
             <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setLinksOpen(true)}>
@@ -332,7 +338,7 @@ export function UsersAdmin() {
             </button>
             <button type="button" className="adm-btn adm-btn-primary" onClick={() => navigate("/AdminHome/RegisterProfAdmin")}>
               <FaPlus />
-              Registrar profesional
+              Registrar {w.profesional}
             </button>
           </>
         }
@@ -342,7 +348,7 @@ export function UsersAdmin() {
 
       <div className="adm-filters">
         <div className="adm-chips" role="group" aria-label="Tipo de usuario">
-          {FILTERS.map(({ key, label }) => (
+          {filters().map(({ key, label }) => (
             <button
               key={key}
               type="button"

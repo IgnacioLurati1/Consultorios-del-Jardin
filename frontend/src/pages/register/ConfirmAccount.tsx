@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useLogo } from "../../lib/useLogo";
 import { subirAlPrincipio } from "../../lib/scroll";
 import "../newPassword/passwordPages.css";
+import { useOfficeName } from "../../lib/installation.ts";
 
 /**
  * El link del mail que termina de crear la cuenta.
@@ -21,6 +22,7 @@ import "../newPassword/passwordPages.css";
  * compartida en vez de estar escrita a mano.
  */
 export function ConfirmAccount() {
+  const officeName = useOfficeName();
   const logo = useLogo();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -129,7 +131,7 @@ export function ConfirmAccount() {
     <div className="pw-page">
       <div className="pw-card">
         <div className="pw-head">
-          <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <img src={logo} alt={officeName} className="pw-logo" />
           <h1 className="pw-title">Creando la cuenta</h1>
           <p className="pw-subtitle">Confirmando el mail…</p>
         </div>

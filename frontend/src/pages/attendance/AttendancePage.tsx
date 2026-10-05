@@ -5,6 +5,7 @@ import { FaCircleCheck, FaTriangleExclamation } from "react-icons/fa6";
 import { API_BASE_URL } from "../../axios.ts";
 import { appointmentDate, formatDayLabel } from "../appointments/appointmentTypes.ts";
 import "../newPassword/passwordPages.css";
+import { currentWords, useInstallation, useWords } from "../../lib/installation.ts";
 
 interface AttendanceView {
   numAppointment: number;
@@ -29,6 +30,8 @@ interface AttendanceView {
  * firma que viaja en la dirección.
  */
 export function AttendancePage() {
+  const w = useWords();
+  const { address, policies } = useInstallation();
   const [params] = useSearchParams();
   const token = params.get("t");
   const asked = params.get("r");
@@ -39,7 +42,7 @@ export function AttendancePage() {
   /** Qué contestó recién, para mostrar el cierre que le corresponde. */
   const [answered, setAnswered] = useState<"yes" | "no" | null>(null);
   /** "No puedo ir" se confirma: del otro lado hay un turno que se cancela. */
-  const [confirmingNo, setConfirmingNo] = useState(asked === "no");
+  const [confirmingNo, setConfirmingNo] = useState(asked === "no" && policies.patientCancel);
 
   useEffect(() => {
     if (!token) return;
@@ -47,7 +50,7 @@ export function AttendancePage() {
     axios
       .get(`${API_BASE_URL}/attendance/${encodeURIComponent(token)}`)
       .then((response) => setView(response.data.data))
-      .catch((err) => setError(err.response?.data?.message || "Error al abrir el turno. Reintentar en unos minutos"));
+      .catch((err) => setError(err.response?.data?.message || `Error al abrir ${currentWords().el("turno")}. Reintentar en unos minutos`));
   }, [token]);
 
   async function answer(value: "yes" | "no") {
@@ -83,22 +86,22 @@ export function AttendancePage() {
     );
   }
 
-  const toBooking = (
+  const toBooking = policies.patientBooking ? (
     <Link className="adm-btn adm-btn-primary" to="/Appointment">
-      Solicitar otro turno
+      {`Solicitar ${w.otro("turno")}`}
     </Link>
-  );
+  ) : null;
 
   if (!token) return result("warn", "Link incompleto", "Parte del link se perdió, probablemente al copiarlo desde el mail.");
-  if (error) return result("warn", "Error al abrir el turno", error);
+  if (error) return result("warn", `Error al abrir ${w.el("turno")}`, error);
 
   if (!view) {
     return (
       <div className="pw-page">
         <div className="pw-card">
           <div className="pw-head">
-            <h1 className="pw-title">Turno</h1>
-            <p className="pw-subtitle">Buscando el turno…</p>
+            <h1 className="pw-title">{w.Turno}</h1>
+            <p className="pw-subtitle">{`Buscando ${w.el("turno")}…`}</p>
           </div>
         </div>
       </div>
@@ -112,11 +115,11 @@ export function AttendancePage() {
   if (answered === "no" || view.status === "cancelled")
     return result(
       "ok",
-      "Turno cancelado",
+      `${w.Turno} cancelad${w.o("turno")}`,
       answered === "no" ? "El horario queda disponible para otra persona. Gracias por el aviso." : `${when}, con ${who}.`,
       toBooking
     );
-  if (view.status === "assisted" || view.status === "missed") return result("warn", "Turno finalizado", `${when}, con ${who}.`);
+  if (view.status === "assisted" || view.status === "missed") return result("warn", `${w.Turno} finalizad${w.o("turno")}`, `${when}, con ${who}.`);
 
   return (
     <div className="pw-page">
@@ -132,7 +135,7 @@ export function AttendancePage() {
             <strong>{when}</strong>
           </div>
           <div className="ui-detail-row">
-            <span>Profesional</span>
+            <span>{w.Profesional}</span>
             <strong>
               {who}
               {view.professional.speciality ? ` · ${view.professional.speciality}` : ""}
@@ -141,13 +144,15 @@ export function AttendancePage() {
           {view.room && (
             <div className="ui-detail-row">
               <span>Lugar</span>
-              <strong>{view.room} · 9 de Julio 3672</strong>
+              <strong>{view.room} · {address}</strong>
             </div>
           )}
         </div>
 
         {view.confirmedAt && !confirmingNo && (
-          <p className="ui-alert ui-alert-info">Asistencia ya confirmada. La cancelación sigue disponible acá.</p>
+          <p className="ui-alert ui-alert-info">
+            {policies.patientCancel ? "Asistencia ya confirmada. La cancelación sigue disponible acá." : "Asistencia ya confirmada."}
+          </p>
         )}
 
         {confirmingNo ? (
@@ -155,7 +160,7 @@ export function AttendancePage() {
             <p className="ui-alert ui-alert-warn">Al cancelar, el horario queda disponible para otra persona.</p>
             <div className="pw-result-actions">
               <button type="button" className="adm-btn adm-btn-danger" onClick={() => answer("no")} disabled={saving}>
-                {saving ? "Cancelando…" : "Cancelar turno"}
+                {saving ? "Cancelando…" : `Cancelar ${w.turno}`}
               </button>
               <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingNo(false)} disabled={saving}>
                 Volver
@@ -169,9 +174,13 @@ export function AttendancePage() {
                 {saving ? "Guardando…" : "Confirmar asistencia"}
               </button>
             )}
-            <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingNo(true)} disabled={saving}>
-              Cancelar turno
-            </button>
+            {policies.patientCancel ? (
+              <button type="button" className="adm-btn adm-btn-ghost" onClick={() => setConfirmingNo(true)} disabled={saving}>
+                {`Cancelar ${w.turno}`}
+              </button>
+            ) : (
+              <small className="ui-hint">{`Para cancelar hay que avisarle ${w.al("lugar")}`}</small>
+            )}
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@ import type { Person, Room } from "../../types.ts";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import "./professionalPicker.css";
 import { roomLook, type RoomPictogram } from "../../../lib/roomLook.ts";
+import { useWords } from "../../../lib/installation.ts";
 import { FaLeaf, FaRoad, FaStairs } from "react-icons/fa6";
 
 interface ProfessionalPickerProps {
@@ -70,6 +71,7 @@ export function ProfessionalPicker({
   onSelectRoom,
   onSelectDay,
 }: ProfessionalPickerProps) {
+  const w = useWords();
   const [search, setSearch] = useState("");
   const [roomSearch, setRoomSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -114,14 +116,16 @@ export function ProfessionalPicker({
         className={`picker-window ${offersRooms ? "picker-window-wide" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Elegir profesional o consultorio"
+        aria-label={`Elegir ${w.profesional} o ${w.sala}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="picker-head">
           <div>
-            <h2 className="picker-title">{offersRooms ? "Agenda a consultar" : "Buscar profesional"}</h2>
+            <h2 className="picker-title">{offersRooms ? "Agenda a consultar" : `Buscar ${w.profesional}`}</h2>
             <p className="picker-subtitle">
-              {offersRooms ? "Un profesional, un consultorio o un día entero." : "Agenda semanal de un profesional."}
+              {offersRooms
+                ? `${w.Un("profesional")}, ${w.un("sala")} o un día entero.`
+                : `Agenda semanal de ${w.un("profesional")}.`}
             </p>
           </div>
           {onClose && (
@@ -134,7 +138,7 @@ export function ProfessionalPicker({
         <div className={`picker-body ${offersRooms ? "picker-body-split" : ""}`}>
           {/* ---- columna: profesional ---- */}
           <section className="picker-pane">
-            {offersRooms && <h3 className="picker-pane-title">Profesional</h3>}
+            {offersRooms && <h3 className="picker-pane-title">{w.Profesional}</h3>}
 
             <div className="picker-search">
               <FaMagnifyingGlass className="picker-search-icon" />
@@ -142,7 +146,7 @@ export function ProfessionalPicker({
                 ref={inputRef}
                 className="picker-search-input"
                 type="text"
-                placeholder="Nombre, apellido, especialidad o email"
+                placeholder={`Nombre, apellido, ${w.especialidad} o email`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -152,7 +156,7 @@ export function ProfessionalPicker({
               {loading ? (
                 <SkeletonList rows={4} />
               ) : professionals.length === 0 ? (
-                <div className="picker-empty">Sin profesionales cargados.</div>
+                <div className="picker-empty">{`Sin ${w.profesionales} cargad${w.os("profesional")}.`}</div>
               ) : filtered.length === 0 ? (
                 <div className="picker-empty">Sin coincidencias para “{search}”.</div>
               ) : (
@@ -170,11 +174,11 @@ export function ProfessionalPicker({
                             {/* Se lo puede elegir igual: su grilla es por donde se le sacan los
                                 módulos que quedaron ocupando consultorios. */}
                             {professional.active === false && (
-                              <span className="adm-badge adm-badge-red picker-item-badge">Deshabilitado</span>
+                              <span className="adm-badge adm-badge-red picker-item-badge">{`Deshabilitad${w.o("profesional")}`}</span>
                             )}
                           </span>
                           <span className="picker-item-meta">
-                            {professional.speciality || "Sin especialidad"} · {professional.email}
+                            {professional.speciality || `Sin ${w.especialidad}`} · {professional.email}
                           </span>
                         </span>
                       </button>
@@ -197,14 +201,14 @@ export function ProfessionalPicker({
           {/* ---- columna: consultorio ---- */}
           {offersRooms && (
             <section className="picker-pane">
-              <h3 className="picker-pane-title">Consultorio</h3>
+              <h3 className="picker-pane-title">{w.Sala}</h3>
 
               <div className="picker-search">
                 <FaMagnifyingGlass className="picker-search-icon" />
                 <input
                   className="picker-search-input"
                   type="text"
-                  placeholder="Nombre del consultorio"
+                  placeholder={`Nombre ${w.del("sala")}`}
                   value={roomSearch}
                   onChange={(e) => setRoomSearch(e.target.value)}
                 />
@@ -212,7 +216,7 @@ export function ProfessionalPicker({
 
               <div className="picker-results">
                 {rooms!.length === 0 ? (
-                  <div className="picker-empty">Sin consultorios activos cargados.</div>
+                  <div className="picker-empty">{`Sin ${w.salas} activ${w.os("sala")} cargad${w.os("sala")}.`}</div>
                 ) : filteredRooms.length === 0 ? (
                   <div className="picker-empty">Sin coincidencias para “{roomSearch}”.</div>
                 ) : (
@@ -243,7 +247,7 @@ export function ProfessionalPicker({
               </span>
               <span className="picker-day-text">
                 <strong>Ver un día completo</strong>
-                <small>Todos los profesionales, consultorio por consultorio</small>
+                <small>{`Tod${w.os("profesional")} ${w.los("profesional")}, ${w.sala} por ${w.sala}`}</small>
               </span>
               <FaChevronRight className="picker-day-go" aria-hidden="true" />
             </button>

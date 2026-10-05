@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaBan, FaBell, FaBellSlash, FaEnvelope, FaEye, FaEyeSlash, FaPen, FaTrash } from "react-icons/fa6";
+import { FaBan, FaBell, FaBellSlash, FaEnvelope, FaEye, FaEyeSlash, FaPen, FaPlaneDeparture, FaTrash } from "react-icons/fa6";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import type { Person } from "../../types";
-import { SPECIALITIES } from "../../specialities.ts";
+import { useSpecialities } from "../../specialities.ts";
 import { deletionLabel, deletionThisMonth } from "./accountDeletion.ts";
+import { hasBranches, useInstallation, usePolicies, useWords } from "../../../lib/installation.ts";
+import { VacationsModal, type VacationPeriod } from "../../../components/vacations/VacationsModal.tsx";
+import { addVacationFor, findVacationsOf, removeVacationFor } from "./vacationsService.ts";
+import { findOfficeIdsOfProfessional } from "../adminOffices/OfficeService.ts";
+import { branchName, findBranch, manyCities } from "../adminOffices/branches.ts";
 
 interface UserModalProps {
   visible: boolean;
@@ -79,6 +84,8 @@ export function UserModal({
   onChangeEmail,
   onEdit,
 }: UserModalProps) {
+  const w = useWords();
+  const specialities = useSpecialities();
   const [userData, setUserData] = useState(emptyUser);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +101,55 @@ export function UserModal({
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /*
+   * Dónde atiende, cuando se trabaja con varias sucursales. Sale de sus horarios cargados:
+   * una sucursal donde no tiene ninguno no cuenta. En null, todavía se está preguntando.
+   */
+  const installation = useInstallation();
+  const multi = hasBranches(installation);
+  const [branchIds, setBranchIds] = useState<string[] | null>(null);
+  const [branchesFailed, setBranchesFailed] = useState(false);
+  const professionalEmail = visible && multi && user?.type === "professional" ? user.email : null;
+
+  useEffect(() => {
+    if (!professionalEmail) return;
+    let cancelled = false;
+
+    setBranchIds(null);
+    setBranchesFailed(false);
+    findOfficeIdsOfProfessional(professionalEmail)
+      .then((ids) => {
+        if (!cancelled) setBranchIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setBranchesFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [professionalEmail]);
+
   // El admin solo edita profesionales. Los pacientes quedan en modo lectura: los suyos
   // los mantiene cada persona, y los sin cuenta, el profesional que los cargó.
   const isProfessional = user?.type === "professional";
   const isAdmin = user?.type === "admin";
   const isPatient = user?.type === "client";
+
+  /*
+   * Las vacaciones del profesional, cuando la regla deja que las cargue la administración
+   * (sola o junto con él). Se piden al abrir la ventana de vacaciones, no antes.
+   */
+  const policies = usePolicies();
+  const vacationsByAdmin = isProfessional && policies.vacations !== "professional";
+  const [vacationsOpen, setVacationsOpen] = useState(false);
+  const [vacations, setVacations] = useState<VacationPeriod[] | null>(null);
+
+  function loadVacations(email: string) {
+    return findVacationsOf(email)
+      .then(setVacations)
+      .catch(() => setVacations([]));
+  }
 
   // Lo que hay guardado, que es de donde arranca la ficha y a donde vuelve al descartar.
   const savedFields = useMemo(
@@ -129,12 +180,19 @@ export function UserModal({
 
   if (!visible || !user) return null;
 
+  /** Los nombres de sus sucursales, con la ciudad si hay sucursales en más de una. */
+  const branchNames =
+    branchIds?.flatMap((id) => {
+      const branch = findBranch(id, installation);
+      return branch ? [branchName(branch, manyCities(installation.branches))] : [];
+    }) ?? null;
+
   function validate(): string | null {
     if (!userData.name.trim() || !userData.surname.trim()) return "El nombre y el apellido no pueden quedar vacíos";
     if (!/^\d+$/.test(userData.docNumber.trim())) return "El documento tiene que tener solo dígitos";
     if (!/^\d{10}$/.test(userData.phoneNumber.replace(/\D/g, "")))
       return "El teléfono tiene que tener 10 dígitos, sin 0 ni 15 (ej: 3411234567)";
-    if (!userData.speciality.trim()) return "La especialidad no puede quedar vacía";
+    if (!userData.speciality.trim()) return `${w.El("especialidad")} no puede quedar vací${w.o("especialidad")}`;
     return null;
   }
 
@@ -289,6 +347,21 @@ export function UserModal({
         </button>
       )}
 
+      {vacationsByAdmin && user.active && (
+        <button
+          type="button"
+          className="adm-btn adm-btn-ghost"
+          onClick={() => {
+            setVacations(null);
+            setVacationsOpen(true);
+            void loadVacations(user.email);
+          }}
+        >
+          <FaPlaneDeparture />
+          Vacaciones
+        </button>
+      )}
+
       {/* Dos formas distintas de sacar a alguien de circulación: esta lo esconde de la
           búsqueda de turnos y lo deja trabajando; la de al lado lo saca del sistema. */}
       {isProfessional && user.active && (
@@ -301,7 +374,7 @@ export function UserModal({
           }}
         >
           {user.bookable === false ? <FaEye /> : <FaEyeSlash />}
-          {user.bookable === false ? "Volver a ofrecerlo" : "Sacar de la búsqueda"}
+          {user.bookable === false ? `Volver a ofrecer${w.lo("profesional")}` : "Sacar de la búsqueda"}
         </button>
       )}
 
@@ -377,11 +450,12 @@ export function UserModal({
   );
 
   return (
+    <>
     <Modal
       open={visible}
       onClose={onClose}
       size="sm"
-      title={editing ? "Editar profesional" : `${user.surname}, ${user.name}`}
+      title={editing ? `Editar ${w.profesional}` : `${user.surname}, ${user.name}`}
       subtitle={user.email}
       footer={footer}
     >
@@ -420,14 +494,14 @@ export function UserModal({
           </label>
 
           <label className="ui-field">
-            <span>Especialidad</span>
+            <span>{w.Especialidad}</span>
             <select value={userData.speciality} onChange={(e) => setUserData({ ...userData, speciality: e.target.value })}>
               <option value="">Seleccionar…</option>
               {/* Si el profesional tiene cargada una especialidad vieja que ya no está
                   en la lista, se ofrece igual: guardar no debería cambiársela sola. */}
-              {(SPECIALITIES.includes(userData.speciality) || !userData.speciality
-                ? SPECIALITIES
-                : [...SPECIALITIES, userData.speciality]
+              {(specialities.includes(userData.speciality) || !userData.speciality
+                ? specialities
+                : [...specialities, userData.speciality]
               ).map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -446,7 +520,7 @@ export function UserModal({
               onChange={(e) => setUserData({ ...userData, about: e.target.value })}
             />
             <small>
-              Opcional. Visible para el paciente al elegir profesional. {userData.about.length}/{ABOUT_MAX}
+              Opcional. Visible para {w.el("paciente")} al elegir {w.profesional}. {userData.about.length}/{ABOUT_MAX}
             </small>
           </label>
 
@@ -457,7 +531,7 @@ export function UserModal({
           <div className="ui-detail-list">
             <div className="ui-detail-row">
               <span>Tipo</span>
-              <strong>{isAdmin ? "Administración" : isProfessional ? "Profesional" : "Paciente"}</strong>
+              <strong>{isAdmin ? "Administración" : isProfessional ? w.Profesional : w.Paciente}</strong>
             </div>
             <div className="ui-detail-row">
               <span>Estado</span>
@@ -475,7 +549,7 @@ export function UserModal({
             )}
             {isProfessional && (
               <div className="ui-detail-row">
-                <span>En la búsqueda de turnos</span>
+                <span>En la búsqueda de {w.turnos}</span>
                 <span className={`adm-badge ${user.bookable === false ? "adm-badge-amber" : "adm-badge-green"}`}>
                   {user.bookable === false ? "No aparece" : "Aparece"}
                 </span>
@@ -501,7 +575,7 @@ export function UserModal({
             </div>
             {createdByName && (
               <div className="ui-detail-row">
-                <span>{user.anonymous ? "Cargado por" : "Cargado originalmente por"}</span>
+                <span>{user.anonymous ? `Cargad${w.o("paciente")} por` : `Cargad${w.o("paciente")} originalmente por`}</span>
                 <strong>{createdByName}</strong>
               </div>
             )}
@@ -517,8 +591,24 @@ export function UserModal({
             </div>
             {isProfessional && (
               <div className="ui-detail-row">
-                <span>Especialidad</span>
+                <span>{w.Especialidad}</span>
                 <strong>{userData.speciality || <span className="ui-detail-empty">sin cargar</span>}</strong>
+              </div>
+            )}
+            {isProfessional && multi && (
+              <div className="ui-detail-row">
+                <span>{branchNames?.length === 1 ? w.Sucursal : w.Sucursales}</span>
+                <strong>
+                  {branchesFailed ? (
+                    <span className="ui-detail-empty">sin consultar</span>
+                  ) : branchNames === null ? (
+                    <span className="ui-detail-empty">consultando…</span>
+                  ) : branchNames.length === 0 ? (
+                    <span className="ui-detail-empty">sin horarios cargados</span>
+                  ) : (
+                    branchNames.join(" · ")
+                  )}
+                </strong>
               </div>
             )}
             {isProfessional && (
@@ -537,15 +627,15 @@ export function UserModal({
 
           {user.anonymous && (
             <p className="ui-alert ui-alert-info">
-              Lo cargó un profesional para poder darle turnos. Si la persona se registra con este email, la cuenta pasa a ser real y
-              conserva su historial.
+              {w.lo("paciente") === "la" ? "La" : "Lo"} cargó {w.un("profesional")} para poder darle {w.turnos}. Si la persona se registra con este email, la cuenta pasa
+              a ser real y conserva su historial.
             </p>
           )}
 
           {confirming === "waitlist" && (
             <p className="ui-alert ui-alert-warn">
-              Al desactivarla, la lista de espera se vacía y las personas anotadas reciben un aviso. Desde ese momento, el
-              profesional figura sin lista de espera.
+              Al desactivarla, la lista de espera se vacía y las personas anotadas reciben un aviso.
+              Desde ese momento, {w.el("profesional")} figura sin lista de espera.
             </p>
           )}
 
@@ -553,20 +643,20 @@ export function UserModal({
             <label className="ui-field">
               <span>Correo nuevo</span>
               <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="paciente@mail.com" autoFocus />
-              <small>Se mueve la ficha entera con sus turnos.</small>
+              <small>Se mueve la ficha entera con sus {w.turnos}.</small>
             </label>
           )}
 
           {confirming === "delete-todo" && (
             <p className="ui-alert ui-alert-warn">
-              {deleteWarning}. Se van también sus turnos, con lo cobrado y lo anotado en cada uno.
+              {deleteWarning}. Se van también sus {w.turnos}, con lo cobrado y lo anotado en cada un{w.o("turno")}.
             </p>
           )}
 
           {confirming === "disable" && (
             <p className="ui-alert ui-alert-warn">
-              Deja de entrar en el momento. La cuenta y sus turnos se eliminan a partir del {deletionSentence()}. Hasta esa
-              fecha se puede volver a habilitar.
+              Deja de entrar en el momento. La cuenta y sus {w.turnos} se eliminan a partir del {deletionSentence()}. Hasta
+              esa fecha se puede volver a habilitar.
             </p>
           )}
 
@@ -587,5 +677,17 @@ export function UserModal({
         </div>
       )}
     </Modal>
+
+    {vacationsByAdmin && (
+      <VacationsModal
+        open={vacationsOpen}
+        onClose={() => setVacationsOpen(false)}
+        title={`Vacaciones de ${user.name} ${user.surname}`}
+        vacations={vacations}
+        onAdd={(fromDate, toDate, reason) => addVacationFor(user.email, fromDate, toDate, reason).then(() => loadVacations(user.email))}
+        onRemove={(id) => removeVacationFor(user.email, id).then(() => loadVacations(user.email))}
+      />
+    )}
+    </>
   );
 }

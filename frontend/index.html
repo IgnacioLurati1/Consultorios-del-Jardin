@@ -125,6 +125,49 @@
         }
       })();
     </script>
+    <!--
+      La apariencia del consultorio —el estilo de los paneles y el color de la marca— también
+      antes de pintar. La guarda lib/installation (useAppearance) la vez anterior; sin esto la
+      primera pantalla sale con la letra y el verde de siempre y cambia medio segundo después.
+      Es la misma cuenta que applyBrand y applyPanelSkin, escrita para correr sin React.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem("apariencia") || "null");
+          if (!saved) return;
+          var root = document.documentElement;
+          if (saved.skin && saved.skin !== "jardin") {
+            root.setAttribute("data-panel-skin", saved.skin);
+            if (saved.font) {
+              var link = document.createElement("link");
+              link.rel = "stylesheet";
+              link.href = "https://fonts.googleapis.com/css2?family=" + saved.font + "&display=swap";
+              link.setAttribute("data-skin-font", saved.skin);
+              document.head.appendChild(link);
+            }
+          }
+          var brand = saved.brand;
+          if (brand && typeof brand.hue === "number" && typeof brand.saturation === "number") {
+            var s = Math.max(0, Math.min(100, brand.saturation));
+            root.style.setProperty("--sea-h", String(brand.hue));
+            root.style.setProperty("--sea-s", s + "%");
+            root.style.setProperty("--sea-h2", String((brand.hue + 12) % 360));
+            root.style.setProperty("--sea-s2", Math.min(100, s + 10) + "%");
+            root.style.setProperty("--home-leaf", "hsl(" + brand.hue + " " + Math.min(100, s + 20) + "% 40%)");
+          }
+          // Los colores propios de la barra y el pie, ya resueltos (ver lib/elementColors).
+          var vars = saved.vars;
+          if (vars && typeof vars === "object") {
+            for (var name in vars) {
+              if (/^--[a-z-]+$/.test(name) && typeof vars[name] === "string") root.style.setProperty(name, vars[name]);
+            }
+          }
+        } catch (error) {
+          /* Sin almacenamiento o con algo roto guardado: se pinta lo de siempre. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

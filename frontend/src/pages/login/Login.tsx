@@ -15,6 +15,7 @@ import { backdropOn } from "../../components/entrance/backdropCookie";
 import { useDesktop } from "../../components/entrance/useDesktop";
 import { wakeNightAudio } from "../../components/entrance/nightAudio";
 import "./Login.css";
+import { useOfficeName, useWords } from "../../lib/installation.ts";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,6 +38,8 @@ const HOME_BY_TYPE: Record<string, string> = {
 };
 
 export function Login() {
+  const w = useWords();
+  const officeName = useOfficeName();
   const logo = useLogo();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -140,7 +143,7 @@ export function Login() {
         aria-hidden={away || undefined}
       >
         <div className="login-card-head">
-          <img src={logo} alt="Consultorios del Jardín" className="login-logo" />
+          <img src={logo} alt={officeName} className="login-logo" />
           <h1 className="login-title">Iniciar sesión</h1>
           <p className="login-subtitle">Con email y contraseña</p>
         </div>
@@ -198,7 +201,7 @@ export function Login() {
                 <strong>Cuenta cerrada por seguridad</strong>
                 <p>{lockout}</p>
                 {/* La ruta es /contacto: con /contact el link caía en la página de no encontrada. */}
-                <Link to="/contacto">Contactar al consultorio</Link>
+                <Link to="/contacto">{`Contactar ${w.al("lugar")}`}</Link>
               </div>
             </div>
           )}

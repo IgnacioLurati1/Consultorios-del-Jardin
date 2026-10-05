@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { FaChevronDown, FaCircleInfo, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaChevronDown, FaCircleInfo, FaLocationDot, FaMagnifyingGlass } from "react-icons/fa6";
 import { AdminHeader } from "../../../components/adminHeader/AdminHeader.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { Toasts } from "../../../components/toast/Toasts.tsx";
 import { findAllActiveOffices } from "../../adminCRUDS/adminOffices/OfficeService.ts";
 import { findPerson, getDecodedToken } from "../../commonServices";
 import { findProfessionalsOfficeSpecialty } from "../../adminCRUDS/adminUsers/usersService.ts";
-import { SPECIALITIES, sameSpeciality } from "../../specialities.ts";
+import { sameSpeciality, specialities as currentSpecialities, useSpecialities } from "../../specialities.ts";
 import { bookingBlockedFor } from "../appointmentTypes.ts";
 import type { Office, Person } from "../../types.ts";
+import { currentWords, hasBranches, useInstallation, usePolicies, useWords } from "../../../lib/installation.ts";
+import { branchFromOffice, branchName, manyCities } from "../../adminCRUDS/adminOffices/branches.ts";
 import { AboutProfessionalModal } from "./AboutProfessionalModal.tsx";
 import { ProfessionalSchedule } from "./ProfessionalSchedule.tsx";
 import { SpecialitySchedule } from "./SpecialitySchedule.tsx";
@@ -22,6 +24,9 @@ const normalize = (text: string) =>
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase() ?? "";
 
+/** Una sola lista vacía para todos los dibujos: una nueva en cada uno haría recalcular el filtro. */
+const NOBODY: Person[] = [];
+
 /**
  * Pedido de turno del paciente, todo en una pantalla: se filtra por especialidad o por
  * nombre, se toca un profesional y sus horarios aparecen abajo. Cambiar de profesional
@@ -31,20 +36,30 @@ const normalize = (text: string) =>
  * los de la lista juntos, cada uno con su nombre (SpecialitySchedule). Tocar un
  * profesional pasa a su agenda sola, que es la que tiene lista de espera.
  *
- * No se pide la sucursal: hay una sola y se resuelve sola.
+ * Con una sola sucursal no se pide: se resuelve sola. Donde se trabaja con varias (regla
+ * multiBranch), se elige arriba de todo, y cada profesional dice en cuáles atiende.
  *
  * El profesional también entra acá: se atiende como cualquier otro paciente. Lo único que
  * no puede es elegirse a sí mismo, así que no aparece en su propia lista.
  */
 export function BookAppointment() {
+  const w = useWords();
+  const policies = usePolicies();
+  /** Si la instalación trabaja con varias sucursales. Apagado, la pantalla es la de siempre. */
+  const multi = hasBranches(useInstallation());
+  const specialities = useSpecialities();
   // De la sesión, no de un dato que venga de la pantalla: es lo que decide a quién se
   // saca de la lista.
   const me = getDecodedToken();
   const bookingForSelf = me?.type === "professional";
   /** Por qué no puede sacar turno, si es que no puede. Hoy solo le pasa al administrador. */
   const blockedReason = bookingBlockedFor(me?.type);
-  const [office, setOffice] = useState<Office | undefined>(undefined);
-  const [professionals, setProfessionals] = useState<Person[]>([]);
+  /** Las sucursales activas. Con una sola sucursal, se usa la primera y nada más. */
+  const [offices, setOffices] = useState<Office[]>([]);
+  /** La sucursal elegida, por su número. */
+  const [officeId, setOfficeId] = useState("");
+  /** Los profesionales de cada sucursal pedida, por su número. */
+  const [byOffice, setByOffice] = useState<Record<string, Person[]>>({});
   /** El profesional cuya ficha se está mirando. Es independiente de a quién se le pide turno. */
   const [about, setAbout] = useState<Person | undefined>(undefined);
   // El token trae el email pero no el nombre, y el mensaje que se le manda al profesional
@@ -56,34 +71,73 @@ export function BookAppointment() {
   const [params] = useSearchParams();
   const asked = params.get("especialidad") ?? "";
   const [speciality, setSpeciality] = useState<string>(
-    SPECIALITIES.find((item) => sameSpeciality(item, asked)) ?? ""
+    currentSpecialities().find((item) => sameSpeciality(item, asked)) ?? ""
   );
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Person | undefined>(undefined);
 
   const scheduleRef = useRef<HTMLDivElement | null>(null);
 
+  /*
+   * El aviso de la lista de espera trae al profesional en la dirección, para que el
+   * horario que se liberó esté a un toque y no haya que buscarlo en la lista. Con varias
+   * sucursales también puede venir cuál (?sucursal=), y si ese profesional no atiende en
+   * la que quedó elegida se pasa a una donde sí.
+   */
+  const askedProfessional = params.get("profesional");
+  const askedOffice = params.get("sucursal");
+
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
 
     findAllActiveOffices()
-      .then(async (offices) => {
+      .then(async (list) => {
         if (cancelled) return;
 
-        const only = offices[0];
-        setOffice(only);
+        // Se piden los profesionales de la sucursal, no todos: los que no tienen
+        // horarios cargados no pueden dar turnos y solo ensucian el listado. Con varias
+        // sucursales se piden los de cada una, y de ahí sale también en cuáles atiende
+        // cada profesional, sin preguntarlo de a uno.
+        const targets = multi && list.length > 1 ? list : list.slice(0, 1);
+        const first = targets[0];
 
-        if (!only) {
-          setProfessionals([]);
+        if (!first) {
+          setOffices([]);
+          setByOffice({});
+          setOfficeId("");
           return;
         }
 
-        // Se piden los profesionales de la sucursal, no todos: los que no tienen
-        // horarios cargados no pueden dar turnos y solo ensucian el listado.
-        const data = await findProfessionalsOfficeSpecialty(String(only.idOffice));
-        if (!cancelled) setProfessionals(data);
+        const results = await Promise.allSettled(
+          targets.map((item) => findProfessionalsOfficeSpecialty(String(item.idOffice)))
+        );
+        if (cancelled) return;
+
+        // Una sucursal que no contestó queda vacía y se avisa; las demás se muestran igual.
+        const map: Record<string, Person[]> = {};
+        const failures: Error[] = [];
+        results.forEach((result, index) => {
+          const id = String(targets[index].idOffice);
+          map[id] = result.status === "fulfilled" ? result.value : [];
+          if (result.status === "rejected") failures.push(result.reason as Error);
+        });
+
+        let initial = targets.find((item) => String(item.idOffice) === askedOffice) ?? first;
+        if (askedProfessional) {
+          const attends = (item: Office) =>
+            (map[String(item.idOffice)] ?? []).some(
+              (professional) => professional.email.toLowerCase() === askedProfessional.toLowerCase()
+            );
+          if (!attends(initial)) initial = targets.find(attends) ?? initial;
+        }
+
+        setOffices(targets);
+        setByOffice(map);
+        setOfficeId(String(initial.idOffice));
+        if (failures[0]) toast.error(`Error al cargar ${currentWords().los("profesional")}: ${failures[0].message}`);
       })
-      .catch((err) => toast.error(`Error al cargar los profesionales: ${err.message}`))
+      .catch((err) => toast.error(`Error al cargar ${currentWords().los("profesional")}: ${err.message}`))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -91,7 +145,20 @@ export function BookAppointment() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [multi, askedOffice, askedProfessional]);
+
+  const office = offices.find((item) => String(item.idOffice) === officeId);
+  const professionals = byOffice[officeId] ?? NOBODY;
+  /** Si se elige sucursal: la regla prendida y más de una con la que trabajar. */
+  const choosing = offices.length > 1;
+  /** Con sucursales en más de una ciudad, el nombre de cada una lleva la ciudad. */
+  const withCity = useMemo(() => manyCities(offices.map(branchFromOffice)), [offices]);
+
+  /** Las sucursales donde atiende un profesional. Vacía si no se elige sucursal. */
+  function branchesOf(email: string): Office[] {
+    if (!choosing) return [];
+    return offices.filter((item) => (byOffice[String(item.idOffice)] ?? []).some((professional) => professional.email === email));
+  }
 
   const results = useMemo(() => {
     const term = normalize(search.trim());
@@ -119,19 +186,18 @@ export function BookAppointment() {
   }, [results, selected]);
 
   /*
-   * El aviso de la lista de espera trae al profesional en la dirección, para que el
-   * horario que se liberó esté a un toque y no haya que buscarlo en la lista. Se elige
-   * una sola vez: si después la persona toca otro, no se lo vuelve a poner.
+   * El profesional que vino en la dirección (ver arriba) se elige una sola vez: si después
+   * la persona toca otro, no se lo vuelve a poner. Mientras no aparezca en la lista se
+   * sigue esperando: con varias sucursales, puede llegar recién con la que le corresponde.
    */
-  const askedProfessional = params.get("profesional");
   const preselected = useRef(false);
 
   useEffect(() => {
     if (preselected.current || !askedProfessional || professionals.length === 0) return;
-    preselected.current = true;
 
     const found = professionals.find((professional) => professional.email.toLowerCase() === askedProfessional.toLowerCase());
     if (!found) return;
+    preselected.current = true;
 
     // No pasa por `pick`, que da vuelta la selección: acá siempre es abrir, nunca cerrar.
     setSelected(found);
@@ -160,11 +226,28 @@ export function BookAppointment() {
     });
   }
 
+  // Donde los turnos se piden al consultorio, la pantalla lo dice y lleva al contacto. Se
+  // llega igual desde un link viejo o desde un aviso guardado.
+  if (!policies.patientBooking)
+    return (
+      <div className="adm-page">
+        <AdminHeader title={`Solicitar ${w.turno}`} backTo="/" backLabel="Inicio" />
+        <div className="adm-panel">
+          <div className="adm-empty">
+            <p>{`${w.Los("turno")} se piden directamente ${w.al("lugar")}.`}</p>
+            <Link className="adm-btn adm-btn-primary" to="/contacto">
+              Contacto
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+
   return (
     <div className="adm-page">
       <AdminHeader
-        title="Solicitar turno"
-        subtitle={bookingForSelf ? "Turno con un colega del consultorio" : "Por especialidad o por profesional"}
+        title={`Solicitar ${w.turno}`}
+        subtitle={bookingForSelf ? `${w.Turno} con un colega ${w.del("lugar")}` : `Por ${w.especialidad} o por ${w.profesional}`}
         backTo={bookingForSelf ? "/ProfessionalHome" : "/"}
         backLabel={bookingForSelf ? "Mi panel" : "Inicio"}
       />
@@ -172,7 +255,7 @@ export function BookAppointment() {
       <Toasts />
 
       {bookingForSelf && (
-        <p className="ui-alert ui-alert-info booking-self-note">Turno como paciente. El perfil propio queda fuera de la lista.</p>
+        <p className="ui-alert ui-alert-info booking-self-note">{`${w.Turno} como ${w.paciente}. El perfil propio queda fuera de la lista.`}</p>
       )}
 
       {/* Dicho al entrar y no recién al final: recorrer agendas y elegir un horario para
@@ -181,11 +264,29 @@ export function BookAppointment() {
       {blockedReason && <p className="ui-alert ui-alert-warn booking-self-note">{blockedReason}</p>}
 
       <div className="adm-filters">
-        <div className="adm-chips" role="group" aria-label="Especialidad">
+        {/* Primero dónde: la lista de abajo y los horarios son los de esa sucursal. */}
+        {choosing && (
+          <div className="adm-chips booking-branches" role="group" aria-label={w.Sucursal}>
+            {offices.map((item) => {
+              const id = String(item.idOffice);
+              const active = id === officeId;
+
+              return (
+                <button key={id} type="button" className={active ? "active" : ""} aria-pressed={active} onClick={() => setOfficeId(id)}>
+                  <FaLocationDot aria-hidden="true" />
+                  {item.description}
+                  {item.city?.nameCity && <span className="booking-branch-city">{item.city.nameCity}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="adm-chips" role="group" aria-label={w.Especialidad}>
           <button type="button" className={speciality === "" ? "active" : ""} onClick={() => setSpeciality("")}>
-            Todas
+            {`Tod${w.os("especialidad")}`}
           </button>
-          {SPECIALITIES.map((item) => (
+          {specialities.map((item) => (
             <button
               key={item}
               type="button"
@@ -201,7 +302,7 @@ export function BookAppointment() {
           <FaMagnifyingGlass className="booking-search-icon" />
           <input
             type="search"
-            placeholder="Buscar por nombre o apellido del profesional"
+            placeholder={`Buscar por nombre o apellido ${w.del("profesional")}`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -212,16 +313,17 @@ export function BookAppointment() {
         {loading ? (
           <SkeletonList rows={4} />
         ) : !office ? (
-          <div className="adm-empty">Sin sucursal habilitada para turnos.</div>
+          <div className="adm-empty">{`Sin ${w.sucursal} habilitad${w.o("sucursal")} para ${w.turnos}.`}</div>
         ) : professionals.length === 0 ? (
-          <div className="adm-empty">Sin profesionales con horarios de atención cargados.</div>
+          <div className="adm-empty">{`Sin ${w.profesionales} con horarios de atención cargados.`}</div>
         ) : results.length === 0 ? (
-          <div className="adm-empty">Sin profesionales para esta búsqueda.</div>
+          <div className="adm-empty">{`Sin ${w.profesionales} para esta búsqueda.`}</div>
         ) : (
           <ul className="booking-professionals">
             {results.map((professional) => {
               const active = selected?.email === professional.email;
               const initials = `${professional.surname?.charAt(0) ?? ""}${professional.name?.charAt(0) ?? ""}`.toUpperCase();
+              const where = branchesOf(professional.email);
 
               return (
                 <li key={professional.email} className={`booking-professional-row ${active ? "active" : ""}`}>
@@ -240,6 +342,12 @@ export function BookAppointment() {
                         {professional.surname}, {professional.name}
                       </span>
                       <span className="booking-professional-speciality">{professional.speciality}</span>
+                      {where.length > 0 && (
+                        <span className="booking-professional-branches">
+                          <FaLocationDot aria-hidden="true" />
+                          {where.map((item) => branchName(branchFromOffice(item), withCity)).join(" · ")}
+                        </span>
+                      )}
                     </span>
 
                     <span className="booking-professional-action">
@@ -278,7 +386,13 @@ export function BookAppointment() {
         )}
       </div>
 
-      <AboutProfessionalModal open={!!about} onClose={() => setAbout(undefined)} professional={about} patient={profile} />
+      <AboutProfessionalModal
+        open={!!about}
+        onClose={() => setAbout(undefined)}
+        professional={about}
+        patient={profile}
+        branches={about && choosing ? branchesOf(about.email) : undefined}
+      />
     </div>
   );
 }

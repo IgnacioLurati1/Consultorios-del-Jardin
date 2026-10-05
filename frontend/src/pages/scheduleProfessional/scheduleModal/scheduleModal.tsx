@@ -4,6 +4,7 @@ import type { Room, Office, City } from "../../types.ts";
 import type { scheduleModalProps } from "../scheduleTypes.ts";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import "./scheduleModal.css";
+import { useWords } from "../../../lib/installation.ts";
 
 // Duraciones permitidas para un módulo. Es la única lista válida, también en el backend.
 const durations: number[] = [30, 45, 60];
@@ -30,6 +31,7 @@ export function ScheduleModal({
   isProfessional,
   onUpdateDuration,
 }: scheduleModalProps) {
+  const w = useWords();
   const [newScheduleData, setNewScheduleData] = useState({ ...emptySchedule, person: professional.email });
   const [room, setRoom] = useState<Room>();
   const [office, setOffice] = useState<Office>();
@@ -68,10 +70,10 @@ export function ScheduleModal({
     const newErrors: typeof errors = {};
 
     if (!newScheduleData.initialHour.trim()) newErrors.initialHour = "Falta la hora de inicio";
-    else if (newScheduleData.initialHour < "08:00") newErrors.initialHour = "El consultorio abre a las 08:00";
+    else if (newScheduleData.initialHour < "08:00") newErrors.initialHour = `${w.El("lugar")} abre a las 08:00`;
 
     if (!newScheduleData.finalHour.trim()) newErrors.finalHour = "Falta la hora de fin";
-    else if (newScheduleData.finalHour > "21:00") newErrors.finalHour = "El consultorio cierra a las 21:00";
+    else if (newScheduleData.finalHour > "21:00") newErrors.finalHour = `${w.El("lugar")} cierra a las 21:00`;
 
     if (
       newScheduleData.initialHour.trim() &&
@@ -82,9 +84,9 @@ export function ScheduleModal({
     }
 
     if (!city) newErrors.city = "Falta la localidad";
-    if (!office) newErrors.office = "Falta la sucursal";
-    if (!room) newErrors.room = "Falta el consultorio";
-    if (!newScheduleData.duration) newErrors.duration = "Falta la duración de los turnos";
+    if (!office) newErrors.office = `Falta ${w.el("sucursal")}`;
+    if (!room) newErrors.room = `Falta ${w.el("sala")}`;
+    if (!newScheduleData.duration) newErrors.duration = `Falta la duración de ${w.los("turno")}`;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -137,18 +139,18 @@ export function ScheduleModal({
         <div className="ui-section">
           <div className="ui-detail-list">
             <div className="ui-detail-row">
-              <span>Profesional</span>
+              <span>{w.Profesional}</span>
               <strong>
                 {schedule.person.surname}, {schedule.person.name}
               </strong>
             </div>
             <div className="ui-detail-row">
-              <span>Consultorio</span>
+              <span>{w.Sala}</span>
               <strong>{schedule.room.description}</strong>
             </div>
             {!onUpdateDuration && (
               <div className="ui-detail-row">
-                <span>Duración de cada turno</span>
+                <span>{`Duración de cada ${w.turno}`}</span>
                 <strong>{schedule.duration} min</strong>
               </div>
             )}
@@ -158,7 +160,7 @@ export function ScheduleModal({
         {/* El profesional define cuánto dura cada turno de este módulo. */}
         {onUpdateDuration && (
           <div className="ui-section">
-            <h3 className="ui-section-title">Duración de cada turno</h3>
+            <h3 className="ui-section-title">{`Duración de cada ${w.turno}`}</h3>
             <div className="duration-editor-row">
               <select
                 id="schedule-duration"
@@ -182,7 +184,7 @@ export function ScheduleModal({
               </button>
             </div>
             <p className="ui-alert ui-alert-info">
-              Aplica a los turnos nuevos. Los ya creados quedan sin cambios.
+              {`Aplica a ${w.los("turno")} nuev${w.os("turno")}. L${w.os("turno")} ya cread${w.os("turno")} quedan sin cambios.`}
             </p>
           </div>
         )}
@@ -205,7 +207,7 @@ export function ScheduleModal({
         }
       >
         <p className="ui-alert ui-alert-info">
-          Los horarios de atención los carga la administración del consultorio.
+          {`Los horarios de atención los carga la administración ${w.del("lugar")}.`}
         </p>
       </Modal>
     );
@@ -226,8 +228,7 @@ export function ScheduleModal({
         }
       >
         <p className="ui-alert ui-alert-info">
-          Profesional deshabilitado, sin carga de horarios nuevos. Para cargar la franja, primero habilitarlo desde su
-          ficha.
+          {`${w.Profesional} deshabilitad${w.o("profesional")}, sin carga de horarios nuevos. Para cargar la franja, primero habilitar${w.lo("profesional")} desde su ficha.`}
         </p>
       </Modal>
     );
@@ -287,7 +288,7 @@ export function ScheduleModal({
         </div>
 
         <label className="ui-field">
-          <span>Duración de cada turno</span>
+          <span>{`Duración de cada ${w.turno}`}</span>
           <select
             value={newScheduleData.duration}
             onChange={(e) => setNewScheduleData({ ...newScheduleData, duration: Number(e.target.value) })}
@@ -327,7 +328,7 @@ export function ScheduleModal({
         </label>
 
         <label className="ui-field">
-          <span>Sucursal</span>
+          <span>{w.Sucursal}</span>
           <select
             value={office?.idOffice || ""}
             disabled={!city}
@@ -337,7 +338,7 @@ export function ScheduleModal({
               setNewScheduleData({ ...newScheduleData, room: "" });
             }}
           >
-            <option value="">{city ? "Seleccionar sucursal…" : "Primero, la localidad"}</option>
+            <option value="">{city ? `Seleccionar ${w.sucursal}…` : "Primero, la localidad"}</option>
             {filteredOffices.map((o) => (
               <option key={o.idOffice} value={o.idOffice}>
                 {o.description}
@@ -348,7 +349,7 @@ export function ScheduleModal({
         </label>
 
         <label className="ui-field">
-          <span>Consultorio</span>
+          <span>{w.Sala}</span>
           <select
             value={room?.idRoom || ""}
             disabled={!office}
@@ -358,7 +359,7 @@ export function ScheduleModal({
               setNewScheduleData({ ...newScheduleData, room: selected ? selected.idRoom : "" });
             }}
           >
-            <option value="">{office ? "Seleccionar consultorio…" : "Primero, la sucursal"}</option>
+            <option value="">{office ? `Seleccionar ${w.sala}…` : `Primero, ${w.el("sucursal")}`}</option>
             {filteredRooms.map((r) => (
               <option key={r.idRoom} value={r.idRoom}>
                 {r.description}

@@ -1,5 +1,68 @@
 {
   "site": "https://consultoriosdeljardin.com.ar",
+  "client": {
+    "name": "Consultorios del Jardín",
+    "alternateName": "Consultorios del Jardin",
+    "shortName": "Consultorios",
+    "businessType": "MedicalBusiness",
+    "description": "Consultorios de psicopedagogía, psicología, psiquiatría, nutrición y fonoaudiología en Rosario, con turnos online.",
+    "email": "consultoriosjardinok@gmail.com",
+    "address": {
+      "street": "9 de Julio 3672",
+      "locality": "Rosario",
+      "region": "Santa Fe",
+      "postalCode": "S2000",
+      "country": "AR"
+    },
+    "directions": "https://www.google.com/maps/dir/?api=1&destination=9+de+Julio+3672,+Rosario,+Santa+Fe",
+    "hours": [
+      {
+        "days": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "09:00",
+        "closes": "20:00"
+      }
+    ],
+    "services": [
+      "Psicopedagogía",
+      "Psicología",
+      "Psiquiatría",
+      "Nutrición",
+      "Fonoaudiología"
+    ],
+    "sameAs": [
+      "https://instagram.com/consultorios_jardin"
+    ],
+    "themeColor": "#2f5e46",
+    "backgroundColor": "#fefae0",
+    "ogImageAlt": "Sala de espera de Consultorios del Jardín, con el jardín al fondo",
+    "noscript": "Consultorios en 9 de Julio 3672, Rosario. Psicopedagogía, psicología, psiquiatría, nutrición y fonoaudiología. Lunes a viernes, de 9 a 20.",
+    "defaults": {
+      "tagline": "Consultorios en Rosario, con turnos online y elección de profesional y horario.",
+      "address": "9 de Julio 3672",
+      "city": "Rosario",
+      "publicHours": "Lunes a viernes, de 9 a 20",
+      "email": "consultoriosjardinok@gmail.com",
+      "instagram": "consultorios_jardin",
+      "services": [
+        "Psicología",
+        "Psicopedagogía",
+        "Psiquiatría",
+        "Nutrición",
+        "Fonoaudiología"
+      ],
+      "mapEmbedUrl": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3348.1345729661225!2d-60.677700222686624!3d-32.947456271932246!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95b7aca0aae14deb%3A0x8faaf2cd4420949f!2s9%20de%20Julio%203672%2C%20S2000%20Rosario%2C%20Santa%20Fe!5e0!3m2!1ses!2sar!4v1789172471192!5m2!1ses!2sar",
+      "directionsUrl": "https://www.google.com/maps/dir/?api=1&destination=9+de+Julio+3672,+Rosario,+Santa+Fe",
+      "bundledPhotos": true,
+      "spaceTour": true,
+      "heroStyle": "collage"
+    }
+  },
   "pages": {
     "/": {
       "title": "Consultorios del Jardín",

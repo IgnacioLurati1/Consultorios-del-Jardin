@@ -7,6 +7,8 @@ import { buildDaySlots } from "../freeSlots.ts";
 import { Modal } from "../../../components/modal/Modal.tsx";
 import { PatientPicker } from "../../../components/patientPicker/PatientPicker.tsx";
 import { RepeatFields } from "./RepeatFields.tsx";
+import { hasBranches, useInstallation, usePolicies, useWords } from "../../../lib/installation.ts";
+import { branchName, findBranch, manyCities } from "../../adminCRUDS/adminOffices/branches.ts";
 
 type Mode = "regular" | "overbooked";
 
@@ -25,6 +27,14 @@ interface NewAppointmentModalProps {
    * franja que existe de verdad, y no una hora que se le parece.
    */
   preset?: { date: string; slotKey: string } | null;
+  /**
+   * Cuando la abre la administración, a quién le da el turno.
+   *
+   * La recepción da turnos especiales aunque los profesionales no puedan, porque la
+   * regla que la habilita es otra y el servidor la controla aparte. Repetir no se ofrece:
+   * la repetición queda a nombre de quien la arma, y la administración no tiene agenda.
+   */
+  reception?: { professionalName: string };
   onCreate: (data: {
     date: string;
     initialHour: string;
@@ -58,12 +68,17 @@ const emptyForm = {
  * y el sobreturno, donde elige día, horario y consultorio a mano.
  * El paciente es opcional: se puede reservar la franja y asignarlo después.
  */
-export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedules, preset, onCreate }: NewAppointmentModalProps) {
+export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedules, preset, reception, onCreate }: NewAppointmentModalProps) {
+  const w = useWords();
+  const policies = usePolicies();
   const [mode, setMode] = useState<Mode>("regular");
   const [form, setForm] = useState(emptyForm);
   const [slotKey, setSlotKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const allowsSpecial = reception ? true : policies.proOverbook;
+  const allowsRepeat = reception ? false : policies.proRecurring;
+  const forWhom = reception ? ` con ${reception.professionalName}` : "";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,6 +90,23 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
   const slots = useMemo(() => buildDaySlots(schedules, form.date), [schedules, form.date]);
   const selectedSlot = slots.find((slot) => slot.key === slotKey);
+
+  const installation = useInstallation();
+  const multi = hasBranches(installation);
+
+  /**
+   * " · Centro", la sucursal de un consultorio, para las opciones. Solo con varias
+   * sucursales; con una sola no agrega nada y las opciones dicen lo de siempre.
+   *
+   * Se busca primero en la lista de consultorios, que trae la sucursal entera: en los
+   * horarios del profesional el consultorio viene con la sucursal como un número.
+   */
+  function branchOfRoom(room: Room): string {
+    if (!multi) return "";
+    const listed = rooms.find((item) => String(item.idRoom) === String(room.idRoom));
+    const branch = findBranch(listed?.office ?? room.office, installation);
+    return branch ? ` · ${branchName(branch, manyCities(installation.branches))}` : "";
+  }
 
   function validate(): string | null {
     if (!form.date) return "Falta la fecha";
@@ -88,17 +120,17 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
     if (form.repeat && !form.repeatForever && !form.repeatUntil) return "Falta la fecha de fin de la repetición";
     if (form.repeat && !form.repeatForever && form.repeatUntil < form.date)
-      return "La fecha de fin no puede ser anterior al turno";
+      return `La fecha de fin no puede ser anterior ${w.al("turno")}`;
 
     if (mode === "regular") {
-      if (!selectedSlot) return "Falta elegir un turno disponible";
+      if (!selectedSlot) return `Falta elegir ${w.un("turno")} disponible`;
       return null;
     }
 
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.initialHour) || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(form.finalHour))
       return "Formato de hora inválido. Debe ser HH:MM";
     if (form.initialHour >= form.finalHour) return "La hora de inicio debe ser anterior a la de fin";
-    if (!form.room) return "Falta el consultorio";
+    if (!form.room) return `Falta ${w.el("sala")}`;
 
     return null;
   }
@@ -134,11 +166,11 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
     <Modal
       open={isOpen}
       onClose={onClose}
-      title={mode === "regular" ? "Nuevo turno" : "Nuevo turno especial"}
+      title={(mode === "regular" ? `Nuev${w.o("turno")} ${w.turno}` : `Nuev${w.o("turno")} ${w.turno} especial`) + forWhom}
       subtitle={
         mode === "regular"
-          ? "Dentro de los horarios de atención. Queda confirmado"
-          : "Para excepciones. Duración y consultorio a elección, incluso fuera de los horarios de atención"
+          ? `Dentro de los horarios de atención. Queda confirmad${w.o("turno")}`
+          : `Para excepciones. Duración y ${w.sala} a elección, incluso fuera de los horarios de atención`
       }
       footer={
         <>
@@ -146,16 +178,18 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             Cancelar
           </button>
           <button type="button" className="adm-btn adm-btn-primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? "Creando…" : mode === "regular" ? "Crear turno" : "Crear turno especial"}
+            {saving ? "Creando…" : mode === "regular" ? `Crear ${w.turno}` : `Crear ${w.turno} especial`}
           </button>
         </>
       }
     >
       <div className="ui-section">
-        <div className="appt-mode-toggle" role="group" aria-label="Tipo de turno">
+        {/* Donde no se dan turnos fuera de horario, no hay nada que elegir. */}
+        {allowsSpecial && (
+        <div className="appt-mode-toggle" role="group" aria-label={`Tipo de ${w.turno}`}>
           <button type="button" className={mode === "regular" ? "active" : ""} onClick={() => setMode("regular")} aria-pressed={mode === "regular"}>
             <FaCalendarCheck />
-            Turno
+            {w.Turno}
           </button>
           <button
             type="button"
@@ -164,9 +198,10 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             aria-pressed={mode === "overbooked"}
           >
             <FaBolt />
-            Turno especial
+            {`${w.Turno} especial`}
           </button>
         </div>
+        )}
 
         <label className="ui-field">
           <span>Fecha</span>
@@ -175,21 +210,22 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
 
         {mode === "regular" ? (
           <label className="ui-field">
-            <span>Turno disponible</span>
+            <span>{w.Turno} disponible</span>
             <select value={slotKey} onChange={(e) => setSlotKey(e.target.value)} disabled={slots.length === 0}>
               <option value="">
                 {slots.length ? "Seleccionar horario…" : "Sin atención ese día"}
               </option>
               {slots.map((slot) => (
                 <option key={slot.key} value={slot.key}>
-                  {slot.initialHour} a {slot.finalHour} · {slot.room.description} ({slot.duration} min)
+                  {slot.initialHour} a {slot.finalHour} · {slot.room.description}
+                  {branchOfRoom(slot.room)} ({slot.duration} min)
                 </option>
               ))}
             </select>
             {slots.length > 0 ? (
               <small>La duración la define cada módulo de la grilla.</small>
             ) : (
-              <small>Sin horarios de atención ese día. Queda la opción de un turno especial o de ajustar la grilla.</small>
+              <small>{`Sin horarios de atención ese día. Queda la opción de ${w.un("turno")} especial o de ajustar la grilla.`}</small>
             )}
           </label>
         ) : (
@@ -206,13 +242,13 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             </div>
 
             <label className="ui-field">
-              <span>Consultorio</span>
+              <span>{w.Sala}</span>
               <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })}>
-                <option value="">Seleccionar consultorio…</option>
+                <option value="">{`Seleccionar ${w.sala}…`}</option>
                 {rooms.map((room) => (
                   <option key={room.idRoom} value={room.idRoom}>
                     {room.description}
-                    {room.office?.description ? ` · ${room.office.description}` : ""}
+                    {multi ? branchOfRoom(room) : room.office?.description ? ` · ${room.office.description}` : ""}
                   </option>
                 ))}
               </select>
@@ -240,24 +276,27 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
           <small>Vacío equivale a 0. Se puede completar después.</small>
         </label>
 
-        <p className="ui-alert ui-alert-info">Dato visible solo para el profesional y el paciente.</p>
+        <p className="ui-alert ui-alert-info">{`Dato visible solo para ${w.el("profesional")} y ${w.el("paciente")}.`}</p>
 
         {/* No es un <label> porque adentro hay una lista de botones, y un botón adentro
             de una etiqueta no se comporta igual en todos los navegadores. */}
         <div className="ui-field">
-          <span>Paciente</span>
+          <span>{w.Paciente}</span>
           <PatientPicker
             patients={patients}
             value={form.patientEmail}
             onChange={(patientEmail) => setForm({ ...form, patientEmail })}
-            placeholder="Sin paciente"
+            placeholder={`Sin ${w.paciente}`}
           />
-          <small>La franja queda reservada y el paciente se asigna después.</small>
+          <small>{`La franja queda reservada y ${w.el("paciente")} se asigna después.`}</small>
         </div>
 
       </div>
 
       <div className="ui-section">
+        {/* Donde no se arman turnos que se repiten, no se ofrece. */}
+        {allowsRepeat && (
+          <>
         <label className="ui-choice">
           <input
             type="checkbox"
@@ -279,6 +318,8 @@ export function NewAppointmentModal({ isOpen, onClose, rooms, patients, schedule
             onUntil={(repeatUntil) => setForm({ ...form, repeatUntil })}
             minDate={form.date}
           />
+        )}
+          </>
         )}
 
         {error && <p className="ui-alert ui-alert-error">{error}</p>}

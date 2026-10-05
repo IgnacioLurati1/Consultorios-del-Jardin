@@ -15,6 +15,7 @@ import {
   type PriceKey,
   type RoomPrices,
 } from "./rentService.ts";
+import { useWords } from "../../lib/installation.ts";
 
 interface RoomPricesModalProps {
   open: boolean;
@@ -40,6 +41,7 @@ function hours(block: Block): string {
  * este mes como estaba, que es lo que se quiere cuando el aumento se avisa con tiempo.
  */
 export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps) {
+  const w = useWords();
   const current = monthKeyOf();
   const next = shiftMonth(current, 1);
 
@@ -125,7 +127,7 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
       open={open}
       onClose={onClose}
       size="lg"
-      title="Precios de los consultorios"
+      title={`Precios de ${w.los("sala")}`}
       subtitle="Por bloque, por mes"
       footer={
         <>
@@ -158,8 +160,8 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
 
         <p className="adm-confirm-note">
           Los precios son por mes. La mañana de los lunes cuesta lo mismo en un mes con cuatro lunes que en uno con cinco.
-          Quien usa cualquier parte de un bloque paga el bloque entero. El día se cobra solo a quien usa el consultorio de 9
-          a 20 de corrido, y reemplaza a la mañana y la tarde. Un campo vacío deja el bloque sin precio.
+          Quien usa cualquier parte de un bloque paga el bloque entero. El día se cobra solo a quien usa {w.el("sala")} de
+          9 a 20 de corrido, y reemplaza a la mañana y la tarde. Un campo vacío deja el bloque sin precio.
         </p>
       </div>
 
@@ -172,13 +174,13 @@ export function RoomPricesModal({ open, onClose, onSaved }: RoomPricesModalProps
             </div>
           )
         ) : data.rooms.length === 0 ? (
-          <p className="adm-confirm-note">No hay consultorios habilitados.</p>
+          <p className="adm-confirm-note">{`No hay ${w.salas} habilitad${w.os("sala")}.`}</p>
         ) : (
           <div className="rent-scroll">
             <table className="rent-table rent-price-table">
               <thead>
                 <tr>
-                  <th>Consultorio</th>
+                  <th>{w.Sala}</th>
                   {data.blocks.map((block) => (
                     <th key={block.key}>
                       {block.label} <span className="rent-th-sub">{hours(block)}</span>

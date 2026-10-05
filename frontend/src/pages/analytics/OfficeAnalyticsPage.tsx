@@ -20,6 +20,8 @@ import {
   type OfficeAnalytics,
   type ProfessionalAnalytics,
 } from "./analyticsService.ts";
+import { currentWords, useWords } from "../../lib/installation.ts";
+import type { Words } from "../../lib/vocabulary.ts";
 import "../adminCRUDS/adminPanel.css";
 import "./analytics.css";
 
@@ -28,10 +30,10 @@ const BILLING_BANDS: Band[] = [
   { key: "scheduled", label: "Agendado sin cobrar", color: "#9db8ab", hatched: true },
 ];
 
-const ORIGIN_BANDS: Band[] = [
-  { key: "app", label: "Sacados por la app", color: "#3b7658" },
-  { key: "manual", label: "Cargados por el profesional", color: "#6c788e" },
-  { key: "imported", label: "Importados de un calendario", color: "#a58bc4" },
+const originBands = (w: Words): Band[] => [
+  { key: "app", label: `Sacad${w.os("turno")} por la app`, color: "#3b7658" },
+  { key: "manual", label: `Cargados por ${w.el("profesional")}`, color: "#6c788e" },
+  { key: "imported", label: `Importad${w.os("turno")} de un calendario`, color: "#a58bc4" },
   { key: "unknown", label: "Sin dato de origen", color: "#cbd5e1" },
 ];
 
@@ -46,6 +48,7 @@ const RENT_BANDS: Band[] = [
  * lo que deja leer cuánto mueve sumar o sacar a alguien del equipo.
  */
 export function OfficeAnalyticsPage() {
+  const w = useWords();
   const [data, setData] = useState<OfficeAnalytics | null>(null);
   const [selected, setSelected] = useState("");
   const [monthKey, setMonthKey] = useState<string | null>(null);
@@ -77,7 +80,7 @@ export function OfficeAnalyticsPage() {
       })
       .catch((err) => {
         if (cancelled) return;
-        toast.error(`Error al cargar ese profesional: ${err.message}`);
+        toast.error(`Error al cargar ${currentWords().ese("profesional")}: ${err.message}`);
         setDetail(null);
       })
       .finally(() => {
@@ -97,7 +100,7 @@ export function OfficeAnalyticsPage() {
   if (!data) {
     return (
       <div className="adm-page an-page">
-        <AdminHeader title="Números del consultorio" subtitle="Facturación, turnos y carga del equipo" />
+        <AdminHeader title={`Números ${w.del("lugar")}`} subtitle={`Facturación, ${w.turnos} y carga del equipo`} />
         <Toasts />
         <div className="adm-panel">
           <div className="prof-today-loading">
@@ -132,19 +135,20 @@ export function OfficeAnalyticsPage() {
     label: shortMonth(month.label),
     values: [month.fromApp, month.fromProfessional, month.imported, month.unknownOrigin],
   }));
-  const average = (value: number) => (perProfessional ? `${money(perProfessional(value))} por profesional` : "");
+  const average = (value: number) => (perProfessional ? `${money(perProfessional(value))} por ${w.profesional}` : "");
   const averageCount = (value: number) =>
-    perProfessional ? `${decimal(perProfessional(value))} por profesional` : "";
+    perProfessional ? `${decimal(perProfessional(value))} por ${w.profesional}` : "";
+  const ORIGIN_BANDS = originBands(w);
 
   return (
     <div className="adm-page an-page">
       <AdminHeader
-        title="Números del consultorio"
+        title={`Números ${w.del("lugar")}`}
         subtitleIsData={!selected}
         subtitle={
           selected
-            ? "Actividad de un profesional, sin lo que factura"
-            : `Facturación, turnos y carga del equipo · ${headcount} profesionales activos`
+            ? `Actividad de ${w.un("profesional")}, sin lo que factura`
+            : `Facturación, ${w.turnos} y carga del equipo · ${headcount} ${w.profesionales} activ${w.os("profesional")}`
         }
         actions={
           <>
@@ -154,9 +158,9 @@ export function OfficeAnalyticsPage() {
               <select
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
-                aria-label="Ver los números de un profesional"
+                aria-label={`Ver los números de ${w.un("profesional")}`}
               >
-                <option value="">Todo el consultorio</option>
+                <option value="">{`Todo ${w.el("lugar")}`}</option>
                 {data.professionals.map((professional) => (
                   <option key={professional.email} value={professional.email}>
                     {professional.surname}, {professional.name}
@@ -218,7 +222,7 @@ export function OfficeAnalyticsPage() {
           )}
           <Kpi
             lead={!month.rent}
-            label={month.rent ? "Cobrado por turnos" : "Cobrado"}
+            label={month.rent ? `Cobrado por ${w.turnos}` : "Cobrado"}
             value={money(month.billed)}
             note={
               month.scheduled > 0 ? (
@@ -250,11 +254,11 @@ export function OfficeAnalyticsPage() {
             />
           )}
           <Kpi label="Asistencias" value={month.assisted} note={averageCount(month.assisted)} />
-          <Kpi label="Cancelados" value={month.cancelled} note={averageCount(month.cancelled)} />
+          <Kpi label={`Cancelad${w.os("turno")}`} value={month.cancelled} note={averageCount(month.cancelled)} />
           <Kpi
-            label="Turnos especiales"
+            label={`${w.Turnos} especiales`}
             value={month.overbooked}
-            note={month.topOverbooker ? `más: ${month.topOverbooker.name} (${month.topOverbooker.count})` : "ninguno"}
+            note={month.topOverbooker ? `más: ${month.topOverbooker.name} (${month.topOverbooker.count})` : `ningun${w.o("turno")}`}
           />
         </KpiGrid>
       </AnalyticsSection>
@@ -262,7 +266,7 @@ export function OfficeAnalyticsPage() {
       {hasRent && (
         <AnalyticsSection title="Alquileres" scope={`Últimos ${total.months} meses cerrados`}>
           <p className="an-note">
-            Lo que pagaron los profesionales por los consultorios, mes a mes, y lo que quedó adeudado de cada mes. La línea
+            Lo que pagaron {w.los("profesional")} por {w.los("sala")}, mes a mes, y lo que quedó adeudado de cada mes. La línea
             punteada es el promedio mensual cobrado.
           </p>
           <StackedBars
@@ -283,7 +287,7 @@ export function OfficeAnalyticsPage() {
 
       <AnalyticsSection title="Facturación" scope={`Últimos ${total.months} meses cerrados`}>
         <p className="an-note">
-          El mes en curso no entra en los gráficos hasta que termine. La línea punteada es el promedio mensual del consultorio:
+          El mes en curso no entra en los gráficos hasta que termine. La línea punteada es el promedio mensual {w.del("lugar")}:
           sirve para ver de un vistazo qué meses quedaron arriba y cuáles abajo.
         </p>
         <StackedBars
@@ -295,17 +299,17 @@ export function OfficeAnalyticsPage() {
               ? { value: total.billed / total.months, label: `promedio mensual · ${money(total.billed / total.months)}` }
               : undefined
           }
-          empty="Todavía no hay meses cerrados con turnos cobrados."
+          empty={`Todavía no hay meses cerrados con ${w.turnos} cobrad${w.os("turno")}.`}
         />
         <ChartLegend bands={BILLING_BANDS} columns={billingColumns} />
       </AnalyticsSection>
 
-      <AnalyticsSection title="De dónde salen los turnos" scope={`Últimos ${total.months} meses cerrados`}>
+      <AnalyticsSection title={`De dónde salen ${w.los("turno")}`} scope={`Últimos ${total.months} meses cerrados`}>
         <StackedBars
           bands={ORIGIN_BANDS}
           columns={originColumns}
           format={(value) => String(Math.round(value))}
-          empty="Todavía no hay meses cerrados con turnos."
+          empty={`Todavía no hay meses cerrados con ${w.turnos}.`}
         />
         <ChartLegend bands={ORIGIN_BANDS} columns={originColumns} />
       </AnalyticsSection>
@@ -317,36 +321,36 @@ export function OfficeAnalyticsPage() {
           )}
           <Kpi
             lead={!hasRent}
-            label={hasRent ? "Cobrado por turnos" : "Cobrado"}
+            label={hasRent ? `Cobrado por ${w.turnos}` : "Cobrado"}
             value={money(total.billed)}
             note={average(total.billed)}
           />
           <Kpi label="Asistencias" value={total.assisted} note={averageCount(total.assisted)} />
-          <Kpi label="Turnos cancelados" value={total.cancelled} note={averageCount(total.cancelled)} />
+          <Kpi label={`${w.Turnos} cancelad${w.os("turno")}`} value={total.cancelled} note={averageCount(total.cancelled)} />
           <Kpi
-            label="Turnos especiales"
+            label={`${w.Turnos} especiales`}
             value={total.overbooked}
-            note={total.topOverbooker ? `más: ${total.topOverbooker.name} (${total.topOverbooker.count})` : "ninguno"}
+            note={total.topOverbooker ? `más: ${total.topOverbooker.name} (${total.topOverbooker.count})` : `ningun${w.o("turno")}`}
           />
           <Kpi
-            label="Cargados a mano"
+            label={`Cargad${w.os("turno")} a mano`}
             value={total.fromProfessional}
             note={
               total.imported > 0
-                ? `${total.imported} importados de un calendario`
+                ? `${total.imported} importad${w.os("turno")} de un calendario`
                 : total.unknownOrigin > 0
                   ? `${total.unknownOrigin} sin dato de origen`
                   : averageCount(total.fromProfessional)
             }
           />
-          <Kpi label="Sacados por la app" value={total.fromApp} note={averageCount(total.fromApp)} />
+          <Kpi label={`Sacad${w.os("turno")} por la app`} value={total.fromApp} note={averageCount(total.fromApp)} />
           <Kpi
-            label="Pacientes con más de un profesional"
+            label={`${w.Pacientes} con más de ${w.un("profesional")}`}
             value={total.sharedPatients}
-            note={`sobre ${total.patients} pacientes distintos`}
+            note={`sobre ${total.patients} ${w.pacientes} distint${w.os("paciente")}`}
           />
           <Kpi
-            label="Turnos por día"
+            label={`${w.Turnos} por día`}
             value={decimal(total.averagePerDay)}
             note={
               total.busiestDay

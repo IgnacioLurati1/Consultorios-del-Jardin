@@ -1,3 +1,5 @@
+import { currentInstallation, currentWords } from "../../lib/installation.ts";
+
 interface Named {
   name?: string;
   surname?: string;
@@ -14,19 +16,20 @@ interface Named {
  * la app puede aportar es no obligar a arrancar de una hoja en blanco.
  */
 function draft(patient: Named, professional?: Named): { subject: string; body: string } {
+  const w = currentWords();
   const greeting = patient.name ? `Hola ${patient.name}, ¿cómo estás?` : "Hola, ¿cómo estás?";
   const signature = [professional?.name, professional?.surname].filter(Boolean).join(" ").trim();
 
   const body = [
     greeting,
     "",
-    "Te escribo de Consultorios del Jardín por tu turno.",
+    `Te escribo de ${currentInstallation().name} por tu ${w.turno}.`,
     "",
     "",
     ...(signature ? [signature] : []),
   ].join("\n");
 
-  return { subject: "Consultorios del Jardín", body };
+  return { subject: currentInstallation().name, body };
 }
 
 /** Link para escribirle al paciente desde Gmail, con el mensaje ya empezado. */

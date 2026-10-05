@@ -3,6 +3,8 @@ import { FaPlus } from "react-icons/fa6";
 import { readCookie, writeCookie } from "../../lib/cookies.ts";
 import { TECLA_ALT, TECLA_MOD } from "../../lib/shortcuts.ts";
 import { useSimpleText } from "../../lib/textMode.ts";
+import { useWords } from "../../lib/installation.ts";
+import type { Words } from "../../lib/vocabulary.ts";
 import "./shortcuts.css";
 
 const COOKIE = "atajos-abiertos";
@@ -25,36 +27,36 @@ interface Atajo {
   sobreTurno?: boolean;
 }
 
-const atajos: Atajo[] = [
+const armarAtajos = (w: Words): Atajo[] => [
   {
     teclas: [TECLA_ALT, "T"],
-    titulo: "Nuevo turno",
-    descripcion: "Abre la ventana para cargar un turno desde cualquier pantalla.",
+    titulo: `Nuev${w.o("turno")} ${w.turno}`,
+    descripcion: `Abre la ventana para cargar ${w.un("turno")} desde cualquier pantalla.`,
   },
   {
     teclas: [TECLA_ALT, "P"],
-    titulo: "Nuevo paciente",
-    descripcion: "Abre la ventana para cargar un paciente desde cualquier pantalla.",
+    titulo: `Nuev${w.o("paciente")} ${w.paciente}`,
+    descripcion: `Abre la ventana para cargar ${w.un("paciente")} desde cualquier pantalla.`,
   },
   {
     teclas: [TECLA_MOD, "Z"],
     titulo: "Deshacer",
     descripcion: "Revierte la última acción y muestra cómo quedó.",
-    nota: "Disponible mientras se siga en la misma pantalla. Al salir, el cambio queda definitivo. La cancelación de un turno no se deshace.",
+    nota: `Disponible mientras se siga en la misma pantalla. Al salir, el cambio queda definitivo. La cancelación de ${w.un("turno")} no se deshace.`,
   },
   {
     teclas: ["Click derecho"],
     titulo: "Cambiar el estado",
     descripcion: "Pendiente pasa a Confirmado, Confirmado a Asistió, Asistió a No vino, y desde ahí van y vienen.",
-    nota: "Confirmar le manda el mail al paciente. Deshacerlo devuelve el turno a Pendiente, pero el mail ya salió.",
+    nota: `Confirmar le manda el mail ${w.al("paciente")}. Deshacerlo devuelve ${w.el("turno")} a Pendiente, pero el mail ya salió.`,
     sobreTurno: true,
   },
   {
     teclas: ["Retroceso"],
     tambien: ["Supr"],
-    titulo: "Cancelar el turno",
-    descripcion: "Lo cancela, salvo que ya figure como asistido.",
-    nota: "Pregunta antes de hacerlo, y al paciente le llega un mail avisándole.",
+    titulo: `Cancelar ${w.el("turno")}`,
+    descripcion: `${w.lo("turno") === "la" ? "La" : "Lo"} cancela, salvo que ya figure como asistid${w.o("turno")}.`,
+    nota: `Pregunta antes de hacerlo, y ${w.al("paciente")} le llega un mail avisándole.`,
     sobreTurno: true,
   },
 ];
@@ -81,6 +83,7 @@ function Teclas({ teclas }: { teclas: string[] }) {
  * decir "ya está, los aprendí", y eso tiene que durar.
  */
 export function ShortcutsPanel() {
+  const w = useWords();
   const [simple] = useSimpleText();
   const [abierto, setAbierto] = useState(() => readCookie(COOKIE) !== "0");
 
@@ -114,7 +117,7 @@ export function ShortcutsPanel() {
           <div className="adm-collapsible-inner">
             <div className="adm-panel" inert={!abierto}>
               <ul className="atajos-lista">
-                {atajos.map((atajo) => (
+                {armarAtajos(w).map((atajo) => (
                   <li className="atajo" key={atajo.titulo}>
                     <span className="atajo-combo">
                       <Teclas teclas={atajo.teclas} />
@@ -132,7 +135,7 @@ export function ShortcutsPanel() {
                     <span className="atajo-texto">
                       <span className="atajo-titulo">
                         {atajo.titulo}
-                        {atajo.sobreTurno && <span className="atajo-donde">sobre un turno</span>}
+                        {atajo.sobreTurno && <span className="atajo-donde">sobre {w.un("turno")}</span>}
                       </span>
                       {!simple && <span className="atajo-desc">{atajo.descripcion}</span>}
                       {atajo.nota && <span className="atajo-nota">{atajo.nota}</span>}

@@ -1,5 +1,6 @@
 import api from "../../../axios";
 import type {Room} from "../../types.ts"
+import { currentWords } from "../../../lib/installation.ts";
 
 interface DBRoom {
     id_room: string;
@@ -25,7 +26,7 @@ export function findAllActiveRooms(): Promise<Room[]>{
 
 export function createRoom(newRoom: { description: string; office: string }): Promise<Room | undefined>{
     if (!newRoom.description.trim() || !newRoom.office) {
-        throw new Error('Se necesitan los campos necesarios para crear un consultorio');
+        throw new Error(`Se necesitan los campos necesarios para crear ${currentWords().un("sala")}`);
     }
 
     return api.post('/Rooms', {
@@ -57,7 +58,7 @@ export function removeRoom(id: string): Promise<boolean>{
 
 export function updateRoom(updatedRoom: { idRoom: string; description: string; office: string} , active: boolean):Promise<Room | undefined | void>{
     if(!updatedRoom.description.trim() || !updatedRoom.office){
-        throw new Error('Se necesitan los campos necesarios para modificar un consultorio');
+        throw new Error(`Se necesitan los campos necesarios para modificar ${currentWords().un("sala")}`);
     }
 
     if(active){

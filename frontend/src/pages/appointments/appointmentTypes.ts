@@ -1,4 +1,5 @@
 import type { Office, PaymentState, Person } from "../types.ts";
+import { currentInstallation, currentWords } from "../../lib/installation.ts";
 
 /** Slot libre devuelto por /appointments/getAppointments (ya no tiene tipo de turno). */
 export type partialAppointment = { date: Date; initialHour: string; finalHour: string };
@@ -27,7 +28,8 @@ export interface confirmAppointmentModalProps {
  */
 export function bookingBlockedFor(type: string | undefined): string | null {
   if (type === "admin") {
-    return "Las cuentas de administración solo consultan agendas. Para solicitar un turno hace falta una cuenta de paciente.";
+    const w = currentWords();
+    return `Las cuentas de administración solo consultan agendas. Para solicitar ${w.un("turno")} hace falta una cuenta de ${w.paciente}.`;
   }
 
   return null;
@@ -69,8 +71,15 @@ export function isOwnBooking(appointment: { patient?: Person | null }, user: Pic
    Baja del turno hecha por el paciente.
    ============================================================ */
 
-/** Debajo de esto la baja se marca aparte. Es lo que separa avisar de avisar tarde. */
-export const SHORT_NOTICE_HOURS = 24;
+/**
+ * Debajo de cuántas horas la baja se marca aparte. Es lo que separa avisar de avisar tarde.
+ *
+ * Lo decide el consultorio y llega del servidor (ver lib/installation). Antes de que llegue
+ * vale veinticuatro, que es lo que estaba escrito.
+ */
+export function shortNoticeHours(): number {
+  return currentInstallation().rules.shortNoticeHours;
+}
 
 /**
  * Cuándo dio de baja el paciente el turno, y con cuánta anticipación.
@@ -101,7 +110,7 @@ export function cancellationNotice(appointment: {
   start.setHours(hour, minute ?? 0, 0, 0);
 
   const hours = (start.getTime() - at.getTime()) / 3_600_000;
-  return { at, hours, short: hours < SHORT_NOTICE_HOURS };
+  return { at, hours, short: hours < shortNoticeHours() };
 }
 
 /** "12/9 a las 14:30", que es como se lee una baja en pantalla. */
@@ -185,17 +194,19 @@ export function stateTone(state: string): StateTone {
 }
 
 export function describeState(state: string): { label: string; className: string } {
+  const w = currentWords();
+
   switch (state) {
     case "pending":
       return { label: "Pendiente", className: "adm-badge adm-badge-amber" };
     case "accepted":
-      return { label: "Confirmado", className: "adm-badge adm-badge-green" };
+      return { label: `Confirmad${w.o("turno")}`, className: "adm-badge adm-badge-green" };
     case "assisted":
       return { label: "Asistió", className: "adm-badge adm-badge-grey" };
     case "missed":
       return { label: "No vino", className: "adm-badge adm-badge-red" };
     default:
-      return { label: "Cancelado", className: "adm-badge adm-badge-grey" };
+      return { label: `Cancelad${w.o("turno")}`, className: "adm-badge adm-badge-grey" };
   }
 }
 

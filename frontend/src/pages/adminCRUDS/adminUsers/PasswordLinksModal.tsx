@@ -4,6 +4,7 @@ import { Modal } from "../../../components/modal/Modal.tsx";
 import { SkeletonList } from "../../../components/skeleton/Skeleton.tsx";
 import { findProfessionalPasswords, sendPasswordMails, type ProfessionalPassword } from "./usersService";
 import "./passwordLinks.css";
+import { useWords } from "../../../lib/installation.ts";
 
 /** "2026-09-12T..." → "12 de septiembre". El año solo si no es el de hoy. */
 function shortDay(iso: string): string {
@@ -27,6 +28,7 @@ function shortDay(iso: string): string {
  * figura como sin cambio.
  */
 export function PasswordLinksModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const w = useWords();
   const [rows, setRows] = useState<ProfessionalPassword[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,11 @@ export function PasswordLinksModal({ open, onClose }: { open: boolean; onClose: 
       const result = await sendPasswordMails([...selected]);
 
       if (result.sent.length > 0)
-        toast.success(result.sent.length === 1 ? "Mail enviado a 1 profesional" : `Mails enviados a ${result.sent.length} profesionales`);
+        toast.success(
+          result.sent.length === 1
+            ? `Mail enviado a 1 ${w.profesional}`
+            : `Mails enviados a ${result.sent.length} ${w.profesionales}`
+        );
       if (result.failed.length > 0) {
         setError(`No salió el mail a ${result.failed.join(", ")}. Probá de nuevo en un rato.`);
         setSelected(new Set(result.failed));
@@ -95,7 +101,7 @@ export function PasswordLinksModal({ open, onClose }: { open: boolean; onClose: 
       onClose={busy ? () => {} : onClose}
       size="lg"
       title="Cambio de contraseña"
-      subtitle="Profesionales habilitados"
+      subtitle={`${w.Profesionales} habilitad${w.os("profesional")}`}
       footer={
         <>
           <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose} disabled={busy}>
@@ -118,7 +124,7 @@ export function PasswordLinksModal({ open, onClose }: { open: boolean; onClose: 
         {!rows ? (
           !error && <SkeletonList rows={4} />
         ) : rows.length === 0 ? (
-          <p className="adm-confirm-note">Todavía no hay profesionales habilitados.</p>
+          <p className="adm-confirm-note">{`Todavía no hay ${w.profesionales} habilitad${w.os("profesional")}.`}</p>
         ) : (
           <>
             <div className="pwl-actions">

@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 import type { Person } from "../../pages/types.ts";
+import { useWords } from "../../lib/installation.ts";
 import "./patientPicker.css";
 
 const normalize = (text: string) =>
@@ -43,6 +44,7 @@ interface PatientPickerProps {
  * "gomez" tiene que encontrar a Gómez.
  */
 export function PatientPicker({ patients, value, onChange, placeholder }: PatientPickerProps) {
+  const w = useWords();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   /** Cuál de los resultados está marcado, para poder elegirlo con Enter. */
@@ -176,7 +178,12 @@ export function PatientPicker({ patients, value, onChange, placeholder }: Patien
         />
 
         {selected && (
-          <button type="button" className="patient-picker-clear" onClick={clear} aria-label="Sacar al paciente elegido">
+          <button
+            type="button"
+            className="patient-picker-clear"
+            onClick={clear}
+            aria-label={`Sacar ${w.al("paciente")} elegid${w.o("paciente")}`}
+          >
             <FaXmark />
           </button>
         )}
@@ -185,9 +192,13 @@ export function PatientPicker({ patients, value, onChange, placeholder }: Patien
       {open && (
         <ul className="patient-picker-list" id={listId} role="listbox" ref={listRef}>
           {patients.length === 0 ? (
-            <li className="patient-picker-empty">Todavía no hay pacientes cargados.</li>
+            <li className="patient-picker-empty">
+              Todavía no hay {w.pacientes} cargad{w.os("paciente")}.
+            </li>
           ) : shown.length === 0 ? (
-            <li className="patient-picker-empty">Ningún paciente coincide con lo que escribiste.</li>
+            <li className="patient-picker-empty">
+              {w.o("paciente") === "a" ? "Ninguna" : "Ningún"} {w.paciente} coincide con lo que escribiste.
+            </li>
           ) : (
             <>
               {shown.map((patient, index) => (

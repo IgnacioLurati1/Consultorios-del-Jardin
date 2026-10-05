@@ -17,6 +17,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { getDecodedToken } from "../../../pages/commonServices";
 import "./LateralMenu.css";
+import { useOfficeName } from "../../../lib/installation.ts";
 
 type LateralMenuItem = {
   faviconName: string;
@@ -46,6 +47,7 @@ const iconMap: Record<string, IconDefinition> = {
 };
 
 export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
+  const officeName = useOfficeName();
   const logo = useLogo("padded");
   const decodedToken = isOpen ? getDecodedToken() : null;
   const currentUserType = decodedToken ? decodedToken.type : "guest";
@@ -55,7 +57,7 @@ export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
   return (
     <nav className={`lateral-menu ${isOpen ? "open" : "closed"}`} aria-hidden={!isOpen}>
       <div className="lateral-menu-head">
-        <img src={logo} alt="Consultorios del Jardín" className="lateral-menu-logo" />
+        <img src={logo} alt={officeName} className="lateral-menu-logo" />
         <button type="button" className="lateral-menu-close" onClick={onClose} aria-label="Cerrar menú">
           <FaXmark />
         </button>
@@ -74,7 +76,7 @@ export function LateralMenu({ isOpen, items, onClose }: LateralMenuProps) {
         ))}
       </div>
 
-      <p className="lateral-menu-foot">Consultorios del Jardín</p>
+      <p className="lateral-menu-foot">{officeName}</p>
     </nav>
   );
 }

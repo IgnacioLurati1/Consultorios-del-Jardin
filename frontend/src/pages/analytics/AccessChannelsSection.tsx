@@ -1,11 +1,12 @@
 import { Kpi, KpiGrid, AnalyticsSection } from "./Kpi.tsx";
 import type { AccessChannels } from "./analyticsService.ts";
+import { currentWords } from "../../lib/installation.ts";
 
-const ROLE_LABELS: Record<string, string> = {
-  client: "Pacientes",
-  professional: "Profesionales",
-  admin: "Administración",
-};
+/** Función y no lista fija: los nombres salen de las palabras del rubro. */
+function roleLabels(): Record<string, string> {
+  const w = currentWords();
+  return { client: w.Pacientes, professional: w.Profesionales, admin: "Administración" };
+}
 
 /**
  * Las cuatro situaciones posibles de una cuenta. Suman el total, así que la barra se
@@ -89,7 +90,7 @@ export function AccessChannelsSection({ channels }: { channels: AccessChannels }
           <ul className="an-tools an-roles">
             {channels.byRole.map((row) => (
               <li key={row.role} className="an-tool">
-                <span className="an-tool-name">{ROLE_LABELS[row.role] ?? row.role}</span>
+                <span className="an-tool-name">{roleLabels()[row.role] ?? row.role}</span>
                 <span className="an-tool-bar" aria-hidden="true">
                   {SEGMENTS.filter((segment) => row[segment.key] > 0).map((segment) => (
                     <span

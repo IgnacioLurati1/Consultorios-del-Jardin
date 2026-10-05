@@ -9,9 +9,8 @@ import type { Office, Person } from "../../types.ts";
 import { AvailableWeekGrid } from "./AvailableWeekGrid.tsx";
 import { ConfirmAppointmentModal } from "./ConfirmAppointmentModal.tsx";
 import { WaitlistModal } from "../waitlist/WaitlistModal.tsx";
+import { bookingWindowText, hasBranches, useInstallation, useWords } from "../../../lib/installation.ts";
 
-/** Hasta dónde se puede pedir turno: esta semana y la que viene. */
-const WEEKS_AHEAD = 1;
 
 interface ProfessionalScheduleProps {
   professional: Person;
@@ -26,6 +25,7 @@ interface ProfessionalScheduleProps {
  * ir tocando nombres en vez de entrar y salir de una vista.
  */
 export function ProfessionalSchedule({ professional, office, blockedReason }: ProfessionalScheduleProps) {
+  const w = useWords();
   const [slots, setSlots] = useState<partialAppointment[] | null>(null);
   // Aparte de la lista, porque una lista vacía y un error son dos cosas distintas y la
   // pantalla tiene que decirlas distinto. Antes las dos terminaban en "no tiene horarios".
@@ -38,7 +38,14 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
   const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   const firstMonday = useMemo(() => startOfWeek(new Date()), []);
-  const lastMonday = useMemo(() => addDays(firstMonday, WEEKS_AHEAD * 7), [firstMonday]);
+  // Hasta dónde se puede pedir turno. Lo decide el consultorio y es el mismo límite que
+  // controla el servidor al reservar (ver lib/installation).
+  const installation = useInstallation();
+  const { bookingWeeksAhead } = installation.rules;
+  const windowText = bookingWindowText(bookingWeeksAhead);
+  // Con varias sucursales, el subtítulo dice de cuál son estos horarios.
+  const branch = hasBranches(installation) ? ` · ${office.description}` : "";
+  const lastMonday = useMemo(() => addDays(firstMonday, bookingWeeksAhead * 7), [firstMonday, bookingWeeksAhead]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,7 +110,7 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
         )
       );
     } catch (error: any) {
-      toast.error(`Error al solicitar el turno: ${error.message}`);
+      toast.error(`Error al solicitar ${w.el("turno")}: ${error.message}`);
       throw error;
     }
   }
@@ -119,7 +126,8 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
             Horarios de {professional.surname}, {professional.name}
           </h2>
           <p className="booking-schedule-sub">
-            {professional.speciality} · hasta dos semanas en adelante
+            {professional.speciality}
+            {branch} · {windowText.sub}
           </p>
         </div>
       </div>
@@ -154,7 +162,7 @@ export function ProfessionalSchedule({ professional, office, blockedReason }: Pr
         </div>
       ) : bookable.length === 0 ? (
         <div className="adm-panel">
-          <div className="adm-empty">Sin horarios libres en las próximas dos semanas.</div>
+          <div className="adm-empty">Sin horarios libres {windowText.empty}.</div>
         </div>
       ) : (
         <>

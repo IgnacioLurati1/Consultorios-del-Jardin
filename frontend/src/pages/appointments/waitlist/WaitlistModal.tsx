@@ -5,7 +5,8 @@ import { SkeletonLine } from "../../../components/skeleton/Skeleton.tsx";
 import type { Person } from "../../types.ts";
 import { appointmentDate, formatDayLabel } from "../appointmentTypes.ts";
 import { getWaitlistStatus, joinWaitlist, leaveWaitlist, messageOf, type WaitlistStatus } from "./waitlistService.ts";
-import { WEEK_DAYS, blockReason, describeDays, describeDaysTitle, formatMoment, formProblem, hourOptions } from "./waitlistRules.ts";
+import { blockReason, describeDays, describeDaysTitle, formatMoment, formProblem, hourOptions, weekDays } from "./waitlistRules.ts";
+import { useInstallation, useWords } from "../../../lib/installation.ts";
 
 interface WaitlistModalProps {
   open: boolean;
@@ -26,6 +27,8 @@ const HOURS = hourOptions();
  * con lo que sabía hace un rato: con otra pestaña abierta, eso ya puede haber cambiado.
  */
 export function WaitlistModal({ open, onClose, professional }: WaitlistModalProps) {
+  const w = useWords();
+  const pickableDays = weekDays(useInstallation().rules.opensSunday);
   const [status, setStatus] = useState<WaitlistStatus | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -141,8 +144,7 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
     body = (
       <>
         <p className="ui-alert ui-alert-info">
-          Inscripción activa. Si se libera un turno de la franja elegida con más de un día de anticipación, llega un
-          aviso por mail y en la campanita.
+          {`Inscripción activa. Si se libera ${w.un("turno")} de la franja elegida con más de un día de anticipación, llega un aviso por mail y en la campanita.`}
         </p>
 
         <div className="ui-detail-list">
@@ -235,14 +237,13 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
       body = (
         <>
           <p className="waitlist-lead">
-            Días y franja horaria de interés. Si se libera un turno en esa franja con más de un día de anticipación, llega
-            un aviso por mail y en la campanita.
+            {`Días y franja horaria de interés. Si se libera ${w.un("turno")} en esa franja con más de un día de anticipación, llega un aviso por mail y en la campanita.`}
           </p>
 
           <div className="ui-field">
             <span>Días, hasta {status.limits.maxDays}</span>
             <div className="adm-chips waitlist-days" role="group" aria-label="Días de interés">
-              {WEEK_DAYS.map((day) => {
+              {pickableDays.map((day) => {
                 const on = days.includes(day.value);
                 const topped = !on && days.length >= status.limits.maxDays;
 
@@ -290,12 +291,12 @@ export function WaitlistModal({ open, onClose, professional }: WaitlistModalProp
           </div>
 
           <p className={`waitlist-summary ${problem ? "muted" : ""}`}>
-            {problem ?? `Aviso si se libera un turno los ${describeDays(days)} entre las ${fromHour} y las ${toHour}.`}
+            {problem ?? `Aviso si se libera ${w.un("turno")} los ${describeDays(days)} entre las ${fromHour} y las ${toHour}.`}
           </p>
 
           <p className="waitlist-fineprint">
             La inscripción dura {status.limits.lifetimeDays} días o hasta {status.limits.maxNotices} avisos. El aviso llega a
-            todas las personas que esperan ese horario, y el turno queda para quien lo reserve primero.{" "}
+            todas las personas que esperan ese horario, y {w.el("turno")} queda para quien {w.lo("turno")} reserve primero.{" "}
             {remaining === 1 ? "Queda una inscripción este mes." : `Quedan ${remaining} inscripciones este mes.`}
           </p>
 

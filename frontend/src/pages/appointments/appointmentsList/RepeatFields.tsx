@@ -1,5 +1,6 @@
 import type { RecurrenceFrequency } from "../../types.ts";
 import { FREQUENCY_LABELS } from "../recurrencesService.ts";
+import { useWords } from "../../../lib/installation.ts";
 
 interface RepeatFieldsProps {
   frequency: RecurrenceFrequency;
@@ -32,12 +33,14 @@ export function RepeatFields({
   onUntil,
   minDate,
   name = "repeat-end",
-  label = "Repetir este turno",
+  label,
 }: RepeatFieldsProps) {
+  const w = useWords();
+
   return (
     <>
       <label className="ui-field">
-        <span>{label}</span>
+        <span>{label ?? `Repetir ${w.este("turno")}`}</span>
         <select value={frequency} onChange={(e) => onFrequency(e.target.value as RecurrenceFrequency)}>
           {(Object.keys(FREQUENCY_LABELS) as RecurrenceFrequency[]).map((key) => (
             <option key={key} value={key}>
@@ -45,7 +48,7 @@ export function RepeatFields({
             </option>
           ))}
         </select>
-        <small>Mismo horario, mismo consultorio y mismo paciente, hasta cuatro semanas para adelante.</small>
+        <small>{`Mismo horario, mism${w.o("sala")} ${w.sala} y mism${w.o("paciente")} ${w.paciente}, hasta cuatro semanas para adelante.`}</small>
       </label>
 
       <div className="ui-field">
@@ -64,7 +67,7 @@ export function RepeatFields({
         {!forever && <input type="date" value={until} min={minDate} onChange={(e) => onUntil(e.target.value)} />}
 
         <small>
-          {forever ? "Se repite hasta que la frenes a mano." : "Ese día es el último en el que se puede crear un turno."}
+          {forever ? "Se repite hasta que la frenes a mano." : `Ese día es el último en el que se puede crear ${w.un("turno")}.`}
         </small>
       </div>
     </>

@@ -5,6 +5,7 @@ import { Toasts } from "../../components/toast/Toasts.tsx";
 import api from "../../axios.ts";
 import { useLogo } from "../../lib/useLogo";
 import "./passwordPages.css";
+import { useOfficeName } from "../../lib/installation.ts";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,6 +17,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * averiguar quién tiene cuenta acá.
  */
 export function RecoverPassword() {
+  const officeName = useOfficeName();
   const logo = useLogo();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
@@ -75,7 +77,7 @@ export function RecoverPassword() {
       {/* noValidate: los mensajes los damos nosotros, no el globito del navegador. */}
       <form className="pw-card" onSubmit={submit} noValidate>
         <div className="pw-head">
-          <img src={logo} alt="Consultorios del Jardín" className="pw-logo" />
+          <img src={logo} alt={officeName} className="pw-logo" />
           <h1 className="pw-title">Recuperar contraseña</h1>
           <p className="pw-subtitle">Llega un link por mail para elegir una nueva.</p>
         </div>

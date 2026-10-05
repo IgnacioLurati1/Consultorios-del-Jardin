@@ -11,8 +11,10 @@ import SearchBar from "../../../components/searchBar/searchBar.tsx";
 import { findAllOffices, createOffice, updateOffice, removeOffice} from "./OfficeService.ts";
 import { findAllActiveCities } from "../adminCities/CityService.ts";
 import { findAllActiveProvinces } from "../adminProvinces/ProvinceService.ts";
+import { currentWords, useWords } from "../../../lib/installation.ts";
 
 export function OfficesAdmin() {
+  const w = useWords();
 
   const [offices, setOffices] = useState<Office[]>([]);
   const [filteredOffices, setFilteredOffices] = useState<Office[]>([]);
@@ -61,7 +63,7 @@ export function OfficesAdmin() {
             setLoading(false); 
               })
         .catch(err => {
-            toast.error(`Error al cargar sucursales: ${err.message}`);
+            toast.error(`Error al cargar ${currentWords().sucursales}: ${err.message}`);
             setLoading(false);
         });
     }, []);
@@ -102,13 +104,18 @@ export function OfficesAdmin() {
       
   }, []);
 
-  async function addOffice(description: string, openingTime: string, closingTime:string, city:string) {
+  async function addOffice(description: string, openingTime: string, closingTime:string, city:string, address: string) {
 
-    const createdOffice = await createOffice( description, openingTime, closingTime, city)
-    if(createdOffice){
-      setOffices([createdOffice, ...offices]);
-      toast.success(`Sucursal creada con éxito`);
-      setModalVisible(false);
+    // Sin esto un rechazo del servidor (una sucursal repetida, por ejemplo) no se veía.
+    try {
+      const createdOffice = await createOffice( description, openingTime, closingTime, city, address)
+      if(createdOffice){
+        setOffices([createdOffice, ...offices]);
+        toast.success(`${w.Sucursal} cread${w.o("sucursal")} con éxito`);
+        setModalVisible(false);
+      }
+    } catch (error) {
+      toast.error(`Error al crear ${w.el("sucursal")}. ${(error as Error).message}`);
     }
   }
 
@@ -116,41 +123,41 @@ export function OfficesAdmin() {
     try{
     if(await removeOffice(id)){
       setOffices(offices.map(office => office.idOffice !== id? office: {...office, active:false}));
-      toast.success(`Sucursal eliminada con éxito`);
+      toast.success(`${w.Sucursal} eliminad${w.o("sucursal")} con éxito`);
       setModalVisible(false);
     }
   } catch (error:any){
-    toast.error(`Error al eliminar la sucursal: ${error.message}`);
+    toast.error(`Error al eliminar ${w.el("sucursal")}: ${error.message}`);
   }
 }
 
-  async function editOffice(id: string, description: string, openingTime: string, closingTime: string, cityId: string, active: boolean){
+  async function editOffice(id: string, description: string, openingTime: string, closingTime: string, cityId: string, active: boolean, address?: string){
     try{
-    const updatedOffice = await updateOffice(id, description, openingTime, closingTime, cityId, active);
+    const updatedOffice = await updateOffice(id, description, openingTime, closingTime, cityId, active, address);
     if(active && updatedOffice){
-      toast.success(`Sucursal modificada con éxito`);
+      toast.success(`${w.Sucursal} modificad${w.o("sucursal")} con éxito`);
       setModalVisible(false);
       setOffices(offices.map(office => office. idOffice !== id? office: updatedOffice));
     } 
       else if(!active){
       setOffices(offices.map(office => office.idOffice !== id? office: {...office, active: true}));
-      toast.success(`Sucursal reactivada con éxito`);
+      toast.success(`${w.Sucursal} reactivad${w.o("sucursal")} con éxito`);
       setModalVisible(false);
     }
   } catch (error:any){
-    toast.error(`Error al modificar la sucursal: ${error.message}`);
+    toast.error(`Error al modificar ${w.el("sucursal")}: ${error.message}`);
   }
 }
     
   return (
         <div className="admin-home">
 
-            <AdminHeader title="Sucursales" subtitle="Sedes, con su horario de apertura y cierre" />
+            <AdminHeader title={w.Sucursales} subtitle="Sedes, con su horario de apertura y cierre" />
             <Toasts />
-            <SearchBar searchHook={setSearchTerm} placeHolderText="Ingrese la descripción de una sucursal" />
+            <SearchBar searchHook={setSearchTerm} placeHolderText={`Ingrese la descripción de ${w.un("sucursal")}`} />
             <div className={!loading ? "crud-grid" : "crud-grid skeleton-loading"}>
               {(!loading && offices.length === 0) ? (
-                    <div className= "no-content"> No hay sucursales cargadas </div>
+                    <div className= "no-content"> {`No hay ${w.sucursales} cargad${w.os("sucursal")}`} </div>
                 ): !loading && (
                 <ul className = "crud-list">
                     {filteredOffices.map(office => (
@@ -167,7 +174,7 @@ export function OfficesAdmin() {
                 </ul>)}   
             </div>
             <div>
-                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyOffice);setModalType("create")}}><strong>Agregar Sucursal</strong><FaPlus /></button>
+                <button className="crud-add-button" onClick={()=>{setModalVisible(true) ; setEditData(emptyOffice);setModalType("create")}}><strong>{`Agregar ${w.Sucursal}`}</strong><FaPlus /></button>
             </div>
             <OfficeModal visible={modalVisible} office={editData} provinces={provinces} cities={cities} onClose={()=> setModalVisible(false)} onEdit={editOffice} onDelete={deleteOffice} onCreate={addOffice} action = {modalType}/>
         </div>

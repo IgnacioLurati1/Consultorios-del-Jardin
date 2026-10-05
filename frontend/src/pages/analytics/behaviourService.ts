@@ -1,4 +1,5 @@
 import api from "../../axios";
+import { currentWords } from "../../lib/installation.ts";
 
 /** Un paciente cuya asistencia quedó por debajo del umbral. No tiene penalización. */
 export interface FlaggedPatient {
@@ -88,36 +89,38 @@ export function findBehaviourReport(): Promise<BehaviourReport> {
  * segundo sería acusar a alguien con un dato que no alcanza.
  */
 export function explainSuspicion(patient: FlaggedPatient): string {
+  const w = currentWords();
   const partes: string[] = [];
   const { falta, tarde } = motivos(patient);
 
   if (falta && patient.rate !== null) {
     const percent = Math.round(patient.rate * 100);
     partes.push(
-      `Asistió al ${percent}% de sus turnos cerrados (${patient.assisted} de ${patient.closed}), con ${patient.missed} ausencias. ` +
-        "Puede ser que reserve y no venga, o que su profesional no esté cargando las asistencias."
+      `Asistió al ${percent}% de sus ${w.turnos} cerrad${w.os("turno")} (${patient.assisted} de ${patient.closed}), con ${patient.missed} ausencias. ` +
+        `Puede ser que reserve y no venga, o que su ${w.profesional} no esté cargando las asistencias.`
     );
   }
 
   if (tarde && patient.lateCancels) {
     partes.push(
-      `Dio de baja ${patient.lateCancels} ${patient.lateCancels === 1 ? "turno" : "turnos"} con menos de un día de aviso, ` +
+      `Dio de baja ${patient.lateCancels} ${patient.lateCancels === 1 ? w.turno : w.turnos} con menos de un día de aviso, ` +
         "que es tiempo que no alcanza para ofrecerle ese horario a otra persona."
     );
   }
 
-  partes.push("No tiene ninguna penalización. Está marcado para que lo mires.");
+  partes.push(`No tiene ninguna penalización. Está marcad${w.o("paciente")} para que ${w.lo("paciente")} mires.`);
   return partes.join(" ");
 }
 
 /** El motivo de la marca, en pocas palabras, para la línea de la lista. */
 export function summarizeSuspicion(patient: FlaggedPatient): string {
+  const w = currentWords();
   const { falta, tarde } = motivos(patient);
 
   if (falta && tarde) return `Asistió al ${Math.round((patient.rate ?? 0) * 100)}% y avisa tarde`;
   // La cantidad va en la línea de abajo, así que acá se dice qué pasa y no cuántas veces.
   if (tarde) return "Da de baja sobre la hora";
-  return `Asistió al ${Math.round((patient.rate ?? 0) * 100)}% de sus turnos`;
+  return `Asistió al ${Math.round((patient.rate ?? 0) * 100)}% de sus ${w.turnos}`;
 }
 
 /** Las cifras del motivo por el que está marcado, y solo esas. */
