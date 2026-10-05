@@ -198,6 +198,61 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       },
     }
   ),
+
+  // ---------- alquileres (solo el admin: igual que la pantalla) ----------
+
+  tool(
+    ["admin"],
+    "get_rent_month",
+    "Ver los alquileres del mes",
+    "Las cuotas de alquiler de los profesionales en un mes: cuánto le toca a cada uno, cuánto pagó, qué saldo le queda, si pagó fuera de término, y los totales del mes. Contesta '¿quién debe alquiler?', '¿cuánto se cobró de alquiler?', '¿pagó Fulano?'. Sin mes, el que corre.",
+    {
+      month: { type: "string", description: "Mes en formato AAAA-MM. Opcional: por defecto el mes en curso. Se puede pedir hasta el mes que viene." },
+      onlyWithBalance: { type: "boolean", description: "true para traer solo a los que todavía deben algo de ese mes. Opcional." },
+    }
+  ),
+
+  tool(
+    ["admin"],
+    "get_rent_detail",
+    "Ver cómo se arma una cuota",
+    "Cómo se calculó la cuota de alquiler de un profesional en un mes: si es un monto fijo o sale de su agenda, qué módulos usa en cada consultorio y día, a qué precio, el ajuste propio y los precios que faltan cargar. Contesta '¿por qué Fulano paga tanto?' o '¿cómo se calcula su alquiler?'.",
+    {
+      professional: { type: "string", description: "Nombre y apellido del profesional, como figura en get_rent_month." },
+      month: { type: "string", description: "Mes en formato AAAA-MM. Opcional: por defecto el mes en curso." },
+    },
+    ["professional"]
+  ),
+
+  tool(
+    ["admin"],
+    "get_room_prices",
+    "Ver los precios de los consultorios",
+    "Lo que cuesta por mes cada consultorio en cada módulo (mañana, tarde y día entero), y lo que ya quedó programado para el mes siguiente si cambia.",
+    {
+      month: { type: "string", description: "Mes en formato AAAA-MM. Opcional: por defecto el mes en curso." },
+    }
+  ),
+
+  tool(
+    ["admin"],
+    "register_rent_payment",
+    "Registrar un pago de alquiler",
+    "Prepara el registro del pago de la cuota de alquiler de un profesional: que pagó todo, que pagó una parte, o borrar un pago cargado por error. NO lo registra todavía: devuelve el resumen para que se lo muestres y le preguntes si confirma.",
+    {
+      professional: { type: "string", description: "Nombre y apellido del profesional, como figura en get_rent_month." },
+      month: { type: "string", description: "Mes de la cuota, en formato AAAA-MM. Opcional: por defecto el mes en curso." },
+      status: {
+        type: "string",
+        enum: ["paid", "partial", "unpaid"],
+        description: "paid si pagó la cuota entera, partial si pagó una parte, unpaid para borrar un pago cargado.",
+      },
+      paidAmount: { type: "number", description: "Solo para partial: cuánto pagó, en pesos y sin puntos." },
+      paidOn: { type: "string", description: "Día en que pagó, en formato AAAA-MM-DD. Opcional: por defecto hoy." },
+    },
+    ["professional", "status"],
+    true
+  ),
 ];
 
 /**
@@ -208,7 +263,7 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
  * turno, la fecha ni el profesional entre el resumen que mostró y lo que se ejecuta.
  */
 const CONFIRM_TOOL = tool(
-  ["client", "professional"],
+  ["client", "professional", "admin"],
   "confirm_action",
     "Confirmar la acción",
   "Ejecuta la acción que quedó pendiente de confirmación. Llamala únicamente cuando la persona ya dijo que sí."

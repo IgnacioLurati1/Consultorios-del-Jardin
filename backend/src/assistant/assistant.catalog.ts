@@ -131,6 +131,13 @@ export const PAGES: Page[] = [
     roles: ["admin"],
   },
   {
+    key: "alquileres",
+    path: "/AdminHome/Alquileres",
+    label: "Ver los alquileres",
+    description: "Cuotas de alquiler de cada profesional y sus pagos. Ahí se cambian los precios de los consultorios, se aplica un aumento, se corrige una cuota y se exporta el mes. Para decir quién pagó o cuánto debe, usá las herramientas de alquiler.",
+    roles: ["admin"],
+  },
+  {
     key: "provincias",
     path: "/AdminHome/ProvincesAdmin",
     label: "Administrar provincias",

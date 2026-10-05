@@ -13,6 +13,8 @@ import { findPage, OFFICE_INFO, type Role } from "./assistant.catalog.js";
 import { cleanReply, dropLinkEcho, rescueLeakedPages, type AssistantLink } from "./assistant.text.js";
 import { findTool, toolsFor } from "./assistant.tools.js";
 import { buildAssistantPrompt, type AppointmentLine } from "./assistant.prompt.js";
+import { RentService, type RentRow } from "../rent/rent.service.js";
+import { BLOCKS, monthKeyOf, type PaymentStatus } from "../rent/rent.rules.js";
 
 export type { AssistantLink } from "./assistant.text.js";
 
@@ -160,6 +162,89 @@ function vaDeNuevo(error: any): boolean {
   return status === undefined || status >= 500;
 }
 
+/** Los pesos como se escriben acá: $58.333. El modelo repite lo que recibe. */
+function pesos(value: number): string {
+  return `$${Math.round(value).toLocaleString("es-AR")}`;
+}
+
+/** El mes que llega del modelo. Acepta también una fecha entera y se queda con el mes. */
+function monthArg(value: unknown): string {
+  return value ? String(value).trim().slice(0, 7) : monthKeyOf();
+}
+
+const RENT_STATUS: Record<PaymentStatus, string> = {
+  paid: "pagó",
+  partial: "pagó una parte",
+  unpaid: "no pagó",
+  none: "sin cuota",
+};
+
+/**
+ * El profesional del que se habla, por su nombre.
+ *
+ * Las herramientas de alquiler no le pasan mails al modelo: con el mail en la mano lo
+ * escribía en la respuesta, al lado de cada nombre. Se busca el nombre entero y, si no
+ * está, el que lo contenga; con dos posibles se pide el nombre completo en vez de elegir.
+ */
+function pickRentRow(rows: RentRow[], wanted: unknown): RentRow {
+  const key = normalize(String(wanted ?? ""));
+  if (!key) throw new Error("Falta de qué profesional se trata");
+
+  const fullName = (row: RentRow) => normalize(`${row.name} ${row.surname}`);
+  const exact = rows.filter((row) => fullName(row) === key);
+  const found = exact.length ? exact : rows.filter((row) => fullName(row).includes(key) || key.includes(normalize(row.surname)));
+
+  if (found.length === 1) return found[0];
+  if (found.length === 0) throw new Error("No encontré a ese profesional entre los alquileres de ese mes");
+  throw new Error(
+    `Hay más de un profesional que coincide: ${found.map((row) => `${row.name} ${row.surname}`.trim()).join(", ")}. Preguntá cuál`
+  );
+}
+
+/**
+ * Cómo se arma una cuota, en palabras.
+ *
+ * Lo mismo que el detalle de la pantalla de alquileres, con los nombres que se leen ahí:
+ * el módulo por su nombre y el horario real, que es lo que explica un monto raro.
+ */
+function describeCharge(row: RentRow) {
+  const b = row.breakdown;
+  const moduleName = (key: string) => BLOCKS.find((block) => block.key === key)?.label ?? key;
+  const span = (from?: string, to?: string) => (from && to ? ` de ${from} a ${to}` : "");
+  const price = (value: number | null) => (value == null ? "sin precio" : pesos(value));
+  const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+  // La explicación ya armada. Con solo las listas, el modelo a veces leía la de módulos y se
+  // salteaba la de horarios sin precio, y contestaba que no había nada más que cobrar.
+  const charged = (b?.blocks.length ?? 0) + (b?.days?.length ?? 0) + (b?.outside?.filter((line) => line.price != null).length ?? 0);
+  const unpriced = b?.missing?.length ?? 0;
+  const resumen =
+    row.kind === "fixed"
+      ? `Paga un monto fijo de ${pesos(row.amount ?? 0)}, que no depende de su agenda.`
+      : row.kind === "blocks"
+        ? `Paga ${pesos(row.amount ?? 0)} por ${plural(charged, "horario", "horarios")} de su agenda.` +
+          (unpriced ? ` Tiene además ${plural(unpriced, "horario que no se cobra", "horarios que no se cobran")} porque falta cargar${unpriced === 1 ? "le" : "les"} el valor.` : "")
+        : "No tiene una regla de alquiler cargada.";
+
+  return {
+    resumen,
+    cuota: row.amount === null ? "sin cuota" : pesos(row.amount),
+    tipo: row.kind === "fixed" ? "monto fijo" : row.kind === "blocks" ? "por los módulos de su agenda" : "sin regla cargada",
+    estimada: row.projected || undefined,
+    estado: RENT_STATUS[row.status],
+    pagado: pesos(row.paidAmount),
+    saldo: pesos(row.pending),
+    modulos: b?.blocks.map((line) => `${line.room}, ${line.day}, ${moduleName(line.block)}${span(line.from, line.to)}: ${price(line.price)}`),
+    diasEnteros: b?.days?.length ? b.days.map((line) => `${line.room}, ${line.day}, día entero${span(line.from, line.to)}: ${price(line.price)}`) : undefined,
+    fueraDeLosModulos: b?.outside?.length
+      ? b.outside.map((line) => `${line.room}, ${line.day}, de ${line.initialHour.slice(0, 5)} a ${line.finalHour.slice(0, 5)}: ${price(line.price)}`)
+      : undefined,
+    sumaAntesDelAjuste: b ? pesos(b.base) : undefined,
+    ajustePropio: b && b.adjust ? `${b.adjust > 0 ? "+" : ""}${(b.adjust / 100).toLocaleString("es-AR")}%` : undefined,
+    faltanPrecios: b?.missing?.length ? b.missing : undefined,
+  };
+}
+
 function hhmm(hour: string): string {
   return String(hour ?? "").slice(0, 5);
 }
@@ -182,6 +267,7 @@ export class AssistantService {
   private analytics = new AnalyticsService();
   private people = new PeopleService();
   private offices = new OfficeService();
+  private rent = new RentService();
 
   /** Los turnos propios, en la forma corta que entiende el prompt. */
   private toLines(appointments: Appointment[], role: Role): AppointmentLine[] {
@@ -247,6 +333,27 @@ export class AssistantService {
       mesEnCurso: { mes: current?.label ?? null, ...this.summarizeMetrics(current) },
       acumulado: { meses: data.total?.months ?? null, ...this.summarizeMetrics(data.total) },
       quienDioMasTurnosEspeciales: data.total?.topOverbooker ?? undefined,
+      // Solo viene en los números del consultorio. Sin esto, "¿cuánto se cobró este mes?"
+      // se contestaba con lo de los turnos y el alquiler no existía.
+      alquilerDelMes: current?.rent
+        ? {
+            cuotas: pesos(current.rent.due),
+            cobrado: pesos(current.rent.collected),
+            pendiente: pesos(current.rent.pending),
+            cuotasConSaldo: current.rent.pendingCount,
+          }
+        : undefined,
+      // Solo cuando el admin mira a un profesional: cómo le viene pagando el alquiler.
+      comoPagaElAlquiler: data.rent
+        ? {
+            vencimiento: `día ${data.rent.dueDay} de cada mes`,
+            mesesMirados: data.rent.months,
+            pagosFueraDeTermino: data.rent.late,
+            ultimoFueraDeTermino: data.rent.lastLate ?? undefined,
+            saldoVencido: pesos(data.rent.owed),
+            diaPromedioDePago: data.rent.averagePaidDay ?? undefined,
+          }
+        : undefined,
     };
   }
 
@@ -425,6 +532,105 @@ export class AssistantService {
           herramientas: usage.herramientas.map((item) => ({ funcion: item.label, veces: item.count })),
           masUsada: usage.masUsada ? { funcion: usage.masUsada.label, veces: usage.masUsada.count } : null,
         };
+      }
+
+      case "get_rent_month": {
+        const data = await this.rent.month(monthArg(args?.month));
+        const rows = data.rows.filter((row) => !args?.onlyWithBalance || row.pending > 0);
+        return {
+          mes: data.label,
+          vence: toLocalDate(data.dueDate),
+          yaVencio: toISODate(new Date()) > data.dueDate,
+          // Dicho en palabras: con solo el booleano, el modelo igual decía "debe" a principio de mes.
+          nota:
+            toISODate(new Date()) > data.dueDate
+              ? undefined
+              : "Todavía no venció: los que no pagaron están en término. Decí que todavía no pagaron, no que deben.",
+          totales: {
+            cuotas: pesos(data.totals.due),
+            cobrado: pesos(data.totals.collected),
+            pendiente: pesos(data.totals.pending),
+            pagaronTodo: data.totals.paid,
+            pagaronUnaParte: data.totals.partial,
+            noPagaron: data.totals.unpaid,
+            fueraDeTermino: data.totals.late,
+            sinCuota: data.totals.withoutAmount,
+          },
+          profesionales: rows.slice(0, MAX_ROWS).map((row) => ({
+            nombre: `${row.name} ${row.surname}`.trim(),
+            cuota: row.amount === null ? "sin cuota" : pesos(row.amount),
+            // La que todavía no está guardada: es lo que saldría con las reglas de hoy.
+            cuotaEstimada: row.projected && row.amount !== null ? true : undefined,
+            pagado: pesos(row.paidAmount),
+            saldo: pesos(row.pending),
+            estado: RENT_STATUS[row.status],
+            pagoEl: row.paidOn ? toLocalDate(row.paidOn) : undefined,
+            fueraDeTermino: row.late || undefined,
+            deshabilitado: row.active ? undefined : true,
+          })),
+          masDeLosQueSeMuestran: rows.length > MAX_ROWS ? rows.length - MAX_ROWS : undefined,
+        };
+      }
+
+      case "get_rent_detail": {
+        const data = await this.rent.month(monthArg(args?.month));
+        const row = pickRentRow(data.rows, args?.professional);
+        return { mes: data.label, profesional: `${row.name} ${row.surname}`.trim(), ...describeCharge(row) };
+      }
+
+      case "get_room_prices": {
+        const data = await this.rent.roomPrices(monthArg(args?.month));
+        const price = (value: number | null | undefined) => (value == null ? "sin precio" : pesos(value));
+        return {
+          mes: data.label,
+          modulos: data.blocks.map((block) => `${block.label}: de ${block.from} a ${block.to}, ${block.hours}`),
+          consultorios: data.rooms.map((room) => {
+            const changes = data.blocks.filter((block) => (room.next as any)[block.key] !== (room.prices as any)[block.key]);
+            return {
+              consultorio: room.room,
+              sucursal: room.office,
+              precios: Object.fromEntries(data.blocks.map((block) => [block.label, price((room.prices as any)[block.key])])),
+              desdeElMesQueViene: changes.length
+                ? Object.fromEntries(changes.map((block) => [block.label, price((room.next as any)[block.key])]))
+                : undefined,
+            };
+          }),
+        };
+      }
+
+      case "register_rent_payment": {
+        const month = monthArg(args?.month);
+        const data = await this.rent.month(month);
+        const row = pickRentRow(data.rows, args?.professional);
+        if (row.amount === null || row.amount <= 0) throw new Error("Ese profesional no tiene cuota cargada en ese mes");
+
+        const status = String(args?.status);
+        const paidOn = args?.paidOn ? String(args.paidOn).slice(0, 10) : toISODate(new Date());
+        if (status !== "unpaid" && paidOn > toISODate(new Date())) throw new Error("La fecha de pago no puede ser posterior a hoy");
+
+        let queda: string;
+        if (status === "paid") queda = `pagó la cuota entera, ${pesos(row.amount)}`;
+        else if (status === "partial") {
+          const amount = Number(args?.paidAmount);
+          if (!(amount > 0)) throw new Error("Falta cuánto pagó");
+          if (amount >= row.amount) throw new Error("Un pago parcial tiene que ser menor que la cuota; si pagó todo, es un pago completo");
+          queda = `pagó ${pesos(amount)} de ${pesos(row.amount)}, le quedan ${pesos(row.amount - amount)}`;
+        } else if (status === "unpaid") queda = "se borra el pago cargado y la cuota vuelve a figurar sin pagar";
+        else throw new Error("Falta decir si pagó todo, una parte, o si hay que borrar el pago");
+
+        const resumen = {
+          profesional: `${row.name} ${row.surname}`.trim(),
+          mes: data.label,
+          cuota: pesos(row.amount),
+          antes: `${RENT_STATUS[row.status]}${row.paidAmount > 0 ? `, ${pesos(row.paidAmount)}` : ""}`,
+          queda,
+          fechaDePago: status === "unpaid" ? undefined : toLocalDate(paidOn),
+        };
+
+        if (!confirmed) return prepare(resumen);
+
+        await this.rent.setPayment(row.email, month, { status, paidAmount: args?.paidAmount, paidOn });
+        return { ok: true, registrado: resumen };
       }
 
       // Lo mismo que ve la pantalla, pero sin el número de cada turno ni el estado en crudo
