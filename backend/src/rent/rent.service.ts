@@ -968,7 +968,11 @@ export class RentService {
       months: judged.length,
       late: late.length,
       lastLate: late.length ? labelOf(late[late.length - 1].month) : null,
-      owed: charges.reduce((sum, charge) => sum + Math.max(0, charge.amount - charge.paidAmount), 0),
+      // Solo lo vencido: la cuota del mes que corre, antes del vencimiento, todavía está en
+      // término, y contarla pintaba de rojo a todos los profesionales los primeros días del mes.
+      owed: charges
+        .filter((charge) => today > dueDate(charge.month, settings.dueDay))
+        .reduce((sum, charge) => sum + Math.max(0, charge.amount - charge.paidAmount), 0),
       averagePaidDay: paidDays.length ? Math.round(paidDays.reduce((sum, day) => sum + day, 0) / paidDays.length) : null,
     };
   }
